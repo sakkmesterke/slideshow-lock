@@ -5,7 +5,7 @@ Owner: sreoperations (Ria). Card: OPS-1. Related decisions: D7, D14, D32, D34.
 Status note (D7/section 9 of the brief): no agent container has a real GNOME/Wayland
 session. Everything below marked "automatable" is testable with the simulated D-Bus
 used by TEST-1/CORE-1. Everything marked "manual-only" can only be verified on
-Attila's hardware (RHEL 10.2, GNOME, Wayland). Where automated tests exist, the
+the reference machine (RHEL 10.2, GNOME, Wayland). Where automated tests exist, the
 correct claim is **"automated tests green, live verification pending"** -- never
 "works" based on simulated-bus results alone.
 
@@ -84,7 +84,7 @@ Automatable (simulated bus / unit-level, no real session needed):
 - D34 WARNING emission under an artificial delay
 - unit file syntax (`systemd-analyze verify`), once PKG-1 delivers the file
 
-Manual-only (Attila's hardware, DOC-2):
+Manual-only (reference machine, DOC-2):
 - actual GNOME/Wayland session lifecycle (real idle detection, real lock,
   real multi-monitor behaviour)
 - real timing of the D34 race under the actual `InhibitDelayMaxSec`
