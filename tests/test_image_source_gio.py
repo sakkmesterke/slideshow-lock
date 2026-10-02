@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import subprocess
 import time
 
 import pytest
@@ -19,6 +20,7 @@ from gi.repository import GLib
 
 from slideshow_lock.image_source import ImageSource, source_from_settings
 from slideshow_lock.settings import Settings
+from tests.timeout_guard import per_test_deadline  # noqa: F401  (autouse fixture)
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 8
 
@@ -178,6 +180,23 @@ def test_gio_criterion6_missing_folder_is_picked_up_when_it_is_created_later(
     assert names(src, folder) == ["late.png"]
 
 
+def _counting_scheduler(stats):
+    """The real GLib idle scheduler, wrapped to count and time every step."""
+    from slideshow_lock.image_source import glib_idle_scheduler
+
+    def scheduler(step):
+        def counted():
+            t0 = time.monotonic()
+            more = step()
+            stats["steps"] += 1
+            stats["longest"] = max(stats["longest"], time.monotonic() - t0)
+            return more
+
+        return glib_idle_scheduler(counted)
+
+    return scheduler
+
+
 def test_gio_criterion2_first_image_arrives_long_before_the_full_walk_on_a_large_tree(
     tmp_path, real_source, capsys
 ):
@@ -189,20 +208,78 @@ def test_gio_criterion2_first_image_arrives_long_before_the_full_walk_on_a_large
                     tmp_path / f"d{i:02d}" / f"s{j:02d}" / f"img{k:03d}.jpg", b"\xff\xd8\xff\xe0"
                 )
                 total += 1
-    src = real_source(tmp_path)
+    stats = {"steps": 0, "longest": 0.0}
+    src = real_source(tmp_path, scheduler=_counting_scheduler(stats), step_budget_seconds=0.005)
     found_at = []
     src.connect_current_changed(lambda _path: found_at.append(time.monotonic()))
     t0 = time.monotonic()
     src.start()
+    wait_for(lambda: len(src) > 0, "the first image", timeout_s=30)
+    steps_at_first = stats["steps"]
+    complete_at_first = src.scan_complete
     wait_for(lambda: src.scan_complete and len(src) == total, "full walk", timeout_s=30)
     t_full = time.monotonic() - t0
     t_first = found_at[0] - t0
     with capsys.disabled():
         print(
-            f"\n[CORE-4 measurement, real GLib main loop] {total} files in 420 folders: "
-            f"first image after {t_first * 1000:.2f} ms, full walk {t_full * 1000:.1f} ms"
+            f"\n[CORE-4 measurement, real GLib main loop] {total} files in 420 folders, step "
+            f"budget 5 ms: first image after {t_first * 1000:.2f} ms (step {steps_at_first}), "
+            f"full walk {t_full * 1000:.1f} ms in {stats['steps']} steps, "
+            f"longest single step {stats['longest'] * 1000:.1f} ms"
         )
+    assert stats["steps"] > 1  # the walk really ran as separate main-loop steps
+    assert stats["steps"] >= 8
+    assert steps_at_first <= stats["steps"] / 3
+    assert not complete_at_first  # the first image was usable while the walk was still going
     assert t_first < t_full / 4
+
+
+def test_gio_criterion3_renamed_subfolder_keeps_its_images(tmp_path, real_source):
+    make_image(tmp_path / "keep.png")
+    make_image(tmp_path / "old" / "x.png")
+    make_image(tmp_path / "old" / "deep" / "y.png")
+    src = started(real_source(tmp_path))
+    assert len(src) == 3
+
+    os.rename(tmp_path / "old", tmp_path / "new")  # DELETED(old) + CREATED(new) from the monitor
+    wait_for(
+        lambda: names(src, tmp_path) == ["keep.png", "new/deep/y.png", "new/x.png"],
+        "images to follow the renamed folder",
+    )
+
+    make_image(tmp_path / "new" / "z.png")  # and the renamed folder is monitored under its new name
+    wait_for(lambda: len(src) == 4, "an image added under the new name")
+    os.remove(tmp_path / "new" / "x.png")
+    wait_for(lambda: len(src) == 3, "an image removed under the new name")
+
+
+def test_gio_criterion4_deleting_the_displayed_image_while_the_walk_is_still_running(
+    tmp_path, real_source
+):
+    total = 0
+    for i in range(20):
+        for j in range(20):
+            for k in range(10):
+                make_image(
+                    tmp_path / f"d{i:02d}" / f"s{j:02d}" / f"img{k:03d}.jpg", b"\xff\xd8\xff\xe0"
+                )
+                total += 1
+    src = real_source(tmp_path, step_budget_seconds=0.005)
+    src.start()
+    wait_for(lambda: len(src) >= 2, "two images while the walk runs")
+    assert not src.scan_complete, "precondition: the walk must still be running"
+    shown = src.current()
+    changes = []
+    src.connect_current_changed(changes.append)
+
+    os.remove(shown)
+    wait_for(lambda: shown not in src.images(), "the displayed image to be dropped")
+    assert src.current() is not None and src.current() != shown
+    assert changes and changes[0] != shown
+
+    wait_for(lambda: src.scan_complete, "the walk to finish", timeout_s=30)
+    assert shown not in src.images()  # the deleted file did not sneak back in
+    assert len(src) == total - 1
 
 
 def test_gio_settings_picture_folder_and_order_changes_apply_without_restart(tmp_path):
@@ -226,3 +303,117 @@ def test_gio_settings_picture_folder_and_order_changes_apply_without_restart(tmp
         assert sorted(names(src, two)) == ["b.png", "c.png"]
     finally:
         src.stop()
+
+
+# -- inotify watch exhaustion on the real kernel and the real Gio ------------------------------
+
+WATCH_LIMIT_FILE = "/proc/sys/fs/inotify/max_user_watches"
+
+
+def _set_watch_limit(value: int):
+    result = subprocess.run(
+        ["sudo", "-n", "sysctl", "-w", f"fs.inotify.max_user_watches={value}"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return result.returncode == 0, (result.stdout + result.stderr).strip()
+
+
+def _pump_for(seconds: float, until=lambda: False) -> None:
+    """Iterate the default GLib main context for up to *seconds* (or until *until()*)."""
+    ctx = GLib.MainContext.default()
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline and not until():
+        while ctx.pending():
+            ctx.iteration(False)
+        time.sleep(0.02)
+
+
+def _read_watch_limit() -> int:
+    with open(WATCH_LIMIT_FILE) as fh:
+        return int(fh.read())
+
+
+def test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes(
+    tmp_path, real_source, caplog, capsys
+):
+    """What really happens when the kernel refuses inotify watches (ENOSPC).
+
+    Lowers ``fs.inotify.max_user_watches`` with sudo, so it only runs on GitHub Actions (a
+    throwaway runner). On a developer machine see the manual trial in docs/image-source.md.
+    Remove or re-gate this test before CI moves to a self-hosted runner: it changes a kernel
+    setting that the other jobs on such a machine share.
+    """
+    if os.environ.get("GITHUB_ACTIONS") != "true":
+        pytest.skip(
+            "lowers a kernel limit with sudo: GitHub Actions only, manual trial is in "
+            "docs/image-source.md"
+        )
+    folders = 60
+    for n in range(folders):
+        make_image(tmp_path / f"d{n:02d}" / "a.png")
+    original = _read_watch_limit()
+    try:
+        ok, output = _set_watch_limit(25)
+        assert ok, f"CI is expected to allow 'sudo -n sysctl': {output}"
+        with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+            src = real_source(tmp_path)
+            src.start()
+            wait_for(lambda: src.scan_complete, "the walk to finish under exhausted watches")
+        walked = len(src)
+        subfolders = [str(tmp_path / f"d{n:02d}") for n in range(folders)]
+        confirmed = [d for d in subfolders if d in src._watches and d not in src._unconfirmed]
+        # which folders still deliver events? Only those the kernel really installed a watch for
+        for n in range(folders):
+            make_image(tmp_path / f"d{n:02d}" / "late.png")
+        _pump_for(3, until=lambda: len(src) >= 2 * folders)
+        late_seen = len(src) - walked
+        limit_lines = [
+            r.message for r in caplog.records if "folder limits or watch problems" in r.message
+        ]
+        other = [
+            r.message
+            for r in caplog.records
+            if r.levelno >= logging.WARNING and "folder limits or watch problems" not in r.message
+        ]
+    finally:
+        restored, restore_output = _set_watch_limit(original)
+        assert restored, f"the inotify limit could not be restored: {restore_output}"
+        assert _read_watch_limit() == original
+    with capsys.disabled():
+        print(
+            f"\n[CORE-4 watch exhaustion, real kernel + Gio] limit 25, {folders} folders: "
+            f"walked {walked} images, {len(confirmed)} subfolders confirmed by the kernel; "
+            f"late images noticed through events: {late_seen} of {folders}; "
+            f"summary lines: {limit_lines}; other warnings: {other}"
+        )
+    assert walked == folders  # exhausted watches never cost an image
+    assert len(confirmed) < folders  # the limit really bit, and the source noticed
+    assert late_seen == len(confirmed)  # exactly the confirmed folders deliver events
+    assert len(limit_lines) == 1 and "no confirmed kernel watch" in limit_lines[0]
+    assert "may recover" in limit_lines[0]
+    assert other == []
+
+
+def test_gio_healthy_tree_gets_every_watch_confirmed_and_no_warning(tmp_path, real_source, caplog):
+    """Negative control for the exhaustion check: with watches to spare the kernel check
+    must stay silent (no false alarm) and every folder must deliver events."""
+    folders = 40
+    for n in range(folders):
+        make_image(tmp_path / f"d{n:02d}" / "a.png")
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src = started(real_source(tmp_path))
+        for n in range(folders):
+            make_image(tmp_path / f"d{n:02d}" / "late.png")
+        _pump_for(5, until=lambda: len(src) >= 2 * folders)
+    assert len(src) == 2 * folders  # every folder delivered its event
+    assert src._unconfirmed == set() and not src._kernel_unconfirmed_all
+    bad = [
+        r.message
+        for r in caplog.records
+        if "folder limits or watch problems" in r.message
+        or "could not confirm" in r.message
+        or "no confirmed kernel watch" in r.message
+    ]
+    assert bad == []
