@@ -54,18 +54,36 @@ becomes empty (`None`). It does not fire for `advance()`.
 - **Limits.** At most `DEFAULT_MAX_DIRECTORIES` (10000) folders are walked and
   `DEFAULT_MAX_WATCHES` (2048) get a monitor (constructor parameters
   `max_directories` / `max_watches`; module constants, not settings). Folders past
-  the walk limit are skipped; folders past the watch limit, or refused a watch by
-  the kernel (`ENOSPC`), are walked once but unwatched: their later changes go
-  unnoticed until restart. Either way ONE summary WARNING is logged when the walk
-  completes, with the counts and the first error. **Gio does not report a refused
-  watch**: `monitor_directory()` succeeds and the monitor simply never fires (no
-  `GLib.Error`; measured on a real kernel, see the manual trial below). The source
-  therefore asks the kernel which watches it really holds (`/proc/self/fdinfo`,
-  Linux only) when the walk completes, and counts the missing ones as unwatched.
-  This is best effort: it makes no claim if `/proc` cannot be read or no folder can
-  be matched, and it only runs at the end of a walk, not on every later change. The per-user kernel limit
+  the walk limit are skipped; folders past the watch limit, or refused by the OS
+  with an error, are walked once but unwatched: their later changes go unnoticed
+  until restart. ONE summary WARNING (`folder limits or watch problems`) is logged
+  when the walk completes, with the counts and the first error. Folders that hit a
+  limit after that summary are logged one by one (first 10 per window, then
+  counted), not only counted.
+- **Kernel watch exhaustion.** The per-user kernel limit
   `fs.inotify.max_user_watches` is shared with the whole session, hence the low
-  default.
+  default. **Gio does not report a refused watch**: `monitor_directory()` succeeds,
+  there is no `GLib.Error`, and the monitor does not fire (measured on a real
+  kernel, see the manual trial below). The source therefore asks the kernel which
+  watches it holds (`/proc/self/fdinfo`, Linux only) when a walk completes:
+  - Folders with no matching kernel watch are reported as "no confirmed kernel
+    watch", and their monitors are **kept**. After a failed `inotify_add_watch`
+    GLib puts the subscription on a "missing" list and retries it every few seconds
+    (`inotify-helper.c`, `inotify-missing.c`, GLib 2.80), so such a folder **may
+    recover by itself**; changes made before that are missed, and the source does
+    not look again until the next walk.
+  - If we hold watches but none of them can be matched (the common case when another
+    application used up the limit before we started), the single WARNING says
+    "could not confirm that the kernel installed the watches". That is an
+    uncertainty, not a failure report: it also happens on a filesystem whose inode
+    numbers differ from what inotify lists.
+  - No claim at all if `/proc` cannot be read.
+  - Known gaps: the watch on the root's parent folder (the one that notices a
+    missing root appearing) is not part of the check. On a tree that crosses
+    filesystems with different device numbering (for example a btrfs subvolume) a
+    valid watch can be counted as missing; the target (RHEL 10, XFS) is not
+    affected. A second exhaustion wave after the walk (more applications taking
+    watches later) is not noticed.
 - **Log volume.** One problem is one line. For unreadable or corrupt images and
   unreadable folders the first 10 lines per 60 s window are logged one by one; the
   rest are counted and reported in one "N more ... not logged one by one" line
@@ -91,16 +109,20 @@ becomes empty (`None`). It does not fire for `advance()`.
 
 ## Manual trial: inotify watch exhaustion
 
-Automated on CI only (`test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes`
+Automated on GitHub Actions only (`test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes`
 lowers the kernel limit with `sudo`, which a developer machine should not do
-unasked). To try it by hand, on a test machine:
+unasked). **Remove or re-gate that test before CI moves to a self-hosted runner:**
+it changes a kernel setting that other jobs on a shared machine would see. The
+healthy-tree counterpart (`test_gio_healthy_tree_gets_every_watch_confirmed_and_no_warning`)
+changes nothing and stays. To try it by hand, on a test machine:
 
 1. `sudo sysctl -w fs.inotify.max_user_watches=25` (note the old value first).
 2. Point the source at a folder with 60 subfolders, each holding an image, and
    start it.
-3. Expect: all 60 images listed, one `[slideshow-dir] folder limits reached ...`
-   WARNING naming the unwatched folders. A file added to an unwatched subfolder is
-   not noticed until restart.
+3. Expect: all 60 images listed, one `[slideshow-dir] folder limits or watch
+   problems ...` WARNING saying how many folders have no confirmed kernel watch
+   (and that they may recover). A file added to such a folder is noticed only if
+   GLib's retry (every few seconds) got the watch installed.
 4. Restore the old value with `sysctl -w`.
 
 ## Tests

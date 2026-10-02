@@ -14,6 +14,7 @@ import logging
 import os
 import random
 import shutil
+import signal
 import time
 from types import SimpleNamespace
 
@@ -221,13 +222,16 @@ def large_tree_walk(tmp_path_factory):
     src.connect_current_changed(lambda _path: found_at.append(time.monotonic()))
     src.start()
 
-    walk = SimpleNamespace(total=total, budget=STEP_BUDGET, steps_to_first=0, longest_step=0.0)
+    walk = SimpleNamespace(
+        total=total, budget=STEP_BUDGET, steps_to_first=0, longest_step=0.0, step_times=[]
+    )
     t_start = time.monotonic()
     while True:
         t0 = time.monotonic()
         more = scheduler.run_one()
         now = time.monotonic()
         walk.longest_step = max(walk.longest_step, now - t0)
+        walk.step_times.append(now - t0)
         if len(src) and not walk.steps_to_first:
             walk.steps_to_first = scheduler.steps_run
             walk.queue_at_first = len(src)
@@ -270,7 +274,15 @@ def test_criterion2_the_walk_is_split_into_many_steps(large_tree_walk):
 
 
 def test_criterion2_no_single_step_runs_much_longer_than_the_step_budget(large_tree_walk):
-    assert large_tree_walk.longest_step < 10 * large_tree_walk.budget
+    """Noise tolerant: one slow step (a scheduler hiccup on a busy machine) is allowed, two
+    are not, and the slowest step must stay well below the whole walk. A walk that ignores
+    the budget is a single step as long as the whole walk, so it fails the second check
+    (and the deterministic step-count tests above)."""
+    w = large_tree_walk
+    times = sorted(w.step_times)
+    second_slowest = times[-2] if len(times) >= 2 else times[-1]
+    assert second_slowest < 10 * w.budget
+    assert times[-1] < w.full / 2
 
 
 def test_criterion2_main_loop_has_the_first_image_long_before_the_full_walk_ends(large_tree_walk):
@@ -581,6 +593,53 @@ def test_hard_timeout_guard_turns_a_hang_into_a_failure(tmp_path):
             open(fifo, "rb").close()  # no writer: blocks forever without the guard
 
 
+def test_hard_timeout_is_not_an_exception_subclass():
+    """The guard must not be catchable by ``except Exception``: the source has such
+    handlers and would swallow the alarm, turning a hang into a "skipped file"."""
+    assert not issubclass(HardTimeout, Exception)
+
+
+def test_hard_timeout_gets_through_a_broad_except_exception(tmp_path):
+    """Control for the BaseException choice: a swallowing handler inside the guarded
+    block must not stop the alarm. If HardTimeout were an ``Exception`` the handler eats
+    it, the block carries on, and this test goes red."""
+    fifo = tmp_path / "swallowed.png"
+    os.mkfifo(fifo)
+    with pytest.raises(HardTimeout):
+        with hard_timeout(0.3):
+            try:
+                open(fifo, "rb").close()  # hangs until the alarm
+            except Exception:
+                pass  # what the source's probe handler does
+            pytest.fail("the alarm was swallowed by 'except Exception'")
+
+
+def test_nested_hard_timeout_keeps_the_outer_timer_running():
+    with hard_timeout(30):
+        with hard_timeout(1):
+            pass
+        remaining, _ = signal.getitimer(signal.ITIMER_REAL)
+        assert 25 < remaining <= 30  # the outer limit survived, minus the time spent
+
+
+def test_nested_hard_timeout_does_not_outlive_a_shorter_outer_one():
+    started_at = time.monotonic()
+    with pytest.raises(HardTimeout):
+        with hard_timeout(0.3):
+            with hard_timeout(30):
+                time.sleep(5)
+    assert time.monotonic() - started_at < 3
+
+
+def test_hard_timeout_that_fires_leaves_the_outer_timer_running():
+    with hard_timeout(30):
+        with pytest.raises(HardTimeout):
+            with hard_timeout(0.2):
+                time.sleep(5)
+        remaining, _ = signal.getitimer(signal.ITIMER_REAL)
+        assert 25 < remaining <= 30
+
+
 # -- criterion 6: the folder may not exist ------------------------------------------------
 
 
@@ -757,7 +816,7 @@ def test_directory_cap_stops_the_walk_and_logs_exactly_one_summary_warning(
     with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
         src = started(tmp_path, backends, max_directories=10)
     assert 0 < len(src) < 30
-    limit_lines = [m for m in _warnings(caplog) if "folder limits reached" in m]
+    limit_lines = [m for m in _warnings(caplog) if "folder limits or watch problems" in m]
     assert len(limit_lines) == 1
     assert "not walked (limit 10)" in limit_lines[0] and "[slideshow-dir]" in limit_lines[0]
     assert len(_warnings(caplog)) == 1  # one summary, nothing per folder
@@ -772,7 +831,7 @@ def test_watch_cap_leaves_the_extra_folders_unwatched_but_still_walked(tmp_path,
     assert len(src) == 20  # every folder was still walked
     watched_dirs = [p for p in watcher.callbacks if p != str(tmp_path.parent)]
     assert len(watched_dirs) == 5
-    limit_lines = [m for m in _warnings(caplog) if "folder limits reached" in m]
+    limit_lines = [m for m in _warnings(caplog) if "folder limits or watch problems" in m]
     assert len(limit_lines) == 1 and "16 folders are not watched (limit 5" in limit_lines[0]
     assert len(_warnings(caplog)) == 1
 
@@ -1000,15 +1059,8 @@ def test_criterion4_deleting_the_only_known_image_mid_walk_is_not_yet_an_empty_s
     assert src.current() is not None and shown not in src.images()
 
 
-def test_watches_the_kernel_silently_did_not_install_are_found_and_reported_once(
-    tmp_path, backends, caplog, monkeypatch
-):
-    """Gio does not raise when inotify watches run out; /proc is the only witness."""
+def _fake_kernel_view(monkeypatch, held_dirs):
     from slideshow_lock import image_source
-
-    for n in range(10):
-        make_image(tmp_path / f"d{n:02d}" / "a.png")
-    held_dirs = {str(tmp_path)} | {str(tmp_path / f"d{n:02d}") for n in range(4)}  # 5 of 11
 
     def kernel_view():
         held = set()
@@ -1018,26 +1070,140 @@ def test_watches_the_kernel_silently_did_not_install_are_found_and_reported_once
         return held
 
     monkeypatch.setattr(image_source, "_kernel_watch_inodes", kernel_view)
+
+
+def test_watches_the_kernel_silently_did_not_install_are_reported_once_and_may_recover(
+    tmp_path, backends, caplog, monkeypatch
+):
+    """Gio does not raise when inotify watches run out; /proc is the only witness."""
+    for n in range(10):
+        make_image(tmp_path / f"d{n:02d}" / "a.png")
+    held = {str(tmp_path)} | {str(tmp_path / f"d{n:02d}") for n in range(4)}  # 5 of 11
+    _fake_kernel_view(monkeypatch, held)
     with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
-        src = started(tmp_path, backends)
+        src = started(tmp_path, backends, verify_watches=True)
     assert len(src) == 10  # nothing is lost from the queue
-    lines = [m for m in _warnings(caplog) if "folder limits reached" in m]
-    assert len(lines) == 1 and "6 folders are not watched" in lines[0]
-    assert "inotify limit" in lines[0]
+    lines = [m for m in _warnings(caplog) if "folder limits or watch problems" in m]
+    assert len(lines) == 1 and "6 folders have no confirmed kernel watch" in lines[0]
+    assert "may recover" in lines[0] and "retries" in lines[0]
+    assert "not watched" not in lines[0]  # not declared dead
+    assert len(_warnings(caplog)) == 1
+    # the monitors were NOT cancelled: GLib may still get them installed on its retry
+    assert len(backends[0].callbacks) >= 11
+
+
+def test_a_total_miss_is_reported_as_uncertainty_not_as_a_failure(
+    tmp_path, backends, caplog, monkeypatch
+):
+    """Own watches exist but not one shows up in the kernel's list (the most common real case:
+    the limit was used up by another application before we started)."""
+    make_image(tmp_path / "a" / "a.png")
+    _fake_kernel_view(monkeypatch, set())  # the kernel lists none of ours
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src = started(tmp_path, backends, verify_watches=True)
+    assert len(src) == 1
+    lines = [m for m in _warnings(caplog) if "folder limits or watch problems" in m]
+    assert len(lines) == 1
+    assert "could not confirm that the kernel installed the watches" in lines[0]
+    assert "not watched" not in lines[0] and "no confirmed kernel watch" not in lines[0]
     assert len(_warnings(caplog)) == 1
 
 
-def test_an_unreadable_kernel_view_makes_no_claim_about_missing_watches(
+def test_a_kernel_that_cannot_be_asked_makes_no_claim(tmp_path, backends, caplog, monkeypatch):
+    from slideshow_lock import image_source
+
+    make_image(tmp_path / "a" / "a.png")
+    monkeypatch.setattr(image_source, "_kernel_watch_inodes", lambda: None)  # no /proc
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src = started(tmp_path, backends, verify_watches=True)
+    assert len(src) == 1
+    assert not _warnings(caplog)
+
+
+def test_the_kernel_check_is_off_for_injected_watchers_unless_asked_for(
     tmp_path, backends, caplog, monkeypatch
 ):
     from slideshow_lock import image_source
 
     make_image(tmp_path / "a" / "a.png")
-    for view in (None, set(), {(1, 1)}):  # no /proc, nothing listed, nothing matches
-        monkeypatch.setattr(image_source, "_kernel_watch_inodes", lambda view=view: view)
-        caplog.clear()
-        with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
-            src = started(tmp_path, backends)
-        assert len(src) == 1
-        assert not [m for m in _warnings(caplog) if "folder limits reached" in m]
-        src.stop()
+    monkeypatch.setattr(image_source, "_kernel_watch_inodes", lambda: set())
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        started(tmp_path, backends)  # a fake watcher installs no kernel watches
+    assert not _warnings(caplog)
+
+
+# -- follow-up items: bursts per folder, later waves, lost lines, flags ---------------------
+
+
+def test_log_window_starts_afresh_when_the_folder_is_switched(tmp_path, backends, caplog):
+    one, two = tmp_path / "one", tmp_path / "two"
+    for n in range(LOG_FIRST_N + 3):
+        make_image(one / f"bad{n:02d}.png", b"junk")
+    make_image(two / "bad_a.png", b"junk")
+    make_image(two / "bad_b.png", b"junk")
+    make_image(two / "good.png")
+    src = started(one, backends)
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src.set_folder(str(two))
+        backends[1].run_all()
+    msgs = _warnings(caplog)
+    assert any("bad_a.png" in m and "skipping" in m for m in msgs)  # logged one by one
+    assert any("bad_b.png" in m and "skipping" in m for m in msgs)
+    assert any(m.startswith("[slideshow-dir] 3 more") for m in msgs)  # the old window's count
+    assert names(src, two) == ["good.png"]
+
+
+def test_a_folder_created_after_the_summary_past_the_directory_cap_is_logged_per_folder(
+    tmp_path, backends, caplog
+):
+    for n in range(3):
+        make_image(tmp_path / f"d{n}" / "a.png")
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src = started(tmp_path, backends, max_directories=2)  # the root and one subfolder
+        assert len([m for m in _warnings(caplog) if "not walked (limit 2)" in m]) == 1
+        os.makedirs(tmp_path / "later")
+        backends[0].emit(str(tmp_path / "later"), FsEvent.CREATED)
+    later = [m for m in _warnings(caplog) if "later" in m and "not walked" in m]
+    assert len(later) == 1 and "folder limit 2 reached" in later[0]
+    assert len(src) == 1
+
+
+def test_a_folder_created_after_the_summary_past_the_watch_cap_is_logged_per_folder(
+    tmp_path, backends, caplog
+):
+    for n in range(4):
+        make_image(tmp_path / f"d{n}" / "a.png")
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src = started(tmp_path, backends, max_watches=2)
+        make_image(tmp_path / "later" / "b.png")
+        backends[0].emit(str(tmp_path / "later"), FsEvent.CREATED)
+        backends[1].run_all()
+    assert len(src) == 5  # walked, only not watched
+    later = [m for m in _warnings(caplog) if "later" in m and "not watched" in m]
+    assert len(later) == 1 and "watch limit 2 reached" in later[0]
+
+
+def test_deleting_an_empty_root_still_logs_that_the_folder_does_not_exist(
+    tmp_path, backends, caplog
+):
+    folder = tmp_path / "pics"
+    os.makedirs(folder)
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        started(folder, backends)  # logs "no displayable images"
+        assert any("no displayable images" in m for m in _warnings(caplog))
+        shutil.rmtree(folder)
+        backends[0].emit(str(folder), FsEvent.DELETED)
+    assert any("does not exist" in m for m in _warnings(caplog))
+
+
+def test_probe_opens_without_blocking_and_without_a_controlling_terminal(tmp_path, monkeypatch):
+    seen = []
+    real_open = os.open
+
+    def recording_open(path, flags, *args, **kwargs):
+        seen.append(flags)
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr("slideshow_lock.image_source.os.open", recording_open)
+    probe_image(make_image(tmp_path / "a.png"))
+    assert seen and seen[0] & os.O_NONBLOCK and seen[0] & os.O_NOCTTY

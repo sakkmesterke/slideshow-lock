@@ -107,7 +107,7 @@ def probe_image(path: str) -> None:
     listing cannot hang the walk (TOCTOU). A stuck network mount can still block
     ``open()`` in the kernel; that is not something this call can prevent.
     """
-    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY | os.O_CLOEXEC)
     try:
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             raise ValueError("not a regular file")
@@ -156,6 +156,12 @@ class _BurstLog:
             _LOG.warning(message, *args)
         else:
             self._suppressed += 1
+
+    def reset(self) -> None:
+        """Report what was counted and start a fresh window (new folder, new start)."""
+        self.flush()
+        self._window_start = None
+        self._emitted = 0
 
     def flush(self) -> None:
         if self._suppressed:
@@ -227,6 +233,7 @@ class ImageSource:
         step_budget_seconds: float = DEFAULT_STEP_BUDGET_SECONDS,
         max_directories: int = DEFAULT_MAX_DIRECTORIES,
         max_watches: int = DEFAULT_MAX_WATCHES,
+        verify_watches: Optional[bool] = None,
     ) -> None:
         self._check_order(order)
         self._root = os.path.abspath(folder)
@@ -238,6 +245,8 @@ class ImageSource:
         self._budget = step_budget_seconds
         self._max_dirs = max_directories
         self._max_watches = max_watches
+        # Asking the kernel which watches exist only makes sense for the real Gio watcher.
+        self._verify_watches = (watcher is None) if verify_watches is None else verify_watches
 
         self._running = False
         self._tree_active = False
@@ -263,9 +272,12 @@ class ImageSource:
         self._dirs_skipped = 0  # folders not walked because of max_directories
         self._unwatched = 0  # walked folders without a monitor (limit or OS refusal)
         self._watch_error: Optional[str] = None  # first reason the OS refused a watch
+        self._unconfirmed: Set[str] = set()  # watched folders the kernel does not list
+        self._kernel_unconfirmed_all = False  # not one of our watches could be matched
         self._limits_reported = False
         self._skipped_images_log = _BurstLog("unreadable or corrupt images")
         self._unreadable_dirs_log = _BurstLog("unreadable folders")
+        self._limits_log = _BurstLog("folders past the limits")  # after the summary was logged
 
     # -- public API ----------------------------------------------------------
 
@@ -296,8 +308,8 @@ class ImageSource:
         self._gen += 1
         self._stop_tree(notify=False)
         self._unwatch_ancestor()
-        self._skipped_images_log.flush()
-        self._unreadable_dirs_log.flush()
+        for burst in (self._skipped_images_log, self._unreadable_dirs_log, self._limits_log):
+            burst.reset()  # a new folder or start gets a fresh window
 
     def set_folder(self, folder: str) -> None:
         """Switch to another folder at runtime (live settings reload)."""
@@ -450,6 +462,7 @@ class ImageSource:
         would then be kept.
         """
         self._stop_tree()
+        self._empty_logged = False  # so the "does not exist" line is not lost
         self._reconcile_root()
 
     def _start_tree(self) -> None:
@@ -458,6 +471,8 @@ class ImageSource:
         self._dirs_skipped = 0
         self._unwatched = 0
         self._watch_error = None
+        self._unconfirmed = set()
+        self._kernel_unconfirmed_all = False
         self._limits_reported = False
         if self._claim_dir(self._root):
             self._root_key = self._dir_keys[self._root]
@@ -511,16 +526,24 @@ class ImageSource:
         return False
 
     def _verify_kernel_watches(self) -> None:
-        """Find monitors the kernel silently did not install, and count them as unwatched.
+        """Compare our folders with the inotify watches the kernel really holds.
 
-        Best effort and conservative: it makes no claim if the kernel cannot be asked,
-        or if none of our folders can be matched at all (a filesystem whose inode
-        numbers differ from what inotify reports).
+        Gio does not report a refused watch, so this is the only way to notice one.
+        The monitors are NOT cancelled when a watch is missing: after a failed
+        ``inotify_add_watch`` GLib keeps the subscription on a "missing" list and retries
+        it every few seconds, so the folder may recover by itself.
+
+        Best effort and conservative: no claim if the kernel cannot be asked. If none of
+        our watches can be matched at all, that is reported as "could not confirm", not as
+        a failure (it also happens on a filesystem whose inode numbers differ from what
+        inotify reports).
         """
-        held = _kernel_watch_inodes()
-        if not held or not self._watches:
+        if not self._verify_watches or not self._watches:
             return
-        missing = []
+        held = _kernel_watch_inodes()
+        if held is None:
+            return
+        missing = set()
         matched = 0
         for path in self._watches:
             key = self._dir_keys.get(path)
@@ -530,20 +553,27 @@ class ImageSource:
             if (kernel_dev, key[1]) in held:
                 matched += 1
             else:
-                missing.append(path)
-        if not missing or not matched:
+                missing.add(path)
+        self._kernel_unconfirmed_all = matched == 0
+        if self._kernel_unconfirmed_all:
             return
-        for path in missing:
-            self._watches.pop(path)()
-        self._unwatched += len(missing)
-        if self._watch_error is None:
-            self._watch_error = (
-                "the kernel installed no watch (inotify limit), Gio does not report it"
-            )
+        if self._limits_reported:  # a later wave: logged per folder, with the burst cap
+            for path in sorted(missing - self._unconfirmed):
+                self._limits_log.warn(
+                    "[slideshow-dir] folder %r has no confirmed kernel watch (inotify limit?)",
+                    path,
+                )
+        self._unconfirmed = missing
 
     def _report_limits(self) -> None:
-        """ONE summary WARNING when a limit was hit or the OS refused watches."""
-        if self._limits_reported or not (self._dirs_skipped or self._unwatched):
+        """ONE summary WARNING when a limit was hit or a watch could not be confirmed."""
+        problem = (
+            self._dirs_skipped
+            or self._unwatched
+            or self._unconfirmed
+            or self._kernel_unconfirmed_all
+        )
+        if self._limits_reported or not problem:
             return
         self._limits_reported = True
         parts = []
@@ -555,8 +585,20 @@ class ImageSource:
                 f"{self._unwatched} folders are not watched (limit {self._max_watches}{reason}), "
                 "changes in them will not be noticed until restart"
             )
+        if self._unconfirmed:
+            parts.append(
+                f"{len(self._unconfirmed)} folders have no confirmed kernel watch (the inotify "
+                "limit was probably reached; GLib retries a refused watch every few seconds, so "
+                "they may recover, but changes made in the meantime are missed)"
+            )
+        if self._kernel_unconfirmed_all:
+            parts.append(
+                "could not confirm that the kernel installed the watches (none of them showed "
+                "up in /proc/self/fdinfo; if the inotify limit is used up, changes will not be "
+                "noticed)"
+            )
         _LOG.warning(
-            "[slideshow-dir] folder limits reached under %r: %s; service keeps running",
+            "[slideshow-dir] folder limits or watch problems under %r: %s; service keeps running",
             self._root,
             "; ".join(parts),
         )
@@ -621,6 +663,12 @@ class ImageSource:
             self._drop_subtree(owner, check_empty=False)
         if len(self._dir_keys) >= self._max_dirs:
             self._dirs_skipped += 1
+            if self._limits_reported:  # the summary is out already: log this one separately
+                self._limits_log.warn(
+                    "[slideshow-dir] folder %r not walked: folder limit %d reached",
+                    path,
+                    self._max_dirs,
+                )
             return False
         self._visited[key] = path
         self._dir_keys[path] = key
@@ -662,6 +710,7 @@ class ImageSource:
             return
         if len(self._watches) >= self._max_watches:
             self._unwatched += 1
+            self._later_unwatched(path, f"watch limit {self._max_watches} reached")
             return
         gen = self._gen
         try:
@@ -670,10 +719,18 @@ class ImageSource:
             cancel = None
             if self._watch_error is None:
                 self._watch_error = str(exc)
+            reason = str(exc)
+        else:
+            reason = "no monitor"
         if cancel is not None:
             self._watches[path] = cancel
         else:
             self._unwatched += 1  # reported once, in the summary
+            self._later_unwatched(path, reason)
+
+    def _later_unwatched(self, path: str, reason: str) -> None:
+        if self._limits_reported:  # the summary is out already: log this one separately
+            self._limits_log.warn("[slideshow-dir] folder %r is not watched (%s)", path, reason)
 
     # -- live changes -----------------------------------------------------------
 
