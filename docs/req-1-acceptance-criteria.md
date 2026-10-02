@@ -15,7 +15,9 @@ Given idle time has reached the configured threshold (default 120 s) AND no appl
 holds an active idle-inhibit AND the session is not locked AND no slideshow is currently
 running,
 When the threshold is reached,
-Then the service starts a fullscreen slideshow sourced from the configured image folder.
+Then the service starts a fullscreen slideshow sourced from the configured image folder
+(verified at the control-layer call, not the rendered output; what appears on screen is
+not claimed by this [AUTO] criterion).
 
 **AC-3.1-2 [MANUAL]** (D15)
 Given the slideshow has started (AC-3.1-1),
@@ -29,7 +31,9 @@ Then exactly one fullscreen slideshow window appears per monitor.
 **AC-3.2-1 [AUTO]**
 Given the slideshow is actively running,
 When the first mouse movement, click, or key press occurs,
-Then the slideshow window closes immediately, independent of any timing calculation.
+Then the slideshow window closes immediately, independent of any timing calculation
+(verified at the control-layer call, not the rendered output; what appears on screen is
+not claimed by this [AUTO] criterion).
 
 **AC-3.2-2 [AUTO]** (D16, D30 — boundary set, strict `<`)
 Given the slideshow has been running for duration `t` seconds since it started, with a
@@ -61,9 +65,9 @@ no slideshow active for any other reason),
 When input occurs,
 Then no lock occurs; the event is treated as an ordinary idle-timer reset only.
 
-> Note: AC-3.3-1/2/3 depend on decision D10 (see "Open items" below) for how the
-> idle-triggered-and-running precondition interacts with 3.5. If D10 is not confirmed as
-> written, these three criteria do not change in themselves — but see AC-3.5-1, which does.
+> Note: AC-3.3-1/2/3 rest on decision D10, which is closed (see "Open items" below). The
+> sleep-triggered lock is an independent trigger, so the idle-triggered-and-running
+> precondition in this section does not apply to it. These three criteria are final as written.
 
 ## 3.4 — Idle-inhibit blocks start (and stops an active slideshow if raised mid-run)
 
@@ -122,10 +126,10 @@ call.
 Given the configured image folder is missing, or exists but contains zero valid image
 files,
 When the idle threshold is reached,
-Then: (i) no slideshow starts; (ii) an error-level log entry is written identifying the
+Then: (i) no slideshow starts; (ii) a WARNING-level log entry is written identifying the
 cause; (iii) the service process keeps running (no crash, no exit).
-(Exact log level/format is OPS-1's deliverable; this criterion only fixes the externally
-observable behavior.)
+(The level follows the OPS-1 logging convention; exact message wording and format are
+OPS-1's deliverable, this criterion only fixes the externally observable behavior.)
 
 ## Out of scope for REQ-1
 
@@ -140,5 +144,11 @@ observable behavior.)
    unconditionally, independent of whether a slideshow was running or how it was started.
    Locking is a standalone safety function, not a side effect of the slideshow. AC-3.5-1 is
    final as written; no revision pending.
-2. **D5 (inhibit stops a running idle slideshow)** — same status, pending confirmation.
-   AC-3.4-2 is written per D5's proposed behavior.
+2. **D5 (inhibit stops a running idle slideshow)** — pending confirmation from the project
+   owner. AC-3.4-2 is written per D5's proposed behavior.
+
+---
+
+Note on identifiers: the D-numbers (such as D5 or D35) and the card labels in this document
+are internal provenance identifiers. Every criterion above is meant to be understood on its
+own, without them.
