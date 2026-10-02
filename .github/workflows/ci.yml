@@ -9,6 +9,9 @@ jobs:
   lint-test:
     name: lint, format, pytest, pot-extract
     runs-on: ubuntu-latest
+    # Longest observed run is ~140 s; 15 min leaves >6x headroom while still
+    # cutting a hung test off far below GitHub's 360 min default.
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,7 +59,25 @@ jobs:
         run: ruff format --check .
 
       - name: pytest
-        run: pytest -q
+        run: pytest -q -rs --junitxml=pytest-junit.xml
+
+      - name: No-skip gate (any skipped test fails the job)
+        run: |
+          # pytest exits 0 when tests are skipped. In CI every test must run:
+          # a skip (missing tool, wrong user, unexpected container) is a silent
+          # loss of coverage, so it is treated as a failure here.
+          python - <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          cases = ET.parse("pytest-junit.xml").getroot().findall(".//testcase")
+          skipped = [c for c in cases if c.find("skipped") is not None]
+          print(f"tests in report: {len(cases)}, skipped: {len(skipped)}")
+          for c in skipped:
+              print(f"::error::skipped: {c.get('classname')}.{c.get('name')}: {c.find('skipped').get('message')}")
+          if not cases or skipped:
+              sys.exit(1)
+          PY
 
       - name: Install gettext (for xgettext)
         run: sudo apt-get update && sudo apt-get install -y gettext
