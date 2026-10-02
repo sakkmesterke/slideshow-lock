@@ -1,6 +1,6 @@
 # D-Bus Layer and State Machine Design (ARCH-1)
 
-Status: design document, no implementation. Owner: solutionarchitect (Robert).
+Status: design document, no implementation. Owner: solution architecture.
 This document does not decide settings storage (tracked separately), does not implement
 the state machine (`CORE-1`), and does not cover the slideshow rendering layer (`CORE-2`).
 
