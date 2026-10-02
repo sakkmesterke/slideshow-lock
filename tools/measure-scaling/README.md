@@ -9,6 +9,7 @@ Measurement scripts behind `docs/measurements/scaling.md`. They are not part of 
 | `prep_c.py`, `load_bench.py`, `rss_one.py` | 24 MP JPEG/PNG decode, scale-on-load, `pamscale`, peak memory |
 | `run-cpu.sh` | runs the whole CPU part |
 | `capture_ngl.py` | renders the GSK texture path with the window's renderer (needs a compositor) |
+| `gl_metrics.py` | quality numbers of the `capture_ngl.py` output (needs `bench.py A` and `B` first) |
 | `sheets.py` | builds the comparison PNG sheets from `out/` |
 | `target_check.py` | on-target check with a real display (see section 8 of the report) |
 
