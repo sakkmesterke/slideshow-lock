@@ -29,11 +29,7 @@ jobs:
             pkg-config \
             gcc \
             python3-dev
-          # D-noskip negative control: PyGObject install deliberately
-          # skipped here to prove the next step fails loudly instead of
-          # letting pytest silently skip the GSettings tests. Restored in
-          # the very next commit on this PR.
-          # pip install PyGObject
+          pip install PyGObject
 
       - name: Verify GI stack is actually usable (anti-silent-skip gate)
         run: |
