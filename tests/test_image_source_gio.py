@@ -320,58 +320,100 @@ def _set_watch_limit(value: int):
     return result.returncode == 0, (result.stdout + result.stderr).strip()
 
 
+def _pump_for(seconds: float, until=lambda: False) -> None:
+    """Iterate the default GLib main context for up to *seconds* (or until *until()*)."""
+    ctx = GLib.MainContext.default()
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline and not until():
+        while ctx.pending():
+            ctx.iteration(False)
+        time.sleep(0.02)
+
+
+def _read_watch_limit() -> int:
+    with open(WATCH_LIMIT_FILE) as fh:
+        return int(fh.read())
+
+
 def test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes(
     tmp_path, real_source, caplog, capsys
 ):
     """What really happens when the kernel refuses inotify watches (ENOSPC).
 
-    Lowers ``fs.inotify.max_user_watches`` with sudo, so it only runs on CI (a throwaway
-    runner). On a developer machine see the manual trial in docs/image-source.md.
+    Lowers ``fs.inotify.max_user_watches`` with sudo, so it only runs on GitHub Actions (a
+    throwaway runner). On a developer machine see the manual trial in docs/image-source.md.
+    Remove or re-gate this test before CI moves to a self-hosted runner: it changes a kernel
+    setting that the other jobs on such a machine share.
     """
-    if not os.environ.get("CI"):
+    if os.environ.get("GITHUB_ACTIONS") != "true":
         pytest.skip(
-            "lowers a kernel limit with sudo: CI only, manual trial is in docs/image-source.md"
+            "lowers a kernel limit with sudo: GitHub Actions only, manual trial is in "
+            "docs/image-source.md"
         )
     folders = 60
     for n in range(folders):
         make_image(tmp_path / f"d{n:02d}" / "a.png")
-    with open(WATCH_LIMIT_FILE) as fh:
-        original = int(fh.read())
-    ok, output = _set_watch_limit(25)
-    assert ok, f"CI is expected to allow 'sudo -n sysctl': {output}"
+    original = _read_watch_limit()
     try:
+        ok, output = _set_watch_limit(25)
+        assert ok, f"CI is expected to allow 'sudo -n sysctl': {output}"
         with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
             src = real_source(tmp_path)
             src.start()
             wait_for(lambda: src.scan_complete, "the walk to finish under exhausted watches")
         walked = len(src)
-        watched = len(src._watches)
-        # characterization: which folders still deliver events? (the kernel refused some watches)
+        subfolders = [str(tmp_path / f"d{n:02d}") for n in range(folders)]
+        confirmed = [d for d in subfolders if d in src._watches and d not in src._unconfirmed]
+        # which folders still deliver events? Only those the kernel really installed a watch for
         for n in range(folders):
             make_image(tmp_path / f"d{n:02d}" / "late.png")
-        ctx = GLib.MainContext.default()
-        deadline = time.monotonic() + 3
-        while time.monotonic() < deadline and len(src) < 2 * folders:
-            while ctx.pending():
-                ctx.iteration(False)
-            time.sleep(0.02)
+        _pump_for(3, until=lambda: len(src) >= 2 * folders)
         late_seen = len(src) - walked
-        limit_lines = [r.message for r in caplog.records if "folder limits reached" in r.message]
+        limit_lines = [
+            r.message for r in caplog.records if "folder limits or watch problems" in r.message
+        ]
         other = [
             r.message
             for r in caplog.records
-            if r.levelno >= logging.WARNING and "folder limits reached" not in r.message
+            if r.levelno >= logging.WARNING and "folder limits or watch problems" not in r.message
         ]
     finally:
-        _set_watch_limit(original)
+        restored, restore_output = _set_watch_limit(original)
+        assert restored, f"the inotify limit could not be restored: {restore_output}"
+        assert _read_watch_limit() == original
     with capsys.disabled():
         print(
             f"\n[CORE-4 watch exhaustion, real kernel + Gio] limit 25, {folders} folders: "
-            f"walked {walked} images, {watched} folders counted as watched after verification; "
+            f"walked {walked} images, {len(confirmed)} subfolders confirmed by the kernel; "
             f"late images noticed through events: {late_seen} of {folders}; "
             f"summary lines: {limit_lines}; other warnings: {other}"
         )
     assert walked == folders  # exhausted watches never cost an image
-    assert watched < folders  # the limit really bit, and the source noticed
-    assert 0 < late_seen < folders  # watched folders still deliver, refused ones do not
-    assert len(limit_lines) == 1
+    assert len(confirmed) < folders  # the limit really bit, and the source noticed
+    assert late_seen == len(confirmed)  # exactly the confirmed folders deliver events
+    assert len(limit_lines) == 1 and "no confirmed kernel watch" in limit_lines[0]
+    assert "may recover" in limit_lines[0]
+    assert other == []
+
+
+def test_gio_healthy_tree_gets_every_watch_confirmed_and_no_warning(tmp_path, real_source, caplog):
+    """Negative control for the exhaustion check: with watches to spare the kernel check
+    must stay silent (no false alarm) and every folder must deliver events."""
+    folders = 40
+    for n in range(folders):
+        make_image(tmp_path / f"d{n:02d}" / "a.png")
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src = started(real_source(tmp_path))
+        for n in range(folders):
+            make_image(tmp_path / f"d{n:02d}" / "late.png")
+        _pump_for(5, until=lambda: len(src) >= 2 * folders)
+    assert len(src) == 2 * folders  # every folder delivered its event
+    assert src._unconfirmed == set() and not src._kernel_unconfirmed_all
+    bad = [
+        r.message
+        for r in caplog.records
+        if "folder limits or watch problems" in r.message
+        or "could not confirm" in r.message
+        or "no confirmed kernel watch" in r.message
+    ]
+    assert bad == []
