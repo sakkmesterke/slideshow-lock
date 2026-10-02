@@ -132,6 +132,44 @@ preferences app's toggle. That toggle needs a real mechanism:
   can exercise failure paths (e.g. unit file missing, permission denied) without a real
   systemd user session.
 
+### 3.8 Unit readiness and `Type=` (answers OPS-1's open question)
+
+`docs/logging-and-lifecycle.md` (OPS-1, section 4) left the unit's `Type=` undecided
+pending this design, on the grounds that it depends on whether a concrete "the service
+is ready" point exists in the D-Bus setup sequence. It does.
+
+- **`Type=notify`**, not `simple`.
+- Readiness point: the service calls `sd_notify("READY=1")` (via `python-systemd`'s
+  `systemd.daemon.notify`, or a raw `$NOTIFY_SOCKET` write if that dependency is rejected
+  later) only after *all* of the following have succeeded, in this order, during startup:
+  1. session bus connection established;
+  2. `IdleWatcher` registered (3.1) and `IdleInhibitionQuery` reachable (3.2);
+  3. `PrepareForSleep` signal subscription active (3.5);
+  4. the initial sleep-delay inhibitor lock acquired (3.6 / D1) — this is the step most
+     likely to fail (e.g. `login1` not present, or `InhibitDelayMaxSec` unreadable), and
+     it is also the one decision whose absence would make pre-sleep locking silently
+     unreliable, so it must gate readiness, not just be logged;
+  5. the state machine has entered its steady state, `IDLE_WATCHING` (section 4).
+- If any of these steps fails, the service does **not** notify readiness. It follows
+  acceptance criterion 4 (section 7): log the specific missing interface at ERROR and
+  exit non-zero, rather than limping on in an undefined state. Under `Type=notify` this
+  surfaces as a `systemd --user` **startup failure** (bounded by `TimeoutStartSec`), which
+  is strictly more informative than `Type=simple` — under `simple`, systemd would mark the
+  unit "active" the moment the process forks, even though the D-Bus setup that makes the
+  service actually do anything had already failed. That gap is exactly what sections 7 and
+  5 of `logging-and-lifecycle.md` (ERROR-level missing-interface logging, manual-only
+  verification) are trying to make visible; `Type=notify` makes it visible to `systemd`
+  itself, not only to the journal.
+- Consequence for `PKG-1` (unit file author) and `OPS-1` (review gate, `systemd-analyze
+  verify`): the unit file needs `Type=notify` and a `TimeoutStartSec` wide enough to cover
+  steps 1-4 above (a fixed value is not proposed here — that is a measurement, not a
+  design decision; see section 9).
+- Consequence for `CORE-1`: the sd_notify call is a startup-sequence detail of the service
+  entry point, not of the state machine itself. It belongs in whatever wires the real
+  adapters together and starts the state machine (`main()`/service bootstrap), after the
+  bootstrap confirms step 4 above, before entering the event loop. The state machine
+  object has no systemd dependency, consistent with section 2.
+
 ## 4. State machine
 
 States:
@@ -251,3 +289,6 @@ automated.
 - Cross-GNOME-version interface differences (the RHEL 9 / GNOME 40 question) are absorbed by
   the capability-probe pattern in section 7, not by a parallel implementation; this document
   takes no position on whether that target ships at all.
+- A concrete `TimeoutStartSec` for the `Type=notify` unit (3.8) is not proposed here — it
+  needs a measured startup time on real hardware, not a guessed constant; owned by `PKG-1`/
+  `OPS-1`.
