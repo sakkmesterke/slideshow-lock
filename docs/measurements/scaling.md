@@ -258,7 +258,7 @@ rpm -q gtk4 gdk-pixbuf2 cairo pixman python3-gobject python3-cairo \
 #    any other line, an error message included, stays visible.
 #    Expected output: only lines starting with python3-numpy- (the control). Any other line is a
 #    finding; no python3-numpy- line means the repository ids are wrong (see: dnf repolist).
-#    The options are the same in DNF 4 (RHEL 10) and DNF 5.
+#    Written for DNF 4 (what RHEL 10 ships); the options used also exist in DNF 5 but it was not tried there.
 dnf -q repoquery --disablerepo='*' \
     --enablerepo=rhel-10-for-x86_64-baseos-rpms --enablerepo=rhel-10-for-x86_64-appstream-rpms \
     'python3-pillow*' 'ImageMagick*' 'vips*' 'opencv*' 'gegl*' python3-numpy 2>&1 \
