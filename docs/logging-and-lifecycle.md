@@ -1,6 +1,6 @@
 # Logging Convention and Service Lifecycle (OPS-1)
 
-Owner: sreoperations (Ria). Card: OPS-1. Related decisions: D7, D14, D32, D34.
+Owner: SRE / operations. Card: OPS-1. Related decisions: D7, D14, D32, D34.
 
 Status note (D7/section 9 of the brief): no agent container has a real GNOME/Wayland
 session. Everything below marked "automatable" is testable with the simulated D-Bus
