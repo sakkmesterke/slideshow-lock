@@ -998,3 +998,46 @@ def test_criterion4_deleting_the_only_known_image_mid_walk_is_not_yet_an_empty_s
         assert not [m for m in _warnings(caplog) if "no displayable images" in m]  # walk not done
         scheduler.run_all()
     assert src.current() is not None and shown not in src.images()
+
+
+def test_watches_the_kernel_silently_did_not_install_are_found_and_reported_once(
+    tmp_path, backends, caplog, monkeypatch
+):
+    """Gio does not raise when inotify watches run out; /proc is the only witness."""
+    from slideshow_lock import image_source
+
+    for n in range(10):
+        make_image(tmp_path / f"d{n:02d}" / "a.png")
+    held_dirs = {str(tmp_path)} | {str(tmp_path / f"d{n:02d}") for n in range(4)}  # 5 of 11
+
+    def kernel_view():
+        held = set()
+        for path in held_dirs:
+            st = os.stat(path)
+            held.add(((os.major(st.st_dev) << 20) | os.minor(st.st_dev), st.st_ino))
+        return held
+
+    monkeypatch.setattr(image_source, "_kernel_watch_inodes", kernel_view)
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+        src = started(tmp_path, backends)
+    assert len(src) == 10  # nothing is lost from the queue
+    lines = [m for m in _warnings(caplog) if "folder limits reached" in m]
+    assert len(lines) == 1 and "6 folders are not watched" in lines[0]
+    assert "inotify limit" in lines[0]
+    assert len(_warnings(caplog)) == 1
+
+
+def test_an_unreadable_kernel_view_makes_no_claim_about_missing_watches(
+    tmp_path, backends, caplog, monkeypatch
+):
+    from slideshow_lock import image_source
+
+    make_image(tmp_path / "a" / "a.png")
+    for view in (None, set(), {(1, 1)}):  # no /proc, nothing listed, nothing matches
+        monkeypatch.setattr(image_source, "_kernel_watch_inodes", lambda view=view: view)
+        caplog.clear()
+        with caplog.at_level(logging.WARNING, logger="slideshow_lock.image_source"):
+            src = started(tmp_path, backends)
+        assert len(src) == 1
+        assert not [m for m in _warnings(caplog) if "folder limits reached" in m]
+        src.stop()
