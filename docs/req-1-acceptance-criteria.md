@@ -73,7 +73,7 @@ reached,
 When the threshold is reached,
 Then the slideshow does NOT start.
 
-**AC-3.4-2 [AUTO]** (D5 — PENDING Attila's confirmation, see "Open items")
+**AC-3.4-2 [AUTO]** (D5 -- PENDING confirmation from the project owner, see "Open items")
 Given an idle-triggered slideshow is currently running,
 When an application raises an idle-inhibit during that run,
 Then the slideshow stops immediately, and the session is NOT locked as a result of this
@@ -81,7 +81,7 @@ stop (inhibit-triggered stop is never a lock trigger).
 
 ## 3.5 — Sleep stops the slideshow and locks (independent trigger)
 
-**AC-3.5-1 [AUTO]** (D1/D10 — PENDING Attila's confirmation, see "Open items")
+**AC-3.5-1 [AUTO]** (D1/D35 -- resolved, independent trigger, no revision pending)
 Given the system is about to suspend (`PrepareForSleep(true)` received while the sleep
 delay-inhibitor is held),
 When this signal is processed,
@@ -136,9 +136,9 @@ observable behavior.)
 
 ## Open items (need a decision before these criteria can be called final)
 
-1. **D10 (3.3 vs 3.5 conflict)** — still marked "pending Attila's confirmation" in the
-   project decision log. AC-3.5-1 is written per D10's proposed resolution (sleep-lock is
-   an independent trigger). If Attila decides differently, AC-3.5-1 and the "independent
-   trigger" note under AC-3.3 must be revised.
+1. **D10 (3.3 vs 3.5 interaction) -- resolved (D35).** Before suspend, the session locks
+   unconditionally, independent of whether a slideshow was running or how it was started.
+   Locking is a standalone safety function, not a side effect of the slideshow. AC-3.5-1 is
+   final as written; no revision pending.
 2. **D5 (inhibit stops a running idle slideshow)** — same status, pending confirmation.
    AC-3.4-2 is written per D5's proposed behavior.
