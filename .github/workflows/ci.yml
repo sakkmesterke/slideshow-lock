@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     # Longest observed run is ~140 s; 15 min leaves >6x headroom while still
     # cutting a hung test off far below GitHub's 360 min default.
-    timeout-minutes: 2
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
