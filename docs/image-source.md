@@ -7,13 +7,14 @@ displayable images.
 ## API
 
 ```python
-source = ImageSource(folder, order="random" | "name")   # or source_from_settings(settings)
-source.connect_current_changed(callback)                  # callback(path_or_None)
+source = ImageSource(folder, order="random" | "name")  # or source_from_settings(settings)
+source.connect_current_changed(callback)  # callback(path_or_None)
 source.start()
-source.current()   # path to show now, or None (empty state)
-source.advance()   # next image, or None when empty; never raises
-source.images()    # snapshot of the queue in play order
-source.set_folder(path); source.set_order(order)          # live settings changes
+source.current()  # path to show now, or None (empty state)
+source.advance()  # next image, or None when empty; never raises
+source.images()  # snapshot of the queue in play order
+source.set_folder(path)
+source.set_order(order)  # live settings changes
 source.stop()
 ```
 
