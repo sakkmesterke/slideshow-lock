@@ -64,3 +64,44 @@ if _result.returncode != 0:
 
 os.environ["GSETTINGS_SCHEMA_DIR"] = _compiled_schema_dir
 os.environ["GSETTINGS_BACKEND"] = "memory"
+
+# Import must happen after the env vars above are set (same ordering
+# constraint as the schema-source caching note in the module docstring):
+# constructing a `Settings()` is what triggers GLib's first (and only)
+# resolution of the default schema source / backend.
+from slideshow_lock.settings import (  # noqa: E402
+    KEY_IDLE_TIMEOUT_SECONDS,
+    KEY_LOCK_GRACE_PERIOD_SECONDS,
+    KEY_ORDER,
+    KEY_PICTURE_FOLDER,
+    KEY_SCALING,
+    KEY_SLIDE_INTERVAL_SECONDS,
+    Settings,
+)
+
+_ALL_SETTINGS_KEYS = [
+    KEY_IDLE_TIMEOUT_SECONDS,
+    KEY_LOCK_GRACE_PERIOD_SECONDS,
+    KEY_PICTURE_FOLDER,
+    KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_ORDER,
+    KEY_SCALING,
+]
+
+
+@pytest.fixture(autouse=True)
+def _reset_gsettings_between_tests():
+    """Reset every schema key to its default after each test.
+
+    `GSETTINGS_BACKEND=memory` is a single, process-wide store: every
+    `Gio.Settings` instance constructed anywhere in the test session
+    (regardless of which test created it) reads and writes the *same*
+    backing store. Without this fixture, a value written in one test
+    (e.g. idle-timeout-seconds set to 300 by the roundtrip test) leaks
+    into every later test that assumes it is starting from the schema
+    defaults.
+    """
+    yield
+    settings = Settings()
+    for key in _ALL_SETTINGS_KEYS:
+        settings._settings.reset(key)
