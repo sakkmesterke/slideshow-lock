@@ -252,7 +252,10 @@ rpm -q gtk4 gdk-pixbuf2 cairo pixman python3-gobject python3-cairo \
 
 #    Confirm that the negative package claim of section 3 also holds on RHEL 10.2
 #    (expected: nothing found for any of them)
-dnf repoquery python3-pillow ImageMagick vips-libs opencv gegl04
+#    Glob names, plus a positive control that MUST be found, so that a typo or a blind query cannot
+#    pass as "nothing found". Expected output: exactly one line, python3-numpy.
+dnf -q repoquery --qf '%{name}' 'python3-pillow*' 'ImageMagick*' 'vips*' 'opencv*' 'gegl*' \
+    python3-numpy | sort -u
 
 # 2. Get the tools
 sudo dnf install -y git python3-gobject python3-cairo python3-numpy gstreamer1-plugins-base
@@ -275,8 +278,9 @@ explicit LINEAR or TRILINEAR filter; modes 3 and 4 are the CPU pre-scaled pictur
 fine detail (foliage, text, hair, brick or fabric patterns). Report: the renderer name printed
 (`NglRenderer` expected), whether modes 0 to 2 look softer or shimmer compared with mode 4, the
 printed `max` frame times (a first-frame stall in modes 0 to 2 is the texture upload), and which of
-modes 3 and 4 looks better. Notes: the frame statistics cover only the automatic pass (Space is for
-flicking between modes by eye afterwards), and `bench.py` uses the fixed target sizes of section 2,
+modes 3 and 4 looks better. Notes: the frame statistics cover only the automatic pass, so do not
+press Space until "Automatic pass done" is printed (about 25 seconds including the picture loading);
+afterwards Space flicks between the modes by eye, and `bench.py` uses the fixed target sizes of section 2,
 not the reference monitor's native resolution.
 
 ## 9. Reproducing the measurements in the container
@@ -284,7 +288,10 @@ not the reference monitor's native resolution.
 `tools/measure-scaling/` holds the scripts that produced the cost tables, the quality tables of
 sections 4 and 5 (except the points listed below) and the sheets: `scene.py` (test scene), `bench.py` (cases A to D),
 `prep_c.py`, `load_bench.py`, `rss_one.py` (24 MP JPEG decode, scale-on-load, `pamscale`, memory),
-`capture_ngl.py` (GL renderer output through `ctypes`, run as a client of a compositor),
+`capture_ngl.py` (GL renderer output through `ctypes`, run as a client of a compositor) with
+`gl_metrics.py` (PSNR, overshoot and edge rise of its output, the "GL" rows of section 5; it is a
+cleaned-up rewrite of the one-off script that produced those rows and has not been re-run in this
+form),
 `sheets.py` (the PNG sheets), `target_check.py` (section 8) and `run-cpu.sh` (the whole CPU part).
 The sheets in `samples/` were produced by these scripts: crops at 1:1 (the edge sheets at
 4x nearest-neighbour zoom), each tile labelled with its path and median time.

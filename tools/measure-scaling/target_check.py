@@ -90,7 +90,7 @@ class Viewer(Gtk.Widget):
         super().__init__(hexpand=True, vexpand=True)
         self.pixbuf = pixbuf
         self.full = Gdk.Texture.new_for_pixbuf(pixbuf)
-        self.mode = "linear"
+        self.mode = "texture"
         self.prepared = {}
         self.prep_ms = {}
 
@@ -183,7 +183,7 @@ class App(Gtk.Application):
             self.report_environment()
         if self.index >= len(MODES):
             print("\nAutomatic pass done. Press Space to flick through the modes, Q to quit.")
-            self.index = 0
+            self.index = len(MODES) - 1  # the last mode stays on screen; Space moves on from it
             if self.once:
                 self.quit()
             return False
