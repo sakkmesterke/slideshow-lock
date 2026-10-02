@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CORE-3 settings schema. The schema id is the application id (D17); do not
+  introduce a second, independent identifier here.
+
+  The on/off switch described in brief section 5 is intentionally NOT a key in
+  this schema: per D4, enabling/disabling the service is done through the
+  systemd user unit (via the preferences window's D-Bus call), not through a
+  GSettings boolean. See docs/architecture/dbus-state-machine.md, section 3.7.
+-->
+<schemalist>
+  <schema id="io.github.sakkmesterke.SlideshowLock"
+          path="/io/github/sakkmesterke/SlideshowLock/">
+
+    <key name="idle-timeout-seconds" type="u">
+      <range min="1" max="86400"/>
+      <default>120</default>
+      <summary>Idle timeout before the slideshow starts</summary>
+      <description>
+        Seconds of user inactivity after which the fullscreen slideshow
+        starts (brief section 3, point 1).
+      </description>
+    </key>
+
+    <key name="lock-grace-period-seconds" type="u">
+      <range min="0" max="86400"/>
+      <default>0</default>
+      <summary>Lock grace period</summary>
+      <description>
+        If the first input after the slideshow starts arrives within this
+        many seconds of the slideshow starting, the session is NOT locked.
+        The comparison is a strict less-than (D16): a value of 0 means every
+        input locks, since no elapsed time can be less than zero.
+      </description>
+    </key>
+
+    <key name="picture-folder" type="s">
+      <default>''</default>
+      <summary>Slideshow picture folder</summary>
+      <description>
+        Absolute path to the folder the slideshow reads images from. An empty
+        string (the default) means: derive the folder from the XDG pictures
+        directory, "slideshow-lock" subfolder (D25). A missing folder is not
+        an error; the service logs it and keeps running (brief 3.7).
+      </description>
+    </key>
+
+    <key name="slide-interval-seconds" type="u">
+      <range min="1" max="3600"/>
+      <default>10</default>
+      <summary>Slide interval</summary>
+      <description>
+        Seconds each image is shown before advancing to the next one.
+      </description>
+    </key>
+
+    <key name="order" type="s">
+      <choices>
+        <choice value="random"/>
+        <choice value="name"/>
+      </choices>
+      <default>'random'</default>
+      <summary>Slide order</summary>
+      <description>Random order, or alphabetical by file name.</description>
+    </key>
+
+    <key name="scaling" type="s">
+      <choices>
+        <choice value="fill"/>
+        <choice value="fit"/>
+      </choices>
+      <default>'fill'</default>
+      <summary>Image scaling mode</summary>
+      <description>
+        "fill" crops the image to fill the screen; "fit" shows the whole
+        image letterboxed.
+      </description>
+    </key>
+
+  </schema>
+</schemalist>
