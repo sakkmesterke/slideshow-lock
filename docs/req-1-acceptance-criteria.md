@@ -1,6 +1,6 @@
 # REQ-1: Acceptance Criteria for Core Behavior (Spec 3.1-3.7)
 
-Owner: productrequirements. Scope: sections 3.1-3.7 of the project brief only.
+Owner: product requirements. Scope: sections 3.1-3.7 of the project brief only.
 No D-Bus/state-machine design (ARCH-1) and no test implementation (TEST-1) here.
 
 Legend:
