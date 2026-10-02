@@ -250,12 +250,19 @@ session on the reference machine.
 rpm -q gtk4 gdk-pixbuf2 cairo pixman python3-gobject python3-cairo \
     gstreamer1-plugins-base mesa-dri-drivers; grep -m1 'model name' /proc/cpuinfo; nproc
 
-#    Confirm that the negative package claim of section 3 also holds on RHEL 10.2
-#    (expected: nothing found for any of them)
-#    Glob names, plus a positive control that MUST be found, so that a typo or a blind query cannot
-#    pass as "nothing found". Expected output: exactly one line, python3-numpy.
-dnf -q repoquery --qf '%{name}' 'python3-pillow*' 'ImageMagick*' 'vips*' 'opencv*' 'gegl*' \
-    python3-numpy | sort -u
+#    Confirm that the negative package claim of section 3 also holds on RHEL 10.2. The query looks
+#    ONLY at the two base repositories on purpose (CRB, EPEL, RPM Fusion are enabled on the
+#    reference machine and are outside the claim). Glob names, plus a positive control
+#    (python3-numpy) that MUST be found, so a typo, a wrong repository id or a blind query cannot
+#    pass as "nothing found". The subscription-manager notice is filtered out by its exact text;
+#    any other line, an error message included, stays visible.
+#    Expected output: only lines starting with python3-numpy- (the control). Any other line is a
+#    finding; no python3-numpy- line means the repository ids are wrong (see: dnf repolist).
+#    The options are the same in DNF 4 (RHEL 10) and DNF 5.
+dnf -q repoquery --disablerepo='*' \
+    --enablerepo=rhel-10-for-x86_64-baseos-rpms --enablerepo=rhel-10-for-x86_64-appstream-rpms \
+    'python3-pillow*' 'ImageMagick*' 'vips*' 'opencv*' 'gegl*' python3-numpy 2>&1 \
+    | grep -v '^Not root, Subscription Management' | sort -u
 
 # 2. Get the tools
 sudo dnf install -y git python3-gobject python3-cairo python3-numpy gstreamer1-plugins-base
