@@ -36,7 +36,7 @@ gi.require_version("GLib", "2.0")
 
 from gi.repository import Gio, GLib  # noqa: E402
 
-from slideshow_lock import APP_ID
+from slideshow_lock import APP_ID  # noqa: E402
 
 _LOG = logging.getLogger(__name__)
 
