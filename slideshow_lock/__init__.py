@@ -16,7 +16,4 @@ APP_ID = "io.github.sakkmesterke.SlideshowLock"
 
 def app_display_name() -> str:
     """Return the translatable, user-facing application name placeholder."""
-    # D26 negative-control: temporarily un-wrapped on purpose to prove the
-    # xgettext/.pot gate actually fails when a string is NOT marked for
-    # translation. Restored to _(...) in the very next commit on this PR.
-    return "Slideshow Lock"
+    return _("Slideshow Lock")
