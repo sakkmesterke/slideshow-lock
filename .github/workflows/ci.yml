@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint-test:
+    name: lint, format, pytest, pot-extract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project (editable) with dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: pytest
+        run: pytest -q
+
+      - name: Install gettext (for xgettext)
+        run: sudo apt-get update && sudo apt-get install -y gettext
+
+      - name: Extract translatable strings (D26)
+        run: |
+          mkdir -p po
+          find slideshow_lock -name '*.py' -print0 \
+            | xargs -0 xgettext --language=Python --from-code=UTF-8 --keyword=_ \
+                --package-name=slideshow-lock -o po/messages.pot
+          msgid_count=$(grep -c '^msgid "' po/messages.pot || true)
+          echo "msgid entries (including the empty header): ${msgid_count}"
+          if [ "${msgid_count}" -le 1 ]; then
+            echo "::error::po/messages.pot has no translatable strings beyond the header - strings are not wrapped in _()" >&2
+            exit 1
+          fi
