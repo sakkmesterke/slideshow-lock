@@ -349,10 +349,12 @@ def test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes(
         # characterization: which folders still deliver events? (the kernel refused some watches)
         for n in range(folders):
             make_image(tmp_path / f"d{n:02d}" / "late.png")
+        ctx = GLib.MainContext.default()
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline and len(src) < 2 * folders:
-            wait_for(lambda: True, "iteration")
-            time.sleep(0.05)
+            while ctx.pending():
+                ctx.iteration(False)
+            time.sleep(0.02)
         late_seen = len(src) - walked
         limit_lines = [r.message for r in caplog.records if "folder limits reached" in r.message]
         other = [
@@ -371,5 +373,5 @@ def test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes(
         )
     assert walked == folders  # exhausted watches never cost an image
     assert watched < folders  # the limit really bit, and the source noticed
-    assert late_seen < folders  # (events from unwatched folders really are missing)
+    assert 0 < late_seen < folders  # watched folders still deliver, refused ones do not
     assert len(limit_lines) == 1
