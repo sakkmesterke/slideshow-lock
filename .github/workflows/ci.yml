@@ -41,7 +41,11 @@ jobs:
           find slideshow_lock -name '*.py' -print0 \
             | xargs -0 xgettext --language=Python --from-code=UTF-8 --keyword=_ \
                 --package-name=slideshow-lock -o po/messages.pot
-          msgid_count=$(grep -c '^msgid "' po/messages.pot || true)
+          if [ ! -s po/messages.pot ]; then
+            echo "::error::po/messages.pot was not created (xgettext found zero strings) - check _() wrapping" >&2
+            exit 1
+          fi
+          msgid_count=$(grep -c '^msgid "' po/messages.pot)
           echo "msgid entries (including the empty header): ${msgid_count}"
           if [ "${msgid_count}" -le 1 ]; then
             echo "::error::po/messages.pot has no translatable strings beyond the header - strings are not wrapped in _()" >&2
