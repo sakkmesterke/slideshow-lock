@@ -165,23 +165,23 @@ def test_live_reload_notifies_without_restart():
 
 
 def test_default_picture_folder_uses_xdg_pictures_dir_and_product_subdir(monkeypatch):
-    monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: "/home/attila/Pictures")
+    monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: "/home/example-user/Pictures")
     folder = default_picture_folder()
-    assert folder == "/home/attila/Pictures/" + DEFAULT_PICTURE_SUBDIR
+    assert folder == "/home/example-user/Pictures/" + DEFAULT_PICTURE_SUBDIR
     assert DEFAULT_PICTURE_SUBDIR == "slideshow-lock"  # D25: no Hungarian literal
 
 
 def test_default_picture_folder_falls_back_to_home_when_xdg_unset(monkeypatch):
     monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: None)
-    monkeypatch.setattr(GLib, "get_home_dir", lambda: "/home/attila")
+    monkeypatch.setattr(GLib, "get_home_dir", lambda: "/home/example-user")
     folder = default_picture_folder()
-    assert folder == "/home/attila/Pictures/" + DEFAULT_PICTURE_SUBDIR
+    assert folder == "/home/example-user/Pictures/" + DEFAULT_PICTURE_SUBDIR
 
 
 def test_get_picture_folder_resolves_default_when_key_is_empty(monkeypatch):
-    monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: "/home/attila/Pictures")
+    monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: "/home/example-user/Pictures")
     settings = Settings()
-    assert settings.get_picture_folder() == "/home/attila/Pictures/" + DEFAULT_PICTURE_SUBDIR
+    assert settings.get_picture_folder() == "/home/example-user/Pictures/" + DEFAULT_PICTURE_SUBDIR
 
 
 def test_get_picture_folder_warns_on_missing_folder(tmp_path, caplog):
