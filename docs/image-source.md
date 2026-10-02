@@ -26,16 +26,45 @@ becomes empty (`None`). It does not fire for `advance()`.
 
 - **Walk.** Recursive, breadth first, in short time-boxed steps run from the GLib
   main loop (8 ms budget per step), so a huge tree never blocks startup or input:
-  the first image is available after the first step. The longest stall is one
-  directory listing.
+  the first image is available within the first few steps. A step is cut off after
+  its budget, but one unit of work is never interrupted: listing one directory
+  (very large folders are the worst case) and reading one file header. Reading the
+  header opens the file with `O_NONBLOCK` and checks `fstat`, so a file swapped for
+  a FIFO cannot hang the walk; but a hung network mount can still block `open()`
+  or `scandir()` in the kernel, and then the whole main loop stands still. Nothing
+  in this module can prevent that (CORE-1 has its own condition for it).
 - **Symlink loops.** Directories are identified by `(st_dev, st_ino)`. A loop, or a
   folder reachable through two links, is walked once. Symlinks are followed, so
   linking in a folder from elsewhere works. A symlinked *file* is its own entry.
+  Two limits of that rule:
+  - A folder reachable by two paths is shown under whichever path the walk meets
+    first (the "winner"). If the winner link later disappears, the images that are
+    only reachable by the other path stay missing until the source is restarted:
+    the other path was skipped as a duplicate and is not rewalked.
+  - A symlink inside the picture folder that leads out of it is followed, so
+    content from outside the folder (any folder the user can read) can be shown,
+    on the locked screen too. Only put links there that you are happy to have
+    displayed. Nothing is filtered by where a link points.
 - **Live changes.** One non-recursive `Gio.FileMonitor` per walked directory. The
   parent of the root folder is watched as well: a missing folder that appears later
   is picked up, a deleted root becomes the empty state, a replaced root is rewalked.
-  A directory that cannot be watched (for example the inotify watch limit) is
-  logged and still walked once; only its later changes go unnoticed.
+  A renamed subfolder keeps its images whichever of the delete and create events
+  arrives first. A deleted root is always rewalked from scratch, even if a new
+  folder got the old inode number back.
+- **Limits.** At most `DEFAULT_MAX_DIRECTORIES` (10000) folders are walked and
+  `DEFAULT_MAX_WATCHES` (2048) get a monitor (constructor parameters
+  `max_directories` / `max_watches`; module constants, not settings). Folders past
+  the walk limit are skipped; folders past the watch limit, or refused a watch by
+  the OS (`ENOSPC`), are walked once but unwatched: their later changes go
+  unnoticed until restart. Either way ONE summary WARNING is logged when the walk
+  completes, with the counts and the first OS error. The per-user kernel limit
+  `fs.inotify.max_user_watches` is shared with the whole session, hence the low
+  default.
+- **Log volume.** One problem is one line. For unreadable or corrupt images and
+  unreadable folders the first 10 lines per 60 s window are logged one by one; the
+  rest are counted and reported in one "N more ... not logged one by one" line
+  (at the end of the walk, and when the next window opens), so a mass failure does
+  not eat the journald rate limit.
 - **Deleting what is on screen.** The cursor moves to the image that followed it
   (wrapping to the start). Deleting the last image gives `current() is None` and a
   `[slideshow-dir]` WARNING, per brief 3.7; it is not an error, and the source
@@ -53,6 +82,20 @@ becomes empty (`None`). It does not fire for `advance()`.
 - **The folder may not exist.** Nothing assumes it does, the XDG default included.
   A missing folder is the empty state plus one `[slideshow-dir]` WARNING, and the
   source keeps watching for it to appear.
+
+## Manual trial: inotify watch exhaustion
+
+Automated on CI only (`test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes`
+lowers the kernel limit with `sudo`, which a developer machine should not do
+unasked). To try it by hand, on a test machine:
+
+1. `sudo sysctl -w fs.inotify.max_user_watches=25` (note the old value first).
+2. Point the source at a folder with 60 subfolders, each holding an image, and
+   start it.
+3. Expect: all 60 images listed, one `[slideshow-dir] folder limits reached ...`
+   WARNING naming the unwatched folders. A file added to an unwatched subfolder is
+   not noticed until restart.
+4. Restore the old value with `sysctl -w`.
 
 ## Tests
 

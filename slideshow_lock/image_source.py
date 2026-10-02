@@ -27,6 +27,12 @@ Behaviour in short:
   with a WARNING. Header sniffing only: a file that is damaged deeper in is
   caught by the display layer (CORE-2), which must skip it the same way.
 * Nothing assumes the folder exists, the default folder included.
+* Resource limits: at most ``max_directories`` folders are walked and at most
+  ``max_watches`` get a monitor (module constants, constructor parameters). Past
+  a limit, or when the OS refuses a watch, the rest is skipped or left
+  unwatched and ONE summary WARNING says so when the walk completes.
+* Log volume: one problem is one line, and after the first few per window only a
+  count is logged, so a mass failure cannot flood the journal.
 
 Symlinks are followed (a link to a folder elsewhere is a legitimate way to
 include it). A symlinked *file* that points at an image already in the tree is
@@ -60,6 +66,19 @@ IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", "
 #: after this long, so input and monitor events stay responsive during a walk.
 DEFAULT_STEP_BUDGET_SECONDS = 0.008
 
+#: Upper bound on walked folders. Past it the remaining folders are not walked.
+DEFAULT_MAX_DIRECTORIES = 10_000
+
+#: Upper bound on folders that get a directory monitor (one inotify watch each).
+#: The per-user kernel limit is shared with the rest of the session, so this is
+#: deliberately well below the common ``fs.inotify.max_user_watches`` values.
+DEFAULT_MAX_WATCHES = 2_048
+
+#: Per problem category, the first LOG_FIRST_N messages in a LOG_WINDOW_SECONDS
+#: window are logged one by one; the rest are only counted, in one summary line.
+LOG_FIRST_N = 10
+LOG_WINDOW_SECONDS = 60.0
+
 
 class FsEvent(enum.Enum):
     """The three kinds of filesystem change the source reacts to."""
@@ -70,8 +89,9 @@ class FsEvent(enum.Enum):
 
 
 EventCallback = Callable[[str, FsEvent], None]
-#: ``watcher(path, callback) -> cancel`` or ``None`` if the folder cannot be
-#: watched. *callback* receives ``(changed_path, event)``.
+#: ``watcher(path, callback) -> cancel``. *callback* receives
+#: ``(changed_path, event)``. A folder that cannot be watched is reported by
+#: raising ``OSError`` (or returning ``None``); the caller does the logging.
 WatcherFactory = Callable[[str, EventCallback], Optional[Callable[[], None]]]
 #: ``scheduler(step) -> cancel``. *step* is called repeatedly until it returns
 #: False.
@@ -81,11 +101,19 @@ Scheduler = Callable[[Callable[[], bool]], Callable[[], None]]
 def probe_image(path: str) -> None:
     """Raise if *path* is not a readable file with a known image header.
 
-    ``OSError`` means unreadable, ``ValueError`` means the header is empty or not a
-    known image format.
+    ``OSError`` means unreadable, ``ValueError`` means not a regular file, empty,
+    or not a known image format. Opened ``O_NONBLOCK`` and checked with ``fstat``
+    on the open descriptor, so a file swapped for a FIFO after the directory
+    listing cannot hang the walk (TOCTOU). A stuck network mount can still block
+    ``open()`` in the kernel; that is not something this call can prevent.
     """
-    with open(path, "rb") as fh:
-        head = fh.read(16)
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValueError("not a regular file")
+        head = os.read(fd, 16)
+    finally:
+        os.close(fd)
     if not head:
         raise ValueError("empty file")
     if not (
@@ -97,6 +125,48 @@ def probe_image(path: str) -> None:
         or (head[:4] == b"RIFF" and head[8:12] == b"WEBP")
     ):
         raise ValueError("not a recognised image header")
+
+
+def _now() -> float:
+    return time.monotonic()
+
+
+class _BurstLog:
+    """WARNING lines for one problem category, with a cap per time window.
+
+    The first ``first`` messages of a window are logged normally; later ones are
+    counted and reported as a single summary line (``flush``), so the journald
+    rate limit is not spent on one mass failure.
+    """
+
+    def __init__(self, what: str) -> None:
+        self._what = what
+        self._window_start: Optional[float] = None
+        self._emitted = 0
+        self._suppressed = 0
+
+    def warn(self, message: str, *args) -> None:
+        now = _now()
+        if self._window_start is None or now - self._window_start >= LOG_WINDOW_SECONDS:
+            self.flush()
+            self._window_start = now
+            self._emitted = 0
+        if self._emitted < LOG_FIRST_N:
+            self._emitted += 1
+            _LOG.warning(message, *args)
+        else:
+            self._suppressed += 1
+
+    def flush(self) -> None:
+        if self._suppressed:
+            _LOG.warning(
+                "[slideshow-dir] %d more %s not logged one by one (only the first %d per %d s are)",
+                self._suppressed,
+                self._what,
+                LOG_FIRST_N,
+                int(LOG_WINDOW_SECONDS),
+            )
+            self._suppressed = 0
 
 
 def _has_image_extension(name: str) -> bool:
@@ -123,6 +193,8 @@ class ImageSource:
         scheduler: Optional[Scheduler] = None,
         rng: Optional[random.Random] = None,
         step_budget_seconds: float = DEFAULT_STEP_BUDGET_SECONDS,
+        max_directories: int = DEFAULT_MAX_DIRECTORIES,
+        max_watches: int = DEFAULT_MAX_WATCHES,
     ) -> None:
         self._check_order(order)
         self._root = os.path.abspath(folder)
@@ -132,6 +204,8 @@ class ImageSource:
         self._scheduler = scheduler if scheduler is not None else glib_idle_scheduler
         self._rng = rng if rng is not None else random.Random()
         self._budget = step_budget_seconds
+        self._max_dirs = max_directories
+        self._max_watches = max_watches
 
         self._running = False
         self._tree_active = False
@@ -145,13 +219,21 @@ class ImageSource:
 
         self._pending: Deque[str] = collections.deque()  # directories still to list
         self._buffer: Deque[os.DirEntry] = collections.deque()  # entries of the dir being walked
-        self._visited: Set[Tuple[int, int]] = set()  # (st_dev, st_ino) of claimed directories
+        self._visited: Dict[Tuple[int, int], str] = {}  # (st_dev, st_ino) -> path that owns it
         self._dir_keys: Dict[str, Tuple[int, int]] = {}
         self._watches: Dict[str, Callable[[], None]] = {}
         self._sched_cancel: Optional[Callable[[], None]] = None
         self._ancestor: Optional[str] = None
         self._ancestor_cancel: Optional[Callable[[], None]] = None
         self._root_key: Optional[Tuple[int, int]] = None
+        self._ancestor_failed: Optional[str] = None
+
+        self._dirs_skipped = 0  # folders not walked because of max_directories
+        self._unwatched = 0  # walked folders without a monitor (limit or OS refusal)
+        self._watch_error: Optional[str] = None  # first reason the OS refused a watch
+        self._limits_reported = False
+        self._skipped_images_log = _BurstLog("unreadable or corrupt images")
+        self._unreadable_dirs_log = _BurstLog("unreadable folders")
 
     # -- public API ----------------------------------------------------------
 
@@ -182,6 +264,8 @@ class ImageSource:
         self._gen += 1
         self._stop_tree(notify=False)
         self._unwatch_ancestor()
+        self._skipped_images_log.flush()
+        self._unreadable_dirs_log.flush()
 
     def set_folder(self, folder: str) -> None:
         """Switch to another folder at runtime (live settings reload)."""
@@ -296,7 +380,18 @@ class ImageSource:
         if not nearest or not os.path.isdir(nearest):
             return
         gen = self._gen
-        cancel = self._watcher(nearest, lambda path, ev: self._on_ancestor_event(gen, path))
+        try:
+            cancel = self._watcher(nearest, lambda path, ev: self._on_ancestor_event(gen, path, ev))
+        except OSError as exc:
+            cancel = None
+            if self._ancestor_failed != nearest:  # once per folder, not on every retry
+                self._ancestor_failed = nearest
+                _LOG.warning(
+                    "[slideshow-dir] cannot watch %r (%s), a missing picture folder will not "
+                    "be noticed when it appears",
+                    nearest,
+                    exc,
+                )
         if cancel is not None:
             self._ancestor = nearest
             self._ancestor_cancel = cancel
@@ -307,15 +402,31 @@ class ImageSource:
         self._ancestor = None
         self._ancestor_cancel = None
 
-    def _on_ancestor_event(self, gen: int, path: str) -> None:
+    def _on_ancestor_event(self, gen: int, path: str, event: FsEvent) -> None:
         if gen != self._gen:
             return
-        if path == self._root or self._root.startswith(path + os.sep):
+        if path == self._root and event is FsEvent.DELETED:
+            self._root_deleted()
+        elif path == self._root or self._root.startswith(path + os.sep):
             self._reconcile_root()
+
+    def _root_deleted(self) -> None:
+        """The root's own path was deleted: forget the whole tree, then look again.
+
+        Unconditional on purpose. Comparing inodes is not enough: a deleted and
+        re-created folder can get the same inode number back, and the stale tree
+        would then be kept.
+        """
+        self._stop_tree()
+        self._reconcile_root()
 
     def _start_tree(self) -> None:
         self._tree_active = True
         self._empty_logged = False
+        self._dirs_skipped = 0
+        self._unwatched = 0
+        self._watch_error = None
+        self._limits_reported = False
         if self._claim_dir(self._root):
             self._root_key = self._dir_keys[self._root]
             self._pending.append(self._root)
@@ -360,8 +471,31 @@ class ImageSource:
             len(self._files),
             len(self._dir_keys),
         )
+        self._report_limits()
+        self._skipped_images_log.flush()
+        self._unreadable_dirs_log.flush()
         self._check_empty()
         return False
+
+    def _report_limits(self) -> None:
+        """ONE summary WARNING when a limit was hit or the OS refused watches."""
+        if self._limits_reported or not (self._dirs_skipped or self._unwatched):
+            return
+        self._limits_reported = True
+        parts = []
+        if self._dirs_skipped:
+            parts.append(f"{self._dirs_skipped} folders were not walked (limit {self._max_dirs})")
+        if self._unwatched:
+            reason = f", first refusal: {self._watch_error}" if self._watch_error else ""
+            parts.append(
+                f"{self._unwatched} folders are not watched (limit {self._max_watches}{reason}), "
+                "changes in them will not be noticed until restart"
+            )
+        _LOG.warning(
+            "[slideshow-dir] folder limits reached under %r: %s; service keeps running",
+            self._root,
+            "; ".join(parts),
+        )
 
     def _work(self) -> bool:
         """Do one small unit of walk work (one entry or one directory listing)."""
@@ -383,7 +517,9 @@ class ImageSource:
             _LOG.debug("[slideshow-dir] folder %r vanished before it was listed", path)
             return
         except OSError as exc:
-            _LOG.warning("[slideshow-dir] cannot read folder %r (%s), skipping it", path, exc)
+            self._unreadable_dirs_log.warn(
+                "[slideshow-dir] cannot read folder %r (%s), skipping it", path, exc
+            )
             return
         entries.sort(key=lambda entry: entry.name)
         self._buffer = collections.deque(entries)
@@ -403,18 +539,26 @@ class ImageSource:
         self._consider_file(entry.path, final=True)
 
     def _claim_dir(self, path: str) -> bool:
-        """Register *path* as a walked directory; False if it was already walked.
+        """Register *path* as a walked directory; False if it must not be walked.
 
         This is the symlink-loop guard: a directory is identified by
-        ``(st_dev, st_ino)``, not by its path.
+        ``(st_dev, st_ino)``, not by its path. Also False past ``max_directories``.
         """
         key = self._stat_key(path)
         if key is None:
             return False
-        if key in self._visited:
-            _LOG.debug("[slideshow-dir] folder %r already walked (link loop or duplicate)", path)
+        owner = self._visited.get(key)
+        if owner is not None and owner != path:
+            if self._stat_key(owner) == key:
+                _LOG.debug("[slideshow-dir] folder %r already walked as %r", path, owner)
+                return False
+            # The earlier path no longer leads to this directory: it was renamed and the
+            # event for its new name arrived before the one for the old name.
+            self._drop_subtree(owner, check_empty=False)
+        if len(self._dir_keys) >= self._max_dirs:
+            self._dirs_skipped += 1
             return False
-        self._visited.add(key)
+        self._visited[key] = path
         self._dir_keys[path] = key
         return True
 
@@ -440,26 +584,32 @@ class ImageSource:
             _LOG.debug("[slideshow-dir] image %r vanished before it was read", path)
             return
         except Exception as exc:  # unreadable, corrupt, or a probe bug: never crash the source
-            _LOG.log(
-                logging.WARNING if final else logging.DEBUG,
-                "[slideshow-dir] skipping unreadable or corrupt image %r (%s)",
-                path,
-                exc,
-            )
+            if final:
+                self._skipped_images_log.warn(
+                    "[slideshow-dir] skipping unreadable or corrupt image %r (%s)", path, exc
+                )
+            else:
+                _LOG.debug("[slideshow-dir] image %r not usable yet (%s)", path, exc)
             return
         self._insert(path)
 
     def _watch_dir(self, path: str) -> None:
         if path in self._watches:
             return
+        if len(self._watches) >= self._max_watches:
+            self._unwatched += 1
+            return
         gen = self._gen
-        cancel = self._watcher(path, lambda changed, ev: self._on_event(gen, changed, ev))
+        try:
+            cancel = self._watcher(path, lambda changed, ev: self._on_event(gen, changed, ev))
+        except OSError as exc:
+            cancel = None
+            if self._watch_error is None:
+                self._watch_error = str(exc)
         if cancel is not None:
             self._watches[path] = cancel
         else:
-            _LOG.warning(
-                "[slideshow-dir] cannot watch folder %r, changes in it will not be noticed", path
-            )
+            self._unwatched += 1  # reported once, in the summary
 
     # -- live changes -----------------------------------------------------------
 
@@ -486,22 +636,25 @@ class ImageSource:
 
     def _on_deleted(self, path: str) -> None:
         if path == self._root:
-            self._reconcile_root()
+            self._root_deleted()
         elif path in self._dir_keys:
             self._drop_subtree(path)
         elif path in self._files:
             self._remove_where(lambda p: p == path)
             self._check_empty()
 
-    def _drop_subtree(self, path: str) -> None:
+    def _drop_subtree(self, path: str, *, check_empty: bool = True) -> None:
         prefix = path + os.sep
         for directory in [d for d in self._dir_keys if d == path or d.startswith(prefix)]:
             cancel = self._watches.pop(directory, None)
             if cancel is not None:
                 cancel()
-            self._visited.discard(self._dir_keys.pop(directory))
+            key = self._dir_keys.pop(directory)
+            if self._visited.get(key) == directory:
+                del self._visited[key]
         self._remove_where(lambda p: p.startswith(prefix))
-        self._check_empty()
+        if check_empty:
+            self._check_empty()
 
     # -- queue maintenance --------------------------------------------------------
 
@@ -631,7 +784,10 @@ def glib_idle_scheduler(step: Callable[[], bool]) -> Callable[[], None]:
 
 
 def gio_directory_watcher(path: str, callback: EventCallback) -> Optional[Callable[[], None]]:
-    """Watch one directory (not recursive) with ``Gio.FileMonitor``."""
+    """Watch one directory (not recursive) with ``Gio.FileMonitor``.
+
+    Raises ``OSError`` if the monitor cannot be created; the caller logs it.
+    """
     import gi
 
     gi.require_version("Gio", "2.0")
@@ -644,8 +800,7 @@ def gio_directory_watcher(path: str, callback: EventCallback) -> Optional[Callab
     try:
         monitor = Gio.File.new_for_path(path).monitor_directory(Gio.FileMonitorFlags.NONE, None)
     except GLib.Error as exc:
-        _LOG.warning("[slideshow-dir] cannot create a monitor for %r (%s)", path, exc)
-        return None
+        raise OSError(f"cannot create a monitor for {path!r}: {exc.message}") from exc
 
     def on_changed(_monitor, file, other_file, event_type) -> None:
         changed = file.get_path() if file is not None else None
