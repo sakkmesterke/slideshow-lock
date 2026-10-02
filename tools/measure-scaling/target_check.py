@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """On-target check of the GTK4 scaling paths, to be run on a machine with a real display.
 
-Shows one picture fitted into a fullscreen window in four ways and reports what the real
+Shows one picture fitted into a fullscreen window in five ways and reports what the real
 renderer does with them:
 
-  1  GPU, linear     texture drawn scaled by the compositor path (what a plain Gtk.Picture does)
-  2  GPU, trilinear  the same texture, but with mipmaps requested explicitly
-  3  CPU, bilinear   GdkPixbuf scale_simple to the exact device-pixel size, shown 1:1
-  4  CPU, Lanczos-3  GStreamer videoscale (lanczos, envelope 3) to the exact size, shown 1:1
+  0  GPU, texture node   snapshot.append_texture(): what a plain Gtk.Picture draws (linear
+                         filtering, plus automatic mipmaps for a big reduction)
+  1  GPU, linear         append_scaled_texture() with an explicit LINEAR filter
+  2  GPU, trilinear      append_scaled_texture() with TRILINEAR (mipmaps requested explicitly)
+  3  CPU, bilinear       GdkPixbuf scale_simple to the exact device-pixel size, shown 1:1
+  4  CPU, Lanczos-3      GStreamer videoscale (lanczos, envelope 3) to the exact size, shown 1:1
 
-Keys: Space = next mode, Q or Esc = quit. Compare modes 1-4 by eye on a photo you know well
-(zoom in with your eyes on fine detail: branches, text, hair, brick patterns).
+Keys: Space = next mode, Q or Esc = quit. Compare modes 0-4 by eye on a photo you know well
+(look at fine detail: branches, text, hair, brick patterns). The frame statistics are printed
+for the automatic pass only; Space is for flicking between modes by eye afterwards.
 
 Usage: python3 target_check.py [--once] [PHOTO.jpg]
 Without a photo a 23 MP synthetic test scene is generated (needs python3-numpy).
@@ -37,7 +40,8 @@ from gi.repository import Gdk, GdkPixbuf, GLib, Graphene, Gsk, Gst, Gtk  # noqa:
 Gst.init(None)
 
 MODES = [
-    ("1  GPU linear", "linear"),
+    ("0  GPU texture node (plain Gtk.Picture)", "texture"),
+    ("1  GPU linear (explicit)", "linear"),
     ("2  GPU trilinear (mipmaps)", "trilinear"),
     ("3  CPU pixbuf bilinear, 1:1", "pixbuf"),
     ("4  CPU GStreamer Lanczos-3, 1:1", "lanczos"),
@@ -118,7 +122,9 @@ class Viewer(Gtk.Widget):
         snapshot.append_color(
             black, Graphene.Rect().init(0, 0, self.get_width(), self.get_height())
         )
-        if self.mode in ("linear", "trilinear"):
+        if self.mode == "texture":
+            snapshot.append_texture(self.full, rect)
+        elif self.mode in ("linear", "trilinear"):
             flt = Gsk.ScalingFilter.LINEAR if self.mode == "linear" else Gsk.ScalingFilter.TRILINEAR
             snapshot.append_scaled_texture(self.full, flt, rect)
         else:
@@ -150,12 +156,12 @@ class App(Gtk.Application):
         surface = self.win.get_surface()
         renderer = self.win.get_renderer()
         print("renderer :", type(renderer).__name__, "| scale:", surface.get_scale())
-        print(
-            "monitor  :",
-            surface.get_display().get_monitor_at_surface(surface).get_geometry().width,
-            "x",
-            surface.get_display().get_monitor_at_surface(surface).get_geometry().height,
-        )
+        monitor = surface.get_display().get_monitor_at_surface(surface)
+        if monitor is None:  # can happen on Wayland before the surface has entered an output
+            print("monitor  : unknown (surface not on an output yet)")
+        else:
+            geometry = monitor.get_geometry()
+            print("monitor  :", geometry.width, "x", geometry.height)
         print("source   :", self.viewer.pixbuf.get_width(), "x", self.viewer.pixbuf.get_height())
         for pkg in (
             "gtk4",

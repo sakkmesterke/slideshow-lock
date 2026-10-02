@@ -1,25 +1,30 @@
 # Image scaling paths in the base-repository stack (MEAS-1)
 
 Owner: solution architecture.
-Status: measurement report. Everything below was measured on a headless container; the items that
+Status: measurement report. Everything below was measured on a headless container with the Rocky
+Linux 10.2 userland (a rebuild of the RHEL 10.2 sources), not on RHEL 10.2 itself; the package
+versions and the absence of Pillow/ImageMagick must be confirmed on the RHEL machine. The items that
 need the reference machine's real display and GPU are listed in section 8 with copy-paste commands.
 
 ## 1. Question and short answer
 
 Which ways of scaling a picture to the monitor's real resolution (aspect ratio kept) exist in the
 GTK4 / GdkPixbuf / PyGObject stack shipped in the RHEL 10.2 base repositories (BaseOS, AppStream),
-what do they cost, and what quality do they give?
+what do they cost, and what quality do they give? (Measured on the Rocky 10.2 rebuild, see section 2;
+RHEL 10.2 itself has not been checked.)
 
 - **Lanczos is available, but not where one would look.** GdkPixbuf, cairo and GTK itself have no
-  Lanczos filter, and none of their documentation names one. The only *documented* Lanczos in the
-  base repositories is the `lanczos` method of the GStreamer `videoscale` element
+  Lanczos filter, and none of their documentation names one (pixman's public header lists Lanczos-2/3 kernels, but
+  none of GdkPixbuf, PyGObject or the cairo API exposes them). The only Lanczos reachable from the
+  GTK / GdkPixbuf / PyGObject stack is the `lanczos` method of the GStreamer `videoscale` element
   (`gstreamer1-plugins-base`, which `gtk4` already depends on, so it adds no new package).
   A separable Lanczos-3 in `python3-numpy` (own code) also works but is about 15x slower.
 - **"Better than Lanczos" cannot be promised:** no path in the base repositories documents one.
 - **Do not rely on `Gtk.Picture` / a plain texture for big downscales.** On the GL renderer a
   texture drawn at less than half its size is mip-mapped automatically; the result is measurably
   blurrier and aliases fine patterns more than an area-average, see section 5.
-- Recommendation (section 7): scale on the CPU to the exact device-pixel size with
+- Recommendation (section 7, valid for the Rocky 10.2 rebuild until section 8 step 1 confirms the
+  RHEL 10.2 versions): scale on the CPU to the exact device-pixel size with
   `videoscale method=lanczos envelope=3`, show the result 1:1; fall back to
   `GdkPixbuf` `BILINEAR` if GStreamer cannot be used.
 
@@ -46,8 +51,12 @@ what do they cost, and what quality do they give?
   `target_check.py` accepts one (section 8).
 - Every path receives the same decoded RGB `GdkPixbuf` and returns an RGB image. The timed region is
   everything between "decoded pixbuf" and "pixels ready to upload" (including, for cairo, the
-  pixbuf-to-surface conversion of about 55 to 70 ms at 24 MP). Median of 5 runs (large) or 15 (small)
-  after one warm-up; the CPU time is recorded too (see the multi-threaded GStreamer row).
+  pixbuf-to-surface conversion of about 55 to 70 ms at 24 MP). Repetitions, per row type: the
+  `bench.py` rows (section 4 first table) are the median of 5 runs for A and C and of 15 runs for B
+  and D, after one warm-up, except the numpy row, which is the median of only 2 runs (that is, their
+  mean); the JPEG rows of `load_bench.py` are the median of 3 runs, the PNG rows of 2 runs; the
+  `pamscale` rows, the GStreamer first-use rows and the peak-RAM column are single runs. The CPU time
+  is recorded too (see the multi-threaded GStreamer row).
 - Cases: **A** 6400x3600 (23 MP) -> 2560x1440; **B** 800x450 -> 2560x1440 (3.2x up);
   **C** 6000x4000 (24 MP, 3:2) -> 2160x1440; **D** 800x600 -> 1920x1440 (aspect-kept fit).
   Quality is evaluated on A and B, where the reference image exists.
@@ -219,7 +228,7 @@ Observations (each is visible in `samples/`):
 3. **Fallback** if GStreamer is unusable (missing plugin, caps negotiation failure): `GdkPixbuf`
    `scale_simple(BILINEAR)`, about 66 ms, area-average on reduction, soft on enlargement. Log the
    fallback at WARNING level, following `docs/logging-and-lifecycle.md`.
-4. **Enlargements:** the choice between Lanczos-3 (crisper, halo of about 7 percent of a step) and
+4. **Enlargements:** the choice between Lanczos-3 (crisper, halo of about 7 to 13 percent of a step on an enlargement) and
    Catmull-Rom or Mitchell (less ringing) is a matter of taste for the reference machine's owner;
    `samples/upscale-*.png` shows all of them side by side. Both are one `method=` string.
 5. **Avoid:** cairo `BEST` (about 1.1 s at 24 MP, blocky enlargements), `GDK_INTERP_HYPER`
@@ -241,6 +250,10 @@ session on the reference machine.
 rpm -q gtk4 gdk-pixbuf2 cairo pixman python3-gobject python3-cairo \
     gstreamer1-plugins-base mesa-dri-drivers; grep -m1 'model name' /proc/cpuinfo; nproc
 
+#    Confirm that the negative package claim of section 3 also holds on RHEL 10.2
+#    (expected: nothing found for any of them)
+dnf repoquery python3-pillow ImageMagick vips-libs opencv gegl04
+
 # 2. Get the tools
 sudo dnf install -y git python3-gobject python3-cairo python3-numpy gstreamer1-plugins-base
 git clone https://github.com/trensoft/slideshow-lock.git && cd slideshow-lock/tools/measure-scaling
@@ -249,24 +262,38 @@ git clone https://github.com/trensoft/slideshow-lock.git && cd slideshow-lock/to
 python3 bench.py A --out out && python3 bench.py B --out out
 python3 -c "import json;[print(k, v.get('median_ms')) for k, v in json.load(open('out/results_A.json'))['paths'].items()]"
 
-# 4. Real display and GPU: opens a fullscreen window, cycles four modes for 4 s each and prints
+# 4. Real display and GPU: opens a fullscreen window, cycles five modes for 4 s each and prints
 #    frame-time statistics plus the renderer in use. Space = next mode, Q = quit.
-GDK_DEBUG=opengl python3 target_check.py 2>&1 | head -40
+GDK_DEBUG=opengl python3 target_check.py 2>&1 | tee target_check.log
 #    Same with one of your own photographs (it never leaves the machine):
 python3 target_check.py ~/Pictures/some-photo.jpg
 ```
 
-What to look at in step 4: modes 1 and 2 are the GPU paths a plain `Gtk.Picture` would use, modes 3
-and 4 are the CPU pre-scaled pictures shown 1:1. Compare fine detail (foliage, text, hair, brick or
-fabric patterns). Report: the renderer name printed (`NglRenderer` expected), whether modes 1 and 2
-look softer or shimmer compared with mode 4, the printed `max` frame times (a first-frame stall in
-modes 1 and 2 is the texture upload), and which of modes 3 and 4 looks better.
+What to look at in step 4: mode 0 is the path a plain `Gtk.Picture` takes (a texture node, linear
+filtering plus automatic mipmaps for a big reduction); modes 1 and 2 are the same texture with an
+explicit LINEAR or TRILINEAR filter; modes 3 and 4 are the CPU pre-scaled pictures shown 1:1. Compare
+fine detail (foliage, text, hair, brick or fabric patterns). Report: the renderer name printed
+(`NglRenderer` expected), whether modes 0 to 2 look softer or shimmer compared with mode 4, the
+printed `max` frame times (a first-frame stall in modes 0 to 2 is the texture upload), and which of
+modes 3 and 4 looks better. Notes: the frame statistics cover only the automatic pass (Space is for
+flicking between modes by eye afterwards), and `bench.py` uses the fixed target sizes of section 2,
+not the reference monitor's native resolution.
 
 ## 9. Reproducing the measurements in the container
 
-`tools/measure-scaling/` holds every script: `scene.py` (test scene), `bench.py` (cases A to D),
+`tools/measure-scaling/` holds the scripts that produced the cost tables, the quality tables of
+sections 4 and 5 (except the points listed below) and the sheets: `scene.py` (test scene), `bench.py` (cases A to D),
 `prep_c.py`, `load_bench.py`, `rss_one.py` (24 MP JPEG decode, scale-on-load, `pamscale`, memory),
 `capture_ngl.py` (GL renderer output through `ctypes`, run as a client of a compositor),
 `sheets.py` (the PNG sheets), `target_check.py` (section 8) and `run-cpu.sh` (the whole CPU part).
-The sheets in `samples/` were produced by exactly these scripts: crops at 1:1 (the edge sheets at
+The sheets in `samples/` were produced by these scripts: crops at 1:1 (the edge sheets at
 4x nearest-neighbour zoom), each tile labelled with its path and median time.
+
+Not reproducible from the repository (obtained with short one-off scripts whose raw output was not
+kept): the GStreamer first-use timings, the numpy-versus-`videoscale` difference figures of
+section 5 item 5, the `catrom` versus `lanczos` identity check, and the statement that an earlier
+run of the benchmark agreed within about 15 percent. To redo them: time `Gst.init(None)` and the
+first `appsrc ! videoscale ! appsink` pipeline in a fresh process (delete
+`~/.cache/gstreamer-1.0` for the cold registry), and compare the saved `out/*_numpy_lanczos3*.npy`
+and `out/*_gst_lanczos_env=3.npy` arrays pixel by pixel. The raw `out/results_*.json` of the final
+run were not committed either; `run-cpu.sh` regenerates them.
