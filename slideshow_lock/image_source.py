@@ -169,6 +169,38 @@ class _BurstLog:
             self._suppressed = 0
 
 
+def _kernel_watch_inodes() -> Optional[Set[Tuple[int, int]]]:
+    """``(kernel_dev, ino)`` of every inotify watch this process holds, or None.
+
+    Read from ``/proc/self/fdinfo``. Needed because Gio does not report a refused
+    watch (``ENOSPC``, per-user ``fs.inotify.max_user_watches`` exhausted):
+    ``monitor_directory()`` returns a monitor that never fires and no error is raised.
+    None means the kernel could not be asked (not Linux, no /proc).
+    """
+    held: Set[Tuple[int, int]] = set()
+    try:
+        fds = os.listdir("/proc/self/fd")
+    except OSError:
+        return None
+    for fd in fds:
+        try:
+            if os.readlink(f"/proc/self/fd/{fd}") != "anon_inode:inotify":
+                continue
+            with open(f"/proc/self/fdinfo/{fd}") as fh:
+                lines = fh.read().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if not line.startswith("inotify wd:"):
+                continue
+            fields = dict(tok.split(":", 1) for tok in line.split()[1:] if ":" in tok)
+            try:
+                held.add((int(fields["sdev"], 16), int(fields["ino"], 16)))
+            except (KeyError, ValueError):
+                continue
+    return held
+
+
 def _has_image_extension(name: str) -> bool:
     return os.path.splitext(name)[1].lower() in IMAGE_EXTENSIONS
 
@@ -471,11 +503,43 @@ class ImageSource:
             len(self._files),
             len(self._dir_keys),
         )
+        self._verify_kernel_watches()
         self._report_limits()
         self._skipped_images_log.flush()
         self._unreadable_dirs_log.flush()
         self._check_empty()
         return False
+
+    def _verify_kernel_watches(self) -> None:
+        """Find monitors the kernel silently did not install, and count them as unwatched.
+
+        Best effort and conservative: it makes no claim if the kernel cannot be asked,
+        or if none of our folders can be matched at all (a filesystem whose inode
+        numbers differ from what inotify reports).
+        """
+        held = _kernel_watch_inodes()
+        if not held or not self._watches:
+            return
+        missing = []
+        matched = 0
+        for path in self._watches:
+            key = self._dir_keys.get(path)
+            if key is None:
+                continue
+            kernel_dev = (os.major(key[0]) << 20) | os.minor(key[0])
+            if (kernel_dev, key[1]) in held:
+                matched += 1
+            else:
+                missing.append(path)
+        if not missing or not matched:
+            return
+        for path in missing:
+            self._watches.pop(path)()
+        self._unwatched += len(missing)
+        if self._watch_error is None:
+            self._watch_error = (
+                "the kernel installed no watch (inotify limit), Gio does not report it"
+            )
 
     def _report_limits(self) -> None:
         """ONE summary WARNING when a limit was hit or the OS refused watches."""

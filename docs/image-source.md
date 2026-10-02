@@ -55,9 +55,15 @@ becomes empty (`None`). It does not fire for `advance()`.
   `DEFAULT_MAX_WATCHES` (2048) get a monitor (constructor parameters
   `max_directories` / `max_watches`; module constants, not settings). Folders past
   the walk limit are skipped; folders past the watch limit, or refused a watch by
-  the OS (`ENOSPC`), are walked once but unwatched: their later changes go
+  the kernel (`ENOSPC`), are walked once but unwatched: their later changes go
   unnoticed until restart. Either way ONE summary WARNING is logged when the walk
-  completes, with the counts and the first OS error. The per-user kernel limit
+  completes, with the counts and the first error. **Gio does not report a refused
+  watch**: `monitor_directory()` succeeds and the monitor simply never fires (no
+  `GLib.Error`; measured on a real kernel, see the manual trial below). The source
+  therefore asks the kernel which watches it really holds (`/proc/self/fdinfo`,
+  Linux only) when the walk completes, and counts the missing ones as unwatched.
+  This is best effort: it makes no claim if `/proc` cannot be read or no folder can
+  be matched, and it only runs at the end of a walk, not on every later change. The per-user kernel limit
   `fs.inotify.max_user_watches` is shared with the whole session, hence the low
   default.
 - **Log volume.** One problem is one line. For unreadable or corrupt images and

@@ -223,7 +223,7 @@ def test_gio_criterion2_first_image_arrives_long_before_the_full_walk_on_a_large
     with capsys.disabled():
         print(
             f"\n[CORE-4 measurement, real GLib main loop] {total} files in 420 folders, step "
-            f"budget 2 ms: first image after {t_first * 1000:.2f} ms (step {steps_at_first}), "
+            f"budget 5 ms: first image after {t_first * 1000:.2f} ms (step {steps_at_first}), "
             f"full walk {t_full * 1000:.1f} ms in {stats['steps']} steps, "
             f"longest single step {stats['longest'] * 1000:.1f} ms"
         )
@@ -346,17 +346,14 @@ def test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes(
             wait_for(lambda: src.scan_complete, "the walk to finish under exhausted watches")
         walked = len(src)
         watched = len(src._watches)
-        unwatched_dir = next(
-            str(tmp_path / f"d{n:02d}")
-            for n in reversed(range(folders))
-            if str(tmp_path / f"d{n:02d}") not in src._watches
-        )
-        make_image(os.path.join(unwatched_dir, "late.png"))
+        # characterization: which folders still deliver events? (the kernel refused some watches)
+        for n in range(folders):
+            make_image(tmp_path / f"d{n:02d}" / "late.png")
         deadline = time.monotonic() + 3
-        while time.monotonic() < deadline and len(src) == walked:
+        while time.monotonic() < deadline and len(src) < 2 * folders:
             wait_for(lambda: True, "iteration")
             time.sleep(0.05)
-        late_seen = len(src) > walked
+        late_seen = len(src) - walked
         limit_lines = [r.message for r in caplog.records if "folder limits reached" in r.message]
         other = [
             r.message
@@ -368,10 +365,11 @@ def test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes(
     with capsys.disabled():
         print(
             f"\n[CORE-4 watch exhaustion, real kernel + Gio] limit 25, {folders} folders: "
-            f"walked {walked} images, {watched} folders watched; "
-            f"event from an unwatched folder delivered: {late_seen}; "
+            f"walked {walked} images, {watched} folders counted as watched after verification; "
+            f"late images noticed through events: {late_seen} of {folders}; "
             f"summary lines: {limit_lines}; other warnings: {other}"
         )
     assert walked == folders  # exhausted watches never cost an image
-    assert watched < folders  # the limit really bit
+    assert watched < folders  # the limit really bit, and the source noticed
+    assert late_seen < folders  # (events from unwatched folders really are missing)
     assert len(limit_lines) == 1
