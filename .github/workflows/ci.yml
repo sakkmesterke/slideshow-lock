@@ -39,7 +39,8 @@ jobs:
             gir1.2-gdkpixbuf-2.0 \
             gir1.2-gst-plugins-base-1.0 \
             gstreamer1.0-plugins-base \
-            gir1.2-gtk-4.0
+            gir1.2-gtk-4.0 \
+            dbus-daemon
           pip install PyGObject
 
       - name: Verify GI stack is actually usable (anti-silent-skip gate)
@@ -65,6 +66,11 @@ jobs:
           # package is named here, up front, instead.
           python3 -c "import gi; gi.require_version('Gtk', '4.0'); gi.require_version('Gdk', '4.0'); gi.require_version('Graphene', '1.0'); from gi.repository import Gtk, Gdk, Graphene; print('GTK OK:', Gtk.get_major_version(), Gtk.get_minor_version())"
           python3 -c "import slideshow_lock.preview_app, slideshow_lock.preview_window; print('preview modules import OK')"
+          # CORE-1: tests/test_dbus_adapters.py and tests/test_service_dbus.py start private
+          # dbus-daemon processes (a fake desktop). Locally they skip without the daemon; in CI a
+          # missing daemon must be named here, up front.
+          dbus-daemon --version | head -1
+          python3 -c "import slideshow_lock.service; print('service module imports OK')"
 
       - name: Install project (editable) with dev dependencies
         run: |

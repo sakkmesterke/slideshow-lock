@@ -58,7 +58,8 @@ INFO unless noted:
   never locks)
 - inhibition present at start time -> slideshow not started (INFO: expected
   behaviour, not a fault)
-- inhibition appearing while slideshow is running -> immediate stop, no lock
+- inhibition appearing while slideshow is running -> immediate stop; a lock too if the slideshow
+  ran for the grace period or longer (the same measure as for input), none within it
   (D28: this must never suppress the sleep-lock branch)
 - `PrepareForSleep(true)` -> stop + lock attempt
 - `PrepareForSleep(false)` / resume -> see D34

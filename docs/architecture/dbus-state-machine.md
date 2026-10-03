@@ -188,7 +188,8 @@ Transitions (abbreviated; guards in brackets):
 |---|---|---|---|---|
 | `IDLE_WATCHING` | idle timeout fires | `not is_idle_inhibited()` (3.4) | show slideshow, all monitors | `SLIDESHOW_RUNNING(IDLE)` |
 | `IDLE_WATCHING` | idle timeout fires | `is_idle_inhibited()` | — | `IDLE_WATCHING` (no-op) |
-| `SLIDESHOW_RUNNING(IDLE)` | inhibitor appears while running | — | stop slideshow, **no lock** (D5) | `IDLE_WATCHING` |
+| `SLIDESHOW_RUNNING(IDLE)` | inhibitor appears while running | `not grace_elapsed` | stop slideshow, **no lock** | `IDLE_WATCHING` |
+| `SLIDESHOW_RUNNING(IDLE)` | inhibitor appears while running | `grace_elapsed` (the same strict `<` and the same elapsed time as for input) | stop slideshow, lock at once, through the lock path of the input row | `LOCKING` → `LOCKED` |
 | `SLIDESHOW_RUNNING(IDLE)` | first input | `grace_elapsed` (strict `<`, D16) | stop slideshow, lock | `LOCKING` → `LOCKED` |
 | `SLIDESHOW_RUNNING(IDLE)` | first input | `not grace_elapsed` | stop slideshow, **no lock** | `IDLE_WATCHING` |
 | `SLIDESHOW_RUNNING(MANUAL_PREVIEW)` | any input | — (D11: never locks) | stop slideshow, **no lock** | `IDLE_WATCHING` |
