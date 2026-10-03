@@ -335,6 +335,7 @@ def _read_watch_limit() -> int:
         return int(fh.read())
 
 
+@pytest.mark.spawns_processes  # sudo sysctl
 def test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes(
     tmp_path, real_source, caplog, capsys
 ):

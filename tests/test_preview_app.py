@@ -165,6 +165,34 @@ def test_start_preview_closes_its_worker_thread_when_the_preview_stops(tmp_path,
     assert not thread.is_alive()  # no thread left behind per preview
 
 
+@pytest.mark.parametrize("animations", [True, False])
+def test_start_preview_hands_the_desktops_animation_choice_to_the_controller(
+    tmp_path, monkeypatch, animations
+):
+    """With animations off no tall panning frame is wanted: the scaler is asked for pan only when
+    the desktop's choice (``animations_enabled``) allows the scroll."""
+    make_image(tmp_path / "a.png")
+    source = started(tmp_path, (FakeWatcher(), ManualScheduler()))
+    windows = [FakeWindow()]
+    scalers = []
+
+    class Recording(FakeScaler):
+        def __init__(self):
+            super().__init__()
+            scalers.append(self)
+
+    monkeypatch.setattr(preview_app, "open_monitor_windows", lambda: windows)
+    monkeypatch.setattr(preview_app, "ImageScaler", Recording)
+    monkeypatch.setattr(preview_app, "animations_enabled", lambda: animations)
+    controller = start_preview(FakeSettings(pan=True), source)
+    try:
+        assert _pump(lambda: windows[0].frames)
+    finally:
+        controller.stop()
+    (scaler,) = scalers
+    assert {call[3] for call in scaler.calls} == {animations}  # the pan argument of prepare
+
+
 # -- the image source ------------------------------------------------------------------------------
 
 
@@ -172,19 +200,13 @@ def test_the_preview_source_leaves_out_pictures_no_loader_can_read(tmp_path, mon
     """``build_source`` is what ``main`` and the smoke use: with the loader probe in place."""
     import os
 
-    from gi.repository import GdkPixbuf
-
     from tests.test_scaling_gdk import RED, save, solid
 
     save(tmp_path, "a.png", solid(20, 10, RED), "png")
     (tmp_path / "b.webp").write_bytes(b"RIFF\x10\x00\x00\x00WEBPVP8 " + bytes(40))
-    real = GdkPixbuf.Pixbuf.get_file_info
+    from tests.test_scaling_gdk import _without_loader
 
-    def no_webp_loader(path):
-        with open(path, "rb") as handle:
-            return (None, -1, -1) if b"WEBP" in handle.read(16) else real(path)
-
-    monkeypatch.setattr(GdkPixbuf.Pixbuf, "get_file_info", staticmethod(no_webp_loader))
+    _without_loader(monkeypatch, "webp")  # whether this machine has a WebP loader is not assumed
     settings = Settings()
     assert settings.set_picture_folder(str(tmp_path)) and settings.set_order("name")
     source = build_source(settings)

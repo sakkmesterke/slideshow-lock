@@ -25,3 +25,4 @@ select = ["E", "F", "I"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["spawns_processes: the test starts a program on purpose (the tripwire in conftest.py stands down)"]

@@ -13,10 +13,14 @@ What it does:
 * The next picture is chosen with ``source.advance()`` and decoded and scaled on a worker
   thread while the current one is on screen, so the cost is hidden (MEAS-1, section 7).
   Reading a picture file, decoding it and scaling it are not on the GLib main loop. What
-  is: wrapping the finished pixels into a texture, and the image source's folder walk
-  (``os.scandir``, ``os.stat``) and its header read of each new file (``probe_image``).
-  A hung network mount can therefore still stall the main loop through the image source;
-  moving that off the loop is a precondition of CORE-1, not done here.
+  is: wrapping the finished pixels into a texture, and the image source's file system
+  calls: ``_list_dir`` (``os.scandir``), ``_handle_entry`` (``entry.is_dir()``,
+  ``entry.is_file()``), ``_stat_key`` (``os.stat``), ``_on_created`` and ``_rewatch_ancestor``
+  (``os.path.isdir``, ``os.path.isfile``), ``probe_image`` (the header read of each new
+  file), ``gio_directory_watcher`` (creating a folder monitor) and ``_kernel_watch_inodes``
+  (reading ``/proc/self/fd``). A hung network mount can therefore still stall the main loop
+  through the image source; moving that off the loop is a precondition of CORE-1, not done
+  here (``docs/preview.md``, section 4, has the same list).
 * The slide interval counts from the moment a picture appears. If the next picture is not
   ready when the interval ends, it is shown the moment it is.
 * A picture that cannot be shown (``ImageSkipped``) is logged and skipped at once, to the
@@ -89,7 +93,9 @@ class PreviewController:
     one window per monitor (see ``slideshow_lock.preview_window``); *scaler* has
     ``prepare(path, sizes, mode, pan) -> [Frame]``; *clock* has ``now()`` and
     ``call_later(seconds, fn) -> cancel``; *worker* has ``submit(fn, done)`` where
-    ``done(result, error)`` runs on the main loop.
+    ``done(result, error)`` runs on the main loop; *animations* says whether the desktop
+    allows animations (asked for every picture): without them a portrait picture is not
+    scrolled, so no tall panning frame is made for it.
 
     A window has ``device_size()``, ``show_frame(frame, pan_seconds)``,
     ``show_message(text)``, ``connect_input(cb)``, ``connect_size_changed(cb)`` and
@@ -105,6 +111,7 @@ class PreviewController:
         *,
         clock,
         worker,
+        animations: Callable[[], bool] = lambda: True,
     ) -> None:
         self._source = source
         self._settings = settings
@@ -112,6 +119,7 @@ class PreviewController:
         self._scaler = scaler
         self._clock = clock
         self._worker = worker
+        self._animations = animations
 
         self._running = False
         self._windows: List[Any] = []
@@ -265,7 +273,9 @@ class PreviewController:
         self._job = job
         _LOG.debug("[slideshow] preparing %r (%s) for %s", path, purpose, job.sizes)
         mode = self._settings.get_scaling()
-        pan = self._settings.get_pan_portrait_images()
+        # A panning frame is up to six monitors' worth of pixels. With animations off the window
+        # would show only its middle, which the ordinary centre crop gives for a sixth of that.
+        pan = bool(self._settings.get_pan_portrait_images()) and bool(self._animations())
         scaler = self._scaler
 
         def work() -> Optional[List[Frame]]:
@@ -411,6 +421,12 @@ class PreviewController:
                     self._arm_timer(self._interval())
             else:
                 self._swap_due = True  # still being prepared: show it the moment it is ready
+                if self._job is None and self._want is None:
+                    # Nothing is being prepared: the redo of the shown picture failed out and
+                    # nothing else will ask again. Try once per interval (a failure arms the
+                    # timer again in ``_on_skipped``), or the picture stays in the old mode.
+                    self._want = (self._next_path, _JOB_NEXT)
+                    self._dispatch()
         except Exception:
             _LOG.exception("[slideshow] preview step failed")
 
