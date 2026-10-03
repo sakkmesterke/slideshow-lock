@@ -72,6 +72,27 @@ OPT_OUTS = {
         "test_scaling_gdk.py",
         "test_preparing_a_picture_costs_about_the_same_bytes_per_pixel_for_every_width",
     ),
+    ("test_run_script.py", "test_run_sh_is_executable_in_git"),
+    ("test_run_script.py", "test_without_arguments_it_prints_the_usage_and_fails"),
+    ("test_run_script.py", "test_an_unknown_command_prints_the_usage_and_fails"),
+    (
+        "test_run_script.py",
+        "test_check_names_every_missing_item_and_marks_the_package_names_unverified",
+    ),
+    ("test_run_script.py", "test_check_without_python3_says_so"),
+    ("test_run_script.py", "test_check_fails_without_a_wayland_session"),
+    ("test_run_script.py", "test_check_passes_when_everything_is_installed"),
+    (
+        "test_run_script.py",
+        "test_preview_compiles_the_schema_outside_the_checkout_and_passes_the_arguments",
+    ),
+    (
+        "test_run_script.py",
+        "test_preview_without_the_dependencies_stops_with_the_report_and_no_traceback",
+    ),
+    ("test_run_script.py", "test_preview_in_a_checkout_without_the_schema_says_so"),
+    ("test_run_script.py", "test_settings_without_the_window_module_says_so_and_is_no_traceback"),
+    ("test_run_script.py", "test_settings_starts_the_window_module"),
 }
 
 
