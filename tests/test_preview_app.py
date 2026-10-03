@@ -61,13 +61,13 @@ def test_every_option_replaces_its_own_setting_and_nothing_else():
     }
 
 
-@pytest.mark.parametrize("interval", ["0", "-5", "3601", "100000"])
-def test_an_interval_outside_one_to_3600_seconds_is_refused(interval):
-    with pytest.raises(ValueError, match="between 1 and 3600"):
+@pytest.mark.parametrize("interval", ["0", "-5", "86400", "100000"])
+def test_an_interval_outside_one_to_86399_seconds_is_refused(interval):
+    with pytest.raises(ValueError, match="between 1 and 86399 seconds"):
         overrides_from_args(parsed("--interval", interval))
 
 
-@pytest.mark.parametrize("interval", ["1", "3600"])
+@pytest.mark.parametrize("interval", ["1", "3600", "7200", "86399"])
 def test_the_ends_of_the_interval_range_are_accepted(interval):
     assert overrides_from_args(parsed("--interval", interval))[KEY_SLIDE_INTERVAL_SECONDS] == int(
         interval
@@ -76,7 +76,7 @@ def test_the_ends_of_the_interval_range_are_accepted(interval):
 
 def test_main_prints_the_reason_and_returns_2_for_a_bad_interval(capsys):
     assert preview_app.main(["--interval", "0"]) == 2
-    assert "between 1 and 3600" in capsys.readouterr().err
+    assert "between 1 and 86399 seconds" in capsys.readouterr().err
 
 
 # -- the settings of one run ----------------------------------------------------------------------
