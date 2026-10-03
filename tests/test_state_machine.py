@@ -170,7 +170,7 @@ def test_ac_3_2_1_a_touch_on_a_slideshow_window_is_input_too():
         (5, 0, False),
         (5, 4, False),
         (5, 4.999, False),
-        (5, 5, True),  # t = G: lock-eligible (strict less-than, D16)
+        (5, 5, True),  # t = G: lock-eligible (strict less-than)
         (5, 6, True),
         (86400, 86399, False),
     ],
@@ -304,7 +304,7 @@ def test_ac_3_4_1_a_session_manager_that_cannot_be_asked_keeps_the_slideshow_fro
 
 #: (grace, seconds the slideshow ran, locks): the same cases for input and for a new inhibitor
 GRACE_CASES = [
-    (0, 0, True),  # grace 0 and nothing elapsed: still lock-eligible (strict less-than, D16)
+    (0, 0, True),  # grace 0 and nothing elapsed: still lock-eligible (strict less-than)
     (0, 5, True),
     (5, 0, False),
     (5, 4.999, False),
@@ -315,7 +315,7 @@ GRACE_CASES = [
 
 
 @pytest.mark.parametrize("grace,elapsed,locks", GRACE_CASES)
-def test_ac_3_4_2_d5_an_inhibit_raised_during_the_run_stops_it_and_locks_only_after_the_grace(
+def test_ac_3_4_2_an_inhibit_raised_during_the_run_stops_it_and_locks_only_after_the_grace(
     grace, elapsed, locks
 ):
     r = Rig(grace=grace)
