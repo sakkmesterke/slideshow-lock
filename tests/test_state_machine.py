@@ -302,14 +302,85 @@ def test_ac_3_4_1_a_session_manager_that_cannot_be_asked_keeps_the_slideshow_fro
     assert any("no session manager" in m for m in caplog.messages)
 
 
-def test_ac_3_4_2_d5_an_inhibit_raised_during_the_run_stops_the_slideshow_without_a_lock():
-    r = Rig()
+#: (grace, seconds the slideshow ran, locks): the same cases for input and for a new inhibitor
+GRACE_CASES = [
+    (0, 0, True),  # grace 0 and nothing elapsed: still lock-eligible (strict less-than, D16)
+    (0, 5, True),
+    (5, 0, False),
+    (5, 4.999, False),
+    (5, 5.0, True),
+    (5, 5.001, True),
+    (86400, 86399, False),
+]
+
+
+@pytest.mark.parametrize("grace,elapsed,locks", GRACE_CASES)
+def test_ac_3_4_2_d5_an_inhibit_raised_during_the_run_stops_it_and_locks_only_after_the_grace(
+    grace, elapsed, locks
+):
+    r = Rig(grace=grace)
     r.start_idle_slideshow()
+    r.clock.advance(elapsed)
+    r.inhibition.set_inhibited(True)
+    assert r.slideshow.stops == 1 and not r.slideshow.running
+    assert len(r.idle.active_callbacks) == 0  # the idle monitor's input watch is gone
+    assert r.lock.lock_calls == (1 if locks else 0)
+    assert r.state is (State.LOCKED if locks else State.IDLE_WATCHING)
+
+
+@pytest.mark.parametrize("grace,elapsed,locks", GRACE_CASES)
+def test_an_inhibit_and_the_first_input_lock_in_exactly_the_same_cases(grace, elapsed, locks):
+    """Control: no inhibitor, input after the same time. Both ends of a slideshow decide alike."""
+    by_input = Rig(grace=grace)
+    by_input.start_idle_slideshow()
+    by_input.input_after(elapsed)
+    by_inhibit = Rig(grace=grace)
+    by_inhibit.start_idle_slideshow()
+    by_inhibit.clock.advance(elapsed)
+    by_inhibit.inhibition.set_inhibited(True)
+    assert by_input.lock.lock_calls == by_inhibit.lock.lock_calls == (1 if locks else 0)
+    assert by_input.state is by_inhibit.state
+
+
+def test_an_inhibit_locks_at_once_through_the_lock_path_of_the_input_lock(caplog):
+    r = Rig(grace=3)
+    r.start_idle_slideshow()
+    r.clock.advance(10)
+    with caplog.at_level(logging.INFO):
+        r.inhibition.set_inhibited(True)
+    assert r.lock.lock_calls == 1
+    assert any("locking the session" in m and "inhibits idle" in m for m in caplog.messages)
+
+
+def test_an_inhibit_that_stops_a_slideshow_whose_lock_fails_leaves_what_the_input_lock_leaves(
+    caplog,
+):
+    """The lock failing is the same outcome as after input: ERROR, idle-watching again."""
+    r = Rig(grace=0)
+    r.lock.result = LockResult(False, "no screensaver")
+    r.start_idle_slideshow()
+    with caplog.at_level(logging.ERROR):
+        r.inhibition.set_inhibited(True)
+    assert r.lock.lock_calls == 1
+    assert r.state is State.IDLE_WATCHING
+    assert any("no screensaver" in m for m in caplog.messages)
+
+
+def test_an_inhibit_raised_while_no_slideshow_runs_locks_nothing():
+    r = Rig(grace=0)
     r.inhibition.set_inhibited(True)
     assert r.state is State.IDLE_WATCHING
-    assert r.slideshow.stops == 1
-    assert r.lock.lock_calls == 0
-    assert len(r.idle.active_callbacks) == 0
+    assert r.lock.lock_calls == 0 and r.slideshow.stops == 0
+
+
+@pytest.mark.parametrize("elapsed", [0, 30, 3600])
+def test_an_inhibit_never_locks_for_a_manual_preview(elapsed):
+    r = Rig(grace=0)
+    assert r.machine.start_preview()
+    r.clock.advance(elapsed)
+    r.inhibition.set_inhibited(True)
+    assert r.state is State.SLIDESHOW_RUNNING  # the preview is not stopped either
+    assert r.lock.lock_calls == 0 and r.slideshow.stops == 0
 
 
 def test_an_inhibit_that_goes_away_again_changes_nothing():
@@ -376,9 +447,10 @@ def test_ac_3_5_2_d28_the_sleep_path_never_asks_the_inhibition_query():
 def test_d28_an_inhibit_that_stops_a_slideshow_is_not_a_sleep_inhibit():
     """The inhibit-triggered stop and the sleep follow-up are separate paths: after an inhibit
     stop the machine still follows a sleep to LOCKED."""
-    r = Rig()
+    r = Rig(grace=30)
     r.start_idle_slideshow()
     r.inhibition.set_inhibited(True)
+    assert r.state is State.IDLE_WATCHING and r.lock.lock_calls == 0  # within the grace period
     r.machine.sleep_started()
     r.machine.sleep_lock_finished(True)
     assert r.state is State.LOCKED

@@ -7,14 +7,19 @@ method here, and the three reasons to lock are three separate paths, not one bra
 
 * **input after an idle-triggered slideshow** (``_input_detected``): locks if the grace period
   has run out (strict ``<``, D16). Only a slideshow with ``TriggerSource.IDLE`` can reach the
-  lock call; a manual preview cannot (D11, by construction: the call is not on its path).
+  lock call; a manual preview cannot (D11, by construction: the call is not on its path). An
+  application that starts inhibiting idle while such a slideshow runs ends it the same way
+  (``_on_inhibit_changed``): inside the grace period it just stops, after it the session locks at
+  once, through the same method (``_end_slideshow_and_lock_if_due``), because "the next move"
+  may be somebody else's.
 * **sleep** (``sleep_started`` / ``sleep_lock_finished``): the lock itself is made by the sleep
   guard on its own thread (``sleep_guard.py``), not here. This object only follows: it stops
   the slideshow and records the result. It never asks the inhibition query (D28).
 * **somebody else locked** (``_on_active_changed``): the state follows, nothing is called.
 
-The idle path asks ``InhibitionQuery`` in exactly one place, ``_on_idle`` (and the inhibitor
-that appears while a slideshow runs, ``_on_inhibit_changed``); nothing on a lock path does.
+The idle path asks ``InhibitionQuery`` in exactly one place, ``_on_idle``, and hears about a new
+inhibitor through ``_on_inhibit_changed``; the sleep path never does. The inhibitor only ever
+holds back the idle-triggered slideshow, or ends one: it never holds back a lock that is due.
 
 Threads: every method is called on the main loop's thread. The sleep guard hands its two
 messages over with a main-loop post; it never calls this object from its own thread.
@@ -204,8 +209,8 @@ class StateMachine:
             and self._state is State.SLIDESHOW_RUNNING
             and self._trigger is TriggerSource.IDLE
         ):
-            _LOG.info("[idle-trigger] an application inhibits idle: slideshow stopped, no lock")
-            self._finish_slideshow()
+            _LOG.info("[idle-trigger] an application inhibits idle: stopping the slideshow")
+            self._end_slideshow_and_lock_if_due("an application that inhibits idle")
 
     # -- input (3.2, 3.3) -----------------------------------------------------------------
 
@@ -219,29 +224,35 @@ class StateMachine:
     def _input_detected(self, where: str) -> None:
         if self._state is not State.SLIDESHOW_RUNNING:
             return
+        self._end_slideshow_and_lock_if_due(f"input from the {where}")
+
+    def _end_slideshow_and_lock_if_due(self, cause: str) -> None:
+        """Stop the running slideshow and lock the session if it ran for the grace period or
+        longer (strict ``<`` for "within", D16: a grace of 0 never skips the lock). The one place
+        where a slideshow ends with a possible lock, for input and for a new idle inhibitor
+        alike; a slideshow that is not idle-triggered (the preview) never locks."""
         trigger = self._trigger
         elapsed = self._clock() - self._started_at
         self._finish_slideshow()
         if trigger not in _LOCKING_SOURCES:
             _LOG.info(
-                "[slideshow] stopped by input from the %s (trigger=%s): a preview never locks",
-                where,
+                "[slideshow] stopped by %s (trigger=%s): a preview never locks",
+                cause,
                 trigger.value if trigger else "?",
             )
             return
         grace = int(self._settings.get_lock_grace_period_seconds())
         if elapsed < grace:  # strict less-than (D16): G = 0 never skips the lock
             _LOG.info(
-                "[slideshow] stopped by input from the %s after %.1fs, within the grace "
-                "period of %ds: no lock",
-                where,
+                "[slideshow] stopped by %s after %.1fs, within the grace period of %ds: no lock",
+                cause,
                 elapsed,
                 grace,
             )
             return
         _LOG.info(
-            "[slideshow] stopped by input from the %s after %.1fs: locking the session",
-            where,
+            "[slideshow] stopped by %s after %.1fs: locking the session",
+            cause,
             elapsed,
         )
         self._lock_session()
