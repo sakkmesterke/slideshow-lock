@@ -19,8 +19,10 @@ What it does:
   (``os.path.isdir``, ``os.path.isfile``), ``probe_image`` (the header read of each new
   file), ``gio_directory_watcher`` (creating a folder monitor) and ``_kernel_watch_inodes``
   (reading ``/proc/self/fd``). A hung network mount can therefore still stall the main loop
-  through the image source; moving that off the loop is a precondition of CORE-1, not done
-  here (``docs/preview.md``, section 4, has the same list).
+  through the image source. CORE-1 does not move that off the loop: it keeps the lock before
+  suspend off it (``sleep_guard.py``, ``docs/service.md``), so a stuck folder can delay a
+  picture and the slideshow's own stop, never the lock (``docs/preview.md``, section 4, has the
+  same list).
 * The slide interval counts from the moment a picture appears. If the next picture is not
   ready when the interval ends, it is shown the moment it is.
 * A picture that cannot be shown (``ImageSkipped``) is logged and skipped at once, to the

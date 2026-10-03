@@ -1160,12 +1160,62 @@ def _package_file(module: str) -> str:
     return os.path.join(os.path.dirname(preview_module.__file__), module)
 
 
-#: Every module of the package, ``__init__.py`` included: a list of the preview's own modules let
-#: a literal ``os.system("true")`` in ``__init__.py`` through both layers (measured). A module
-#: added later is in the scan from the start.
+#: The modules of the service (CORE-1), which lock, talk to the session and use the bus on
+#: purpose. Every other module of the package, the preview's, is scanned below. A module goes on
+#: this list only by a decision made here: a new module is in the scan from the start.
+LOCK_SIDE_MODULES = {
+    "dbus_adapters.py",
+    "service.py",
+    "session.py",
+    "sleep_guard.py",
+    "state_machine.py",
+}
+
+#: Every other module of the package, ``__init__.py`` included: a list of the preview's own
+#: modules let a literal ``os.system("true")`` in ``__init__.py`` through both layers (measured).
 PACKAGE_MODULES = sorted(
-    name for name in os.listdir(os.path.dirname(preview_module.__file__)) if name.endswith(".py")
+    name
+    for name in os.listdir(os.path.dirname(preview_module.__file__))
+    if name.endswith(".py") and name not in LOCK_SIDE_MODULES
 )
+
+
+def imported_module_names(source: str):
+    """Every module name an ``import`` in *source* can refer to (``from slideshow_lock import
+    state_machine`` and ``import slideshow_lock.state_machine`` both give ``state_machine``)."""
+    names = set()
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                names.update(alias.name.split("."))
+        elif isinstance(node, ast.ImportFrom):
+            names.update((node.module or "").split("."))
+            names.update(alias.name for alias in node.names)
+    return names
+
+
+def test_ac6_d11_the_lock_side_list_names_modules_that_exist():
+    package = os.path.dirname(preview_module.__file__)
+    assert all(os.path.exists(os.path.join(package, name)) for name in LOCK_SIDE_MODULES)
+
+
+@pytest.mark.parametrize("module", PACKAGE_MODULES)
+def test_ac6_d11_no_preview_module_imports_a_lock_side_module(module):
+    """The preview code never reaches the state machine, the session adapters or the sleep
+    guard, not even by an import it does not use."""
+    with open(_package_file(module), encoding="utf-8") as handle:
+        imported = imported_module_names(handle.read())
+    assert imported & {name[: -len(".py")] for name in LOCK_SIDE_MODULES} == set()
+
+
+def test_ac6_d11_the_import_check_would_catch_an_import_of_a_lock_side_module():
+    assert "state_machine" in imported_module_names("from slideshow_lock.state_machine import X")
+    assert "dbus_adapters" in imported_module_names("from slideshow_lock import dbus_adapters")
+    assert "sleep_guard" in imported_module_names("import slideshow_lock.sleep_guard as g")
+    assert imported_module_names("from slideshow_lock import preview") == {
+        "slideshow_lock",
+        "preview",
+    }
 
 
 @pytest.mark.parametrize("module", PACKAGE_MODULES)
