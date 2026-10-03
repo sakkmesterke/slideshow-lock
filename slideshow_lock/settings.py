@@ -46,6 +46,7 @@ KEY_PICTURE_FOLDER = "picture-folder"
 KEY_SLIDE_INTERVAL_SECONDS = "slide-interval-seconds"
 KEY_ORDER = "order"
 KEY_SCALING = "scaling"
+KEY_PAN_PORTRAIT_IMAGES = "pan-portrait-images"
 
 #: Subfolder name under the XDG pictures directory used when the
 #: "picture-folder" key is left at its default, empty value (D25). Matches
@@ -126,6 +127,14 @@ class Settings:
     def set_scaling(self, value: str) -> bool:
         return self._set_string(KEY_SCALING, value)
 
+    # -- pan-portrait-images ----------------------------------------------------
+
+    def get_pan_portrait_images(self) -> bool:
+        return self._settings.get_boolean(KEY_PAN_PORTRAIT_IMAGES)
+
+    def set_pan_portrait_images(self, value: bool) -> bool:
+        return self._set_boolean(KEY_PAN_PORTRAIT_IMAGES, value)
+
     # -- picture-folder (acceptance criterion 4 / D25 / brief 3.7) ----------
 
     def get_picture_folder(self) -> str:
@@ -167,6 +176,20 @@ class Settings:
         ok = self._settings.set_string(key, value)
         if not ok:
             fallback = self._settings.get_string(key)
+            _LOG.warning(
+                "[config] invalid value '%s' for key '%s' rejected, keeping '%s'",
+                value,
+                key,
+                fallback,
+            )
+        return ok
+
+    def _set_boolean(self, key: str, value: bool) -> bool:
+        # `Gio.Settings.set_boolean` takes any truthy Python object, so "no", 0 or [] would be
+        # saved as a boolean. Only a real bool counts as a valid value.
+        ok = isinstance(value, bool) and self._settings.set_boolean(key, value)
+        if not ok:
+            fallback = self._settings.get_boolean(key)
             _LOG.warning(
                 "[config] invalid value '%s' for key '%s' rejected, keeping '%s'",
                 value,
