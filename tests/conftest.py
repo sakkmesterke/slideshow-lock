@@ -114,8 +114,9 @@ def _reset_gsettings_between_tests():
 #: raises, so the line that makes it is the failure. Complements the scan of the sources
 #: (``test_preview.py``): this catches a call the names of which the scan cannot see (built
 #: from pieces, looked up at runtime) but only where a test runs it. A call that sits in a
-#: GTK event handler (the window's key handler, say) is not run by pytest at all: only the
-#: Wayland smoke tool can see that one. A test that really starts a program opts out with
+#: GTK event handler (the window's key handler, say) is not run by pytest at all, and the
+#: Wayland smoke tool has no tripwire: nobody sees that one (only the scan of the sources, by
+#: name). A test that really starts a program opts out with
 #: ``@pytest.mark.spawns_processes``.
 _OS_PROCESS_CALLS = (
     "system",

@@ -318,6 +318,40 @@ def test_rows_peaks_at_two_copies_of_the_frame_for_a_width_that_needs_row_paddin
     assert peak <= 2.2 * frame_bytes, f"peak {peak / frame_bytes:.2f} frames"
 
 
+def _recording_loader_class(seen):
+    """A ``PixbufLoader`` subclass that remembers the type of every chunk written to it (a
+    stand-in object would not do: PyGObject checks the class of the loader it is given)."""
+
+    class RecordingLoader(GdkPixbuf.PixbufLoader):
+        def write(self, chunk, *args):
+            seen.append(type(chunk))
+            return super().write(chunk, *args)
+
+    return RecordingLoader
+
+
+def test_the_decoder_is_fed_bytes_chunks_and_no_copy_of_the_file_is_made(tmp_path, monkeypatch):
+    """A ``bytearray`` slice is converted item by item by PyGObject: a 57 MiB BMP fed in 64 KiB
+    pieces cost 1.2 s of CPU with the GIL held, against 0.04 s with ``bytes``. Checked here by
+    the type of what reaches the loader, and by the Python-side peak of the feeding (one chunk
+    at a time, not the file again)."""
+    path = save(tmp_path, "big.bmp", solid(1500, 1000, BLUE), "bmp")  # 4.5 MB, 69 chunks
+    data = scaling.read_image_file(path, settle_seconds=0)
+    assert isinstance(data, bytearray)  # the read buffer: that is what the old code sliced
+    seen = []
+    monkeypatch.setattr(GdkPixbuf, "PixbufLoader", _recording_loader_class(seen))
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        pixbuf = ImageScaler._decode(data)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert (pixbuf.get_width(), pixbuf.get_height()) == (1500, 1000)
+    assert len(seen) > 50 and set(seen) == {bytes}
+    assert peak < len(data) / 4, f"peak {peak} bytes for a {len(data)} byte file"
+
+
 _HWM_SCRIPT = """
 import sys
 from slideshow_lock.scaling import ImageScaler
@@ -464,6 +498,63 @@ def test_the_probe_does_not_count_a_disabled_loader(tmp_path, monkeypatch):
         staticmethod(lambda: [Format("png", False), Format("jpeg", True)]),
     )
     probe_loadable(path)
+
+
+class _Format:
+    """What ``Pixbuf.get_formats()`` lists for one loader."""
+
+    def __init__(self, name, disabled=False):
+        self.name, self.disabled = name, disabled
+
+    def get_name(self):
+        return self.name
+
+    def is_disabled(self):
+        return self.disabled
+
+
+def test_the_probe_accepts_a_picture_whose_format_has_a_loader_by_the_name_the_sniff_gives(
+    tmp_path, monkeypatch
+):
+    """The names agree for every format: ``probe_image`` says ``webp`` for a WebP header, and a
+    loader called ``webp`` is what makes the probe accept it (whether this machine has one is
+    not assumed: the list is replaced)."""
+    from slideshow_lock.scaling import probe_loadable
+
+    webp = tmp_path / "x.webp"
+    webp.write_bytes(b"RIFF\x10\x00\x00\x00WEBPVP8 " + bytes(40))
+    monkeypatch.setattr(GdkPixbuf.Pixbuf, "get_formats", staticmethod(lambda: [_Format("webp")]))
+    probe_loadable(str(webp))
+    monkeypatch.setattr(GdkPixbuf.Pixbuf, "get_formats", staticmethod(lambda: [_Format("png")]))
+    with pytest.raises(ValueError, match="no installed gdk-pixbuf loader"):
+        probe_loadable(str(webp))
+
+
+@pytest.mark.parametrize(
+    "name, data",
+    [
+        ("bm-garbage.bmp", b"BM" + bytes(range(60))),
+        ("short.jpg", b"\xff\xd8\xff"),
+        ("header-only.png", b"\x89PNG\r\n\x1a\n" + bytes(8)),
+        ("noise.tiff", b"II*\x00" + bytes(range(60))),
+    ],
+)
+def test_the_probe_is_wider_than_get_file_info_and_the_decoder_skips_what_it_let_through(
+    tmp_path, name, data
+):
+    """Documented behaviour (docs/preview.md, section 2): the probe looks at the header sniff and
+    at the loader list only, not at whether the header parses. A file with a good first few bytes
+    and a broken header is queued, and fails (and is skipped, logged once) when it is decoded.
+    The loop that goes round the queue is bounded by the number of pictures in it."""
+    from slideshow_lock.scaling import probe_loadable
+
+    path = tmp_path / name
+    path.write_bytes(data)
+    os.utime(path, (time.time() - 3600,) * 2)
+    assert GdkPixbuf.Pixbuf.get_file_info(str(path))[0] is None  # what the probe used to refuse
+    probe_loadable(str(path))
+    with pytest.raises(ImageSkipped):
+        ImageScaler(settle_seconds=0).prepare(str(path), [(64, 64)], "fit")
 
 
 def test_the_probe_opens_the_picture_once_and_never_by_name_again(tmp_path, monkeypatch):

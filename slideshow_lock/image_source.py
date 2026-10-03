@@ -105,7 +105,9 @@ def probe_image(path: str) -> str:
     or not a known image format. Opened ``O_NONBLOCK`` and checked with ``fstat``
     on the open descriptor, so a file swapped for a FIFO after the directory
     listing cannot hang the walk (TOCTOU). A stuck network mount can still block
-    ``open()`` in the kernel; that is not something this call can prevent.
+    ``open()`` in the kernel, and the same goes for the directory listing (``os.scandir``)
+    and the ``stat`` calls of the walk; that is not something this call can prevent, and the
+    tests of the step budget do not see it (they measure CPU time and a fake clock).
 
     The name is the one gdk-pixbuf uses for the format (``"jpeg"``, ``"png"``, ``"gif"``,
     ``"bmp"``, ``"tiff"``, ``"webp"``), so a caller can tell what the header said without

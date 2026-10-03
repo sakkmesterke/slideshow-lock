@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import pytest
 
+from slideshow_lock import preview_window
 from slideshow_lock.preview import (
     INPUT_BUTTON,
     INPUT_CLOSE,
@@ -18,7 +19,8 @@ from slideshow_lock.preview import (
     INPUT_MOTION,
     INPUT_SCROLL,
 )
-from slideshow_lock.preview_window import MOTION_THRESHOLD_PIXELS, PreviewWindow
+from slideshow_lock.preview_window import MOTION_THRESHOLD_PIXELS, PreviewWindow, _Canvas
+from slideshow_lock.scaling import Frame
 from tests.timeout_guard import (
     per_test_deadline,  # noqa: F401  (autouse fixture)
 )
@@ -110,3 +112,45 @@ def test_every_listener_hears_every_input(callbacks):
         window.connect_input(sink.append)
     window._on_key(None)
     assert all(sink == [INPUT_KEY] for sink in heard)
+
+
+# -- a panning frame, and the desktop's animation choice at the moment it is shown -----------
+
+
+def window_for_frames(monkeypatch):
+    """A canvas that records what it is asked to do instead of drawing."""
+    window = _Canvas.__new__(_Canvas)
+    window._frame = window._texture = None
+    window._tick_id = 0
+    window._pan_t0 = None
+    window._offset = (0, 0)
+    calls = []
+    monkeypatch.setattr(_Canvas, "add_tick_callback", lambda self, fn: calls.append("tick") or 7)
+    monkeypatch.setattr(_Canvas, "remove_tick_callback", lambda self, id_: calls.append("untick"))
+    monkeypatch.setattr(_Canvas, "queue_draw", lambda self: None)
+    return window, calls
+
+
+def tall_frame(pan_range=(0, 600)):
+    return Frame("p.png", 4, 12, 12, bytes(12 * 12), "fake", pan_range)
+
+
+@pytest.mark.parametrize("enabled", [True, False], ids=["animations-on", "animations-off"])
+def test_a_panning_frame_scrolls_only_while_the_desktop_animates(monkeypatch, enabled):
+    """The controller no longer asks for a tall frame when animations are off, but a frame made
+    just before the choice changed can still arrive: the window then shows its middle (the
+    controller's centre crop is the same part) and starts no tick."""
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: enabled)
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(tall_frame((10, 600)), 5.0)
+    if enabled:
+        assert calls == ["tick"] and window._offset == (0, 0)
+    else:
+        assert calls == [] and window._offset == (5, 300)
+
+
+def test_a_frame_that_does_not_pan_starts_no_tick_whatever_the_animation_choice(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(tall_frame((0, 0)), 5.0)
+    assert calls == [] and window._offset == (0, 0)

@@ -227,6 +227,12 @@ def large_tree_walk(tmp_path_factory):
     # between two clock reads (measured: the wall-clock assertions failed in most runs with eight
     # test runs on two cores), which says nothing about the walk. A walk that ignores its budget
     # is a step that is busy for the whole walk, and that shows in CPU time all the same.
+    # What this guards is the cost budget. CPU time does not see a blocking call or a sleep
+    # (a step that waits on a slow file system is not busy), and a wall-clock threshold does not
+    # separate that from a loaded machine (measured: 54-489 ms for the longest step with eight
+    # runs on two cores). A blocked step is covered by a hand measurement on a real slow mount,
+    # not by this test; ``test_criterion2_a_step_does_the_work_of_its_budget_and_not_more`` below
+    # checks the budget logic itself on a fake clock.
     walk = SimpleNamespace(
         total=total,
         budget=STEP_BUDGET,
@@ -306,6 +312,58 @@ def test_criterion2_main_loop_has_the_first_image_long_before_the_full_walk_ends
     w = large_tree_walk
     assert w.cpu_first_returned < 10 * w.budget  # CPU time, see the fixture
     assert w.cpu_first_returned < w.cpu_full / 4
+
+
+class _TickingTime:
+    """``time`` for the image source with a clock that moves one unit per reading and never by
+    itself: how much work a step does within its budget no longer depends on the machine."""
+
+    def __init__(self):
+        self.now = 0.0
+
+    def monotonic(self):
+        self.now += 1.0
+        return self.now
+
+    def __getattr__(self, name):
+        return getattr(time, name)
+
+
+def test_criterion2_a_step_does_the_work_of_its_budget_and_not_more(
+    tmp_path, backends, monkeypatch
+):
+    """Deterministic: the budget is eight clock units, and the clock moves one unit per reading,
+    so a step may do at most eight units of work (one more for the reading that ends it). A walk
+    that ignores the budget, one that checks the clock only every so many units, and one that
+    widens the budget fail this on any machine, whatever one unit of work costs. Complements the
+    CPU-time test above, which measures real time and does not replace this one."""
+    for folder in range(10):
+        for number in range(12):
+            make_image(tmp_path / f"d{folder}" / f"img{number:02d}.png")
+    monkeypatch.setattr("slideshow_lock.image_source.time", _TickingTime())
+    src = make_source(tmp_path, backends, step_budget_seconds=8.0)
+    done = []
+    real_work = src._work
+
+    def counting_work():
+        did = real_work()
+        if did:
+            done.append(1)
+        return did
+
+    monkeypatch.setattr(src, "_work", counting_work)
+    src.start()
+    per_step = []
+    while True:
+        before = len(done)
+        more = backends[1].run_one()
+        per_step.append(len(done) - before)
+        if not more:
+            break
+    assert len(src) == 120
+    assert len(per_step) >= 15  # the walk really is cut into steps
+    assert max(per_step) <= 8 + 1
+    assert max(per_step) >= 8  # and a step does use its budget: no step of one unit each
 
 
 # -- criterion 3: live monitoring in both directions --------------------------------
