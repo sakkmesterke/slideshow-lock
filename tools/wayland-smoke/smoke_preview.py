@@ -1,0 +1,467 @@
+"""Smoke test of the real preview in a real Wayland session (run it through run.sh).
+
+What it exercises: the real GTK windows (one per virtual monitor), the real scaler, the real
+image source on a real folder, the real Settings (memory backend), the real GLib main loop,
+and real pointer, key, button and scroll events injected through mutter's remote-desktop
+service. The folder holds a landscape picture, a portrait picture, a truncated JPEG with a
+valid header and a JPEG header followed by garbage; the last two must be skipped.
+
+What it does not prove: how the picture looks (that is a human judgement on the real
+monitor), real GPU behaviour, or anything about locking: the preview has no lock call, and
+this script only checks that the preview ends and nothing else.
+
+    run.sh --input motion          # inject pointer motion, expect the preview to stop
+    run.sh --input none            # inject nothing: the preview must keep running
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import os
+import random
+import sys
+import tempfile
+import time
+
+import gi
+
+gi.require_version("Gdk", "4.0")
+gi.require_version("GdkPixbuf", "2.0")
+gi.require_version("Gio", "2.0")
+gi.require_version("GLib", "2.0")
+gi.require_version("Gtk", "4.0")
+
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
+
+from slideshow_lock.image_source import source_from_settings  # noqa: E402
+from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  # noqa: E402
+from slideshow_lock.preview_window import open_monitor_windows  # noqa: E402
+from slideshow_lock.scaling import ImageScaler  # noqa: E402
+from slideshow_lock.settings import Settings  # noqa: E402
+
+RESULTS = []
+
+
+def check(name: str, ok: bool, detail: str = "") -> None:
+    RESULTS.append(ok)
+    print(f"SMOKE {name:<52} {'OK' if ok else 'FAIL'}  {detail}".rstrip(), flush=True)
+
+
+def make_pictures(folder: str) -> None:
+    def gradient(width: int, height: int) -> GdkPixbuf.Pixbuf:
+        pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, width, height)
+        stride = pixbuf.get_rowstride()
+        row = bytearray(stride)
+        for x in range(width):
+            row[3 * x] = x * 255 // width
+            row[3 * x + 2] = 128
+        data = bytearray(stride * height)
+        for y in range(height):
+            data[y * stride : (y + 1) * stride] = row
+            for x in range(0, width, 24):  # vertical ticks, so scaling has detail to work on
+                data[y * stride + 3 * x + 1] = y * 255 // height
+        return GdkPixbuf.Pixbuf.new_from_bytes(
+            GLib.Bytes.new(bytes(data)), GdkPixbuf.Colorspace.RGB, False, 8, width, height, stride
+        )
+
+    gradient(3000, 2000).savev(os.path.join(folder, "a_landscape.jpg"), "jpeg", ["quality"], ["90"])
+    gradient(1500, 2200).savev(os.path.join(folder, "b_portrait.png"), "png", [], [])
+    with open(os.path.join(folder, "a_landscape.jpg"), "rb") as handle:
+        whole = handle.read()
+    with open(os.path.join(folder, "c_truncated.jpg"), "wb") as handle:
+        handle.write(whole[: len(whole) * 2 // 5])
+    with open(os.path.join(folder, "d_garbage.jpg"), "wb") as handle:
+        handle.write(b"\xff\xd8\xff\xe0" + random.Random(1).randbytes(600))
+    for name in os.listdir(folder):  # long settled: not "still being copied"
+        old = time.time() - 3600
+        os.utime(os.path.join(folder, name), (old, old))
+
+
+class Recorder(logging.Handler):
+    def __init__(self) -> None:
+        super().__init__()
+        self.records = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
+
+
+class RecordingWindow:
+    """Wraps a real PreviewWindow: notes every frame shown and counts the paints after it."""
+
+    def __init__(self, inner, index: int, shown: list) -> None:
+        self.inner = inner
+        self.index = index
+        self.shown = shown
+        self.paints = 0
+        window = inner._window
+        if window.get_realized():
+            self._watch_paints(window)
+        else:
+            window.connect("realize", self._watch_paints)
+
+    def _watch_paints(self, window) -> None:
+        window.get_frame_clock().connect("after-paint", lambda *_a: self._count())
+
+    def _count(self) -> None:
+        self.paints += 1
+
+    def device_size(self):
+        return self.inner.device_size()
+
+    def show_frame(self, frame, pan_seconds):
+        self.shown.append((self.index, frame, time.monotonic(), self.paints))
+        self.inner.show_frame(frame, pan_seconds)
+
+    def show_message(self, text):
+        self.inner.show_message(text)
+
+    def connect_input(self, callback):
+        self.inner.connect_input(callback)
+
+    def connect_size_changed(self, callback):
+        self.inner.connect_size_changed(callback)
+
+    def close(self):
+        self.inner.close()
+
+
+class Injector:
+    """Pointer, key, button and scroll events through mutter's remote-desktop service."""
+
+    BUS = "org.gnome.Mutter.RemoteDesktop"
+
+    def __init__(self) -> None:
+        self._bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        reply = self._call("/org/gnome/Mutter/RemoteDesktop", self.BUS, "CreateSession")
+        self._session = reply.unpack()[0]
+        self._call(self._session, self.BUS + ".Session", "Start")
+
+    def _call(self, path, iface, method, params=None):
+        return self._bus.call_sync(
+            self.BUS, path, iface, method, params, None, Gio.DBusCallFlags.NONE, 5000, None
+        )
+
+    def _session_call(self, method, params):
+        self._call(self._session, self.BUS + ".Session", method, params)
+
+    def place_pointer(self) -> None:
+        """Park the pointer inside the first monitor. Done before any window exists: like a
+        mouse that is simply resting there when the preview appears."""
+        for _ in range(8):
+            self._session_call("NotifyPointerMotionRelative", GLib.Variant("(dd)", (30.0, 20.0)))
+            time.sleep(0.03)
+
+    def motion(self, steps: int = 6) -> None:
+        """Move the pointer in small steps spread over time, with the main loop running: a
+        burst sent from inside one callback reaches the client as one coalesced event."""
+        left = {"n": steps}
+
+        def step() -> bool:
+            self._session_call("NotifyPointerMotionRelative", GLib.Variant("(dd)", (15.0, 10.0)))
+            left["n"] -= 1
+            return left["n"] > 0
+
+        GLib.timeout_add(60, step)
+
+    def key(self, windows) -> None:
+        # Headless mutter without a shell gives no window keyboard focus, so a real key press is
+        # never delivered. The key controller of the first window is fired by hand instead:
+        # this checks the wiring from controller to preview, not the compositor's delivery.
+        controllers = windows[0].inner._window.observe_controllers()
+        for i in range(controllers.get_n_items()):
+            controller = controllers.get_item(i)
+            if isinstance(controller, Gtk.EventControllerKey):
+                controller.emit("key-pressed", Gdk.KEY_space, 65, 0)
+                return
+        raise RuntimeError("no key controller on the window")
+
+    def button(self) -> None:
+        for state in (True, False):
+            self._session_call("NotifyPointerButton", GLib.Variant("(ib)", (272, state)))  # left
+
+    def scroll(self) -> None:
+        self._session_call("NotifyPointerAxis", GLib.Variant("(ddu)", (0.0, 15.0, 0)))
+
+
+def monitor_sizes() -> list:
+    monitors = Gdk.Display.get_default().get_monitors()
+    sizes = []
+    for i in range(monitors.get_n_items()):
+        geometry = monitors.get_item(i).get_geometry()
+        scale = monitors.get_item(i).get_scale_factor()
+        sizes.append((geometry.width * scale, geometry.height * scale))
+    return sizes
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--input", choices=("none", "motion", "key", "button", "scroll"), default="motion"
+    )
+    parser.add_argument("--scaling", choices=("fit", "fill"), default="fill")
+    parser.add_argument("--pan", action="store_true")
+    parser.add_argument("--interval", type=int, default=2)
+    parser.add_argument("--dump", help="write every frame shown as a PNG into this folder")
+    args = parser.parse_args()
+
+    recorder = Recorder()
+    logging.getLogger().addHandler(recorder)
+    logging.getLogger().setLevel(logging.INFO)
+
+    folder = tempfile.mkdtemp(prefix="slideshow-smoke-")
+    make_pictures(folder)
+
+    settings = Settings()
+    check(
+        "settings accept the run's values",
+        all(
+            [
+                settings.set_picture_folder(folder),
+                settings.set_slide_interval_seconds(args.interval),
+                settings.set_order("name"),
+                settings.set_scaling(args.scaling),
+                settings.set_pan_portrait_images(args.pan),
+            ]
+        ),
+    )
+
+    app = Gtk.Application(application_id="io.github.sakkmesterke.SlideshowLock.Smoke")
+    state = {"stopped": None, "gaps": [], "gap_at": [], "status": 0}
+    shown: list = []
+
+    def finish(status: int = 0) -> None:
+        state["status"] = status
+        app.quit()
+
+    def on_activate(application) -> None:
+        application.hold()
+        injector = Injector() if args.input != "none" else None
+        if injector is not None:
+            injector.place_pointer()
+        source = source_from_settings(settings)
+        source.start()
+
+        def factory():
+            return [RecordingWindow(w, i, shown) for i, w in enumerate(open_monitor_windows())]
+
+        controller = PreviewController(
+            source, settings, factory, ImageScaler(), clock=GLibClock(), worker=ThreadWorker()
+        )
+        controller.connect_stopped(lambda reason: state.__setitem__("stopped", reason))
+        controller.start()
+
+        # main-loop stall probe: a 10 ms timer; the gap between two runs is the stall
+        last = {"t": time.monotonic()}
+
+        def probe() -> bool:
+            now = time.monotonic()
+            state["gaps"].append(now - last["t"])
+            state["gap_at"].append(now)
+            last["t"] = now
+            return GLib.SOURCE_CONTINUE
+
+        GLib.timeout_add(10, probe)
+        began = time.monotonic()
+
+        offsets = []  # (time, picture, vertical scroll offset in pixels) of the first window
+
+        def sample_offset() -> bool:
+            if controller.running and controller._windows:
+                canvas = controller._windows[0].inner._canvas
+                if canvas._frame is not None:
+                    offsets.append((time.monotonic(), canvas._frame.path, canvas._offset[1]))
+            return GLib.SOURCE_CONTINUE
+
+        GLib.timeout_add(100, sample_offset)
+
+        def evaluate() -> bool:
+            order = []
+            for _index, frame, _at, _paints in shown:
+                name = os.path.basename(frame.path)
+                if not order or order[-1] != name:
+                    order.append(name)
+            windows = controller._windows
+            sizes = monitor_sizes()
+            check(
+                "one window per monitor",
+                len(windows) == len(sizes),
+                f"{len(windows)} windows, {len(sizes)} monitors",
+            )
+            check(
+                "window pixel size equals the monitor's",
+                [w.device_size() for w in windows] == sizes,
+                f"windows {[w.device_size() for w in windows]} monitors {sizes}",
+            )
+            expected = ["a_landscape.jpg", "b_portrait.png"] * 2
+            check("order by name, bad pictures skipped", order[:4] == expected, str(order[:4]))
+            skipped = [r.getMessage() for r in recorder.records if "skipping" in r.getMessage()]
+            check(
+                "both damaged files skipped and logged",
+                any("c_truncated" in m for m in skipped) and any("d_garbage" in m for m in skipped),
+                f"{len(skipped)} log lines",
+            )
+            fits = []
+            for index, frame, _at, _paints in shown:
+                w, h = sizes[index]
+                if args.scaling == "fit":
+                    ok = (
+                        frame.width <= w
+                        and frame.height <= h
+                        and (frame.width == w or frame.height == h)
+                    )
+                elif args.pan and frame.pan_range != (0, 0):
+                    ok = (
+                        frame.width == w
+                        and frame.height > h
+                        and frame.pan_range == (0, frame.height - h)
+                    )
+                else:
+                    ok = (frame.width, frame.height) == (w, h)
+                fits.append(ok)
+            check(
+                "every frame has the scaled size of its monitor",
+                bool(fits) and all(fits),
+                f"{len(fits)} frames",
+            )
+            methods = sorted({f.method for _i, f, _t, _p in shown})
+            print(f"SMOKE scaling methods used: {methods}", flush=True)
+            check(
+                "windows painted after frames were shown",
+                windows[0].paints > 0,
+                f"{windows[0].paints} paints",
+            )
+            changes = []  # when each change of picture happened (first window that showed it)
+            for _index, frame, at, _paints in shown:
+                name = os.path.basename(frame.path)
+                if not changes or changes[-1][0] != name:
+                    changes.append((name, at))
+            gaps = [round(b[1] - a[1], 2) for a, b in zip(changes[:4], changes[1:4])]
+            check(
+                "interval of the setting respected",
+                all(args.interval - 0.4 <= g <= args.interval + 0.9 for g in gaps),
+                f"gaps {gaps}",
+            )
+            worst = max(state["gaps"]) * 1000
+            print(
+                f"SMOKE longest main-loop stall: {worst:.1f} ms over {len(state['gaps'])} probes",
+                flush=True,
+            )
+            # Where do the stalls fall? Decode and scaling run on the worker, so what is left is
+            # the frame hand-over: texture upload and drawing at the moment a picture appears.
+            show_times = sorted({at for _i, _f, at, _p in shown})
+            near = lambda t: any(0 <= t - st <= 0.6 for st in show_times)  # noqa: E731
+            inside = [g for g, t in zip(state["gaps"], state["gap_at"]) if near(t)]
+            outside = [g for g, t in zip(state["gaps"], state["gap_at"]) if not near(t)]
+            print(
+                "SMOKE stall within 0.6 s after a picture appears: "
+                f"{max(inside, default=0) * 1000:.1f} ms; at all other times: "
+                f"{max(outside, default=0) * 1000:.1f} ms",
+                flush=True,
+            )
+            # redraws of the first window between one picture appearing and the next
+            per_picture = []
+            first_window = [(frame, at, paints) for index, frame, at, paints in shown if index == 0]
+            for (frame, _at, paints), (_next, _next_at, next_paints) in zip(
+                first_window, first_window[1:]
+            ):
+                per_picture.append(
+                    (os.path.basename(frame.path), frame.pan_range != (0, 0), next_paints - paints)
+                )
+            print(f"SMOKE redraws per picture (first window): {per_picture[:4]}", flush=True)
+            if args.pan:
+                runs = []  # offsets seen while each completed portrait picture was on screen
+                for (frame, at, _p), (_f2, until, _p2) in zip(first_window, first_window[1:]):
+                    if frame.pan_range != (0, 0):
+                        runs.append([o for t, _path, o in offsets if at <= t < until])
+                top_to_bottom = bool(runs) and all(
+                    len(run) >= 5
+                    and run == sorted(run)
+                    and run[0] <= 0.1 * first_window[1][0].pan_range[1]
+                    and run[-1] >= 0.9 * first_window[1][0].pan_range[1]
+                    for run in runs
+                )
+                check(
+                    "portrait picture scrolls top to bottom over the interval",
+                    top_to_bottom,
+                    f"{len(runs)} runs, offsets {runs[0][::4] if runs else []}",
+                )
+            else:
+                still = [o for _t, _p, o in offsets]
+                check("without --pan nothing scrolls", set(still) == {0}, f"{len(still)} samples")
+            check("main loop never stalled for 150 ms", worst < 150, f"{worst:.1f} ms")
+            if args.dump:
+                os.makedirs(args.dump, exist_ok=True)
+                for n, (index, frame, _t, _p) in enumerate(shown[:8]):
+                    pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+                        GLib.Bytes.new(frame.pixels),
+                        GdkPixbuf.Colorspace.RGB,
+                        False,
+                        8,
+                        frame.width,
+                        frame.height,
+                        frame.stride,
+                    )
+                    pixbuf.savev(
+                        os.path.join(
+                            args.dump, f"{n}-mon{index}-{os.path.basename(frame.path)}.png"
+                        ),
+                        "png",
+                        [],
+                        [],
+                    )
+            if args.input == "none":
+                check(
+                    "no phantom input: preview still running",
+                    controller.running and state["stopped"] is None,
+                )
+                controller.stop("requested")
+                check("stop() closed the preview", state["stopped"] == "requested")
+                GLib.timeout_add(500, lambda: (finish(), False)[1])
+            else:
+                if args.input == "key":
+                    injector.key(windows)
+                else:
+                    getattr(injector, args.input)()
+                injected = time.monotonic()
+
+                def after_input() -> bool:
+                    check(
+                        f"{args.input} on a window ends the preview",
+                        state["stopped"] == "input" and not controller.running,
+                        f"stopped={state['stopped']!r} after {time.monotonic() - injected:.2f} s",
+                    )
+                    check(
+                        "all windows closed",
+                        all(not w.inner._window.is_visible() for w in windows),
+                    )
+                    finish()
+                    return GLib.SOURCE_REMOVE
+
+                GLib.timeout_add(1000, after_input)
+            return GLib.SOURCE_REMOVE
+
+        def wait_for_shows() -> bool:
+            if len(shown) >= 2 * 4 or time.monotonic() - began > 30:
+                evaluate()
+                return GLib.SOURCE_REMOVE
+            return GLib.SOURCE_CONTINUE
+
+        GLib.timeout_add(250, wait_for_shows)
+        GLib.timeout_add_seconds(
+            60, lambda: (print("SMOKE watchdog fired", flush=True), finish(3))[1] and False
+        )
+
+    app.connect("activate", on_activate)
+    app.run([sys.argv[0]])
+    ok = all(RESULTS) and state["status"] == 0
+    print(
+        f"SMOKE result: {'PASS' if ok else 'FAIL'} ({sum(RESULTS)}/{len(RESULTS)} checks)",
+        flush=True,
+    )
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

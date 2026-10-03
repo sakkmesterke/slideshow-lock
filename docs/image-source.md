@@ -99,7 +99,7 @@ becomes empty (`None`). It does not fire for `advance()`.
   Anything else with an image extension is skipped with a WARNING naming the file.
   A file still being copied is re-checked when the writer finishes, and only
   logged then. The check reads the header only: a file damaged deeper in is for
-  the display layer to skip the same way.
+  the display layer to skip the same way (it does: see [`preview.md`](preview.md), section 3).
 - **Order.** `name`: case-insensitive by full path. `random`: every image once per
   cycle, no image twice in a row across a cycle boundary; a new image joins the
   current cycle.
