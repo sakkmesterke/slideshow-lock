@@ -47,16 +47,17 @@
 
     <key name="slide-interval-seconds" type="u">
       <range min="1" max="86399"/>
-      <default>10</default>
+      <default>5</default>
       <summary>Slide interval</summary>
       <description>
         Seconds each image is shown before advancing to the next one. From
         1 second (00:00:01) to 23:59:59 (86399 seconds); zero and a full day
-        (86400) are not valid. The settings window has one slider with 76
-        steps: every second from 1 to 60, then round values (2, 3, 5, 10,
-        15, 20, 30 and 45 minutes, 1, 2, 3, 4, 6, 8 and 12 hours) up to
-        23:59:59. A stored value between two steps is not changed by
-        opening the window.
+        (86400) are not valid. The settings window has one slider in four
+        equal quarters, 36 steps in all: every second from 1 to 10, every 5
+        seconds from 10 to 60, then 2, 3, 5, 10, 15, 20, 30, 45 and 60
+        minutes, then 2, 3, 4, 6, 8 and 12 hours, and the end of the slider,
+        23:59:59. A stored value between two steps is not changed by opening
+        the window.
       </description>
     </key>
 

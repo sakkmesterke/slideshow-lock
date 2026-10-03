@@ -59,7 +59,7 @@ def test_defaults_match_brief_section_5():
     settings = Settings()
     assert settings.get_idle_timeout_seconds() == 120
     assert settings.get_lock_grace_period_seconds() == 0
-    assert settings.get_slide_interval_seconds() == 10
+    assert settings.get_slide_interval_seconds() == 5
     assert settings.get_order() == "random"
     assert settings.get_scaling() == "fill"
     # Battery-sensitive animation: stays off until it is measured on the reference laptop.

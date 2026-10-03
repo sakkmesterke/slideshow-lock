@@ -74,7 +74,7 @@ def test_every_key_of_the_schema_has_a_field(model):
 def test_the_window_starts_from_the_stored_values(model):
     assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 120
     assert model.get(KEY_LOCK_GRACE_PERIOD_SECONDS) == 0
-    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 10
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 5
     assert model.get(KEY_ORDER) == "random"
     assert model.get(KEY_SCALING) == "fill"
     assert model.get(KEY_PAN_PORTRAIT_IMAGES) is False  # off unless switched on
@@ -133,11 +133,21 @@ def test_the_idle_timeout_and_the_grace_period_keep_their_plain_ranges(model):
 
 # -- the slide interval on one slider ------------------------------------------------------
 
-ROUND_STEPS = [
-    *(m * 60 for m in (2, 3, 5, 10, 15, 20, 30, 45)),
-    *(h * 3600 for h in (1, 2, 3, 4, 6, 8, 12)),
-    86399,
-]
+# Written out, not computed the way the module does it: a dropped, added or nudged step must
+# not pass.
+EXPECTED_STOPS = (
+    *(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),  # 1st quarter: every second
+    *(15, 20, 25, 30, 35, 40, 45, 50, 55, 60),  # 2nd quarter: every 5 seconds
+    *(120, 180, 300, 600, 900, 1200, 1800, 2700, 3600),  # 3rd quarter: 2 min ... 60 min
+    *(7200, 10800, 14400, 21600, 28800, 43200, 86399),  # 4th quarter: 2 h ... 12 h, the end
+)
+EXPECTED_POSITIONS = (
+    *(0, 70, 140, 210, 280, 350, 420, 490, 560, 630),  # 1 s ... 10 s, 70 apart
+    *(693, 756, 819, 882, 945, 1008, 1071, 1134, 1197, 1260),  # 15 s ... 1 min, 63 apart
+    *(1330, 1400, 1470, 1540, 1610, 1680, 1750, 1820, 1890),  # 2 min ... 1 h, 70 apart
+    *(1980, 2070, 2160, 2250, 2340, 2430, 2520),  # 2 h ... the end, 90 apart
+)
+STEPS = len(EXPECTED_STOPS)
 
 
 def test_the_slide_interval_runs_from_00_00_01_to_23_59_59():
@@ -147,11 +157,28 @@ def test_the_slide_interval_runs_from_00_00_01_to_23_59_59():
     assert INTERVAL_STOPS[0] == 1 and INTERVAL_STOPS[-1] == 86399
 
 
-def test_the_left_half_is_every_second_up_to_a_minute_and_the_right_half_the_round_values():
-    assert INTERVAL_STOPS[:60] == tuple(range(1, 61))
-    assert list(INTERVAL_STOPS[60:]) == ROUND_STEPS
-    assert len(INTERVAL_STOPS) == len(INTERVAL_POSITIONS) == 76
-    assert INTERVAL_STOPS.count(60) == 1  # one minute is on the scale once
+def test_the_steps_are_exactly_the_four_quarters_and_there_are_36_of_them():
+    assert INTERVAL_STOPS == EXPECTED_STOPS
+    assert STEPS == len(INTERVAL_STOPS) == len(INTERVAL_POSITIONS) == 36
+
+
+def test_the_first_quarter_is_every_second_and_the_second_every_5_seconds():
+    assert INTERVAL_STOPS[:10] == tuple(range(1, 11))
+    assert INTERVAL_STOPS[10:20] == tuple(range(15, 61, 5))
+
+
+def test_the_third_quarter_is_round_minutes_and_the_fourth_round_hours_up_to_the_end():
+    minutes = [s // 60 for s in INTERVAL_STOPS[20:29]]
+    assert minutes == [2, 3, 5, 10, 15, 20, 30, 45, 60]  # 1 min is the last step of the 2nd
+    hours = [s // 3600 for s in INTERVAL_STOPS[29:35]]
+    assert hours == [2, 3, 4, 6, 8, 12]  # 1 h is the last step of the 3rd
+    assert INTERVAL_STOPS[35] == 86399  # "24 h" under the slider, 23:59:59 stored
+
+
+@pytest.mark.parametrize("shared", [10, 60, 3600])
+def test_a_step_where_two_quarters_meet_is_on_the_scale_once(shared):
+    assert INTERVAL_STOPS.count(shared) == 1
+    assert INTERVAL_STOPS.index(shared) == EXPECTED_STOPS.index(shared)
 
 
 def test_the_steps_rise_and_so_do_their_positions():
@@ -160,22 +187,29 @@ def test_the_steps_rise_and_so_do_their_positions():
     assert INTERVAL_POSITIONS[0] == 0 and INTERVAL_POSITIONS[-1] == INTERVAL_SLIDER_MAX
 
 
-def test_the_positions_are_4_apart_on_the_left_and_15_apart_on_the_right():
-    # Written out, not computed the way the module does it: a nudged position must not pass.
-    assert INTERVAL_POSITIONS[:60] == tuple(range(0, 240, 4))
-    assert INTERVAL_POSITIONS[60:] == tuple(range(255, 481, 15))
-    assert len(INTERVAL_POSITIONS[60:]) == 16
-    assert INTERVAL_SLIDER_MAX == 480
+def test_the_positions_are_written_out_and_the_slider_is_2520_long():
+    assert INTERVAL_POSITIONS == EXPECTED_POSITIONS
+    assert INTERVAL_SLIDER_MAX == 2520
 
 
-def test_the_slider_is_half_seconds_and_half_round_values():
-    half = INTERVAL_SLIDER_MAX // 2
-    assert all(p < half for p in INTERVAL_POSITIONS[:60])  # 1 s to 1 min: the left half
-    assert all(p > half for p in INTERVAL_POSITIONS[60:])  # 2 min to the end: the right half
-    assert INTERVAL_POSITIONS[59] == 236 and INTERVAL_POSITIONS[60] == 255
+@pytest.mark.parametrize(
+    ("seconds", "share"), [(1, 0), (10, 25), (60, 50), (3600, 75), (86399, 100)]
+)
+def test_the_quarters_end_at_25_50_75_and_100_percent_of_the_slider(seconds, share):
+    assert interval_position_for_seconds(seconds) * 100 == share * INTERVAL_SLIDER_MAX
 
 
-@pytest.mark.parametrize("index", range(76))
+@pytest.mark.parametrize(
+    ("first", "last", "gap"), [(0, 9, 70), (9, 19, 63), (19, 28, 70), (28, 35, 90)]
+)
+def test_the_steps_of_a_quarter_are_spread_evenly_inside_it(first, last, gap):
+    """The indexes are the steps at the ends of a quarter: 1 s, 10 s, 1 min, 1 h, the end."""
+    positions = INTERVAL_POSITIONS[first : last + 1]
+    assert [b - a for a, b in zip(positions, positions[1:])] == [gap] * (last - first)
+    assert positions[-1] - positions[0] == INTERVAL_SLIDER_MAX // 4  # a quarter of the length
+
+
+@pytest.mark.parametrize("index", range(STEPS))
 def test_every_step_maps_to_its_position_and_back(index):
     seconds, position = INTERVAL_STOPS[index], INTERVAL_POSITIONS[index]
     assert interval_position_for_seconds(seconds) == position
@@ -187,19 +221,30 @@ def test_the_ends_of_the_slider():
     assert interval_seconds_for_position(0) == 1  # 00:00:01
     assert interval_seconds_for_position(INTERVAL_SLIDER_MAX) == 86399  # "24 h", 23:59:59
     assert format_hms(interval_seconds_for_position(INTERVAL_SLIDER_MAX)) == "23:59:59"
-    assert interval_position_for_seconds(0) == 0 and interval_position_for_seconds(86400) == 480
+    assert interval_position_for_seconds(0) == 0
+    assert interval_position_for_seconds(86400) == INTERVAL_SLIDER_MAX
 
 
 @pytest.mark.parametrize(
     ("before", "after"),
-    [(60, 120), (2700, 3600), (43200, 86399), (59, 60), (1, 2)],
+    [
+        (9, 10),
+        (10, 15),  # the 1st quarter into the 2nd, and on into 5-second steps
+        (55, 60),
+        (60, 120),  # 1 min into the 3rd quarter
+        (45 * 60, 3600),
+        (3600, 7200),  # 1 h into the 4th quarter
+        (43200, 86399),
+        (1, 2),
+    ],
 )
-def test_the_neighbouring_steps_at_the_seams(before, after):
+def test_the_neighbouring_steps_at_the_seams_in_both_directions(before, after):
     i = interval_index_for_seconds(before)
     assert INTERVAL_STOPS[i : i + 2] == (before, after)
     pos = INTERVAL_POSITIONS[i]
     assert step_interval_position(pos, 1) == INTERVAL_POSITIONS[i + 1]
     assert step_interval_position(INTERVAL_POSITIONS[i + 1], -1) == pos
+    assert interval_seconds_for_position(step_interval_position(pos, 1)) == after
 
 
 def test_a_step_stops_at_the_ends():
@@ -207,28 +252,40 @@ def test_a_step_stops_at_the_ends():
     assert step_interval_position(0, 1) == INTERVAL_POSITIONS[1]
     assert step_interval_position(INTERVAL_SLIDER_MAX, 1) == INTERVAL_SLIDER_MAX
     assert step_interval_position(INTERVAL_SLIDER_MAX, -1) == INTERVAL_POSITIONS[-2]
-    assert step_interval_position(0, -1000) == 0 and step_interval_position(0, 1000) == 480
+    assert step_interval_position(0, -1000) == 0
+    assert step_interval_position(0, 1000) == INTERVAL_SLIDER_MAX
 
 
 def test_a_raw_position_snaps_to_the_nearest_step_the_lower_one_halfway():
-    assert snap_interval_position(1) == 0 and snap_interval_position(2) == 0
-    assert snap_interval_position(3) == 4
-    assert snap_interval_position(245) == 236  # 9 from 236, 10 from 255
-    assert snap_interval_position(246) == 255  # 10 from 236, 9 from 255
-    assert snap_interval_position(6) == 4 and snap_interval_position(7) == 8
-    assert snap_interval_position(2) == 0  # halfway between 0 and 4: the lower one
-    assert interval_seconds_for_position(300) == interval_seconds_for_position(300 + 7)
+    assert snap_interval_position(1) == 0 and snap_interval_position(34) == 0
+    assert snap_interval_position(35) == 0  # halfway between 0 and 70: the lower one
+    assert snap_interval_position(36) == 70
+    assert snap_interval_position(661) == 630  # 31 from 630, 32 from 693
+    assert snap_interval_position(662) == 693  # 32 from 630, 31 from 693
+    assert snap_interval_position(1295) == 1260  # 35 from 1260, 35 from 1330: the lower one
+    assert snap_interval_position(1296) == 1330
+    assert snap_interval_position(2475) == 2430  # 45 from 2430, 45 from 2520: the lower one
+    assert snap_interval_position(2476) == 2520
+    assert interval_seconds_for_position(300) == interval_seconds_for_position(300 + 15)
 
 
 @pytest.mark.parametrize(
     ("stored", "step"),
     [
         (0, 1),
-        (100, 120),
-        (70, 60),
+        (2, 2),  # an earlier step of the old scale that is still a step
+        (11, 10),
+        (12, 10),
+        (13, 15),
+        (20, 20),
+        (59, 60),
         (90, 60),  # halfway between 60 and 120: the lower one
+        (100, 120),
         (150, 120),
         (151, 180),
+        (240, 180),  # 4 min: halfway between 3 and 5 min, the lower one
+        (4 * 3600, 4 * 3600),
+        (7200, 7200),
         (50000, 43200),
         (86399, 86399),
         (86400, 86399),
@@ -264,7 +321,7 @@ def test_hours_minutes_seconds_text(seconds, text):
     )
 
 
-@pytest.mark.parametrize("index", range(76))
+@pytest.mark.parametrize("index", range(STEPS))
 def test_every_step_is_saved_as_its_seconds(model, index):
     result = model.set_interval_position(INTERVAL_POSITIONS[index])
     assert result.ok and result.message == "Saved.", result
@@ -279,11 +336,11 @@ def test_every_step_is_saved_as_its_seconds(model, index):
 
 
 def test_a_position_between_two_steps_saves_the_nearest_step(model):
-    assert model.set_interval_position(240).ok  # 4 from 236 (1 min), 15 from 255
+    assert model.set_interval_position(1290).ok  # 30 from 1260 (1 min), 40 from 1330 (2 min)
     assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 60
 
 
-@pytest.mark.parametrize("position", [-1, 481, 10**6, True, 1.5, "3", None])
+@pytest.mark.parametrize("position", [-1, 2521, 10**6, True, 1.5, "3", None])
 def test_a_position_off_the_slider_is_refused_and_the_stored_value_stays(model, position):
     model.set_interval_position(INTERVAL_POSITIONS[0])
     assert not model.set_interval_position(position).ok
@@ -300,15 +357,22 @@ def test_a_stored_value_that_is_not_a_step_is_shown_at_the_nearest_and_not_chang
     assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 100
 
 
-def test_the_default_interval_is_a_step():
-    assert Settings().get_slide_interval_seconds() == 10
-    assert 10 in INTERVAL_STOPS
+def test_the_default_interval_is_5_seconds_and_a_step():
+    assert Settings().get_slide_interval_seconds() == 5  # the schema's default
+    assert 5 in INTERVAL_STOPS
+
+
+def test_a_fresh_window_shows_the_default_5_seconds_on_the_scale(model):
+    view = model.interval_view()
+    assert (view.seconds, view.text, view.caption, view.on_scale) == (5, "00:00:05", "5 s", True)
+    assert view.position == INTERVAL_POSITIONS[4] == 280
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 5  # looking wrote nothing
 
 
 def test_a_stored_zero_or_a_full_day_cannot_exist_so_the_slider_never_sees_them(model):
     assert not model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 0).ok
     assert not model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 86400).ok
-    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 10  # the stored default stays
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 5  # the stored default stays
 
 
 def test_the_slide_interval_in_seconds_takes_one_second_and_a_day_less_one_second_only(model):
@@ -484,7 +548,7 @@ def test_a_setter_that_says_no_is_not_reported_as_saved():
     result = PreferencesModel(stub).set_int(KEY_SLIDE_INTERVAL_SECONDS, 20)
     assert not result.ok
     assert result.message != "Saved."
-    assert stub.get_slide_interval_seconds() == 10
+    assert stub.get_slide_interval_seconds() == 5
 
 
 def test_a_setter_that_says_yes_but_stores_nothing_is_not_reported_as_saved():
