@@ -156,7 +156,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (51 tests): order, interval, switching, live settings, damaged pictures with a negative control,
+  (52 tests): order, interval, switching, live settings, damaged pictures with a negative control,
   empty source, deleted pictures, input on every window and kind, the lock-free proof (every call the
   controller makes is on a list of picture and timing methods, plus a code scan with its own
   negative control), the main loop staying free while a worker thread decodes (and a negative control
