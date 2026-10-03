@@ -29,24 +29,31 @@ closing the window ends it too. There is no on/off switch: that goes through the
 - A value is saved the moment it is changed. There is no "Apply".
 - The window says "Saved." only for a value that is stored and reads back as written. A refused
   value is not stored, the field goes back to the stored one, and the status line says why.
-- The slide interval is one slider with a big HH:MM:SS (`00:00:10`) and a short text (`10 s`) above
-  it, updated while the slider moves. Its left half is every second from 1 to 60. Its right half
-  snaps to round values: 2, 3, 5, 10, 15, 20, 30 and 45 minutes, then 1, 2, 3, 4, 6, 8 and 12 hours,
-  and the end, which reads "24 h" under the slider but is stored and shown as 23:59:59 (86399 s).
-  One minute is on the scale once (the last step of the left half). The list of round values is
-  kept instead of every hour from 1 to 24: it has the round values asked for, in 16 steps. The
-  arrow keys (left/down: shorter, right/up: longer), Page Up/Down (5 steps), Home, End and the
-  mouse wheel move by steps of that scale (one second up to a minute, then the next round value).
+- The slide interval is one slider with a big HH:MM:SS (`00:00:05`) and a short text (`5 s`) above
+  it, updated while the slider moves. The default is 5 seconds. The slider is cut into four equal
+  quarters of its length, 36 steps in all, and each quarter has its steps spread evenly:
+  1. 1 to 10 s, every second (1, 2, ... 10);
+  2. 10 to 60 s, every 5 seconds (15, 20, ... 60);
+  3. 1 to 60 minutes, round values: 1, 2, 3, 5, 10, 15, 20, 30, 45, 60;
+  4. 1 to 24 hours, round values: 1, 2, 3, 4, 6, 8, 12, 24. The end reads "24 h" under the slider
+     but is stored and shown as 23:59:59 (86399 s).
+
+  A step where two quarters meet (10 s, 1 minute, 1 hour) is one step, not two. The quarters end at
+  25 %, 50 %, 75 % and 100 % of the slider, and the marks under it are 10 s, 1 min, 1 h and 24 h.
+  Because the quarters have 9, 10, 9 and 7 gaps between steps, the distance between two steps on
+  the slider differs from quarter to quarter. The arrow keys (left/down: shorter, right/up:
+  longer), Page Up/Down (5 steps), Home, End and the mouse wheel move by steps of that scale.
 - The slider is stored in seconds in the same key as before: 1 to 86399. 00:00:00 and 24:00:00
   cannot be set, in the window or through `Settings` (the schema refuses 0 and 86400), and the
   slider has no position for them. The schema range was 1 to 3600 before: the minimum is the same
   and the maximum grew, so every value stored earlier is still valid and reads as it did (nothing is
   migrated). A one-second interval is allowed on purpose: no limit of its own was added.
 - A stored value that is not a step (100 s, say) is shown at the nearest step, measured in
-  seconds (100 s sits at 2 min; halfway, the lower step), and the big text and a note say it is not
-  a step. Opening the window never writes: the stored value stays until the user moves the
-  slider. A stored 0 or 86400 cannot exist (GSettings gives the default, 10 s, for a value outside
-  the range). The idle time (1 to 86400 seconds) and the grace period are still plain number fields.
+  seconds (100 s sits at 2 min, 11 s at 10 s; halfway between two steps, the lower one: 90 s sits at
+  1 min), and the big text and a note say it is not a step. Opening the window never writes: the
+  stored value stays until the user moves the slider. A stored 0 or 86400 cannot exist (GSettings
+  gives the default, 5 s, for a value outside the range). The idle time (1 to 86400 seconds) and
+  the grace period are still plain number fields.
 - The folder chooser (Browse) opens in the folder in use when it exists. If that folder is missing,
   or the default is in use, it opens in the system's pictures folder (`~/Pictures` when none is
   configured or it is the home directory itself), and in the home directory only when even that

@@ -152,12 +152,12 @@ def main() -> int:
             window.scaling_drop.get_selected(),
             window.pan_switch.get_active(),
         )
-        == (120, 0, interval_position_for_seconds(10), 0, 0, False),
+        == (120, 0, interval_position_for_seconds(5), 0, 0, False),
     )
     check(
         "the slide interval shows as a big HH:MM:SS and a short text above one slider",
-        window.interval_total.get_label() == "00:00:10"
-        and window.interval_caption.get_label() == "10 s",
+        window.interval_total.get_label() == "00:00:05"
+        and window.interval_caption.get_label() == "5 s",
         f"{window.interval_total.get_label()!r} {window.interval_caption.get_label()!r}",
     )
     check(
@@ -289,8 +289,32 @@ def main() -> int:
     )
     press(Gdk.KEY_Left)
     check(
-        "below a minute a step is one second: 59 s",
-        stored.get_slide_interval_seconds() == 59,
+        "below a minute the steps are 5 s apart: 55 s",
+        stored.get_slide_interval_seconds() == 55,
+        show(),
+    )
+    scale.set_value(interval_position_for_seconds(10))
+    press(Gdk.KEY_Right)
+    check(
+        "an arrow from 10 s goes to 15 s (the 5-second quarter)",
+        stored.get_slide_interval_seconds() == 15 and window.interval_caption.get_label() == "15 s",
+        show(),
+    )
+    press(Gdk.KEY_Left)
+    check("and back to 10 s", stored.get_slide_interval_seconds() == 10, show())
+    scale.set_value(interval_position_for_seconds(3600))
+    press(Gdk.KEY_Right)
+    check(
+        "an arrow from 1 h goes to 2 h (the hours quarter)",
+        stored.get_slide_interval_seconds() == 7200
+        and window.interval_caption.get_label() == "2 h",
+        show(),
+    )
+    press(Gdk.KEY_Left)
+    check(
+        "and back to 1 h",
+        stored.get_slide_interval_seconds() == 3600
+        and window.interval_caption.get_label() == "1 h",
         show(),
     )
     press(Gdk.KEY_End)
@@ -326,11 +350,11 @@ def main() -> int:
     )
     window._interval_wheel.emit("scroll", 0.0, -1.0)
     check("the wheel moves one step too", stored.get_slide_interval_seconds() == 2, show())
-    scale.set_value(240)  # between 1 min (236) and 2 min (255): snaps to the nearer one
+    scale.set_value(1290)  # between 1 min (1260) and 2 min (1330): snaps to the nearer one
     pump(0.3)  # a slider set from its own handler is announced after the handler ended
     check(
         "a position between two steps snaps to the nearest and saves it",
-        scale.get_value() == 236 and stored.get_slide_interval_seconds() == 60,
+        scale.get_value() == 1260 and stored.get_slide_interval_seconds() == 60,
         f"{scale.get_value()} {show()}",
     )
     check(
