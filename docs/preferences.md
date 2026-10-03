@@ -12,9 +12,9 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Field | Key | Accepts |
 |---|---|---|
 | Picture folder (text, "Browse...") | `picture-folder` | an absolute path, `~/...`, or empty for the default |
-| Idle time (three sliders: hours, minutes, seconds) | `idle-timeout-seconds` | 1 to 86399 seconds, shown as 00:00:01 to 23:59:59 |
+| Start the slideshow after | `idle-timeout-seconds` | 1 to 86400 |
 | Lock grace period | `lock-grace-period-seconds` | 0 to 86400 (input sooner than this does not lock, strictly sooner: D16) |
-| Show each picture for | `slide-interval-seconds` | 1 to 3600 |
+| Show each picture for (three sliders: hours, minutes, seconds) | `slide-interval-seconds` | 1 to 86399 seconds, shown as 00:00:01 to 23:59:59 |
 | Picture order | `order` | random, name |
 | Scaling | `scaling` | fill, fit |
 | Scroll tall pictures | `pan-portrait-images` | on, off (off by default) |
@@ -29,15 +29,15 @@ closing the window ends it too. There is no on/off switch: that goes through the
 - A value is saved the moment it is changed. There is no "Apply".
 - The window says "Saved." only for a value that is stored and reads back as written. A refused
   value is not stored, the field goes back to the stored one, and the status line says why.
-- The idle time is three sliders (hours 0-23, minutes 0-59, seconds 0-59) with their values beside
-  them and the result as HH:MM:SS (`00:05:00`), updated while a slider moves. It is stored in
-  seconds in the same key as before. The shortest is 00:00:01 and the longest 23:59:59 (86399);
-  00:00:00 and 24:00:00 cannot be set, in the window or through `Settings` (the schema refuses
-  0 and 86400). Moving all three sliders to zero does not show an error: it becomes 00:00:01,
-  shown and stored, and the status line says so. The schema range was 1 to 86400 before: a stored
-  86400 (a full day) now reads as the default, 120 seconds, because GSettings gives the default for
-  a stored value outside the range (measured); a stored 0 was never valid and read as 120 before.
-  The grace period and the slide interval are still plain number fields.
+- The slide interval is three sliders (hours 0-23, minutes 0-59, seconds 0-59) with their values
+  beside them and the result as HH:MM:SS (`00:00:10`), updated while a slider moves. It is stored
+  in seconds in the same key as before. The shortest is 00:00:01 and the longest 23:59:59 (86399);
+  00:00:00 and 24:00:00 cannot be set, in the window or through `Settings` (the schema refuses 0
+  and 86400). Moving all three sliders to zero does not show an error: it becomes 00:00:01, shown
+  and stored, and the status line says so. The schema range was 1 to 3600 before: the minimum is
+  the same and the maximum grew, so every value stored earlier is still valid and reads as it did
+  (nothing is migrated). A one-second interval is allowed on purpose: no limit of its own was added.
+  The idle time (1 to 86400 seconds) and the grace period are still plain number fields.
 - The folder chooser (Browse) opens in the folder in use when it exists. If that folder is missing,
   or the default is in use, it opens in the system's pictures folder (`~/Pictures` when none is
   configured or it is the home directory itself), and in the home directory only when even that
