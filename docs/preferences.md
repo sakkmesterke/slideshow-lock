@@ -33,7 +33,7 @@ closing the window ends it too. There is no on/off switch: that goes through the
   GTK's default would have clamped it to the nearest limit. One corner: an emptied field reads as
   0, so it is thrown away everywhere but in the grace period, whose minimum is 0.
 - The folder field is empty while the default folder is in use (D25), and shows the default as its
-  hint. The default is the `slideshow-lock` folder inside the system's pictures folder (the
+  hint. The default is the system's pictures folder itself, read recursively (the
   `XDG_PICTURES_DIR` of `~/.config/user-dirs.dirs`, `~/Képek` on a Hungarian system; `~/Pictures`
   if none is configured or if it is the home directory itself). A line under it names the folder in
   use and says if it does not exist; a missing folder is not an error. A relative path and a path

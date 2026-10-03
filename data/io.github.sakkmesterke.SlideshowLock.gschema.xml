@@ -39,9 +39,9 @@
       <summary>Slideshow picture folder</summary>
       <description>
         Absolute path to the folder the slideshow reads images from. An empty
-        string (the default) means: derive the folder from the XDG pictures
-        directory, "slideshow-lock" subfolder (D25). A missing folder is not
-        an error; the service logs it and keeps running (brief 3.7).
+        string (the default) means: the XDG pictures directory itself (D25),
+        read recursively. A missing folder is not an error; the service logs
+        it and keeps running (brief 3.7).
       </description>
     </key>
 

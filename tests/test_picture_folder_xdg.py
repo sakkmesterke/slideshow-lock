@@ -53,7 +53,41 @@ print(json.dumps({
 """
 
 
-def _start(tmp_path: Path, user_dirs: "str | None", stored: "str | None" = None):
+_SCAN_PROBE = """
+import json, os, time
+from gi.repository import GLib
+from slideshow_lock.image_source import source_from_settings
+from slideshow_lock.settings import Settings
+
+PNG = b"\\x89PNG\\r\\n\\x1a\\n" + b"\\x00" * 8
+settings = Settings()
+folder = settings.get_picture_folder()
+for name in ("first.png", os.path.join("album", "second.png")):
+    path = os.path.join(folder, name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as fh:
+        fh.write(PNG)
+    os.utime(path, (time.time() - 600, time.time() - 600))
+source = source_from_settings(settings)
+source.start()
+context = GLib.MainContext.default()
+deadline = time.monotonic() + 10
+while not source.scan_complete and time.monotonic() < deadline:
+    if context.pending():
+        context.iteration(False)
+    else:
+        time.sleep(0.005)
+print(json.dumps({
+    "folder": folder,
+    "images": sorted(os.path.relpath(p, folder) for p in source.images()),
+    "subfolder_made": os.path.exists(os.path.join(folder, "slideshow-lock")),
+}, ensure_ascii=False))
+"""
+
+
+def _start(
+    tmp_path: Path, user_dirs: "str | None", stored: "str | None" = None, probe: str = _PROBE
+):
     """Start a fresh interpreter in a home of its own, with this ``user-dirs.dirs`` (or none)."""
     home = tmp_path / "home"
     config = tmp_path / "config"
@@ -66,9 +100,9 @@ def _start(tmp_path: Path, user_dirs: "str | None", stored: "str | None" = None)
     env["XDG_CONFIG_HOME"] = str(config)
     env["PYTHONIOENCODING"] = "utf-8"
     code = (
-        _PROBE
+        probe
         if stored is None
-        else _PROBE.replace(
+        else probe.replace(
             "settings = Settings()\n",
             f"settings = Settings()\nsettings.set_picture_folder({stored!r})\n",
         )
@@ -89,7 +123,7 @@ def _start(tmp_path: Path, user_dirs: "str | None", stored: "str | None" = None)
 
 def test_a_hungarian_system_uses_its_kepek_folder_everywhere(tmp_path):
     home, got = _start(tmp_path, 'XDG_PICTURES_DIR="$HOME/Képek"\n')
-    expected = f"{home}/Képek/slideshow-lock"
+    expected = f"{home}/Képek"
     assert got["default"] == expected
     assert got["stored"] == expected
     assert got["preview"] == expected
@@ -112,12 +146,12 @@ def test_a_stored_folder_wins_over_the_system_folder(tmp_path):
 
 def test_another_language_folder_name_is_followed_too(tmp_path):
     home, got = _start(tmp_path, 'XDG_PICTURES_DIR="$HOME/Obrázky"\n')
-    assert got["stored"] == f"{home}/Obrázky/slideshow-lock"
+    assert got["stored"] == f"{home}/Obrázky"
 
 
 def test_without_a_user_dirs_file_it_falls_back_to_home_pictures(tmp_path):
     home, got = _start(tmp_path, None)
-    expected = f"{home}/Pictures/slideshow-lock"
+    expected = f"{home}/Pictures"
     assert got["default"] == expected
     assert got["stored"] == expected
     assert got["preview"] == expected
@@ -126,18 +160,27 @@ def test_without_a_user_dirs_file_it_falls_back_to_home_pictures(tmp_path):
 
 def test_a_user_dirs_file_without_the_pictures_line_falls_back_too(tmp_path):
     home, got = _start(tmp_path, 'XDG_MUSIC_DIR="$HOME/Zene"\n')
-    assert got["stored"] == f"{home}/Pictures/slideshow-lock"
+    assert got["stored"] == f"{home}/Pictures"
 
 
 @pytest.mark.parametrize("line", ['XDG_PICTURES_DIR="$HOME"\n', 'XDG_PICTURES_DIR="$HOME/"\n'])
 def test_a_pictures_dir_that_is_the_home_directory_means_off_and_falls_back(tmp_path, line):
     # XDG writes the home directory for "no pictures directory". GLib returns it unchanged
-    # (measured, GLib 2.74), so the slideshow would look in "$HOME/slideshow-lock" and the "off"
+    # (measured, GLib 2.74), so the slideshow would read the whole home directory and the "off"
     # would be read as a real choice. It is treated like an unset one.
     home, got = _start(tmp_path, line)
-    assert got["stored"] == f"{home}/Pictures/slideshow-lock"
+    assert got["stored"] == f"{home}/Pictures"
 
 
 def test_a_relative_pictures_dir_is_not_used(tmp_path):
     home, got = _start(tmp_path, 'XDG_PICTURES_DIR="Képek"\n')
-    assert got["stored"] == f"{home}/Pictures/slideshow-lock"
+    assert got["stored"] == f"{home}/Pictures"
+
+
+def test_pictures_in_the_system_folder_show_with_no_subfolder_created(tmp_path):
+    # The default is the pictures folder itself, read recursively: the pictures a user already keeps
+    # in ~/Képek (also in its subfolders) are found, and no "slideshow-lock" folder is needed.
+    home, got = _start(tmp_path, 'XDG_PICTURES_DIR="$HOME/Képek"\n', probe=_SCAN_PROBE)
+    assert got["folder"] == f"{home}/Képek"
+    assert got["images"] == ["album/second.png", "first.png"]
+    assert got["subfolder_made"] is False

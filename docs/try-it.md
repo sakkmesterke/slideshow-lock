@@ -43,12 +43,11 @@ scaled to the monitor. Any key, click, scroll or mouse movement ends it. The pre
 the session.
 
 **Which folder.** Without `--folder` it uses the picture folder of your settings. Until you choose
-one, that is the folder `slideshow-lock` inside your system's pictures folder, the
-`XDG_PICTURES_DIR` of `~/.config/user-dirs.dirs` (`~/Képek` on a Hungarian system), or
-`~/Pictures/slideshow-lock` if the system has none configured. That folder does not exist until you
-create it. Until then the preview shows "No pictures to show", and its log line names the exact
-path it looked at. Either create that folder and put pictures in it, or point the run at any
-folder:
+one, that is your system's pictures folder itself, the `XDG_PICTURES_DIR` of
+`~/.config/user-dirs.dirs` (`~/Képek` on a Hungarian system), or `~/Pictures` if the system has
+none configured. Its subfolders are read too, so nothing has to be created. If it holds no
+picture, the preview shows "No pictures to show" with the exact path it looked at, and its log
+line names the same path. To use another folder, point the run at it:
 
 ```
 ./run.sh preview --folder /path/to/some/pictures

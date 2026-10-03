@@ -775,6 +775,12 @@ def test_ac5_an_empty_source_is_a_defined_state_logged_once_and_not_an_error(
     assert not any(rec.levelno >= logging.ERROR for rec in caplog.records)
 
 
+def test_ac5_the_empty_message_names_the_folder_that_was_searched(tmp_path, backends):
+    r = rig(tmp_path, backends, files=())
+    message = r.windows[0].messages[-1]
+    assert message.splitlines() == ["No pictures to show", str(tmp_path)]
+
+
 def test_ac5_a_picture_that_appears_in_an_empty_source_starts_the_preview(tmp_path, backends):
     r = rig(tmp_path, backends, files=())
     make_image(tmp_path / "new.png")
