@@ -59,14 +59,24 @@ def default_picture_folder() -> str:
     """Return the XDG-derived default picture folder (D25).
 
     Not baked into the gschema default, because the XDG pictures directory
-    depends on the user's home and locale (`~/.config/user-dirs.dirs`) and
-    cannot be a static value in the schema XML.
+    depends on the user's home and locale (`~/.config/user-dirs.dirs`: on a
+    Hungarian system it is `~/Képek`) and cannot be a static value in the
+    schema XML. The key's default is the empty string, which means this.
+
+    The XDG pictures directory is used when it is configured. Two cases fall
+    back to `$HOME/Pictures`: it is not configured (GLib returns None, measured
+    with GLib 2.74), and it is the home directory itself, which is how the XDG
+    user-dirs convention says "switched off" (GLib returns the home directory
+    as it is, measured). Either way the folder used is a subfolder of the
+    result, never the home directory.
+
+    GLib reads `user-dirs.dirs` once per process and keeps it: a change made
+    while a process runs is seen after a restart.
     """
+    home = GLib.get_home_dir()
     base = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES)
-    if not base:
-        # GLib itself falls back to "$HOME/Pictures" when XDG user dirs are
-        # not configured; mirror that rather than invent a different default.
-        base = os.path.join(GLib.get_home_dir(), "Pictures")
+    if not base or os.path.normpath(base) == os.path.normpath(home):
+        base = os.path.join(home, "Pictures")
     return os.path.join(base, DEFAULT_PICTURE_SUBDIR)
 
 
