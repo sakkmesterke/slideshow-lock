@@ -145,6 +145,19 @@ _OS_PROCESS_CALLS = (
 )
 
 
+#: The same for the Gio calls that start a program through a class and not a module function.
+#: ``Gio.SubprocessLauncher.spawn`` is not in the typelib (a varargs call), so a name that is
+#: missing is skipped, as with ``os`` above.
+_GIO_PROCESS_CALLS = (
+    ("Subprocess", ("new", "newv")),
+    ("SubprocessLauncher", ("spawn", "spawnv")),
+    (
+        "AppInfo",
+        ("create_from_commandline", "launch_default_for_uri", "launch_default_for_uri_async"),
+    ),
+)
+
+
 class ForbiddenCall(AssertionError):
     pass
 
@@ -175,4 +188,9 @@ def _no_process_or_bus_calls(request, monkeypatch):
         for name in dir(module):
             if name.startswith(prefix):
                 monkeypatch.setattr(module, name, _forbidden(f"{module.__name__}.{name}"))
+    for class_name, names in _GIO_PROCESS_CALLS:
+        cls = getattr(Gio, class_name)
+        for name in names:
+            if hasattr(cls, name):
+                monkeypatch.setattr(cls, name, _forbidden(f"Gio.{class_name}.{name}"))
     yield

@@ -36,8 +36,8 @@ becomes empty (`None`). It does not fire for `advance()`.
   the step budget guard the cost budget only: they measure the CPU time of the walking
   thread and, on a fake clock, how much work a step does; they do not see a blocking
   call or a sleep (a step that waits is not busy, and a wall-clock threshold does not
-  tell it from a loaded machine). That is covered by a hand measurement on a real slow
-  mount, not by a test.
+  tell it from a loaded machine; QA measured that a step with a 150 to 500 ms sleep passes
+  them). That is covered by a hand measurement on a real slow mount, not by a test.
 - **Symlink loops.** Directories are identified by `(st_dev, st_ino)`. A loop, or a
   folder reachable through two links, is walked once. Symlinks are followed, so
   linking in a folder from elsewhere works. A symlinked *file* is its own entry.
@@ -136,3 +136,7 @@ changes nothing and stays. To try it by hand, on a test machine:
 manual scheduler (deterministic, no main loop). `tests/test_image_source_gio.py`
 runs the same behaviours through the real `Gio.FileMonitor` and a pumped GLib main
 context. Test names carry the acceptance criterion they prove.
+The format name `probe_image` returns for each of the six headers (`jpeg`, `png`, `gif` for both
+signatures, `bmp`, `tiff` for both byte orders, `webp`) is pinned on the bytes alone, without a
+loader, together with headers that only look like a known one (a RIFF file that is not WebP, the
+WebP tag without RIFF, `GIF88a`, a TIFF with a wrong magic number).
