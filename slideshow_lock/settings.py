@@ -48,26 +48,34 @@ KEY_ORDER = "order"
 KEY_SCALING = "scaling"
 KEY_PAN_PORTRAIT_IMAGES = "pan-portrait-images"
 
-#: Subfolder name under the XDG pictures directory used when the
-#: "picture-folder" key is left at its default, empty value (D25). Matches
-#: the package/unit name on purpose, so the user sees the same word in
-#: `dnf install`, `journalctl` and the folder itself.
-DEFAULT_PICTURE_SUBDIR = "slideshow-lock"
-
 
 def default_picture_folder() -> str:
     """Return the XDG-derived default picture folder (D25).
 
+    This is the user's own system pictures folder (`~/Képek` on a Hungarian
+    system), not a subfolder of it: it is walked recursively, so a user who
+    already keeps pictures there sees them with nothing to create or configure.
+
     Not baked into the gschema default, because the XDG pictures directory
-    depends on the user's home and locale (`~/.config/user-dirs.dirs`) and
-    cannot be a static value in the schema XML.
+    depends on the user's home and locale (`~/.config/user-dirs.dirs`: on a
+    Hungarian system it is `~/Képek`) and cannot be a static value in the
+    schema XML. The key's default is the empty string, which means this.
+
+    The XDG pictures directory is used when it is configured. Two cases fall
+    back to `$HOME/Pictures`: it is not configured (GLib returns None, measured
+    with GLib 2.74), and it is the home directory itself, which is how the XDG
+    user-dirs convention says "switched off" (GLib returns the home directory
+    as it is, measured). Either way the folder used is never the home
+    directory itself, which would put every file the user owns under the walk.
+
+    GLib reads `user-dirs.dirs` once per process and keeps it: a change made
+    while a process runs is seen after a restart.
     """
+    home = GLib.get_home_dir()
     base = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES)
-    if not base:
-        # GLib itself falls back to "$HOME/Pictures" when XDG user dirs are
-        # not configured; mirror that rather than invent a different default.
-        base = os.path.join(GLib.get_home_dir(), "Pictures")
-    return os.path.join(base, DEFAULT_PICTURE_SUBDIR)
+    if not base or os.path.normpath(base) == os.path.normpath(home):
+        base = os.path.join(home, "Pictures")
+    return base
 
 
 class Settings:

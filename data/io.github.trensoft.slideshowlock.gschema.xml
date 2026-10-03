@@ -39,18 +39,24 @@
       <summary>Slideshow picture folder</summary>
       <description>
         Absolute path to the folder the slideshow reads images from. An empty
-        string (the default) means: derive the folder from the XDG pictures
-        directory, "slideshow-lock" subfolder (D25). A missing folder is not
-        an error; the service logs it and keeps running (brief 3.7).
+        string (the default) means: the XDG pictures directory itself (D25),
+        read recursively. A missing folder is not an error; the service logs
+        it and keeps running (brief 3.7).
       </description>
     </key>
 
     <key name="slide-interval-seconds" type="u">
-      <range min="1" max="3600"/>
+      <range min="1" max="86399"/>
       <default>10</default>
       <summary>Slide interval</summary>
       <description>
-        Seconds each image is shown before advancing to the next one.
+        Seconds each image is shown before advancing to the next one. From
+        1 second (00:00:01) to 23:59:59 (86399 seconds); zero and a full day
+        (86400) are not valid. The settings window has one slider with 76
+        steps: every second from 1 to 60, then round values (2, 3, 5, 10,
+        15, 20, 30 and 45 minutes, 1, 2, 3, 4, 6, 8 and 12 hours) up to
+        23:59:59. A stored value between two steps is not changed by
+        opening the window.
       </description>
     </key>
 
