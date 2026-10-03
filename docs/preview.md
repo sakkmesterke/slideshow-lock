@@ -273,8 +273,14 @@ centred on black.
 
 ```
 glib-compile-schemas data/
-GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app --folder ~/Pictures
+GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app [--folder PATH]
 ```
+
+Without `--folder` the stored picture folder is used. While none was chosen, that is the
+`slideshow-lock` folder inside the system's pictures folder (the `XDG_PICTURES_DIR` of
+`~/.config/user-dirs.dirs`, `~/Képek` on a Hungarian system);
+`~/Pictures` only if the system has none configured. That folder does not exist until someone
+creates it: the preview then shows "No pictures to show" and logs the path it looked at.
 
 Options (`--interval`, `--order`, `--scaling`, `--pan`, `--debug`) apply to that run only and are
 never written to the settings. Any key, click, scroll or mouse movement ends it.
