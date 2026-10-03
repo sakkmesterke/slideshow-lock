@@ -193,6 +193,36 @@ def test_ac4_a_panning_frame_taller_than_the_texture_limit_is_cropped_instead():
     assert outside.out == (3000, 3000)
 
 
+def test_ac4_the_panning_frame_limit_is_exactly_six_monitors_and_one_texture_side():
+    """The documented limits, pinned from both sides with literal numbers (a 1000 x 1000 monitor
+    and a picture of its width, so the scale is 1 and the frame height is the picture's)."""
+    assert plan_render(1000, 6000, 1000, 1000, "fill", pan=True).pan_range == (0, 5000)  # 6.000x
+    assert plan_render(1000, 6001, 1000, 1000, "fill", pan=True).pan_range == (0, 0)  # 6.001x
+    assert plan_render(1000, 6500, 1000, 1000, "fill", pan=True).pan_range == (0, 0)  # 6.5x
+    assert plan_render(1000, 7000, 1000, 1000, "fill", pan=True).pan_range == (0, 0)  # 7x
+    # the side limit: 3000 x 16384 is 49 MP, under 6 x a 3000 x 3000 monitor (54 MP)
+    assert plan_render(3000, 16384, 3000, 3000, "fill", pan=True).pan_range == (0, 13384)
+    assert plan_render(3000, 16385, 3000, 3000, "fill", pan=True).pan_range == (0, 0)
+
+
+def test_the_structure_walk_limit_is_a_million_steps_by_default():
+    """The other tests set the cap themselves, so this is the only one that runs the real one:
+    a run of fill bytes costs exactly ``MAX_STRUCTURE_STEPS`` finds, and a million is the
+    number the docs justify (a real 250 MB JPEG has below that many marker bytes)."""
+    assert scaling.MAX_STRUCTURE_STEPS <= 1_000_000
+    steps = []
+    real_find = bytes.find
+
+    class Counting(bytes):
+        def find(self, *args):
+            steps.append(1)
+            return real_find(self, *args)
+
+    data = Counting(b"\xff\xd8" + b"\xff" * 1_500_000)  # no end-of-image marker anywhere
+    assert jpeg_is_complete(data)  # the walk stopped at its cap: "complete", the decoder decides
+    assert len(steps) == 1_000_000
+
+
 def test_the_plan_refuses_nonsense():
     with pytest.raises(ValueError):
         plan_render(0, 100, 1920, 1080, "fit")
@@ -265,12 +295,11 @@ def test_ac5_a_png_with_endless_tiny_chunks_is_not_walked_to_the_end(monkeypatch
     assert png_is_complete(data)
 
 
-def test_the_pixel_limit_follows_from_the_measured_bytes_per_pixel_and_the_memory_frame():
-    """docs/preview.md section 7: peak growth was 9.0 to 9.4 bytes per source pixel (fit, 36 and
-    50 MP), the frame is 512 MiB. A limit above what that frame holds is not the documented one."""
-    measured_bytes_per_pixel = 9.4
-    memory_frame = 512 * 1024 * 1024
-    assert MAX_PIXELS * measured_bytes_per_pixel <= memory_frame
+def test_the_pixel_limit_is_the_documented_one():
+    """docs/preview.md, section 4 ("Memory"): 50 MP, derived from the measured cost per source
+    pixel. This only pins the number so that a change is a decision; that the cost per pixel
+    holds for every width is measured in ``test_scaling_gdk.py`` (a fresh process, real
+    peak resident size)."""
     assert MAX_PIXELS == 50_000_000
 
 

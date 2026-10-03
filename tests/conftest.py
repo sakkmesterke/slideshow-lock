@@ -107,3 +107,71 @@ def _reset_gsettings_between_tests():
     settings = Settings()
     for key in _ALL_SETTINGS_KEYS:
         settings._settings.reset(key)
+
+
+#: Python-level ways to start a program or to reach a bus. The slideshow preview never locks
+#: (D11): no test, and so no code a test runs, has any reason to call one of them. A call
+#: raises, so the line that makes it is the failure. Complements the scan of the sources
+#: (``test_preview.py``): this catches a call the names of which the scan cannot see (built
+#: from pieces, looked up at runtime) but only where a test runs it. A call that sits in a
+#: GTK event handler (the window's key handler, say) is not run by pytest at all: only the
+#: Wayland smoke tool can see that one. A test that really starts a program opts out with
+#: ``@pytest.mark.spawns_processes``.
+_OS_PROCESS_CALLS = (
+    "system",
+    "popen",
+    "fork",
+    "forkpty",
+    "execl",
+    "execle",
+    "execlp",
+    "execlpe",
+    "execv",
+    "execve",
+    "execvp",
+    "execvpe",
+    "spawnl",
+    "spawnle",
+    "spawnlp",
+    "spawnlpe",
+    "spawnv",
+    "spawnve",
+    "spawnvp",
+    "spawnvpe",
+    "posix_spawn",
+    "posix_spawnp",
+    "startfile",
+)
+
+
+class ForbiddenCall(AssertionError):
+    pass
+
+
+def _forbidden(what):
+    def call(*args, **kwargs):
+        raise ForbiddenCall(f"{what} was called: a preview must not start programs or use a bus")
+
+    return call
+
+
+@pytest.fixture(autouse=True)
+def _no_process_or_bus_calls(request, monkeypatch):
+    if request.node.get_closest_marker("spawns_processes"):
+        yield
+        return
+    import gi
+
+    gi.require_version("GLib", "2.0")
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+
+    for name in _OS_PROCESS_CALLS:
+        if hasattr(os, name):
+            monkeypatch.setattr(os, name, _forbidden(f"os.{name}"))
+    monkeypatch.setattr(subprocess, "Popen", _forbidden("subprocess.Popen"))
+    for module, prefix in ((GLib, "spawn_"), (Gio, "bus_")):
+        for name in dir(module):
+            if name.startswith(prefix):
+                monkeypatch.setattr(module, name, _forbidden(f"{module.__name__}.{name}"))
+    yield

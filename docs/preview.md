@@ -52,7 +52,12 @@ round); the settings window (UI-1); changing the default of the pan switch.
   than 16384 px, is cropped instead (on a 1080p monitor the 6x limit binds, on a very large
   one the texture side does; both are tested). If the desktop's "reduce animations" choice is
   on (`gtk-enable-animations` is false), nothing scrolls and the middle of the picture is shown,
-  like the centre crop. The switch is off because the animation redraws every frame (measured
+  like the centre crop. The controller asks for that choice for every picture (the `animations`
+  argument, `preview_window.animations_enabled` in the app) and then makes no tall frame at all:
+  the ordinary centre crop covers the same part of the picture. Measured here for a 3000 x 6000
+  picture on two 4K monitors, `fill`: the centre crop is a 24 MiB frame, 0.16 s on the worker and
+  a peak of 136 MiB, the panning frame 84 MiB, 0.54 s and 306 MiB. The animation setting is read
+  when a picture is prepared; a picture already prepared keeps what it was made for. The switch is off because the animation redraws every frame (measured
   below); the default only changes after a battery measurement on the reference laptop
   ([`measurements/pan-battery-protocol.md`](measurements/pan-battery-protocol.md)).
 - **Scaler.** `videoscale method=lanczos envelope=3` through GStreamer, which is the only path
@@ -66,16 +71,24 @@ round); the settings window (UI-1); changing the default of the pan switch.
   transparent areas are shown black, an animated GIF shows its first frame.
 - **Formats without a loader.** The image source's extension list (`IMAGE_EXTENSIONS`) is not
   narrowed: where a loader exists, a `.webp` or `.bmp` is shown. `scaling.probe_loadable`, which
-  `preview_app.build_source` hands to the image source, asks gdk-pixbuf
-  (`Pixbuf.get_file_info`) whether any installed loader knows the picture, and a picture without
-  one is skipped with a log line when the folder is scanned (burst-limited like every other skip),
-  instead of failing again at every pass. Measured here on 303 files, 300 of them WebP headers
-  without a loader (gdk-pixbuf 2.42.10, Debian 12, which has no WebP loader): the walk keeps 3
-  and takes 19 ms, against 4 ms and 303 queued with the plain header sniff; the probe costs about
-  50 microseconds per file, once. What a failing pass costs depends on the files (review measured
-  1.56 ms per file and pass with a repeated WARNING on its set; with these 40-byte files it was
-  0.06 ms). The loader list of the RHEL machine has not been seen by anyone; what its gdk-pixbuf
-  reads is not claimed here.
+  `preview_app.build_source` hands to the image source, takes the format the header sniff of the
+  image source named (`probe_image` returns it: `jpeg`, `png`, `gif`, `bmp`, `tiff`, `webp`) and
+  checks it against `Pixbuf.get_formats()`, the formats of the installed loaders. A picture without
+  a loader is skipped with a log line when the folder is scanned (burst-limited like every other
+  skip), instead of failing again at every pass. The file is opened once, by `probe_image`, with
+  `O_NONBLOCK` and `fstat`. An earlier version then called `Pixbuf.get_file_info(path)`, which
+  opens the file again by name with a blocking `open`, and that hangs on a file swapped for a FIFO
+  after the first look (measured: the call did not return). Measured here on 303 files, 300 of
+  them WebP headers without a loader (gdk-pixbuf 2.42.10, Debian 12, which has no WebP loader): the
+  walk keeps 3 and takes 19 ms, against 4 ms and 303 queued with the plain header sniff. The
+  probe itself, in a loop over real 640 x 480 JPEG and PNG files: 37 microseconds per file (the old
+  one: 515 microseconds, because `get_file_info` reads and parses more of the file). The first
+  call of a process imports the GdkPixbuf typelib, about 10 ms here (14 to 28 ms on slower
+  runs, review), once, on the main loop and outside the 5 ms step budget of the walk; a second call is
+  about 0.07 ms. What a failing pass costs depends on the files (review measured 1.56 ms per file
+  and pass with a repeated WARNING on its set; with these 40-byte files it was 0.06 ms). The loader
+  list of the RHEL machine has not been seen by anyone; what its gdk-pixbuf reads is not claimed
+  here.
 - **Next picture first.** The next picture is chosen with `advance()` and decoded and scaled on a
   worker thread while the current one is on screen. If it is not ready when the interval ends,
   it appears the moment it is. A single picture is decoded once and reused.
@@ -125,7 +138,9 @@ busy for 4.35 s per 32 MiB (about 35 s extrapolated to the 256 MiB file limit; r
 cap. The check does not hold the GIL for long stretches in between (review: a 1 ms timer on the
 main loop saw p99 9.5 ms, against 2.3 ms idle). A truncation beyond the cap is therefore not found by the
 structure check; real files are far below it (a 250 MB JPEG has about a million stuffed bytes, a
-PNG some thousand chunks).
+PNG some thousand chunks). The shipped value is pinned by tests, not only a patched one: a run of
+fill bytes costs exactly 1 000 000 steps, and a noisy 1600 x 1200 JPEG cut off at 60 % needs about
+3 600 steps to be found incomplete, so a cap of 1 000 would call half a picture complete.
 
 Not detected, both shown as decoded without any error: a JPEG that is damaged inside its
 entropy-coded data but structurally complete (libjpeg conceals that and `GdkPixbuf` reports
@@ -144,22 +159,35 @@ pixels into the `GLib.Bytes` that the window wraps into a texture. All of that r
 thread; the result is handed back with `GLib.idle_add`.
 
 **On the main loop:** wrapping the finished pixels into a texture (no copy, the `GLib.Bytes` is
-already there), GTK's upload and drawing, and **the image source**: its folder walk (`os.scandir`
-at `image_source.py:620`, `os.stat` at `:680`) and the header read of each new file
-(`probe_image`, `os.open` and `os.read`, `:110`, plus `Pixbuf.get_file_info` through
-`probe_loadable`). The walk is chopped into steps of a time budget (see the image source's
-document), but a single `scandir`, `stat` or `open` on a hung network mount blocks inside the
-kernel, and then the main loop stops with it. So the claim is: *picture decoding and picture
-reading are not on the main loop; the image source's walk and header reads are*. Putting the
-source's I/O on its own thread or process is a precondition of CORE-1 (the safety condition that
-locking before sleep never waits for picture I/O depends on it) and is not done here.
+already there), GTK's upload and drawing, and **the image source**. Its file system calls, by
+function (line numbers drift, names do not):
+
+- `_list_dir`: `os.scandir` of each folder, one per step;
+- `_handle_entry`: `entry.is_dir()` and `entry.is_file()` of each entry (for a symlink, or
+  where the file system gives no entry type, a `stat`);
+- `_stat_key`: `os.stat`, from `_claim_dir` and `_reconcile_root`;
+- `_on_created` and `_rewatch_ancestor`: `os.path.isdir` and `os.path.isfile`;
+- `probe_image`: `os.open` (`O_NONBLOCK`), `os.fstat`, `os.read` of the 16 header bytes of each new
+  file, and `probe_loadable` after it, which does no file access of its own;
+- `gio_directory_watcher`: creating the directory monitor (`monitor_directory`) of each folder;
+- `_kernel_watch_inodes`: listing `/proc/self/fd` and reading `/proc/self/fdinfo`, after a walk.
+
+The walk is chopped into steps of a time budget (see the image source's document), but a single
+`scandir`, `stat`, `open` or monitor creation on a hung network mount blocks inside the kernel,
+and then the main loop stops with it. So the claim is: *picture decoding and picture reading are
+not on the main loop; the image source's walk and header reads are*. Putting the source's I/O on
+its own thread or process is a precondition of CORE-1 (the safety condition that locking before
+sleep never waits for picture I/O depends on it) and is not done here.
 
 **What the worker still does to the main loop:** it holds the GIL while it copies pixel data in
 Python (`read_pixel_bytes().get_data()` and the repacking), and that stalls the main loop for as
 long as the copy takes. Measured here, a 1 ms timer on the main loop while one picture is prepared
 (`fit`, one 1080p monitor): 12 MP 13 ms, 24 MP 65 to 190 ms, 50 MP 150 to 290 ms between runs; review
 measured 12 MP 15 to 18 ms, 24 MP 26 to 32 ms, and 1346 ms for an 88 MP picture, which the 50 MP limit
-below now refuses. `fill` is cheaper (a crop is copied, not the whole picture): 50 MP 52 ms.
+below now refuses. `fill` is cheaper (a crop is copied, not the whole picture): 50 MP 52 ms. On a
+quiet machine the same probe gave 12 to 13 ms, 24 to 68 ms and 51 to 56 ms (one cold run 516 ms)
+for 12, 24 and 50 MP, the same before and after the memory change below; the figure follows the
+machine and what else runs on it, and the earlier range stays the one to expect.
 
 ### Memory, and the pixel limit
 
@@ -167,15 +195,25 @@ below now refuses. `fill` is cheaper (a crop is copied, not the whole picture): 
 
 - Peak resident growth while one picture was prepared (a new process per run, JPEG and PNG with and
   without alpha, EXIF-rotated JPEG, one 1080p monitor, `fit`, the mode that copies the whole
-  picture): 9.0 bytes per source pixel at 36 MP (310 MiB), 9.1 at 9 MP, and between 9 and 12 at
-  16 MP where allocator granularity shows. At 50 MP with two 4K-class monitors (3840 x 2160 and
-  2160 x 3840) the growth was 449 MiB, which is 9.4 bytes per pixel; with one 1080p monitor 246 to
-  294 MiB; `fill` with pan 359 MiB. `fill` without pan was lower (36 MP: 161 MiB).
+  picture): 9.0 bytes per source pixel at 36 MP (310 MiB) and at 50 MP (431 MiB), whatever the
+  width. A width whose three bytes per pixel are not a multiple of 4 (7071 x 7071, 6325 x 6325) used
+  to cost 12.05 bytes per pixel (575 MiB at 50 MP, 13 % over the frame below): the repacking
+  joined one string per row, a third copy of the frame at the peak. It now takes the pixbuf's
+  bytes and adds the padding its last row lacks, which is one copy less (7071 x 7071: 430 MiB;
+  7068 x 7068, a multiple of 4: 430 MiB; 10000 x 5000: 431 MiB). At 50 MP with two 4K-class
+  monitors (3840 x 2160 and 2160 x 3840) the growth is 449 MiB, which is 9.4 bytes per pixel
+  (JPEG, PNG with alpha; 441 MiB for the EXIF-rotated JPEG); `fill` 36 MP 259 MiB, 50 MP 359 MiB
+  (7.5 bytes per pixel, a 4:3 landscape picture on a 1080p monitor).
 - Memory frame: 512 MiB for the decode step. 512 MiB / 9.4 B = 57 MP; rounded down to **50 MP**,
-  which leaves 12 % headroom (about 450 MiB at 50 MP, measured).
+  which leaves 12 % headroom (449 MiB at 50 MP, the worst of the measurements above, for every
+  width).
 - The earlier 100 MP would have been about 0.9 to 1.2 GB by the same arithmetic (extrapolated;
-  100 MP was not run). The test `test_the_pixel_limit_follows_from_...` ties the constant to this
-  arithmetic.
+  100 MP was not run). `test_the_pixel_limit_is_the_documented_one` only pins the number, so a
+  change is a decision. That the cost per pixel holds for every width is measured by
+  `test_preparing_a_picture_costs_about_the_same_bytes_per_pixel_for_every_width`, which prepares a
+  9 MP picture of a width with and without a row multiple of 4 in a fresh process and reads the
+  peak resident size (limit 10.5 bytes per pixel; 9.0 and 9.5 measured, 9.0 and 12.1 before the
+  fix); `test_rows_peaks_at_two_copies_...` checks the Python-side peak of the repacking itself.
 - The file itself is held in memory while it is decoded, up to `MAX_FILE_BYTES` (256 MiB), so the
   worst case is that on top of the above; a normal 50 MP JPEG is some 25 MB. Lowering
   `MAX_FILE_BYTES` is a separate decision and is not made here.
@@ -258,36 +296,57 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (76 tests): order, interval (also counted from when a picture appeared, not from the start),
+  (102 tests): order, interval (also counted from when a picture appeared, not from the start),
   switching, a late next picture shown the moment it is ready, also when settings or the window size
   change meanwhile, live settings, a refresh that is still running when the next picture is
   replaced, damaged pictures with a negative control, failures that are not in a row not adding up,
   burst-limited error lines, empty source, deleted pictures, input on every window and kind, the
   worker result delivered on the main loop only, and the main loop staying free while a worker
-  thread decodes (with a negative control showing the measurement catches a block).
-- The "never locks" proof has two parts, and each has a limit. (1) A method spy: every call the
+  thread decodes (with a negative control showing the measurement catches a block), also for the
+  redo after a settings or size change. A redo of the shown picture that fails out is tried again
+  once per interval (not in a loop, and the log line that promises it is true), and a picture
+  prepared for the old mode is never shown when the interval ends before the redo.
+- The "never locks" proof has three parts, and each has a limit. (1) A method spy: every call the
   controller makes on the objects handed to it is on a list of picture and timing methods; it sees
   nothing the controller does on its own (a call in `stop()` that goes to a subprocess is invisible
   to it). (2) A code scan of the six modules the preview uses (controller, window, app, scaler,
   image source, settings): every identifier, import and string constant (docstrings excluded) is
   squashed to lower-case letters and digits and must contain none of: a whole word of the lock
-  family, or the fragments `screensaver`, `dbus`, `setactive`, `loginctl`, `busctl`, `qdbus`,
-  `gdbus`, `subprocess`, `spawn`, `pydbus`, `suspend`, `logout`, `systemctl`, `session`, `bus`,
-  `login1`, `logind`, `systemd`, `inhibit`, `popen`. Six exact names are allowed (the
-  `SessionSettings` class, the `--help` sentence "It never locks the session", and the
-  `lock-grace-period-seconds` key with its constant, getter and setter), and a test fails if an
-  allowance is no longer used. Nine real lock calls (busctl, gdbus, qdbus, loginctl, a Gio
-  `call_sync` on the ScreenSaver, systemctl, pydbus, a bus socket, a `Logout` call) are inserted
-  into `stop()` of the real source in turn, and the scan must find each. It is a net, not a proof:
-  a name assembled at runtime would pass. Review showed that the earlier, narrower scan and the
-  method spy let such calls through (reproduced here for busctl, qdbus, systemctl and a Gio bus
-  call); the same lines are now found.
-- `tests/test_scaling.py` (186): the geometry for 72 monitor and picture combinations, each for `fit`
+  family (`lock`, `unlock`, `screensaver`, `dbus`, `systemd`, `inhibit`, ... and the ways to start
+  any program: `system`, `execv`, `execve`, `execvp`, `execvpe`, `execl`, `execle`, `execlp`,
+  `execlpe`, `startfile`, `ctypes`, `cdll`), or one of the fragments `screensaver`, `dbus`,
+  `setactive`, `loginctl`, `busctl`, `qdbus`, `gdbus`, `subprocess`, `spawn`, `pydbus`, `suspend`,
+  `logout`, `systemctl`, `session`, `bus`, `login1`, `logind`, `systemd`, `inhibit`, `popen`, and
+  the names of other lockers: `locker`, `securelock`, `swaylock`, `i3lock`, `xlock`, `xtrlock`,
+  `slock`. Six exact names are allowed (the `SessionSettings` class, the `--help` sentence "It never
+  locks the session", and the `lock-grace-period-seconds` key with its constant, getter and
+  setter), and a test fails if an allowance is no longer used. Twenty-eight real calls (busctl,
+  gdbus, qdbus, loginctl, a Gio `call_sync` on the ScreenSaver, systemctl, pydbus, a bus socket, a
+  `Logout` call, `os.system`, every `os.exec*`, `os.startfile`, `ctypes`, `cdll`, and seven locker
+  programs by name) are inserted into `stop()` of the real source in turn, and the scan must find
+  each. It is a net, not a proof: a name assembled at runtime (a hex-encoded `os.system`, a name
+  taken from a table) passes it. (3) A tripwire in `tests/conftest.py`, active in every test unless
+  it is marked `spawns_processes`: `os.system`, `popen`, `fork`, `exec*`, `spawn*`, `posix_spawn*`,
+  `subprocess.Popen`, `GLib.spawn_*` and `Gio.bus_*` raise when called. It catches what the scan
+  cannot see (an assembled name) wherever a test runs the line; its negative controls are in
+  `tests/test_tripwire.py`. What neither (2) nor (3) catches is an assembled name in code that no test
+  runs. Measured by putting an `os.system` call into the window code: in `_on_key` it is caught
+  (the window-logic tests call that handler), in the click handler's lambda or in `_on_tick` it is
+  not (nothing calls them without a display), and the Wayland smoke does not run the tripwire.
+  Measured the other way round: 15 lines put into `stop()`, a named call (`os.system`,
+  `os.execv`, `os.execvpe`, `os.startfile`, `os.popen`, `subprocess.run`) is found by the scan and
+  by the tripwire, a bare name (`ctypes`, `cdll`, a locker's program name) by the scan alone, and
+  an assembled one (hex-encoded `os.system`, `"po" + "pen"`, `"sub" + "process"`, `"b" + "us_..."`,
+  a `GLib.spawn_` name built from two strings) by the tripwire alone. Review showed that the earlier, narrower scan and the method spy let such
+  calls through; the same lines are now found.
+- `tests/test_scaling.py` (188): the geometry for 72 monitor and picture combinations, each for `fit`
   and `fill`; the pan rule (including the 1:3 picture on a portrait monitor, the 6x frame limit and
-  the texture side limit as separate tests); JPEG, PNG and BMP completeness and the step cap; the
+  the texture side limit as separate tests, and both limits pinned from both sides with literal
+  numbers: exactly 6x pans, 6.001x does not; a frame side of 16384 pans, 16385 does not); JPEG,
+  PNG and BMP completeness and the step cap, including the shipped default of a million steps; the
   file checks, including a file rewritten in place to the same size, which only its modification
-  time reveals; the derivation of the pixel limit.
-- `tests/test_scaling_gdk.py` (62, every scaling test twice when GStreamer is there: once on the
+  time reveals; the pixel limit.
+- `tests/test_scaling_gdk.py` (92, every scaling test twice when GStreamer is there: once on the
   Lanczos path, once with GStreamer switched off): real decoding and scaling of real files: sizes,
   pixel positions of `fit` and `fill` crops, odd strides on both paths, EXIF orientation,
   transparency, truncated and bomb files, the fallback. `Frame.method` is only a label of the
@@ -295,7 +354,16 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   100): the Lanczos result dips at least 4 levels below the dark side and peaks at least 4 above the
   bright side (measured 6 and 6 here), bilinear and a smaller envelope do not. A test that fails in
   CI when GStreamer is missing keeps the Lanczos path from silently dropping out. The probe for
-  pictures without a loader.
+  pictures without a loader (which opens the file once and never hangs on a FIFO, also one that
+  appears after the first look), the repacking of rows for every width and block size, its
+  peak memory, and the bytes per pixel of a whole `prepare` in a fresh process for a width with
+  and without a row multiple of 4. A noisy photo cut off at 60 % is skipped with the real step
+  limit.
+- `tests/test_preview_window_logic.py` (10): the input logic of the window (first enter is a
+  baseline, a second enter is motion, the 2 px threshold from the baseline, key, scroll, a close
+  request), without a display: the handlers are plain methods, run on an instance made without the
+  GTK constructor. Which controller calls which handler, and the hidden cursor, are the smoke
+  tool's.
 - `tests/test_preview_app.py` (16): the command line, the settings of one run (an override of
   `false` or `0` still counts), the worker thread closed with the preview, the source with the
   probe. The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
@@ -313,8 +381,10 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   nothing and does not park the pointer: it rests wherever the compositor left it, so it shows
   that nothing ends the preview by itself, not that a resting pointer is tolerated (that is
   what the baseline logic is for, and only a live session can test it). `--animations off --pan`
-  switches `gtk-enable-animations` off before the windows open and checks that a portrait picture
-  stays at its middle with no tick running. Every window's cursor property is checked to be
+  switches `gtk-enable-animations` off before the windows open and checks that no tall panning
+  frame is made (the portrait picture is monitor-sized) and that nothing scrolls and no tick runs.
+  `--scaling fit --pan` is refused: the preview scrolls only a filled picture, so the scroll check
+  could not hold. Every window's cursor property is checked to be
   `none`, which is the property, not what the compositor draws. The stall of the main loop is
   printed and not gated: it gave 55 to 240 ms on clean runs on three machines, so a threshold
   measured the machine, not the code; that picture work is off the main loop is what

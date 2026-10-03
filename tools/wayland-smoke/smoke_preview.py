@@ -46,7 +46,7 @@ from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk  # noqa: E402
 
 from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  # noqa: E402
 from slideshow_lock.preview_app import build_source  # noqa: E402
-from slideshow_lock.preview_window import open_monitor_windows  # noqa: E402
+from slideshow_lock.preview_window import animations_enabled, open_monitor_windows  # noqa: E402
 from slideshow_lock.scaling import ImageScaler  # noqa: E402
 from slideshow_lock.settings import Settings  # noqa: E402
 
@@ -239,6 +239,8 @@ def main() -> int:
     parser.add_argument("--interval", type=int, default=2)
     parser.add_argument("--dump", help="write every frame shown as a PNG into this folder")
     args = parser.parse_args()
+    if args.pan and args.scaling == "fit":
+        parser.error("--pan needs --scaling fill: the preview scrolls only a filled picture")
 
     recorder = Recorder()
     logging.getLogger().addHandler(recorder)
@@ -283,7 +285,13 @@ def main() -> int:
             return [RecordingWindow(w, i, shown) for i, w in enumerate(open_monitor_windows())]
 
         controller = PreviewController(
-            source, settings, factory, ImageScaler(), clock=GLibClock(), worker=ThreadWorker()
+            source,
+            settings,
+            factory,
+            ImageScaler(),
+            clock=GLibClock(),
+            worker=ThreadWorker(),
+            animations=animations_enabled,  # as start_preview wires it
         )
         controller.connect_stopped(lambda reason: state.__setitem__("stopped", reason))
         controller.start()
@@ -409,20 +417,24 @@ def main() -> int:
                 )
             print(f"SMOKE redraws per picture (first window): {per_picture[:4]}", flush=True)
             if args.pan and args.animations == "off":
-                runs = []  # (offset, tick callback id) samples of each completed portrait picture
-                middles = []
-                for (frame, at, _p), (_f2, until, _p2) in zip(first_window, first_window[1:]):
-                    if frame.pan_range != (0, 0):
-                        runs.append([(o, tick) for t, _path, o, tick in offsets if at <= t < until])
-                        middles.append(frame.pan_range[1] // 2)
+                portrait = [
+                    (index, frame)
+                    for index, frame, _at, _paints in shown
+                    if frame.path.endswith("b_portrait.png")
+                ]
                 check(
-                    "animations off: a portrait picture stays at its middle, no tick runs",
-                    bool(runs)
+                    "animations off: no tall panning frame is made, the picture is monitor-sized",
+                    bool(portrait)
                     and all(
-                        len(run) >= 5 and all(o == mid and tick == 0 for o, tick in run)
-                        for run, mid in zip(runs, middles)
+                        frame.pan_range == (0, 0) and (frame.width, frame.height) == sizes[index]
+                        for index, frame in portrait
                     ),
-                    f"{len(runs)} runs, samples {runs[0][::6] if runs else []}",
+                    f"{[(f.width, f.height, f.pan_range) for _i, f in portrait[:2]]}",
+                )
+                check(
+                    "animations off: nothing scrolls and no tick runs",
+                    len(offsets) >= 5 and all(o == 0 and tick == 0 for _t, _p, o, tick in offsets),
+                    f"{len(offsets)} samples",
                 )
             elif args.pan:
                 runs = []  # offsets seen while each completed portrait picture was on screen

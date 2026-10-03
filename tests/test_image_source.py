@@ -222,25 +222,41 @@ def large_tree_walk(tmp_path_factory):
     src.connect_current_changed(lambda _path: found_at.append(time.monotonic()))
     src.start()
 
+    # Wall-clock numbers are only reported. What the assertions use is the CPU time of this
+    # thread (``cpu_*``): on a loaded machine a step can be descheduled for tens of milliseconds
+    # between two clock reads (measured: the wall-clock assertions failed in most runs with eight
+    # test runs on two cores), which says nothing about the walk. A walk that ignores its budget
+    # is a step that is busy for the whole walk, and that shows in CPU time all the same.
     walk = SimpleNamespace(
-        total=total, budget=STEP_BUDGET, steps_to_first=0, longest_step=0.0, step_times=[]
+        total=total,
+        budget=STEP_BUDGET,
+        steps_to_first=0,
+        longest_step=0.0,
+        step_times=[],
+        cpu_step_times=[],
     )
     t_start = time.monotonic()
+    cpu_start = time.thread_time()
     while True:
         t0 = time.monotonic()
+        cpu0 = time.thread_time()
         more = scheduler.run_one()
         now = time.monotonic()
+        cpu_now = time.thread_time()
         walk.longest_step = max(walk.longest_step, now - t0)
         walk.step_times.append(now - t0)
+        walk.cpu_step_times.append(cpu_now - cpu0)
         if len(src) and not walk.steps_to_first:
             walk.steps_to_first = scheduler.steps_run
             walk.queue_at_first = len(src)
             walk.complete_at_first = src.scan_complete
             walk.first_returned = now - t_start  # main loop has control again, image in queue
+            walk.cpu_first_returned = cpu_now - cpu_start
             walk.first_found = found_at[0] - t_start
         if not more:
             break
     walk.full = time.monotonic() - t_start
+    walk.cpu_full = time.thread_time() - cpu_start
     walk.steps = scheduler.steps_run
     walk.images = len(src)
     return walk
@@ -274,21 +290,22 @@ def test_criterion2_the_walk_is_split_into_many_steps(large_tree_walk):
 
 
 def test_criterion2_no_single_step_runs_much_longer_than_the_step_budget(large_tree_walk):
-    """Noise tolerant: one slow step (a scheduler hiccup on a busy machine) is allowed, two
-    are not, and the slowest step must stay well below the whole walk. A walk that ignores
-    the budget is a single step as long as the whole walk, so it fails the second check
-    (and the deterministic step-count tests above)."""
+    """Noise tolerant: one slow step is allowed, two are not, and the slowest step must stay
+    well below the whole walk. A walk that ignores the budget is a single step as long as the
+    whole walk, so it fails the second check (and the deterministic step-count tests above).
+    Measured in CPU time of the walking thread (see the fixture): a busy machine delays a
+    step without making it do more."""
     w = large_tree_walk
-    times = sorted(w.step_times)
+    times = sorted(w.cpu_step_times)
     second_slowest = times[-2] if len(times) >= 2 else times[-1]
     assert second_slowest < 10 * w.budget
-    assert times[-1] < w.full / 2
+    assert times[-1] < w.cpu_full / 2
 
 
 def test_criterion2_main_loop_has_the_first_image_long_before_the_full_walk_ends(large_tree_walk):
     w = large_tree_walk
-    assert w.first_returned < 10 * w.budget
-    assert w.first_returned < w.full / 4
+    assert w.cpu_first_returned < 10 * w.budget  # CPU time, see the fixture
+    assert w.cpu_first_returned < w.cpu_full / 4
 
 
 # -- criterion 3: live monitoring in both directions --------------------------------

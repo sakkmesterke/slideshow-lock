@@ -59,11 +59,12 @@ SCALING_FIT = "fit"
 SCALING_FILL = "fill"
 
 #: Pictures above this many pixels are refused (a decompression bomb in the picture folder
-#: must not take the session down). Derived, not guessed (``docs/preview.md``, section 7):
-#: preparing one picture peaked at 9.0 to 9.4 bytes per source pixel (36 and 50 MP, ``fit``,
-#: the worst mode), so a frame of 512 MiB holds 512 MiB / 9.4 B = 57 MP, rounded down to 50 MP
-#: (about 450 MiB measured at 50 MP on two 4K-class monitors). This bounds the memory of the
-#: decode step; it does not protect against an out-of-memory kill of the whole process.
+#: must not take the session down). Derived, not guessed (``docs/preview.md``, section 4):
+#: preparing one picture peaked at 9.0 to 9.4 bytes per source pixel, whatever the width (36
+#: and 50 MP, ``fit``, the worst mode), so a frame of 512 MiB holds 512 MiB / 9.4 B = 57 MP,
+#: rounded down to 50 MP (about 450 MiB measured at 50 MP on two 4K-class monitors). This
+#: bounds the memory of the decode step; it does not protect against an out-of-memory kill of
+#: the whole process.
 MAX_PIXELS = 50_000_000
 
 #: The structure checks below stop after this many steps and say "complete" (the decoder
@@ -88,6 +89,7 @@ METHOD_BILINEAR = "bilinear-gdkpixbuf"
 METHOD_NONE = "none"  # the picture already had the target size
 
 _FEED_CHUNK = 1 << 16
+_ROW_BLOCK_BYTES = 4 << 20  # pixbuf rows are read in blocks of about this many bytes
 _PULL_TIMEOUT_NS = 15 * 1_000_000_000
 
 
@@ -246,12 +248,16 @@ def incomplete_reason(data: bytes) -> Optional[str]:
 def probe_loadable(path: str) -> None:
     """``ImageSource`` probe: the header sniff of the image source, then *a loader exists*.
 
-    ``GdkPixbuf.Pixbuf.get_file_info`` reads the header and returns no format when no
-    installed loader knows the picture (a ``.webp`` where the WebP loader is missing, for
-    example). That raises ``ValueError``, which the image source logs as a skipped picture
+    The header sniff names the format, and ``GdkPixbuf.Pixbuf.get_formats`` says which formats
+    have an installed loader (not one for a ``.webp`` where the WebP loader is missing, for
+    example). No loader raises ``ValueError``, which the image source logs as a skipped picture
     once, instead of the preview finding out again on every pass. The extension list of the
-    image source is not narrowed: where a loader exists, the picture is shown. This runs on
-    the main loop, like the image source's own header read.
+    image source is not narrowed: where a loader exists, the picture is shown.
+
+    The file is opened once, by ``probe_image``, with ``O_NONBLOCK`` and ``fstat``. Asking
+    ``Pixbuf.get_file_info(path)`` instead would open it again by name with a blocking
+    ``open``, which hangs on a file swapped for a FIFO in between (measured). This runs on the
+    main loop, like the image source's own header read.
     """
     import gi
 
@@ -260,8 +266,8 @@ def probe_loadable(path: str) -> None:
 
     from slideshow_lock.image_source import probe_image
 
-    probe_image(path)
-    if GdkPixbuf.Pixbuf.get_file_info(path)[0] is None:
+    kind = probe_image(path)
+    if kind not in {f.get_name() for f in GdkPixbuf.Pixbuf.get_formats() if not f.is_disabled()}:
         raise ValueError("no installed gdk-pixbuf loader reads this format")
 
 
@@ -449,17 +455,37 @@ class ImageScaler:
 
     @staticmethod
     def _rows(pixbuf) -> bytes:
-        """The pixels of *pixbuf* with rows padded to GStreamer's 4-byte stride."""
+        """The pixels of *pixbuf* with rows padded to GStreamer's 4-byte stride.
+
+        Result and peak, per source pixel of 3 bytes: when the pixbuf already has that stride the
+        pixels are used as they are, plus the padding its last row lacks (a pixbuf has none
+        there, so a width whose three bytes per pixel are not a multiple of 4 needs one more
+        copy). Otherwise (a crop shares its parent's wider rows) the frame is built in one
+        buffer allocated up front and read from the pixbuf a block of rows at a time. Never a
+        string per row joined at the end: that held a second full copy of the frame. The result
+        is ``bytes`` and not ``bytearray`` because PyGObject hands only ``bytes`` to GLib and
+        GStreamer in one piece (a ``bytearray`` is converted item by item: about 3 s for 150 MB,
+        measured).
+        """
         width, height, stride = pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride()
-        data = pixbuf.read_pixel_bytes().get_data()
         want = _gst_row_stride(width)
-        if stride == want and len(data) >= want * height:
-            return bytes(data[: want * height])
+        size = want * height
+        if stride == want:
+            data = pixbuf.read_pixel_bytes().get_data()
+            if len(data) >= size:
+                return data[:size]
+            return data + bytes(size - len(data))
         row_bytes = width * 3
-        pad = b"\x00" * (want - row_bytes)
-        return b"".join(
-            bytes(data[row * stride : row * stride + row_bytes]) + pad for row in range(height)
-        )
+        out = bytearray(size)  # the padding bytes stay zero
+        step = max(1, _ROW_BLOCK_BYTES // stride)
+        for top in range(0, height, step):
+            count = min(step, height - top)
+            block = pixbuf.new_subpixbuf(0, top, width, count).read_pixel_bytes().get_data()
+            view = memoryview(block)
+            for row in range(count):
+                start = (top + row) * want
+                out[start : start + row_bytes] = view[row * stride : row * stride + row_bytes]
+        return bytes(out)
 
     def _init_gst(self) -> Optional[Any]:
         if self._gst is not None or self._gst_failure is not None:

@@ -13,8 +13,12 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import struct
+import subprocess
+import sys
 import time
+import tracemalloc
 import zlib
 
 import gi
@@ -35,6 +39,7 @@ from slideshow_lock.scaling import (
     ImageSkipped,
 )
 from tests.timeout_guard import (
+    hard_timeout,
     per_test_deadline,  # noqa: F401  (autouse fixture)
 )
 
@@ -242,6 +247,123 @@ def test_a_frame_is_tightly_laid_out_for_every_row_padding_on_either_scaler(
     assert close(pixel(frame, 0, 66), RED) and close(pixel(frame, width - 1, 66), BLUE)
 
 
+def _striped(width, height, *, x0=0, y0=0):
+    """A pixbuf whose every pixel has its own value, built like a decoder's: rows padded to 4
+    bytes except the last one. ``x0``/``y0`` shift the pattern (the expected rows of a crop)."""
+    stride = (width * 3 + 3) // 4 * 4
+    data = bytearray(stride * height)
+    for y in range(height):
+        for x in range(width):
+            data[y * stride + 3 * x : y * stride + 3 * x + 3] = _striped_pixel(x + x0, y + y0)
+    del data[stride * (height - 1) + 3 * width :]
+    return GdkPixbuf.Pixbuf.new_from_bytes(
+        GLib.Bytes.new(bytes(data)), GdkPixbuf.Colorspace.RGB, False, 8, width, height, stride
+    )
+
+
+def _striped_pixel(x, y):
+    return bytes([(y * 7 + x * 3) % 256, (y * 5 + x) % 256, (y + x * 11) % 256])
+
+
+@pytest.mark.parametrize("block_bytes", [1, 5000, scaling._ROW_BLOCK_BYTES])
+@pytest.mark.parametrize("width", [3, 20, 21])
+@pytest.mark.parametrize("crop", [False, True], ids=["whole", "crop"])
+def test_rows_repacks_every_row_whatever_the_block_size_and_the_row_padding(
+    monkeypatch, block_bytes, width, crop
+):
+    """``_rows`` reads the pixbuf a block of rows at a time: a block boundary in the wrong place
+    would drop, repeat or shift a row. Width 21 has 63 bytes per row (not a multiple of 4),
+    width 20 has 60; a crop has a stride that is not the frame's."""
+    monkeypatch.setattr(scaling, "_ROW_BLOCK_BYTES", block_bytes)
+    height = 37
+    if crop:
+        pixbuf = _striped(width + 4, height + 3).new_subpixbuf(1, 2, width, height)
+    else:
+        pixbuf = _striped(width, height)
+    x0, y0 = (1, 2) if crop else (0, 0)
+    want = (width * 3 + 3) // 4 * 4
+    expected = b"".join(
+        b"".join(_striped_pixel(x + x0, y + y0) for x in range(width)).ljust(want, b"\0")
+        for y in range(height)
+    )
+    rows = ImageScaler._rows(pixbuf)
+    assert type(rows) is bytes  # PyGObject converts a bytearray item by item: 3 s per 150 MB
+    assert rows == expected
+
+
+@pytest.mark.parametrize("crop", [False, True], ids=["whole", "crop"])
+def test_rows_peaks_at_two_copies_of_the_frame_for_a_width_that_needs_row_padding(
+    monkeypatch, crop
+):
+    """The old code joined one string per row: a list of the rows, the joined frame and the
+    pixbuf's own bytes, three copies at the peak. The Python-side peak is now two: the pixbuf's
+    bytes and the padded frame (whole picture), or the frame buffer and the ``bytes`` made from
+    it (a crop). ``tracemalloc`` sees those (the pixbuf itself is native memory)."""
+    monkeypatch.setattr(scaling, "_ROW_BLOCK_BYTES", 64 * 1024)
+    width, height = 1501, 1000  # 4503 bytes per row, padded to 4504
+    extra = 8 if crop else 0  # a crop shares its parent's wider rows
+    pixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, False, 8, width + extra, height + extra)
+    pixbuf.fill(0x336699FF)
+    if crop:
+        pixbuf = pixbuf.new_subpixbuf(3, 1, width, height)
+    frame_bytes = scaling._gst_row_stride(width) * height
+    tracemalloc.start()
+    try:
+        tracemalloc.reset_peak()
+        rows = ImageScaler._rows(pixbuf)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert len(rows) == frame_bytes
+    assert peak <= 2.2 * frame_bytes, f"peak {peak / frame_bytes:.2f} frames"
+
+
+_HWM_SCRIPT = """
+import sys
+from slideshow_lock.scaling import ImageScaler
+
+def hwm():
+    with open("/proc/self/status") as status:
+        return next(int(line.split()[1]) * 1024 for line in status if line.startswith("VmHWM"))
+
+scaler = ImageScaler(settle_seconds=0)
+scaler.prepare(sys.argv[1], [(64, 64)], "fit")  # warm up GStreamer, the loaders and the allocator
+base = hwm()
+(frame,) = scaler.prepare(sys.argv[2], [(1920, 1080)], "fit")
+assert frame.method == "lanczos3-videoscale", frame.method
+print((hwm() - base) / (int(sys.argv[3]) ** 2))
+"""
+
+
+@pytest.mark.spawns_processes  # a fresh interpreter measures the peak memory
+@pytest.mark.skipif(not HAVE_GST, reason="needs GStreamer's videoscale")
+@pytest.mark.skipif(not os.path.exists("/proc/self/status"), reason="needs /proc")
+@pytest.mark.parametrize("side", [3000, 3001], ids=["row-4-aligned", "row-not-4-aligned"])
+def test_preparing_a_picture_costs_about_the_same_bytes_per_pixel_for_every_width(tmp_path, side):
+    """docs/preview.md, section 4 ("Memory"): the pixel limit rests on a measured cost per source
+    pixel. A width of 3001 has 9003 bytes per row (not a multiple of 4) and used to cost 12.1
+    bytes per pixel against 9.1 for 3000. Measured in a fresh process: the peak resident size
+    of the worker is a process-wide number and the test run has had larger peaks before."""
+    tiny = save(tmp_path, "tiny.png", solid(64, 64, RED), "png")
+    big = save(tmp_path, "big.png", solid(side, side, BLUE), "png", compression=1)
+    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env = dict(
+        os.environ,
+        PYTHONPATH=os.pathsep.join(filter(None, [repo_root, os.environ.get("PYTHONPATH")])),
+    )
+    done = subprocess.run(
+        [sys.executable, "-c", _HWM_SCRIPT, tiny, big, str(side)],
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=repo_root,
+        timeout=60,
+    )
+    assert done.returncode == 0, done.stderr
+    bytes_per_pixel = float(done.stdout.strip().splitlines()[-1])
+    assert bytes_per_pixel <= 10.5, f"{bytes_per_pixel:.2f} bytes per source pixel"
+
+
 @pytest.mark.skipif(not HAVE_GST, reason="needs GStreamer's videoscale")
 def test_the_lanczos3_path_rings_at_a_sharp_edge_and_bilinear_does_not(tmp_path):
     """``Frame.method`` is only a label. What a Lanczos-3 scaler does to a hard edge is that it
@@ -276,17 +398,14 @@ def test_in_ci_gstreamer_must_be_there_so_the_lanczos_path_is_the_one_tested():
 # -- the picture probe of the image source --------------------------------------------------------
 
 
-def _without_loader(monkeypatch, extension_signature):
-    """get_file_info answers "no loader" for a picture with this header (a missing WebP loader)."""
-    real = GdkPixbuf.Pixbuf.get_file_info
-
-    def info(path):
-        with open(path, "rb") as handle:
-            if handle.read(16).find(extension_signature) >= 0:
-                return (None, -1, -1)
-        return real(path)
-
-    monkeypatch.setattr(GdkPixbuf.Pixbuf, "get_file_info", staticmethod(info))
+def _without_loader(monkeypatch, name):
+    """gdk-pixbuf lists no loader for the format called *name* (a missing WebP loader)."""
+    real = GdkPixbuf.Pixbuf.get_formats
+    monkeypatch.setattr(
+        GdkPixbuf.Pixbuf,
+        "get_formats",
+        staticmethod(lambda: [f for f in real() if f.get_name() != name]),
+    )
 
 
 def test_the_probe_refuses_a_picture_no_installed_loader_reads(tmp_path, monkeypatch):
@@ -296,7 +415,7 @@ def test_the_probe_refuses_a_picture_no_installed_loader_reads(tmp_path, monkeyp
     webp = tmp_path / "x.webp"
     webp.write_bytes(b"RIFF\x10\x00\x00\x00WEBPVP8 " + bytes(40))
     probe_loadable(good)  # a loadable picture passes
-    _without_loader(monkeypatch, b"WEBP")  # whether this machine has a WebP loader is not assumed
+    _without_loader(monkeypatch, "webp")  # whether this machine has a WebP loader is not assumed
     with pytest.raises(ValueError, match="no installed gdk-pixbuf loader"):
         probe_loadable(str(webp))
     probe_loadable(good)
@@ -304,6 +423,81 @@ def test_the_probe_refuses_a_picture_no_installed_loader_reads(tmp_path, monkeyp
     junk.write_bytes(b"not a picture at all")
     with pytest.raises(ValueError, match="not a recognised image header"):
         probe_loadable(str(junk))  # the header sniff of the image source still runs first
+
+
+@pytest.mark.parametrize("fmt", ["png", "jpeg", "tiff", "bmp"])
+def test_the_probe_agrees_with_the_loaders_on_real_pictures_of_every_format_it_can_write(
+    tmp_path, fmt
+):
+    """Same answer as asking ``get_file_info`` by name (what the probe used to do), per format."""
+    from slideshow_lock.scaling import probe_loadable
+
+    path = save(tmp_path, f"p.{fmt}", solid(40, 30, RED), fmt)
+    assert GdkPixbuf.Pixbuf.get_file_info(path)[0] is not None
+    probe_loadable(path)  # no exception: a loader exists for it
+
+
+def test_the_probe_does_not_count_a_disabled_loader(tmp_path, monkeypatch):
+    """A format that is listed but switched off cannot decode: it is as good as missing."""
+    from slideshow_lock.scaling import probe_loadable
+
+    path = save(tmp_path, "ok.png", solid(20, 10, RED), "png")
+
+    class Format:
+        def __init__(self, name, disabled):
+            self.name, self.disabled = name, disabled
+
+        def get_name(self):
+            return self.name
+
+        def is_disabled(self):
+            return self.disabled
+
+    monkeypatch.setattr(
+        GdkPixbuf.Pixbuf, "get_formats", staticmethod(lambda: [Format("png", True)])
+    )
+    with pytest.raises(ValueError, match="no installed gdk-pixbuf loader"):
+        probe_loadable(path)
+    monkeypatch.setattr(
+        GdkPixbuf.Pixbuf,
+        "get_formats",
+        staticmethod(lambda: [Format("png", False), Format("jpeg", True)]),
+    )
+    probe_loadable(path)
+
+
+def test_the_probe_opens_the_picture_once_and_never_by_name_again(tmp_path, monkeypatch):
+    """``Pixbuf.get_file_info(path)`` opens the file again, blocking: a file swapped for a FIFO
+    after the first look would hang the main loop there. The probe must not call it."""
+    from slideshow_lock.scaling import probe_loadable
+
+    path = save(tmp_path, "ok.png", solid(20, 10, RED), "png")
+
+    def forbidden(*_args):
+        raise AssertionError("the probe reopened the file by name")
+
+    monkeypatch.setattr(GdkPixbuf.Pixbuf, "get_file_info", staticmethod(forbidden))
+    opened = []
+    real_open = os.open
+    monkeypatch.setattr(os, "open", lambda *a, **k: opened.append(a[1]) or real_open(*a, **k))
+    probe_loadable(path)
+    assert len(opened) == 1
+    assert opened[0] & os.O_NONBLOCK  # and that one opening cannot block on a FIFO
+
+
+def test_a_fifo_never_hangs_the_probe(tmp_path, monkeypatch):
+    from slideshow_lock import image_source
+    from slideshow_lock.scaling import probe_loadable
+
+    fifo = tmp_path / "pic.png"
+    os.mkfifo(fifo)
+    with hard_timeout(10):
+        with pytest.raises(ValueError, match="not a regular file"):
+            probe_loadable(str(fifo))
+        # and a file that turned into a FIFO after the header look, which is the swap in the
+        # window between the two openings that the old probe could not survive
+        monkeypatch.setattr(image_source, "probe_image", lambda _path: "png")
+        probe_loadable(str(fifo))
 
 
 def test_a_source_with_the_probe_does_not_queue_pictures_without_a_loader(
@@ -316,7 +510,7 @@ def test_a_source_with_the_probe_does_not_queue_pictures_without_a_loader(
         save(tmp_path, name, solid(20, 10, RED), "png")
     for n in range(300):  # a folder full of pictures nothing here can show
         (tmp_path / f"w{n:03d}.webp").write_bytes(b"RIFF\x10\x00\x00\x00WEBPVP8 " + bytes(40))
-    _without_loader(monkeypatch, b"WEBP")
+    _without_loader(monkeypatch, "webp")
     with caplog.at_level(logging.INFO, logger="slideshow_lock"):
         source = started(tmp_path, (FakeWatcher(), ManualScheduler()), probe=probe_loadable)
     assert [os.path.basename(p) for p in source.images()] == ["a.png", "b.png"]
@@ -343,6 +537,41 @@ def test_ac5_a_truncated_jpeg_is_skipped_although_the_decoder_alone_would_accept
         scaler.prepare(str(cut), [(100, 100)], "fit")
     (frame,) = scaler.prepare(whole, [(100, 100)], "fit")  # negative control: the whole file
     assert frame.width > 0
+
+
+def test_ac5_a_noisy_photo_cut_off_at_60_percent_is_skipped_with_the_real_step_limit(
+    tmp_path, scaler
+):
+    """A noisy 1600 x 1200 picture has thousands of stuffed bytes: a walk limit that is too low
+    (1000 steps) would call its truncated half "complete" and show half a picture. No
+    monkeypatching here: the limit is the one the code ships with."""
+    rnd = random.Random(1)
+    pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+        GLib.Bytes.new(rnd.randbytes(1600 * 1200 * 3)),
+        GdkPixbuf.Colorspace.RGB,
+        False,
+        8,
+        1600,
+        1200,
+        1600 * 3,
+    )
+    ok, jpeg = pixbuf.save_to_bufferv("jpeg", ["quality"], ["95"])
+    assert ok
+    steps = []
+    real_find = bytes.find
+
+    class Counting(bytes):
+        def find(self, *args):
+            steps.append(1)
+            return real_find(self, *args)
+
+    assert scaling.jpeg_is_complete(Counting(jpeg))
+    assert 1000 < len(steps) < scaling.MAX_STRUCTURE_STEPS  # the picture tests what it must
+    cut = jpeg[: len(jpeg) * 6 // 10]
+    path = tmp_path / "cut.jpg"
+    path.write_bytes(cut)
+    with pytest.raises(ImageSkipped, match="incomplete"):
+        scaler.prepare(old(path), [(400, 300)], "fit")
 
 
 def test_ac5_a_truncated_png_is_skipped(tmp_path, scaler):

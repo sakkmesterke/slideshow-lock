@@ -174,12 +174,16 @@ class FakeScaler:
 
     def __init__(self, bad=()):
         self.bad = set(bad)
+        self.fail_next = 0  # this many of the next calls raise, whatever the picture
         self.calls = []
         self.threads = []
 
     def prepare(self, path, sizes, mode, pan=False):
         self.calls.append((os.path.basename(path), list(sizes), mode, pan))
         self.threads.append(threading.get_ident())
+        if self.fail_next > 0:
+            self.fail_next -= 1
+            raise ImageSkipped("test: fails this time")
         if os.path.basename(path) in self.bad:
             raise ImageSkipped("test: damaged")
         return [
@@ -426,6 +430,7 @@ def test_a_picture_that_is_late_when_the_interval_ends_is_shown_the_moment_it_is
     r.worker.run_one()  # a.png is on screen, b.png is being prepared
     r.clock.advance(10)  # the interval is over and b.png is not ready
     assert r.windows[0].shown() == ["a.png"]
+    assert len(r.worker.jobs) == 1  # b.png is waited for, not asked for a second time
     r.worker.run_all()
     assert r.windows[0].shown() == ["a.png", "b.png"]
 
@@ -455,6 +460,67 @@ def test_a_window_resize_while_the_next_picture_is_late_does_not_lose_the_swap(t
     assert r.windows[0].shown()[-1] == "b.png"
     frame = r.windows[0].frames[-1][0]
     assert (frame.width, frame.height) == (2560, 1440)
+
+
+@pytest.mark.parametrize("animations", [True, False])
+@pytest.mark.parametrize("pan_setting", [True, False])
+def test_pan_is_asked_of_the_scaler_only_when_it_is_set_and_animations_are_on(
+    tmp_path, backends, animations, pan_setting
+):
+    """A panning frame is up to six monitors' pixels. With animations off the window would show
+    only its middle, so the controller does not ask for the tall frame: every call of the scaler
+    (first picture, next picture, a redo) gets ``pan`` False then."""
+    answers = [animations]
+    r = Rig(
+        tmp_path,
+        backends,
+        ["a.png", "b.png"],
+        windows=1,
+        settings=FakeSettings(pan=pan_setting),
+    )
+    controller = PreviewController(
+        r.source,
+        r.settings,
+        lambda: r.windows,
+        r.scaler,
+        clock=r.clock,
+        worker=r.worker,
+        animations=lambda: answers[0],
+    )
+    controller.start()
+    r.worker.run_all()
+    r.settings.set(KEY_SCALING, "fit")  # a redo
+    r.worker.run_all()
+    assert len(r.scaler.calls) >= 3
+    assert {call[3] for call in r.scaler.calls} == {pan_setting and animations}
+    answers[0] = not animations  # asked for every picture: the next call follows the new answer
+    r.clock.advance(10)
+    r.worker.run_all()
+    assert r.scaler.calls[-1][3] is (pan_setting and not animations)
+    controller.stop()
+
+
+@pytest.mark.parametrize("change", ["scaling", "resize"])
+def test_a_picture_prepared_for_the_old_mode_is_never_shown_when_the_interval_ends_first(
+    tmp_path, backends, change
+):
+    """The settings or size change comes, the redo has not arrived, and the interval ends: the
+    picture that was already prepared (in the old mode or size) must not be shown, the redone
+    one is."""
+    r = rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1)  # b.png is ready, in fill
+    if change == "scaling":
+        r.settings.set(KEY_SCALING, "fit")
+    else:
+        r.windows[0].resize((2560, 1440))
+    r.clock.advance(10)
+    assert r.windows[0].shown() == ["a.png"]  # not b.png from before the change
+    r.worker.run_all()
+    shown_b = [frame for frame, _pan in r.windows[0].frames if frame.path.endswith("b.png")]
+    assert len(shown_b) == 1
+    if change == "scaling":
+        assert shown_b[0].method == "fake-fit-0"
+    else:
+        assert (shown_b[0].width, shown_b[0].height) == (2560, 1440)
 
 
 def test_a_swap_is_over_once_done_the_picture_after_it_waits_for_its_own_interval(
@@ -524,6 +590,46 @@ def test_a_refresh_waiting_for_a_window_size_is_not_lost_to_a_new_next_picture(t
     r.worker.run_all()
     assert r.windows[0].frames[-1][0].method == "fake-fit-0"
     assert r.windows[0].shown()[-1] == "a.png"
+
+
+@pytest.mark.parametrize("files", [("a.png",), ("a.png", "b.png")], ids=["one", "two"])
+def test_a_refresh_that_fails_once_does_not_leave_the_picture_in_the_old_mode(
+    tmp_path, backends, files
+):
+    """The redo of the shown picture after a settings change fails out (every picture failed
+    once): the controller keeps what is on screen and says it will try again at the next
+    interval. It has to: otherwise the shown picture stays in the old mode for good."""
+    r = rig(tmp_path, backends, files, windows=1)
+    r.scaler.fail_next = len(files)  # the redo of a.png (and of the next one) fails once
+    r.settings.set(KEY_SCALING, "fit")
+    r.worker.run_all()
+    assert r.windows[0].frames[-1][0].method == "fake-fill-0"  # still the old mode, as promised
+    r.tick(10)  # the next interval
+    assert r.windows[0].frames[-1][0].method == "fake-fit-0"
+    r.tick(10)
+    r.tick(10)
+    assert {f.method for f, _pan in r.windows[0].frames[-2:]} == {"fake-fit-0"}
+
+
+def test_a_refresh_that_keeps_failing_is_tried_once_per_interval_not_in_a_loop(
+    tmp_path, backends, caplog
+):
+    r = rig(tmp_path, backends, ("a.png",), windows=1)
+    r.scaler.fail_next = 10**6
+    with caplog.at_level(logging.INFO, logger="slideshow_lock"):
+        r.settings.set(KEY_SCALING, "fit")
+        assert r.worker.run_all() == 1
+        assert any("trying again at the next interval" in m for m in caplog.messages)
+        for round_ in range(1, 4):
+            before = len(r.scaler.calls)
+            r.clock.advance(10)
+            assert r.worker.run_all() == 1, f"round {round_}"  # one job, not a chain of them
+            assert len(r.scaler.calls) == before + 1
+            assert r.clock.pending == 1  # and the next try is on the clock
+    assert r.windows[0].frames[-1][0].method == "fake-fill-0"  # nothing was shown meanwhile
+    r.scaler.fail_next = 0  # the file turns readable again
+    r.tick(10)
+    assert r.windows[0].frames[-1][0].method == "fake-fit-0"
 
 
 # -- AC5: damaged pictures are skipped, empty source is a defined state --------------------------
@@ -862,6 +968,19 @@ FORBIDDEN_WORDS = {
     "systemd",
     "sessionmanager",
     "inhibit",
+    # ways to start any program, and the loaders that reach C code without an import of a bus
+    "system",
+    "execv",
+    "execve",
+    "execvp",
+    "execvpe",
+    "execl",
+    "execle",
+    "execlp",
+    "execlpe",
+    "startfile",
+    "ctypes",
+    "cdll",
 }
 
 #: Fragments of the squashed (lower case, letters and digits only) text of every identifier and
@@ -889,6 +1008,14 @@ FORBIDDEN_FRAGMENTS = {
     "systemd",
     "inhibit",
     "popen",
+    # other lockers, by their program names (the GNOME and RHEL way is the one above)
+    "locker",
+    "securelock",
+    "swaylock",
+    "i3lock",
+    "xlock",
+    "xtrlock",
+    "slock",
 }
 
 #: The few names that do contain one of the words above and are not a lock facility. Each one is
@@ -1024,6 +1151,27 @@ LOCK_SNIPPETS = {
     "pydbus": "import pydbus",
     "bus-socket": 'socket.socket(socket.AF_UNIX).connect("/run/user/1000/bus")',
     "logout": 'x.call("Logout")',
+    # starting any program, with nothing in the line that names a lock facility
+    "os.system": 'os.system("true")',
+    "os.execv": 'os.execv("/bin/true", ["true"])',
+    "os.execve": 'os.execve("/bin/true", ["true"], {})',
+    "os.execvp": 'os.execvp("true", ["true"])',
+    "os.execvpe": 'os.execvpe("true", ["true"], {})',
+    "os.execl": 'os.execl("/bin/true", "true")',
+    "os.execle": 'os.execle("/bin/true", "true", {})',
+    "os.execlp": 'os.execlp("true", "true")',
+    "os.execlpe": 'os.execlpe("true", "true", {})',
+    "os.startfile": 'os.startfile("x")',
+    "ctypes-import": "import ctypes",
+    "cdll": 'cdll.LoadLibrary("libc.so.6")',
+    # other lockers, by program name
+    "swaylock": 'x = ["swaylock", "-f"]',
+    "i3lock": 'x = ["i3lock"]',
+    "xtrlock": 'x = ["xtrlock"]',
+    "xlock": 'x = ["xlock"]',
+    "slock": 'x = ["slock"]',
+    "light-locker": 'x = ["light-locker-command", "--lock"]',
+    "securelock": 'x = "securelock"',
 }
 
 
@@ -1112,6 +1260,37 @@ def test_ac7_picture_work_runs_on_another_thread_and_the_main_loop_keeps_turning
         worker.close()
     assert set(scaler.threads) and threading.get_ident() not in scaler.threads
     assert gap < 0.15, f"the main loop stood still for {gap:.3f} s"
+
+
+@pytest.mark.parametrize("change", ["scaling", "resize"])
+def test_ac7_the_redo_after_a_settings_or_size_change_runs_on_the_worker_too(
+    tmp_path, backends, change
+):
+    """The first picture and the prefetch are covered above; the redo of the shown picture (a
+    different job, queued from the settings and size handlers) must not run on the main loop
+    either. Every call of the scaler is on the worker thread, and the redo did happen."""
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1)
+    worker = ThreadWorker()
+    controller = PreviewController(
+        r.source, r.settings, lambda: r.windows, r.scaler, clock=GLibClock(), worker=worker
+    )
+    window = r.windows[0]
+    try:
+        with hard_timeout(30):
+            controller.start()
+            assert _pump(lambda: len(window.frames) >= 1 and len(r.scaler.calls) >= 2)
+            before = len(r.scaler.calls)
+            if change == "scaling":
+                r.settings.set(KEY_SCALING, "fit")
+                assert _pump(lambda: window.frames[-1][0].method == "fake-fit-0")
+            else:
+                window.resize((2560, 1440))
+                assert _pump(lambda: window.frames[-1][0].width == 2560)
+    finally:
+        controller.stop()
+        worker.close()
+    assert len(r.scaler.calls) > before  # the redo ran ...
+    assert threading.get_ident() not in r.scaler.threads  # ... and no call was on this thread
 
 
 def test_ac7_the_result_is_handed_over_on_the_main_loop_and_only_there(tmp_path, backends):

@@ -36,7 +36,7 @@ from gi.repository import Gio, GLib, Gtk  # noqa: E402
 from slideshow_lock import APP_ID, _  # noqa: E402
 from slideshow_lock.image_source import ImageSource, source_from_settings  # noqa: E402
 from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  # noqa: E402
-from slideshow_lock.preview_window import open_monitor_windows  # noqa: E402
+from slideshow_lock.preview_window import animations_enabled, open_monitor_windows  # noqa: E402
 from slideshow_lock.scaling import ImageScaler, probe_loadable  # noqa: E402
 from slideshow_lock.settings import (  # noqa: E402
     KEY_ORDER,
@@ -92,7 +92,13 @@ def start_preview(settings, source: ImageSource) -> PreviewController:
     """
     worker = ThreadWorker()
     controller = PreviewController(
-        source, settings, open_monitor_windows, ImageScaler(), clock=GLibClock(), worker=worker
+        source,
+        settings,
+        open_monitor_windows,
+        ImageScaler(),
+        clock=GLibClock(),
+        worker=worker,
+        animations=animations_enabled,
     )
     controller.connect_stopped(lambda _reason: worker.close())  # do not leave a thread behind
     controller.start()
