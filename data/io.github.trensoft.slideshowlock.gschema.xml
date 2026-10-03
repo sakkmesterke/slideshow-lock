@@ -73,7 +73,11 @@
       <summary>Image scaling mode</summary>
       <description>
         "fill" crops the image to fill the screen; "fit" shows the whole
-        image letterboxed.
+        image letterboxed. "fill" is the default and it costs picture: a
+        3:4 portrait picture on a 16:9 monitor shows 42 % of the picture, a
+        9:16 phone photo 32 %; a 3:2 landscape picture shows 84 %, 4:3 75 %.
+        Whether "fill" is the right default is an open decision; "fit" is
+        the one-line alternative (change the default of this key).
       </description>
     </key>
 

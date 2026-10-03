@@ -105,6 +105,15 @@ class ManualWorker:
     def submit(self, fn, done):
         self.jobs.append((fn, done))
 
+    def run_one(self):
+        """Run the oldest waiting job only: the others are still being prepared."""
+        fn, done = self.jobs.pop(0)
+        try:
+            result, error = fn(), None
+        except Exception as exc:
+            result, error = None, exc
+        done(result, error)
+
     def run_all(self):
         ran = 0
         while self.jobs:
@@ -396,6 +405,127 @@ def test_ac2_a_window_sized_while_the_first_picture_is_being_prepared_gets_its_f
     assert [w.shown() for w in r.windows][0][:1] == ["a.png"]
 
 
+def test_a_changed_interval_counts_from_when_the_picture_appeared_not_from_the_start(
+    tmp_path, backends
+):
+    r = rig(tmp_path, backends, settings=FakeSettings(interval=10))
+    r.tick(10)  # b.png appears at t = 10, not at 0
+    r.tick(2)
+    r.settings.set(KEY_SLIDE_INTERVAL_SECONDS, 5)  # 2 s of b.png are over, 3 s to go
+    r.tick(2.9)
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    r.tick(0.2)
+    assert r.windows[0].shown() == ["a.png", "b.png", "c.png"]
+
+
+def test_a_picture_that_is_late_when_the_interval_ends_is_shown_the_moment_it_is_ready(
+    tmp_path, backends
+):
+    r = Rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1)
+    r.controller.start()
+    r.worker.run_one()  # a.png is on screen, b.png is being prepared
+    r.clock.advance(10)  # the interval is over and b.png is not ready
+    assert r.windows[0].shown() == ["a.png"]
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+
+
+def test_a_settings_change_while_the_next_picture_is_late_does_not_lose_the_swap(
+    tmp_path, backends
+):
+    r = Rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1)
+    r.controller.start()
+    r.worker.run_one()
+    r.clock.advance(10)  # the interval is over and b.png is not ready ...
+    r.settings.set(KEY_SCALING, "fit")  # ... and the scaling changes meanwhile
+    r.worker.run_all()
+    assert r.windows[0].shown()[-1] == "b.png"  # b.png still comes, without waiting a second round
+    assert r.windows[0].frames[-1][0].method == "fake-fit-0"
+    r.tick(10)
+    assert r.windows[0].shown()[-1] == "c.png"
+
+
+def test_a_window_resize_while_the_next_picture_is_late_does_not_lose_the_swap(tmp_path, backends):
+    r = Rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1)
+    r.controller.start()
+    r.worker.run_one()
+    r.clock.advance(10)
+    r.windows[0].resize((2560, 1440))
+    r.worker.run_all()
+    assert r.windows[0].shown()[-1] == "b.png"
+    frame = r.windows[0].frames[-1][0]
+    assert (frame.width, frame.height) == (2560, 1440)
+
+
+def test_a_swap_is_over_once_done_the_picture_after_it_waits_for_its_own_interval(
+    tmp_path, backends
+):
+    r = Rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1)
+    r.controller.start()
+    r.worker.run_one()
+    r.clock.advance(10)  # b.png is late ...
+    r.worker.run_all()  # ... arrives, is shown, and c.png is prepared
+    assert r.windows[0].shown() == ["a.png", "b.png"]  # c.png is ready but not yet due
+    r.tick(9.9)
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    r.tick(0.2)
+    assert r.windows[0].shown() == ["a.png", "b.png", "c.png"]
+
+
+def test_a_due_swap_does_not_survive_the_source_running_empty(tmp_path, backends):
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1)
+    r.controller.start()
+    r.worker.run_one()
+    r.clock.advance(10)  # b.png is late: the swap is due
+    for name in ("a.png", "b.png"):
+        os.unlink(tmp_path / name)
+        r.backends[0].emit(str(tmp_path / name), _fs("deleted"))
+    backends[1].run_all()
+    assert r.controller.shown_path is None  # the empty state
+    for name in ("new1.png", "new2.png"):
+        make_image(tmp_path / name)
+        r.backends[0].emit(str(tmp_path / name), _fs("created"))
+    backends[1].run_all()
+    r.worker.run_all()
+    assert r.windows[0].shown()[-1] == "new1.png"  # the first picture of the new start ...
+    assert r.windows[0].shown().count("new2.png") == 0  # ... and not also the second at once
+    r.tick(10)
+    assert r.windows[0].shown()[-1] == "new2.png"
+
+
+def test_a_refresh_still_running_is_not_lost_when_the_prepared_picture_is_replaced(
+    tmp_path, backends
+):
+    r = rig(tmp_path, backends, ["a.png", "b.png", "c.png", "d.png"], windows=1)
+    r.settings.set(KEY_SCALING, "fit")  # a.png is being redone in the new mode ...
+    refresh_fn, refresh_done = r.worker.jobs.pop(0)
+    refresh_result = refresh_fn()  # ... the worker has it, its answer is on the way ...
+    os.unlink(tmp_path / "b.png")  # ... and the prepared picture is deleted meanwhile
+    r.backends[0].emit(str(tmp_path / "b.png"), _fs("deleted"))
+    backends[1].run_all()
+    refresh_done(refresh_result, None)
+    r.worker.run_all()
+    assert [c[2] for c in r.scaler.calls_for("a.png")] == ["fill", "fit"]  # redone once, not twice
+    assert r.windows[0].shown()[-1] == "a.png"
+    assert r.windows[0].frames[-1][0].method == "fake-fit-0"  # the refresh result was used
+    r.tick(10)
+    assert r.windows[0].shown()[-1] == "c.png"
+    assert r.windows[0].frames[-1][0].method == "fake-fit-0"
+
+
+def test_a_refresh_waiting_for_a_window_size_is_not_lost_to_a_new_next_picture(tmp_path, backends):
+    r = rig(tmp_path, backends, ["a.png", "b.png", "c.png", "d.png"], windows=2)
+    r.windows[1].size = None  # the compositor withdraws a size ...
+    r.settings.set(KEY_SCALING, "fit")  # ... so the redo of a.png has to wait for it
+    os.unlink(tmp_path / "b.png")
+    r.backends[0].emit(str(tmp_path / "b.png"), _fs("deleted"))
+    backends[1].run_all()
+    r.clock.advance(2.5)  # the wait for sizes is over
+    r.worker.run_all()
+    assert r.windows[0].frames[-1][0].method == "fake-fit-0"
+    assert r.windows[0].shown()[-1] == "a.png"
+
+
 # -- AC5: damaged pictures are skipped, empty source is a defined state --------------------------
 
 
@@ -568,6 +698,47 @@ def test_the_picture_on_screen_being_deleted_does_not_blank_the_screen(tmp_path,
     assert r.windows[0].shown()[-1] == "b.png"
 
 
+def test_failures_that_are_not_in_a_row_do_not_add_up_to_a_total_failure(
+    tmp_path, backends, caplog
+):
+    """b.png and d.png are damaged, a.png and c.png are fine: never two in a row, so many
+    cycles later the failure count must still be 0 or 1, not "all four pictures failed"."""
+    files = ["a.png", "b.png", "c.png", "d.png"]
+    with caplog.at_level(logging.INFO, logger="slideshow_lock"):
+        r = rig(tmp_path, backends, files, scaler=FakeScaler(bad={"b.png", "d.png"}))
+        for _ in range(12):
+            r.tick(10)
+    assert r.windows[0].shown() == (["a.png", "c.png"] * 7)[:13]  # on time, every interval
+    assert not any("none of the" in m for m in caplog.messages)
+
+
+def test_a_job_that_was_replaced_while_it_waited_in_the_queue_is_never_decoded(tmp_path, backends):
+    r = Rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1)
+    r.controller.start()
+    r.worker.run_one()  # a.png is on screen; b.png waits in the queue
+    r.settings.set(KEY_SCALING, "fit")  # the queued b.png job is out of date now
+    r.worker.run_all()
+    assert [c[2] for c in r.scaler.calls_for("b.png")] == ["fit"]  # no "fill" decode of it
+    assert [c[2] for c in r.scaler.calls_for("a.png")] == ["fill", "fit"]
+
+
+def test_unexpected_errors_are_burst_limited_like_every_other_skip_line(tmp_path, backends, caplog):
+    from slideshow_lock.image_source import LOG_FIRST_N
+
+    class Exploding(FakeScaler):
+        def prepare(self, path, sizes, mode, pan=False):
+            raise RuntimeError("boom")
+
+    files = [f"p{i:02d}.png" for i in range(LOG_FIRST_N + 20)]
+    with caplog.at_level(logging.INFO, logger="slideshow_lock"):
+        r = rig(tmp_path, backends, files, scaler=Exploding(), windows=1)
+        r.controller.stop()
+    errors = [rec for rec in caplog.records if "unexpected error while" in rec.message]
+    assert len(errors) == LOG_FIRST_N  # not one line per picture
+    assert all(rec.levelno == logging.ERROR for rec in errors)  # still ERROR, only fewer of them
+    assert any("20 more unexpected errors" in rec.message for rec in caplog.records)
+
+
 # -- AC6: input ends the preview, nothing else does; it never locks ------------------------------
 
 
@@ -693,21 +864,68 @@ FORBIDDEN_WORDS = {
     "inhibit",
 }
 
+#: Fragments of the squashed (lower case, letters and digits only) text of every identifier and
+#: string constant. A fragment, not a word: the point is to catch ``busctl``, ``DBusProxy``,
+#: ``bus_get_sync`` or ``org.gnome.ScreenSaver`` whatever they are glued to. ("lock" stays a whole
+#: word above, or ``clock`` and ``O_NONBLOCK`` would be hits.)
+FORBIDDEN_FRAGMENTS = {
+    "screensaver",
+    "dbus",
+    "setactive",
+    "loginctl",
+    "busctl",
+    "qdbus",
+    "gdbus",
+    "subprocess",
+    "spawn",
+    "pydbus",
+    "suspend",
+    "logout",
+    "systemctl",
+    "session",
+    "bus",
+    "login1",
+    "logind",
+    "systemd",
+    "inhibit",
+    "popen",
+}
+
+#: The few names that do contain one of the words above and are not a lock facility. Each one is
+#: an exact name (squashed), with the reason. A test checks that every entry is still in use.
+ALLOWED_NAMES = {
+    "sessionsettings": "preview_app.SessionSettings: the settings of this one run",
+    "showtheslideshowpreviewanyinputendsititneverlocksthesession": (
+        "the --help text of preview_app: prose, tells the user that it never locks"
+    ),
+    "lockgraceperiodseconds": "settings.py: the lock-grace-period-seconds key, a stored number",
+    "keylockgraceperiodseconds": "settings.py: its key constant",
+    "getlockgraceperiodseconds": "settings.py: its getter",
+    "setlockgraceperiodseconds": "settings.py: its setter",
+}
+
+
+def _squash(text: str) -> str:
+    for own_name in ("slideshow_lock", "SlideshowLock", "Slideshow Lock", "slideshow-lock"):
+        text = text.replace(own_name, "slideshow")
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
 
 def _words(text: str):
     """Lower-case words of an identifier or string: split on camel case and punctuation, and
     the whole name with the punctuation removed ("ScreenSaver" -> "screensaver"). The product's
     own name (slideshow_lock, SlideshowLock, "Slideshow Lock") is not a lock reference."""
-    for own_name in ("slideshow_lock", "SlideshowLock", "Slideshow Lock"):
+    for own_name in ("slideshow_lock", "SlideshowLock", "Slideshow Lock", "slideshow-lock"):
         text = text.replace(own_name, "slideshow")
     squashed = re.sub(r"[^a-z0-9]", "", text.lower())
     text = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", text)
     return {w.lower() for w in re.split(r"[^A-Za-z0-9]+", text) if w} | {squashed}
 
 
-def lock_references(source: str):
+def lock_references(source: str, used_allowances=None):
     """Identifiers, imports and string constants (docstrings excluded) that name a lock,
-    session or bus facility."""
+    session or bus facility: a forbidden word, or a forbidden fragment, in the name. Names on
+    ``ALLOWED_NAMES`` are skipped (and noted in *used_allowances* if a set is given)."""
     tree = ast.parse(source)
     docstrings = set()
     for node in ast.walk(tree):
@@ -734,31 +952,92 @@ def lock_references(source: str):
             if id(node) not in docstrings:
                 names.append(node.value)
         for name in names:
-            found |= _words(name) & FORBIDDEN_WORDS
+            squashed = _squash(name)
+            hits = (_words(name) & FORBIDDEN_WORDS) | {
+                fragment for fragment in FORBIDDEN_FRAGMENTS if fragment in squashed
+            }
+            if hits and squashed in ALLOWED_NAMES:
+                if used_allowances is not None:
+                    used_allowances.add(squashed)
+                continue
+            found |= hits
     return found
 
 
-PREVIEW_MODULES = ["preview.py", "preview_window.py", "preview_app.py", "scaling.py"]
+def _package_file(module: str) -> str:
+    return os.path.join(os.path.dirname(preview_module.__file__), module)
+
+
+#: The preview, and the two modules it leans on: neither may reach a lock facility either.
+PREVIEW_MODULES = [
+    "preview.py",
+    "preview_window.py",
+    "preview_app.py",
+    "scaling.py",
+    "image_source.py",
+    "settings.py",
+]
 
 
 @pytest.mark.parametrize("module", PREVIEW_MODULES)
 def test_ac6_d11_the_preview_code_has_no_lock_session_or_bus_reference(module):
-    path = os.path.join(os.path.dirname(preview_module.__file__), module)
-    with open(path, encoding="utf-8") as handle:
+    with open(_package_file(module), encoding="utf-8") as handle:
         assert lock_references(handle.read()) == set()
+
+
+def test_ac6_d11_every_allowed_name_is_still_in_use():
+    """An allowance for a name that no longer exists would silently allow its return."""
+    used = set()
+    for module in PREVIEW_MODULES:
+        with open(_package_file(module), encoding="utf-8") as handle:
+            lock_references(handle.read(), used)
+    assert used == set(ALLOWED_NAMES)
 
 
 def test_ac6_d11_the_scan_would_catch_a_lock_call(tmp_path):
     """Negative control: the scan is not blind."""
-    assert lock_references("session.Lock()") == {"lock"}
+    assert lock_references("session.Lock()") >= {"lock", "session"}
     assert lock_references(
         "proxy = Gio.DBusProxy.new_for_bus_sync(name='org.freedesktop.login1')"
-    ) >= {"login1"}
+    ) >= {"login1", "dbus", "bus"}
     assert lock_references("from gi.repository import ScreenSaver") == {"screensaver"}
-    assert lock_references("def lock_session(self): pass") == {"lock"}
+    assert lock_references("def lock_session(self): pass") >= {"lock"}
     assert lock_references("clock = block = GLibClock()") == set()  # whole words only
     assert lock_references('"""never locks"""\nx = 1') == set()  # docstrings are prose
     assert lock_references("from slideshow_lock import preview") == set()  # the product's name
+    assert lock_references("x = 'slideshow-lock'") == set()
+
+
+#: Calls that really lock, or reach the machinery that does, as a line of code each. They run
+#: or fail at runtime wherever they are put; the scan must find every one of them by the names
+#: and strings alone. (``Gio`` is the one GTK code already imports.)
+LOCK_SNIPPETS = {
+    "busctl": 'subprocess.run(["busctl", "--user", "call", "org.gnome.ScreenSaver"], check=False)',
+    "gdbus": 'os.system("gdbus call --session --dest org.gnome.ScreenSaver --method Lock")',
+    "qdbus": 'os.popen("qdbus org.gnome.ScreenSaver /org/gnome/ScreenSaver SetActive true")',
+    "loginctl": 'GLib.spawn_command_line_async("loginctl lock-session")',
+    "gio-call-sync": (
+        'Gio.bus_get_sync(Gio.BusType.SESSION, None).call_sync("org.gnome.ScreenSaver", '
+        '"/org/gnome/ScreenSaver", "org.gnome.ScreenSaver", "SetActive", None, None, 0, -1, None)'
+    ),
+    "systemctl": 'os.system("systemctl suspend")',
+    "pydbus": "import pydbus",
+    "bus-socket": 'socket.socket(socket.AF_UNIX).connect("/run/user/1000/bus")',
+    "logout": 'x.call("Logout")',
+}
+
+
+@pytest.mark.parametrize("name", sorted(LOCK_SNIPPETS))
+def test_ac6_d11_the_scan_finds_a_real_lock_call_hidden_in_stop(name):
+    """The injection test of the review: the line goes into ``PreviewController.stop`` of the real
+    source. The method spy test cannot see it (it only watches the objects handed in)."""
+    with open(_package_file("preview.py"), encoding="utf-8") as handle:
+        original = handle.read()
+    anchor = "        self._running = False\n        self._cancel_timers()\n"
+    assert original.count(anchor) == 1
+    mutated = original.replace(anchor, anchor + "        " + LOCK_SNIPPETS[name] + "\n")
+    assert lock_references(original) == set()
+    assert lock_references(mutated), f"{name}: the scan did not see it"
 
 
 # -- AC7: decoding and scaling never run on the main loop ----------------------------------------
@@ -833,6 +1112,31 @@ def test_ac7_picture_work_runs_on_another_thread_and_the_main_loop_keeps_turning
         worker.close()
     assert set(scaler.threads) and threading.get_ident() not in scaler.threads
     assert gap < 0.15, f"the main loop stood still for {gap:.3f} s"
+
+
+def test_ac7_the_result_is_handed_over_on_the_main_loop_and_only_there(tmp_path, backends):
+    """ "GTK from the main thread only": the worker thread must not call ``done`` itself.
+    It queues the call on the GLib main loop, so nothing arrives while the loop is not run."""
+    worker = ThreadWorker()
+    seen = []
+    ran_on = []
+
+    def work():
+        ran_on.append(threading.get_ident())
+        return 42
+
+    try:
+        worker.submit(work, lambda result, error: seen.append((result, threading.get_ident())))
+        deadline = time.monotonic() + 5
+        while not ran_on and time.monotonic() < deadline:
+            time.sleep(0.005)
+        time.sleep(0.2)  # the work is long done; the main loop has not been run
+        assert ran_on and ran_on[0] != threading.get_ident()
+        assert seen == [], "the worker thread called done() itself"
+        assert _pump(lambda: seen)
+        assert seen == [(42, threading.get_ident())]  # delivered by the main loop, in this thread
+    finally:
+        worker.close()
 
 
 def test_ac7_closing_the_worker_ends_its_thread(tmp_path, backends):

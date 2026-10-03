@@ -6,15 +6,17 @@ and not by a runtime check, and the tests prove it (``tests/test_preview.py``). 
 windows, the scaler, the clock and the worker thread are handed in, so the whole control
 flow runs under test without a display.
 
-How it works:
+What it does:
 
 * The same picture is shown on every monitor, switched together. Each monitor gets a
   frame scaled to its own pixel size.
 * The next picture is chosen with ``source.advance()`` and decoded and scaled on a worker
   thread while the current one is on screen, so the cost is hidden (MEAS-1, section 7).
-  The GLib main loop never decodes or scales anything: the part of the service that must
-  lock the session before sleep does not wait for picture I/O (the CORE-1 safety
-  condition rests on this).
+  Reading a picture file, decoding it and scaling it are not on the GLib main loop. What
+  is: wrapping the finished pixels into a texture, and the image source's folder walk
+  (``os.scandir``, ``os.stat``) and its header read of each new file (``probe_image``).
+  A hung network mount can therefore still stall the main loop through the image source;
+  moving that off the loop is a precondition of CORE-1, not done here.
 * The slide interval counts from the moment a picture appears. If the next picture is not
   ready when the interval ends, it is shown the moment it is.
 * A picture that cannot be shown (``ImageSkipped``) is logged and skipped at once, to the
@@ -23,7 +25,8 @@ How it works:
   if nothing was shown yet). No tight loop, no crash.
 * An empty source (``current() is None``) is a defined state: the windows show a short
   message, one line is logged, and the preview carries on by itself when a picture turns up.
-* Any input on any window ends the preview. Nothing else does.
+* Any input on any window ends the preview, and so does closing a window from outside.
+  Nothing else does.
 * Live settings: the interval, ``scaling`` and ``pan-portrait-images`` take effect without a
   restart (the folder and the order are handled by ``source_from_settings``).
 
@@ -58,6 +61,7 @@ INPUT_MOTION = "motion"
 INPUT_BUTTON = "button"
 INPUT_KEY = "key"
 INPUT_SCROLL = "scroll"
+INPUT_CLOSE = "close"  # a window was closed from outside (overview, compositor, window manager)
 
 _JOB_SHOW = "show"  # nothing is on screen (or it must be redone): show as soon as ready
 _JOB_REFRESH = "refresh"  # redo what is on screen after a settings or size change
@@ -113,6 +117,7 @@ class PreviewController:
         self._windows: List[Any] = []
         self._stopped_listeners: List[Callable[[str], None]] = []
         self._skip_log = _BurstLog("pictures that could not be shown")
+        self._error_log = _BurstLog("unexpected errors while preparing pictures")
 
         source.connect_current_changed(self._on_source_changed)
         settings.connect_changed(self._on_settings_changed)
@@ -165,6 +170,7 @@ class PreviewController:
             except Exception:
                 _LOG.exception("[slideshow] closing a preview window failed")
         self._skip_log.reset()
+        self._error_log.reset()
         _LOG.info("[slideshow] stopped (source=%s, reason=%s)", TRIGGER_PREVIEW, reason)
         for callback in list(self._stopped_listeners):
             try:
@@ -248,6 +254,12 @@ class PreviewController:
             return  # a size event or the size timeout calls this again
         path, purpose = self._want
         self._want = None
+        if purpose == _JOB_NEXT and self._shown_stale and self._shown_path is not None:
+            # What is on screen is still in the old mode: redo it first. Its result asks for
+            # the next picture again (``_display``), so this request is not lost.
+            if self._job is not None and self._job.purpose == _JOB_REFRESH:
+                return
+            path, purpose = self._shown_path, _JOB_REFRESH
         order = sorted(sizes)
         job = _Job(path, purpose, order, [sizes[i] for i in order])
         self._job = job
@@ -270,7 +282,11 @@ class PreviewController:
         try:
             if error is not None:
                 if not isinstance(error, ImageSkipped):
-                    _LOG.error("[slideshow] unexpected error while preparing a picture: %r", error)
+                    self._error_log.log(
+                        logging.ERROR,
+                        "[slideshow] unexpected error while preparing a picture: %r",
+                        error,
+                    )
                     error = ImageSkipped(f"{type(error).__name__}: {error}")
                 self._on_skipped(job, error)
                 return
@@ -467,7 +483,8 @@ class PreviewController:
         """Settings or a window size changed: redo the shown picture and the prefetched one."""
         self._shown_stale = True
         self._next_frames = None
-        self._swap_due = False
+        # _swap_due is left alone: if the interval is over already, the redone next picture is
+        # shown the moment it arrives. Cancelling it here left that picture never shown.
         self._job = None
         self._want = (self._shown_path, _JOB_REFRESH)
         self._dispatch()

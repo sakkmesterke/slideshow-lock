@@ -59,8 +59,17 @@ SCALING_FIT = "fit"
 SCALING_FILL = "fill"
 
 #: Pictures above this many pixels are refused (a decompression bomb in the picture folder
-#: must not take the session down). 24 MP, the largest case MEAS-1 measured, is a quarter of it.
-MAX_PIXELS = 100_000_000
+#: must not take the session down). Derived, not guessed (``docs/preview.md``, section 7):
+#: preparing one picture peaked at 9.0 to 9.4 bytes per source pixel (36 and 50 MP, ``fit``,
+#: the worst mode), so a frame of 512 MiB holds 512 MiB / 9.4 B = 57 MP, rounded down to 50 MP
+#: (about 450 MiB measured at 50 MP on two 4K-class monitors). This bounds the memory of the
+#: decode step; it does not protect against an out-of-memory kill of the whole process.
+MAX_PIXELS = 50_000_000
+
+#: The structure checks below stop after this many steps and say "complete" (the decoder
+#: then decides): a crafted file must not keep the worker busy for tens of seconds. A real
+#: 250 MB JPEG has about 1 million stuffed bytes, a real PNG some thousand chunks.
+MAX_STRUCTURE_STEPS = 1_000_000
 
 #: Files above this size are refused before they are read into memory.
 MAX_FILE_BYTES = 256 * 1024 * 1024
@@ -94,7 +103,7 @@ class Frame:
     width: int
     height: int
     stride: int
-    pixels: Any  # bytes (or any buffer the window can wrap)
+    pixels: Any  # a GLib.Bytes made on the worker thread (any buffer is accepted by the window)
     method: str
     pan_range: Tuple[int, int] = (0, 0)  # how far the window may scroll in x and y, in pixels
 
@@ -149,13 +158,14 @@ def jpeg_is_complete(data: bytes) -> bool:
     Walks the segments (skipping by their length, so a thumbnail inside an APP segment
     does not count) and the entropy-coded data (skipping stuffed FF00 and restart
     markers). Anything after the first end-of-image marker (the video appended to a
-    "motion photo", for example) is ignored. Returns True for data that is not a JPEG.
+    "motion photo", for example) is ignored. Returns True for data that is not a JPEG, and
+    after ``MAX_STRUCTURE_STEPS`` steps (a truncation beyond that point is left to the decoder).
     """
     if data[:2] != b"\xff\xd8":
         return True
     n = len(data)
     i = 2
-    while True:
+    for _step in range(MAX_STRUCTURE_STEPS):
         j = data.find(b"\xff", i)
         if j < 0 or j + 1 >= n:
             return False
@@ -172,15 +182,19 @@ def jpeg_is_complete(data: bytes) -> bool:
             i = j + 2 + ((data[j + 2] << 8) | data[j + 3])
             if i > n:
                 return False
+    return True  # too many steps to follow: the decoder decides
 
 
 def png_is_complete(data: bytes) -> bool:
-    """True if the PNG chunk structure of *data* reaches its IEND chunk (not a PNG: True)."""
+    """True if the PNG chunk structure of *data* reaches its IEND chunk (not a PNG: True;
+    also True after ``MAX_STRUCTURE_STEPS`` chunks)."""
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         return True
     n = len(data)
     i = 8
-    while i + 12 <= n:
+    for _step in range(MAX_STRUCTURE_STEPS):
+        if i + 12 > n:
+            return False
         length = int.from_bytes(data[i : i + 4], "big")
         end = i + 12 + length
         if end > n:
@@ -188,7 +202,7 @@ def png_is_complete(data: bytes) -> bool:
         if data[i + 4 : i + 8] == b"IEND":
             return True
         i = end
-    return False
+    return True  # too many chunks to follow: the decoder decides
 
 
 def bmp_is_complete(data: bytes) -> bool:
@@ -227,6 +241,28 @@ def incomplete_reason(data: bytes) -> Optional[str]:
     if not bmp_is_complete(data):
         return "BMP file is shorter than its header says, probably incomplete"
     return None
+
+
+def probe_loadable(path: str) -> None:
+    """``ImageSource`` probe: the header sniff of the image source, then *a loader exists*.
+
+    ``GdkPixbuf.Pixbuf.get_file_info`` reads the header and returns no format when no
+    installed loader knows the picture (a ``.webp`` where the WebP loader is missing, for
+    example). That raises ``ValueError``, which the image source logs as a skipped picture
+    once, instead of the preview finding out again on every pass. The extension list of the
+    image source is not narrowed: where a loader exists, the picture is shown. This runs on
+    the main loop, like the image source's own header read.
+    """
+    import gi
+
+    gi.require_version("GdkPixbuf", "2.0")
+    from gi.repository import GdkPixbuf
+
+    from slideshow_lock.image_source import probe_image
+
+    probe_image(path)
+    if GdkPixbuf.Pixbuf.get_file_info(path)[0] is None:
+        raise ValueError("no installed gdk-pixbuf loader reads this format")
 
 
 def read_image_file(path: str, *, settle_seconds: float = SETTLE_SECONDS) -> bytearray:
@@ -275,6 +311,15 @@ def read_image_file(path: str, *, settle_seconds: float = SETTLE_SECONDS) -> byt
     if reason is not None:
         raise ImageSkipped(reason)
     return data
+
+
+def _to_gbytes(data):
+    import gi
+
+    gi.require_version("GLib", "2.0")
+    from gi.repository import GLib
+
+    return GLib.Bytes.new(data)
 
 
 def _gst_row_stride(width: int) -> int:
@@ -388,28 +433,19 @@ class ImageScaler:
         full = (x, y, w, h) == (0, 0, pixbuf.get_width(), pixbuf.get_height())
         part = pixbuf if full else pixbuf.new_subpixbuf(x, y, w, h)
         out_w, out_h = plan.out
+        stride = _gst_row_stride(out_w)
         if (w, h) == (out_w, out_h):
-            data = self._rows(part)
-            return Frame(
-                path, out_w, out_h, _gst_row_stride(out_w), data, METHOD_NONE, plan.pan_range
-            )
-        scaled = self._lanczos(part, out_w, out_h)
-        if scaled is None:
-            from gi.repository import GdkPixbuf
+            data, method = self._rows(part), METHOD_NONE
+        else:
+            data, method = self._lanczos(part, out_w, out_h), METHOD_LANCZOS3
+            if data is None:
+                from gi.repository import GdkPixbuf
 
-            bilinear = part.scale_simple(out_w, out_h, GdkPixbuf.InterpType.BILINEAR)
-            return Frame(
-                path,
-                out_w,
-                out_h,
-                bilinear.get_rowstride(),
-                bilinear.read_pixel_bytes().get_data(),
-                METHOD_BILINEAR,
-                plan.pan_range,
-            )
-        return Frame(
-            path, out_w, out_h, _gst_row_stride(out_w), scaled, METHOD_LANCZOS3, plan.pan_range
-        )
+                bilinear = part.scale_simple(out_w, out_h, GdkPixbuf.InterpType.BILINEAR)
+                data, method = self._rows(bilinear), METHOD_BILINEAR
+        # The copy into a GLib.Bytes is made here, on the worker thread, so the main loop does
+        # not copy a frame (150 MB for a panning 4K frame) when it wraps it into a texture.
+        return Frame(path, out_w, out_h, stride, _to_gbytes(data), method, plan.pan_range)
 
     @staticmethod
     def _rows(pixbuf) -> bytes:

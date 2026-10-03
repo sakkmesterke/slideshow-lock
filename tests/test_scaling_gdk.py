@@ -1,8 +1,12 @@
 """Tests for decoding and scaling with the real GdkPixbuf (and GStreamer where it is installed).
 
 Everything here goes through the real ``ImageScaler`` on real files. Which scaler produced a
-frame is read from ``Frame.method``: with GStreamer's ``videoscale`` present it must be the
-Lanczos-3 path, without it the bilinear fallback, and the tests below hold for both.
+frame is read from ``Frame.method``. The ``scaler`` fixture runs every test twice when
+GStreamer's ``videoscale`` is installed: once on the Lanczos-3 path and once with GStreamer
+switched off, on the bilinear fallback. So "the tests hold for both paths" is something the
+test run does, not something this docstring claims. ``Frame.method`` only says which path a
+frame went through; what Lanczos-3 does to pixels is measured in
+``test_the_lanczos3_path_rings_at_a_sharp_edge_...``.
 """
 
 from __future__ import annotations
@@ -47,7 +51,6 @@ def _gst_available() -> bool:
 
 
 HAVE_GST = _gst_available()
-SCALED = METHOD_LANCZOS3 if HAVE_GST else METHOD_BILINEAR
 
 
 # -- building pictures ---------------------------------------------------------------------------
@@ -83,7 +86,7 @@ def save(tmp_path, name, pixbuf, fmt, **options):
 def pixel(frame, x, y):
     """(r, g, b) of one pixel of a frame."""
     offset = y * frame.stride + 3 * x
-    return tuple(frame.pixels[offset : offset + 3])
+    return tuple(frame.pixels.get_data()[offset : offset + 3])
 
 
 def close(color, expected, tolerance=6):
@@ -93,9 +96,13 @@ def close(color, expected, tolerance=6):
 RED, BLUE, GREEN = (255, 0, 0), (0, 0, 255), (0, 200, 0)
 
 
-@pytest.fixture
-def scaler():
-    return ImageScaler(settle_seconds=0)
+@pytest.fixture(params=["videoscale", "bilinear"] if HAVE_GST else ["bilinear"])
+def scaler(request):
+    scaler = ImageScaler(settle_seconds=0)
+    if request.param == "bilinear":
+        scaler._gst_failure = "switched off for this test"
+    scaler.scaled_method = METHOD_LANCZOS3 if request.param == "videoscale" else METHOD_BILINEAR
+    return scaler
 
 
 # -- scaling to the exact size -------------------------------------------------------------------
@@ -105,7 +112,7 @@ def test_ac2_fit_gives_the_exact_scaled_size_and_the_right_pixels(tmp_path, scal
     path = save(tmp_path, "h.png", halves(400, 200, RED, BLUE), "png")
     (frame,) = scaler.prepare(path, [(100, 100)], "fit")
     assert (frame.width, frame.height) == (100, 50)
-    assert frame.method == SCALED
+    assert frame.method == scaler.scaled_method
     assert close(pixel(frame, 10, 25), RED) and close(pixel(frame, 90, 25), BLUE)
 
 
@@ -149,7 +156,7 @@ def test_a_width_that_is_not_a_multiple_of_four_gets_properly_padded_rows(tmp_pa
     (frame,) = scaler.prepare(path, [(101, 67)], "fill")
     assert (frame.width, frame.height) == (101, 67)
     assert frame.stride == 304  # 303 bytes of pixels, rows padded to 4
-    assert len(frame.pixels) >= frame.stride * frame.height
+    assert frame.pixels.get_size() == frame.stride * frame.height
     assert close(pixel(frame, 0, 66), RED) and close(pixel(frame, 100, 66), BLUE)
 
 
@@ -204,6 +211,121 @@ def test_a_horizontal_gradient_stays_a_clean_monotonic_ramp_after_downscaling(tm
     inner = values[4:-4]  # the last pixels ring a little against the edge (Lanczos: 2 levels)
     assert all(b >= a for a, b in zip(inner, inner[1:]))
     assert all(abs(v - round(x * 255 / 199)) <= 6 for x, v in enumerate(values))
+
+
+def test_every_frame_holds_its_pixels_as_a_glib_bytes_made_on_the_worker(tmp_path, scaler):
+    """The window wraps the pixels into a texture on the main loop: a GLib.Bytes costs it no
+    copy, a bytes object costs a copy of up to 150 MB for a panning 4K frame."""
+    path = save(tmp_path, "h.png", halves(400, 200, RED, BLUE), "png")
+    same = save(tmp_path, "same.png", halves(120, 80, RED, BLUE), "png")
+    for source, size in ((path, (100, 50)), (same, (120, 80))):
+        (frame,) = scaler.prepare(source, [size], "fit")
+        assert isinstance(frame.pixels, GLib.Bytes)
+        assert frame.pixels.get_size() == frame.stride * frame.height
+    kinds = {
+        scaler.prepare(path, [(100, 50)], "fit")[0].method,
+        scaler.prepare(same, [(120, 80)], "fit")[0].method,
+    }
+    assert kinds == {scaler.scaled_method, METHOD_NONE}  # both of the two code paths were seen
+
+
+@pytest.mark.parametrize("width", [97, 98, 99, 100, 101, 102, 103])
+def test_a_frame_is_tightly_laid_out_for_every_row_padding_on_either_scaler(
+    tmp_path, scaler, width
+):
+    """stride is GStreamer's (rows padded to 4 bytes) and the pixel buffer is exactly
+    stride * height, on the Lanczos path and on the bilinear fallback alike."""
+    path = save(tmp_path, "w.png", halves(300, 200, RED, BLUE), "png")
+    (frame,) = scaler.prepare(path, [(width, 67)], "fill")
+    assert frame.stride == scaling._gst_row_stride(width) == (width * 3 + 3) // 4 * 4
+    assert frame.pixels.get_size() == frame.stride * frame.height
+    assert close(pixel(frame, 0, 66), RED) and close(pixel(frame, width - 1, 66), BLUE)
+
+
+@pytest.mark.skipif(not HAVE_GST, reason="needs GStreamer's videoscale")
+def test_the_lanczos3_path_rings_at_a_sharp_edge_and_bilinear_does_not(tmp_path):
+    """``Frame.method`` is only a label. What a Lanczos-3 scaler does to a hard edge is that it
+    rings: a dip below the dark side and a peak above the bright side. Bilinear does not, and
+    neither does a smaller Lanczos envelope (envelope=1: no dip; 3 levels of peak at most)."""
+    path = save(tmp_path, "edge.png", halves(600, 300, (40, 40, 40), (220, 220, 220)), "png")
+
+    def edge_row(scaler):
+        (frame,) = scaler.prepare(path, [(100, 100)], "fit")
+        y = frame.height // 2
+        return [pixel(frame, x, y)[0] for x in range(frame.width)], frame.method
+
+    row, method = edge_row(ImageScaler(settle_seconds=0))
+    assert method == METHOD_LANCZOS3
+    dark, bright = row[15], row[-16]  # the flat parts, away from the edge
+    assert dark - min(row) >= 4, f"no dip below the dark side: {dark} / {min(row)}"
+    assert max(row) - bright >= 4, f"no peak above the bright side: {bright} / {max(row)}"
+
+    fallback = ImageScaler(settle_seconds=0)
+    fallback._gst_failure = "switched off for this test"
+    row, method = edge_row(fallback)
+    assert method == METHOD_BILINEAR
+    assert min(row) == row[15] and max(row) == row[-16]  # monotonic, no ringing
+
+
+def test_in_ci_gstreamer_must_be_there_so_the_lanczos_path_is_the_one_tested():
+    """Without GStreamer every test above runs on the bilinear path and stays green, so only this
+    test and the verify step of the workflow keep the Lanczos path from silently dropping out."""
+    assert HAVE_GST or os.environ.get("CI") != "true", "CI must have GStreamer videoscale"
+
+
+# -- the picture probe of the image source --------------------------------------------------------
+
+
+def _without_loader(monkeypatch, extension_signature):
+    """get_file_info answers "no loader" for a picture with this header (a missing WebP loader)."""
+    real = GdkPixbuf.Pixbuf.get_file_info
+
+    def info(path):
+        with open(path, "rb") as handle:
+            if handle.read(16).find(extension_signature) >= 0:
+                return (None, -1, -1)
+        return real(path)
+
+    monkeypatch.setattr(GdkPixbuf.Pixbuf, "get_file_info", staticmethod(info))
+
+
+def test_the_probe_refuses_a_picture_no_installed_loader_reads(tmp_path, monkeypatch):
+    from slideshow_lock.scaling import probe_loadable
+
+    good = save(tmp_path, "ok.png", solid(20, 10, RED), "png")
+    webp = tmp_path / "x.webp"
+    webp.write_bytes(b"RIFF\x10\x00\x00\x00WEBPVP8 " + bytes(40))
+    probe_loadable(good)  # a loadable picture passes
+    _without_loader(monkeypatch, b"WEBP")  # whether this machine has a WebP loader is not assumed
+    with pytest.raises(ValueError, match="no installed gdk-pixbuf loader"):
+        probe_loadable(str(webp))
+    probe_loadable(good)
+    junk = tmp_path / "junk.png"
+    junk.write_bytes(b"not a picture at all")
+    with pytest.raises(ValueError, match="not a recognised image header"):
+        probe_loadable(str(junk))  # the header sniff of the image source still runs first
+
+
+def test_a_source_with_the_probe_does_not_queue_pictures_without_a_loader(
+    tmp_path, monkeypatch, caplog
+):
+    from slideshow_lock.scaling import probe_loadable
+    from tests.test_image_source import FakeWatcher, ManualScheduler, started
+
+    for name in ("a.png", "b.png"):  # real pictures: the probe asks the real loaders
+        save(tmp_path, name, solid(20, 10, RED), "png")
+    for n in range(300):  # a folder full of pictures nothing here can show
+        (tmp_path / f"w{n:03d}.webp").write_bytes(b"RIFF\x10\x00\x00\x00WEBPVP8 " + bytes(40))
+    _without_loader(monkeypatch, b"WEBP")
+    with caplog.at_level(logging.INFO, logger="slideshow_lock"):
+        source = started(tmp_path, (FakeWatcher(), ManualScheduler()), probe=probe_loadable)
+    assert [os.path.basename(p) for p in source.images()] == ["a.png", "b.png"]
+    skipped = [m for m in caplog.messages if "no installed gdk-pixbuf loader" in m]
+    assert 1 <= len(skipped) <= 10  # logged once per picture at most, burst-limited
+    plain = started(
+        tmp_path, (FakeWatcher(), ManualScheduler()), probe=lambda path: None
+    )  # negative control: the default sniff keeps them all, which is what the probe fixes
+    assert len(plain.images()) == 302
 
 
 # -- what the decoder and the file checks reject -------------------------------------------------
@@ -376,7 +498,7 @@ def test_ac2_transparent_areas_are_shown_black_like_the_letterbox(tmp_path, scal
 def test_ac2_the_scaler_is_lanczos3_through_videoscale_when_gstreamer_is_there(tmp_path, scaler):
     path = save(tmp_path, "h.png", halves(400, 200, RED, BLUE), "png")
     (frame,) = scaler.prepare(path, [(100, 50)], "fit")
-    assert frame.method == (METHOD_LANCZOS3 if HAVE_GST else METHOD_BILINEAR)
+    assert frame.method == scaler.scaled_method
 
 
 def test_ac2_without_gstreamer_it_falls_back_to_bilinear_and_says_so_once(
