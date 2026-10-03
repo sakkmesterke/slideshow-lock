@@ -1083,6 +1083,11 @@ ALLOWED_NAMES = {
     "keylockgraceperiodseconds": "settings.py: its key constant",
     "getlockgraceperiodseconds": "settings.py: its getter",
     "setlockgraceperiodseconds": "settings.py: its setter",
+    "lockgraceperiod": "preferences.py: the label of the grace period field, prose",
+    (
+        "inputsoonerthanthisaftertheslideshowstartsdoesnotlockthesession"
+        "strictlysooner0meanseveryinputlocks"
+    ): "preferences.py: the hint under the grace period field, prose about what the number does",
 }
 
 

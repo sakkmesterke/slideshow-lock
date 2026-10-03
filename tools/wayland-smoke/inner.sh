@@ -10,7 +10,7 @@ mutter --headless --wayland --no-x11 "${ARGS[@]}" --wayland-display=smoke-0 ${MU
 MUTTER_PID=$!
 for _ in $(seq 1 100); do [ -S "$SMOKE_WORK/run/smoke-0" ] && break; sleep 0.1; done
 export WAYLAND_DISPLAY=smoke-0 GDK_BACKEND=wayland GTK_A11Y=none
-python3 -u "$HERE/smoke_preview.py" "$@"
+python3 -u "$HERE/${SMOKE_SCRIPT:-smoke_preview.py}" "$@"
 STATUS=$?
 kill "$MUTTER_PID" 2>/dev/null
 wait "$MUTTER_PID" 2>/dev/null
