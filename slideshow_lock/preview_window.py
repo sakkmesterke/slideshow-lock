@@ -154,7 +154,12 @@ class PreviewWindow:
 
         self._window = Gtk.Window(title=_("Slideshow Lock preview"), decorated=False)
         self._canvas = _Canvas(self._scale)
-        self._message = Gtk.Label(halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, visible=False)
+        self._message = Gtk.Label(
+            halign=Gtk.Align.CENTER,
+            valign=Gtk.Align.CENTER,
+            justify=Gtk.Justification.CENTER,
+            visible=False,
+        )
         overlay = Gtk.Overlay()
         overlay.set_child(self._canvas)
         overlay.add_overlay(self._message)

@@ -224,6 +224,12 @@ class PreviewController:
         self._want = (path, _JOB_SHOW)
         self._dispatch()
 
+    def _nothing_to_show(self) -> str:
+        """The on-screen text for "no picture": names the folder that was searched."""
+        folder = getattr(self._source, "folder", None)
+        text = _("No pictures to show")
+        return f"{text}\n{folder}" if folder else text
+
     def _enter_empty(self) -> None:
         self._job = None
         self._want = None
@@ -236,7 +242,7 @@ class PreviewController:
             self._timer()
             self._timer = None
         for window in self._windows:
-            window.show_message(_("No pictures to show"))
+            window.show_message(self._nothing_to_show())
         if not self._empty_logged:
             self._empty_logged = True
             complete = getattr(self._source, "scan_complete", True)
@@ -327,7 +333,7 @@ class PreviewController:
                 self._next_path = None
             elif self._shown_path is None:
                 for window in self._windows:
-                    window.show_message(_("No pictures to show"))
+                    window.show_message(self._nothing_to_show())
             if self._timer is None:
                 self._arm_timer(self._interval())
             return

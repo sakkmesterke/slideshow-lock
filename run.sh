@@ -18,7 +18,7 @@ REPO="$(cd -- "$dir" && pwd)"
 usage() {
     cat <<'EOF'
 usage: ./run.sh check              look for the dependencies (installs nothing)
-       ./run.sh preview [args...]  fullscreen preview, e.g. --folder ~/Pictures (never locks)
+       ./run.sh preview [args...]  fullscreen preview, e.g. --interval 5 (never locks)
        ./run.sh settings           the settings window
 EOF
 }

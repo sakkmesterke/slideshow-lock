@@ -1,12 +1,15 @@
 """Run the slideshow preview from a terminal (CORE-2).
 
     glib-compile-schemas data/
-    GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app --folder ~/Pictures
+    GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app [--folder PATH]
 
 One fullscreen window per monitor, the pictures of the folder, any key press, mouse
 movement, click or scroll ends it. It never locks the session (D11) and does not touch
 the stored settings: ``--interval``, ``--order``, ``--scaling`` and ``--pan`` only apply
-to this run. Without ``--folder`` and the other options the stored settings are used.
+to this run. Without ``--folder`` and the other options the stored settings are used; the
+stored folder, if none was chosen, is the system's pictures folder itself, read
+recursively (``~/Képek`` on a Hungarian system; ``~/Pictures`` if none is configured or it is
+the home directory itself).
 
 ``start_preview`` is the part the settings window (UI-1) and the service (CORE-1) will
 call: it builds the controller from the real GTK windows, the real scaler and the GLib
@@ -35,6 +38,10 @@ from gi.repository import Gio, GLib, Gtk  # noqa: E402
 
 from slideshow_lock import APP_ID, _  # noqa: E402
 from slideshow_lock.image_source import ImageSource, source_from_settings  # noqa: E402
+from slideshow_lock.preferences_model import (  # noqa: E402
+    INTERVAL_MAX_SECONDS,
+    INTERVAL_MIN_SECONDS,
+)
 from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  # noqa: E402
 from slideshow_lock.preview_window import animations_enabled, open_monitor_windows  # noqa: E402
 from slideshow_lock.scaling import ImageScaler, probe_loadable  # noqa: E402
@@ -128,8 +135,11 @@ def overrides_from_args(args: argparse.Namespace) -> dict:
     if args.folder is not None:
         overrides[KEY_PICTURE_FOLDER] = args.folder
     if args.interval is not None:
-        if not 1 <= args.interval <= 3600:
-            raise ValueError(_("The interval must be between 1 and 3600 seconds."))
+        if not INTERVAL_MIN_SECONDS <= args.interval <= INTERVAL_MAX_SECONDS:
+            raise ValueError(
+                _("The interval must be between %d and %d seconds.")
+                % (INTERVAL_MIN_SECONDS, INTERVAL_MAX_SECONDS)
+            )
         overrides[KEY_SLIDE_INTERVAL_SECONDS] = args.interval
     if args.order is not None:
         overrides[KEY_ORDER] = args.order

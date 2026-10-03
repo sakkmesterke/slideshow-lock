@@ -35,17 +35,27 @@ verified on RHEL 10.2**; the script does not detect the distribution and does no
 ## 3. Run the preview
 
 ```
-./run.sh preview --folder ~/Pictures
+./run.sh preview
 ```
 
-You should see one fullscreen window per monitor, showing the pictures of the folder, each scaled
-to the monitor. Any key, click, scroll or mouse movement ends it. The preview never locks the
-session. Other options, which apply to that run only and are never stored: `--interval SECONDS`,
+You should see one fullscreen window per monitor, showing the pictures of the picture folder, each
+scaled to the monitor. Any key, click, scroll or mouse movement ends it. The preview never locks
+the session.
+
+**Which folder.** Without `--folder` it uses the picture folder of your settings. Until you choose
+one, that is your system's pictures folder itself, the `XDG_PICTURES_DIR` of
+`~/.config/user-dirs.dirs` (`~/Képek` on a Hungarian system), or `~/Pictures` if the system has
+none configured or it is the home directory itself. Its subfolders are read too, so nothing has to be created. If it holds no
+picture, the preview shows "No pictures to show" with the exact path it looked at, and its log
+line names the same path. To use another folder, point the run at it:
+
+```
+./run.sh preview --folder /path/to/some/pictures
+```
+
+Other options, which apply to that run only and are never stored: `--interval SECONDS`,
 `--order random|name`, `--scaling fit|fill`, `--pan`, `--debug`. All of them are described in
 [`preview.md`](preview.md), section 6.
-
-Without `--folder` it uses the stored picture folder setting. If that folder does not exist, the
-preview says so in its log and shows "No pictures to show" until a picture appears.
 
 ## 4. Open the settings window
 

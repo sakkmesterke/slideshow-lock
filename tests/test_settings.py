@@ -4,8 +4,8 @@ Covers the four CORE-3 acceptance criteria from the card:
 1. the service picks up a changed value without a restart (test_live_reload...)
 2. an invalid value cannot be saved (test_*_rejects_out_of_range / _rejects_unknown_choice)
 3. the identifier comes from a single constant (test_schema_id_matches_app_id)
-4. the default picture folder comes from the XDG pictures dir, "slideshow-lock"
-   subfolder, and a missing folder is a logged WARNING, not an error
+4. the default picture folder is the XDG pictures dir itself, and a missing folder
+   is a logged WARNING, not an error
    (test_default_picture_folder_* / test_get_picture_folder_warns_on_missing_folder)
 """
 
@@ -14,11 +14,11 @@ from __future__ import annotations
 import logging
 import time
 
+import pytest
 from gi.repository import GLib
 
 from slideshow_lock import APP_ID
 from slideshow_lock.settings import (
-    DEFAULT_PICTURE_SUBDIR,
     Settings,
     default_picture_folder,
 )
@@ -136,6 +136,21 @@ def test_idle_timeout_seconds_rejects_zero():
     assert settings.get_idle_timeout_seconds() == 120
 
 
+@pytest.mark.parametrize("value", [1, 59, 60, 3600, 3661, 86399])
+def test_slide_interval_seconds_takes_00_00_01_up_to_23_59_59(value):
+    settings = Settings()
+    assert settings.set_slide_interval_seconds(value) is True
+    assert settings.get_slide_interval_seconds() == value
+
+
+@pytest.mark.parametrize("value", [0, 86400, 86401])
+def test_slide_interval_seconds_takes_neither_00_00_00_nor_24_00_00(value):
+    settings = Settings()
+    assert settings.set_slide_interval_seconds(30) is True
+    assert settings.set_slide_interval_seconds(value) is False
+    assert settings.get_slide_interval_seconds() == 30  # unchanged
+
+
 def test_order_rejects_unknown_choice(caplog):
     settings = Settings()
     with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
@@ -184,24 +199,23 @@ def test_live_reload_notifies_without_restart():
 # -- acceptance criterion 4: XDG-derived default picture folder (D25) ---------
 
 
-def test_default_picture_folder_uses_xdg_pictures_dir_and_product_subdir(monkeypatch):
+def test_default_picture_folder_uses_the_xdg_pictures_dir_itself(monkeypatch):
     monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: "/home/example-user/Pictures")
     folder = default_picture_folder()
-    assert folder == "/home/example-user/Pictures/" + DEFAULT_PICTURE_SUBDIR
-    assert DEFAULT_PICTURE_SUBDIR == "slideshow-lock"  # D25: no Hungarian literal
+    assert folder == "/home/example-user/Pictures"
 
 
 def test_default_picture_folder_falls_back_to_home_when_xdg_unset(monkeypatch):
     monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: None)
     monkeypatch.setattr(GLib, "get_home_dir", lambda: "/home/example-user")
     folder = default_picture_folder()
-    assert folder == "/home/example-user/Pictures/" + DEFAULT_PICTURE_SUBDIR
+    assert folder == "/home/example-user/Pictures"
 
 
 def test_get_picture_folder_resolves_default_when_key_is_empty(monkeypatch):
     monkeypatch.setattr(GLib, "get_user_special_dir", lambda _kind: "/home/example-user/Pictures")
     settings = Settings()
-    assert settings.get_picture_folder() == "/home/example-user/Pictures/" + DEFAULT_PICTURE_SUBDIR
+    assert settings.get_picture_folder() == "/home/example-user/Pictures"
 
 
 def test_get_picture_folder_warns_on_missing_folder(tmp_path, caplog):

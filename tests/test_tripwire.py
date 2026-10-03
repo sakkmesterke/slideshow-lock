@@ -93,6 +93,32 @@ OPT_OUTS = {
     ("test_run_script.py", "test_preview_in_a_checkout_without_the_schema_says_so"),
     ("test_run_script.py", "test_settings_without_the_window_module_says_so_and_is_no_traceback"),
     ("test_run_script.py", "test_settings_starts_the_window_module"),
+    ("test_picture_folder_xdg.py", "test_a_hungarian_system_uses_its_kepek_folder_everywhere"),
+    (
+        "test_picture_folder_xdg.py",
+        "test_a_folder_given_to_the_preview_wins_over_the_system_folder",
+    ),
+    ("test_picture_folder_xdg.py", "test_a_stored_folder_wins_over_the_system_folder"),
+    ("test_picture_folder_xdg.py", "test_another_language_folder_name_is_followed_too"),
+    ("test_picture_folder_xdg.py", "test_without_a_user_dirs_file_it_falls_back_to_home_pictures"),
+    (
+        "test_picture_folder_xdg.py",
+        "test_a_user_dirs_file_without_the_pictures_line_falls_back_too",
+    ),
+    (
+        "test_picture_folder_xdg.py",
+        "test_a_pictures_dir_that_is_the_home_directory_means_off_and_falls_back",
+    ),
+    ("test_picture_folder_xdg.py", "test_a_relative_pictures_dir_is_not_used"),
+    (
+        "test_picture_folder_xdg.py",
+        "test_pictures_in_the_system_folder_show_with_no_subfolder_created",
+    ),
+    ("test_picture_folder_xdg.py", "test_the_folder_chooser_opens_in_the_system_pictures_folder"),
+    (
+        "test_picture_folder_xdg.py",
+        "test_the_folder_chooser_opens_in_the_home_directory_when_there_is_no_pictures_folder",
+    ),
 }
 
 
