@@ -114,6 +114,11 @@ OPT_OUTS = {
         "test_picture_folder_xdg.py",
         "test_pictures_in_the_system_folder_show_with_no_subfolder_created",
     ),
+    ("test_picture_folder_xdg.py", "test_the_folder_chooser_opens_in_the_system_pictures_folder"),
+    (
+        "test_picture_folder_xdg.py",
+        "test_the_folder_chooser_opens_in_the_home_directory_when_there_is_no_pictures_folder",
+    ),
 }
 
 

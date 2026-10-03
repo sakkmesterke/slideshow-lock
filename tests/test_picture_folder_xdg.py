@@ -85,8 +85,24 @@ print(json.dumps({
 """
 
 
+_CHOOSER_PROBE = """
+import json, os
+from slideshow_lock.preferences_model import PreferencesModel
+from slideshow_lock.settings import Settings, default_picture_folder
+
+settings = Settings()
+if os.environ.get("MAKE_DEFAULT") == "1":
+    os.makedirs(default_picture_folder(), exist_ok=True)
+print(json.dumps({"start": PreferencesModel(settings).chooser_start_folder()}, ensure_ascii=False))
+"""
+
+
 def _start(
-    tmp_path: Path, user_dirs: "str | None", stored: "str | None" = None, probe: str = _PROBE
+    tmp_path: Path,
+    user_dirs: "str | None",
+    stored: "str | None" = None,
+    probe: str = _PROBE,
+    make_default: bool = False,
 ):
     """Start a fresh interpreter in a home of its own, with this ``user-dirs.dirs`` (or none)."""
     home = tmp_path / "home"
@@ -99,6 +115,7 @@ def _start(
     env["HOME"] = str(home)
     env["XDG_CONFIG_HOME"] = str(config)
     env["PYTHONIOENCODING"] = "utf-8"
+    env["MAKE_DEFAULT"] = "1" if make_default else "0"
     code = (
         probe
         if stored is None
@@ -193,3 +210,28 @@ def test_pictures_in_the_system_folder_show_with_no_subfolder_created(tmp_path):
     assert got["folder"] == f"{home}/Képek"
     assert got["images"] == ["album/second.png", "first.png"]
     assert got["subfolder_made"] is False
+
+
+@pytest.mark.parametrize(
+    ("user_dirs", "opens_in"),
+    [
+        ('XDG_PICTURES_DIR="$HOME/Képek"\n', "Képek"),
+        ('XDG_PICTURES_DIR="$HOME"\n', "Pictures"),  # the home directory means "off"
+        ('XDG_PICTURES_DIR="$HOME/Képek/.."\n', "Pictures"),
+        (None, "Pictures"),
+    ],
+)
+def test_the_folder_chooser_opens_in_the_system_pictures_folder(tmp_path, user_dirs, opens_in):
+    # Nothing chosen, and again with a chosen folder that is gone: either way the chooser starts at
+    # the pictures, in the language of the system, never in the home directory or "where it was".
+    home, got = _start(tmp_path, user_dirs, probe=_CHOOSER_PROBE, make_default=True)
+    assert got["start"] == f"{home}/{opens_in}"
+    home, got = _start(
+        tmp_path, user_dirs, stored=f"{tmp_path}/gone", probe=_CHOOSER_PROBE, make_default=True
+    )
+    assert got["start"] == f"{home}/{opens_in}"
+
+
+def test_the_folder_chooser_opens_in_the_home_directory_when_there_is_no_pictures_folder(tmp_path):
+    home, got = _start(tmp_path, 'XDG_PICTURES_DIR="$HOME/Képek"\n', probe=_CHOOSER_PROBE)
+    assert got["start"] == home

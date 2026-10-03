@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A plain GTK 4 window for the stored settings. Run it from a source checkout:
+A GTK 4 window for the stored settings, in titled groups of rows (Pictures, Start the slideshow, Timing). Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -12,7 +12,7 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Field | Key | Accepts |
 |---|---|---|
 | Picture folder (text, "Browse...") | `picture-folder` | an absolute path, `~/...`, or empty for the default |
-| Start the slideshow after | `idle-timeout-seconds` | 1 to 86400 |
+| Idle time (three sliders: hours, minutes, seconds) | `idle-timeout-seconds` | 1 to 86399 seconds, shown as 00:00:01 to 23:59:59 |
 | Lock grace period | `lock-grace-period-seconds` | 0 to 86400 (input sooner than this does not lock, strictly sooner: D16) |
 | Show each picture for | `slide-interval-seconds` | 1 to 3600 |
 | Picture order | `order` | random, name |
@@ -29,6 +29,19 @@ closing the window ends it too. There is no on/off switch: that goes through the
 - A value is saved the moment it is changed. There is no "Apply".
 - The window says "Saved." only for a value that is stored and reads back as written. A refused
   value is not stored, the field goes back to the stored one, and the status line says why.
+- The idle time is three sliders (hours 0-23, minutes 0-59, seconds 0-59) with their values beside
+  them and the result as HH:MM:SS (`00:05:00`), updated while a slider moves. It is stored in
+  seconds in the same key as before. The shortest is 00:00:01 and the longest 23:59:59 (86399);
+  00:00:00 and 24:00:00 cannot be set, in the window or through `Settings` (the schema refuses
+  0 and 86400). Moving all three sliders to zero does not show an error: it becomes 00:00:01,
+  shown and stored, and the status line says so. The schema range was 1 to 86400 before: a stored
+  86400 (a full day) now reads as the default, 120 seconds, because GSettings gives the default for
+  a stored value outside the range (measured); a stored 0 was never valid and read as 120 before.
+  The grace period and the slide interval are still plain number fields.
+- The folder chooser (Browse) opens in the folder in use when it exists. If that folder is missing,
+  or the default is in use, it opens in the system's pictures folder (`~/Pictures` when none is
+  configured or it is the home directory itself), and in the home directory only when even that
+  folder does not exist; never where the chooser was last.
 - A number outside its range, or text that is no number, is thrown away (the old value stays);
   GTK's default would have clamped it to the nearest limit. One corner: an emptied field reads as
   0, so it is thrown away everywhere but in the grace period, whose minimum is 0.
@@ -46,8 +59,10 @@ closing the window ends it too. There is no on/off switch: that goes through the
 - `slideshow_lock/preferences_model.py` has no GTK in it: which key a field is bound to, what is
   accepted, what is shown, and whether a save really happened. `tests/test_preferences_model.py`
   tests it in the CI, including that its ranges and choices are the schema's.
-- `slideshow_lock/preferences.py` puts it on the screen with plain Gtk widgets (no libadwaita:
-  the CI has no libadwaita typelib). The folder chooser is `Gtk.FileChooserNative`; `Gtk.FileDialog`
+- `slideshow_lock/preferences.py` puts it on the screen with plain Gtk widgets and a few CSS rules
+  of its own for the rounded groups (no libadwaita: the CI has no libadwaita typelib, and the
+  brief's `Adw.PreferencesWindow` would be a new dependency, so it waits for a decision; the
+  container this was built in has no `Adw` typelib either). The folder chooser is `Gtk.FileChooserNative`; `Gtk.FileDialog`
   needs GTK 4.10 and does not exist on the GTK 4.8 this was built on.
 - `tools/wayland-smoke/smoke_preferences.py` drives the real window on a headless compositor:
   `SMOKE_SCRIPT=smoke_preferences.py tools/wayland-smoke/run.sh [--screenshot DIR]`. Not run by
