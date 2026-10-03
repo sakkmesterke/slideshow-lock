@@ -75,10 +75,15 @@ OPT_OUTS = {
 }
 
 
+#: Whole files that start ``dbus-daemon`` for every test in them (a fake desktop on private
+#: buses, ``tests/fake_dbus.py``). A new file here is a decision, made here.
+OPT_OUT_FILES = {"test_dbus_adapters.py", "test_service_dbus.py"}
+
+
 def test_only_the_known_tests_stand_the_tripwire_down(request):
     users = {
         (item.path.name, item.originalname)
         for item in request.session.items
-        if item.get_closest_marker("spawns_processes")
+        if item.get_closest_marker("spawns_processes") and item.path.name not in OPT_OUT_FILES
     }
     assert users <= OPT_OUTS, f"new opt-out: {sorted(users - OPT_OUTS)}"
