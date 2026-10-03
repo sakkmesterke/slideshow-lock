@@ -95,6 +95,8 @@ would sleep unlocked, with no error. So:
   made, see below); (3) when the answer is in, releases the delay inhibitor;
   (4) posts the result. The inhibitor is held until the round trip is over, not until the call
   was made (ARCH-1 section 3.6: release in a `finally`).
+- When the thread ends (the machine is disabled, or the service closes) it releases the inhibitor
+  and closes both adapters, so their signal subscriptions go with it.
 - Nothing in the guard touches the image source, the windows, the settings or the state machine's
   state. The only messages to the main loop are the two posts.
 - The state machine follows (`sleep_started`, `sleep_lock_finished`) but never makes this lock.
@@ -126,6 +128,17 @@ slideshow that has run for the grace period, the slideshow stops and the lock go
 method as the lock after input. If that `Lock()` fails the result is the same as after input: ERROR
 in the log, the state goes back to idle-watching, and the session stays unlocked until the next
 idle period or sleep (there is no retry).
+
+**The login1 fallback is not a guarantee.** Without `org.gnome.ScreenSaver` the guard locks with
+`login1.Session.Lock()`. Its success means that the call returned, not that a lock screen is up:
+logind answers at once and sends a `Lock` signal to the session's clients. The guard then releases
+the delay inhibitor, so on this path the delay inhibitor does not keep the machine awake until the
+session is locked, and the machine may suspend before the lock screen is drawn. Where
+`org.gnome.ScreenSaver` is offered the guard takes that path instead (by `make_session_lock`; that
+a given GNOME session offers it is not measured). How the fallback behaves is not measured on a
+real session, and no test can show it: the fake desktop sets `LockedHint` in the
+same step as the call. Taking "locked" from `LockedHint` with a time limit instead is a possible
+change, not made here.
 
 **What this does not cover:** the *D-Bus daemon* or the *shell* being slow, and `Lock()` taking
 longer than the window: that is the D34 case, logged, not fixed. What "confirmed" means here is the
