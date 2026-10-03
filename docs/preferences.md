@@ -14,7 +14,7 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Picture folder (text, "Browse...") | `picture-folder` | an absolute path, `~/...`, or empty for the default |
 | Start the slideshow after | `idle-timeout-seconds` | 1 to 86400 |
 | Lock grace period | `lock-grace-period-seconds` | 0 to 86400 (input sooner than this does not lock, strictly sooner: D16) |
-| Show each picture for (three sliders: hours, minutes, seconds) | `slide-interval-seconds` | 1 to 86399 seconds, shown as 00:00:01 to 23:59:59 |
+| Show each picture for (one slider, big HH:MM:SS above it) | `slide-interval-seconds` | 1 to 86399 seconds, shown as 00:00:01 to 23:59:59 |
 | Picture order | `order` | random, name |
 | Scaling | `scaling` | fill, fit |
 | Scroll tall pictures | `pan-portrait-images` | on, off (off by default) |
@@ -29,15 +29,24 @@ closing the window ends it too. There is no on/off switch: that goes through the
 - A value is saved the moment it is changed. There is no "Apply".
 - The window says "Saved." only for a value that is stored and reads back as written. A refused
   value is not stored, the field goes back to the stored one, and the status line says why.
-- The slide interval is three sliders (hours 0-23, minutes 0-59, seconds 0-59) with their values
-  beside them and the result as HH:MM:SS (`00:00:10`), updated while a slider moves. It is stored
-  in seconds in the same key as before. The shortest is 00:00:01 and the longest 23:59:59 (86399);
-  00:00:00 and 24:00:00 cannot be set, in the window or through `Settings` (the schema refuses 0
-  and 86400). Moving all three sliders to zero does not show an error: it becomes 00:00:01, shown
-  and stored, and the status line says so. The schema range was 1 to 3600 before: the minimum is
-  the same and the maximum grew, so every value stored earlier is still valid and reads as it did
-  (nothing is migrated). A one-second interval is allowed on purpose: no limit of its own was added.
-  The idle time (1 to 86400 seconds) and the grace period are still plain number fields.
+- The slide interval is one slider with a big HH:MM:SS (`00:00:10`) and a short text (`10 s`) above
+  it, updated while the slider moves. Its left half is every second from 1 to 60. Its right half
+  snaps to round values: 2, 3, 5, 10, 15, 20, 30 and 45 minutes, then 1, 2, 3, 4, 6, 8 and 12 hours,
+  and the end, which reads "24 h" under the slider but is stored and shown as 23:59:59 (86399 s).
+  One minute is on the scale once (the last step of the left half). The list of round values is
+  kept instead of every hour from 1 to 24: it has the round values asked for, in 16 steps. The
+  arrow keys (left/down: shorter, right/up: longer), Page Up/Down (5 steps), Home, End and the
+  mouse wheel move by steps of that scale (one second up to a minute, then the next round value).
+- The slider is stored in seconds in the same key as before: 1 to 86399. 00:00:00 and 24:00:00
+  cannot be set, in the window or through `Settings` (the schema refuses 0 and 86400), and the
+  slider has no position for them. The schema range was 1 to 3600 before: the minimum is the same
+  and the maximum grew, so every value stored earlier is still valid and reads as it did (nothing is
+  migrated). A one-second interval is allowed on purpose: no limit of its own was added.
+- A stored value that is not a step (100 s, say) is shown at the nearest step, measured in
+  seconds (100 s sits at 2 min; halfway, the lower step), and the big text and a note say it is not
+  a step. Opening the window never writes: the stored value stays until the user moves the
+  slider. A stored 0 or 86400 cannot exist (GSettings gives the default, 10 s, for a value outside
+  the range). The idle time (1 to 86400 seconds) and the grace period are still plain number fields.
 - The folder chooser (Browse) opens in the folder in use when it exists. If that folder is missing,
   or the default is in use, it opens in the system's pictures folder (`~/Pictures` when none is
   configured or it is the home directory itself), and in the home directory only when even that

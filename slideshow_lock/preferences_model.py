@@ -31,9 +31,33 @@ from slideshow_lock.settings import (
 )
 
 #: The slide interval runs from 00:00:01 to 23:59:59, in seconds (the schema's range). Zero is no
-#: interval at all and 24:00:00 does not fit the three sliders (hours 0-23).
+#: interval at all. The end of the slider is "24 hours" to the eye but 86399 s (23:59:59) to the
+#: settings: a full day, 86400, is not valid.
 INTERVAL_MIN_SECONDS = 1
 INTERVAL_MAX_SECONDS = 23 * 3600 + 59 * 60 + 59
+
+#: The steps of the slide-interval slider, in seconds. The left half is every second from 1 to 60;
+#: the right half, above one minute, snaps to round values (2, 3, 5, 10, 15, 20, 30, 45 minutes,
+#: then 1, 2, 3, 4, 6, 8, 12 hours) and ends at the longest interval, 23:59:59 ("24 hours").
+#: One minute is the last step of the left half only: it is not on the scale twice. Whole hours
+#: from 1 to 24 would be 24 steps for a half that is meant to be coarse; the list above is kept
+#: because it has the round values people ask for, and it needs no more room.
+INTERVAL_STOPS = (
+    *range(1, 61),
+    *(m * 60 for m in (2, 3, 5, 10, 15, 20, 30, 45)),
+    *(h * 3600 for h in (1, 2, 3, 4, 6, 8, 12)),
+    INTERVAL_MAX_SECONDS,
+)
+
+#: Where each step sits on the slider, which runs 0 to ``INTERVAL_SLIDER_MAX``. The left half
+#: (0-240) holds the 60 one-second steps 4 apart; the right half (240-480) holds the 16 steps
+#: above one minute, 15 apart, the last one at the very end. The slider is therefore half seconds
+#: and half the round values, as asked, and a step of the slider is a step of the scale.
+INTERVAL_SLIDER_MAX = 480
+INTERVAL_POSITIONS = (
+    *(4 * n for n in range(60)),
+    *(240 + 15 * (k + 1) for k in range(len(INTERVAL_STOPS) - 60)),
+)
 
 #: (minimum, maximum) of the whole-number keys, in seconds. The same as the schema's ranges.
 INT_RANGES = {
@@ -80,19 +104,77 @@ def _saved() -> SaveResult:
     return SaveResult(True, _("Saved."))
 
 
+class IntervalView(NamedTuple):
+    """The slide-interval slider: the stored seconds, the position of the nearest step, the big
+    HH:MM:SS text, a short human text ("45 s") or, for a stored value that is not a step, a note
+    that says so."""
+
+    seconds: int
+    position: int
+    text: str
+    caption: str
+    on_scale: bool
+
+
 def split_hms(seconds: int):
-    """Seconds as (hours, minutes, seconds), for the three interval sliders: 3661 -> (1, 1, 1)."""
+    """Seconds as (hours, minutes, seconds): 3661 -> (1, 1, 1)."""
     return seconds // 3600, seconds % 3600 // 60, seconds % 60
-
-
-def join_hms(hours: int, minutes: int, seconds: int) -> int:
-    """The three sliders as seconds: (1, 1, 1) -> 3661. The inverse of ``split_hms``."""
-    return hours * 3600 + minutes * 60 + seconds
 
 
 def format_hms(seconds: int) -> str:
     """Seconds as HH:MM:SS, the way the window shows the slide interval: 300 -> '00:05:00'."""
     return "%02d:%02d:%02d" % split_hms(seconds)
+
+
+def _nearest(values, target):
+    """Index of the value nearest to *target*; halfway between two, the lower one."""
+    return min(range(len(values)), key=lambda i: (abs(values[i] - target), i))
+
+
+def interval_index_for_seconds(seconds) -> int:
+    """The step nearest to *seconds*, in seconds (not in slider distance); the lower one halfway
+    (90 s -> 60 s). Below the scale it is the first step, above it the last."""
+    return _nearest(INTERVAL_STOPS, seconds)
+
+
+def interval_position_for_seconds(seconds) -> int:
+    """Slider position of the step nearest to *seconds* (a stored 100 s sits at the 2 minutes)."""
+    return INTERVAL_POSITIONS[interval_index_for_seconds(seconds)]
+
+
+def interval_index_for_position(position) -> int:
+    """The step whose position is nearest to a raw slider position; the lower one halfway."""
+    return _nearest(INTERVAL_POSITIONS, position)
+
+
+def interval_seconds_for_position(position) -> int:
+    """Seconds of the step nearest to a raw slider position: 0 -> 1, 480 -> 86399."""
+    return INTERVAL_STOPS[interval_index_for_position(position)]
+
+
+def snap_interval_position(position) -> int:
+    """A raw slider position moved to the position of its nearest step."""
+    return INTERVAL_POSITIONS[interval_index_for_position(position)]
+
+
+def step_interval_position(position, steps: int) -> int:
+    """The position *steps* steps of the scale from *position* (negative: towards the short end),
+    stopping at the ends. One step is one second up to a minute, then the next round value."""
+    index = interval_index_for_position(position) + steps
+    return INTERVAL_POSITIONS[max(0, min(index, len(INTERVAL_STOPS) - 1))]
+
+
+def describe_interval(seconds: int) -> str:
+    """A short human form of a step: '45 s', '10 min', '2 h'; '' for anything else."""
+    if seconds == INTERVAL_MAX_SECONDS:
+        return _("the longest")
+    if seconds < 60:
+        return _("%d s") % seconds
+    if seconds < 3600 and seconds % 60 == 0:
+        return _("%d min") % (seconds // 60)
+    if seconds % 3600 == 0:
+        return _("%d h") % (seconds // 3600)
+    return ""
 
 
 class PreferencesModel:
@@ -120,6 +202,24 @@ class PreferencesModel:
         # pretending the user typed it.
         return FolderView("" if folder == default else folder, default, note)
 
+    def interval_view(self) -> IntervalView:
+        """What the slider shows for the stored slide interval. Reading never writes: a stored
+        value that is not a step is shown at the nearest one and stays stored as it is."""
+        seconds = self._settings.get_slide_interval_seconds()
+        index = interval_index_for_seconds(seconds)
+        on_scale = INTERVAL_STOPS[index] == seconds
+        caption = (
+            describe_interval(seconds)
+            if on_scale
+            else _(
+                "Not a step of the slider: it shows the nearest one. The saved value stays until "
+                "you move the slider."
+            )
+        )
+        return IntervalView(
+            seconds, INTERVAL_POSITIONS[index], format_hms(seconds), caption, on_scale
+        )
+
     def chooser_start_folder(self) -> str:
         """Where the folder chooser opens: the folder in use when it exists, otherwise the system
         pictures folder (the default, ``~/Képek`` on a Hungarian system; ``~/Pictures`` when the
@@ -144,26 +244,14 @@ class PreferencesModel:
             )
         return self._store(key, value)
 
-    def set_interval(self, hours, minutes, seconds) -> SaveResult:
-        """Save the slide interval given as the three sliders' values (hours 0-23, minutes and
-        seconds 0-59). All three at zero is not an interval: it is corrected to the shortest
-        one, 00:00:01, which is saved and said so (the window puts the sliders to it)."""
-        parts = (hours, minutes, seconds)
-        if any(isinstance(p, bool) or not isinstance(p, int) for p in parts):
-            return SaveResult(False, _("Enter whole numbers for hours, minutes and seconds."))
-        if not (0 <= hours <= 23 and 0 <= minutes <= 59 and 0 <= seconds <= 59):
-            return SaveResult(False, _("Hours must be 0 to 23, minutes and seconds 0 to 59."))
-        total = join_hms(hours, minutes, seconds)
-        if total < INTERVAL_MIN_SECONDS:
-            result = self._store(KEY_SLIDE_INTERVAL_SECONDS, INTERVAL_MIN_SECONDS)
-            if not result.ok:
-                return result
-            return SaveResult(
-                True,
-                _("The shortest slide interval is %s, it was set to that.")
-                % format_hms(INTERVAL_MIN_SECONDS),
-            )
-        return self._store(KEY_SLIDE_INTERVAL_SECONDS, total)
+    def set_interval_position(self, position) -> SaveResult:
+        """Save the step at (or nearest to) a slider position. A position off the slider is
+        refused; the seconds of a step are always inside the schema's range."""
+        if isinstance(position, bool) or not isinstance(position, int):
+            return SaveResult(False, _("Enter a whole number for the slider position."))
+        if not 0 <= position <= INTERVAL_SLIDER_MAX:
+            return SaveResult(False, _("This position is not on the slider."))
+        return self._store(KEY_SLIDE_INTERVAL_SECONDS, interval_seconds_for_position(position))
 
     def set_choice(self, key: str, value) -> SaveResult:
         if value not in CHOICES[key]:
