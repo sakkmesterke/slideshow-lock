@@ -45,7 +45,7 @@ the session.
 **Which folder.** Without `--folder` it uses the picture folder of your settings. Until you choose
 one, that is your system's pictures folder itself, the `XDG_PICTURES_DIR` of
 `~/.config/user-dirs.dirs` (`~/Képek` on a Hungarian system), or `~/Pictures` if the system has
-none configured. Its subfolders are read too, so nothing has to be created. If it holds no
+none configured or it is the home directory itself. Its subfolders are read too, so nothing has to be created. If it holds no
 picture, the preview shows "No pictures to show" with the exact path it looked at, and its log
 line names the same path. To use another folder, point the run at it:
 

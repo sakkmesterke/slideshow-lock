@@ -276,10 +276,10 @@ glib-compile-schemas data/
 GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app [--folder PATH]
 ```
 
-Without `--folder` the stored picture folder is used. While none was chosen, that is the
+Without `--folder` the stored picture folder is used. While none was chosen, that is
 the system's pictures folder itself (the `XDG_PICTURES_DIR` of
 `~/.config/user-dirs.dirs`, `~/Képek` on a Hungarian system), read recursively;
-`~/Pictures` only if the system has none configured. If that folder holds no picture, the
+`~/Pictures` if the system has none configured, or if it is the home directory itself. If that folder holds no picture, the
 preview shows "No pictures to show" with the path it looked at on the next line, and logs the same path.
 
 Options (`--interval`, `--order`, `--scaling`, `--pan`, `--debug`) apply to that run only and are
