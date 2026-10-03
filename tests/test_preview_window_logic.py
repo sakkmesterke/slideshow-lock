@@ -154,3 +154,44 @@ def test_a_frame_that_does_not_pan_starts_no_tick_whatever_the_animation_choice(
     window, calls = window_for_frames(monkeypatch)
     window.set_frame(tall_frame((0, 0)), 5.0)
     assert calls == [] and window._offset == (0, 0)
+
+
+class _FakeGtkSettings:
+    """What ``Gtk.Settings.get_default()`` returns, with the one property the code may read."""
+
+    def __init__(self, enable_animations):
+        self._properties = {"gtk-enable-animations": enable_animations}
+        self.asked = []
+
+    def get_property(self, name):
+        self.asked.append(name)
+        return self._properties[name]  # any other name is a KeyError
+
+
+def _desktop_says(monkeypatch, value):
+    fake = _FakeGtkSettings(value)
+    monkeypatch.setattr(preview_window.Gtk.Settings, "get_default", staticmethod(lambda: fake))
+    return fake
+
+
+@pytest.mark.parametrize("value,expected", [(True, True), (False, False), (1, True), (0, False)])
+def test_animations_follow_the_desktops_gtk_enable_animations_property(
+    monkeypatch, value, expected
+):
+    fake = _desktop_says(monkeypatch, value)
+    assert preview_window.animations_enabled() is expected
+    assert fake.asked == ["gtk-enable-animations"]
+
+
+def test_animations_are_read_again_for_every_call_so_a_change_takes_effect_with_the_next_picture(
+    monkeypatch,
+):
+    fake = _desktop_says(monkeypatch, True)
+    assert preview_window.animations_enabled() is True
+    fake._properties["gtk-enable-animations"] = False
+    assert preview_window.animations_enabled() is False
+
+
+def test_animations_stay_on_when_there_is_no_default_gtk_settings_object(monkeypatch):
+    monkeypatch.setattr(preview_window.Gtk.Settings, "get_default", staticmethod(lambda: None))
+    assert preview_window.animations_enabled() is True

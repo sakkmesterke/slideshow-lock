@@ -815,6 +815,37 @@ def test_the_prepared_picture_being_deleted_moves_on_to_its_follower(tmp_path, b
     assert r.windows[0].shown() == ["a.png", "c.png"]
 
 
+def test_a_prepared_picture_deleted_before_its_follower_is_ready_is_not_shown_in_its_place(
+    tmp_path, backends
+):
+    """b.png is prepared and then deleted; the interval ends before c.png, its follower, is
+    ready. The frames of b.png must be gone by then: shown under the name of c.png they would
+    put the deleted picture on screen."""
+    r = rig(tmp_path, backends, files=("a.png", "b.png", "c.png"), windows=1)
+    os.unlink(tmp_path / "b.png")
+    r.backends[0].emit(str(tmp_path / "b.png"), _fs("deleted"))
+    backends[1].run_all()  # c.png is now the next picture, and waits for the worker
+    r.clock.advance(10)  # the interval is over, c.png is not ready
+    assert r.windows[0].shown() == ["a.png"]
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png", "c.png"]
+
+
+def test_a_picture_shown_once_is_not_shown_again_when_its_follower_is_late(tmp_path, backends):
+    """The swap hands over the prepared frames and forgets them: a second interval that ends
+    before the next picture is ready leaves the screen alone."""
+    r = Rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1)
+    r.controller.start()
+    r.worker.run_one()  # a.png is on screen, b.png is being prepared
+    r.worker.run_one()
+    r.clock.advance(10)  # b.png is shown, c.png is being prepared
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    r.clock.advance(10)  # the interval is over and c.png is not ready
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png", "b.png", "c.png"]
+
+
 def test_the_picture_on_screen_being_deleted_does_not_blank_the_screen(tmp_path, backends):
     r = rig(tmp_path, backends, files=("a.png", "b.png", "c.png"))
     os.unlink(tmp_path / "a.png")

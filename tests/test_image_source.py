@@ -300,7 +300,10 @@ def test_criterion2_no_single_step_runs_much_longer_than_the_step_budget(large_t
     well below the whole walk. A walk that ignores the budget is a single step as long as the
     whole walk, so it fails the second check (and the deterministic step-count tests above).
     Measured in CPU time of the walking thread (see the fixture): a busy machine delays a
-    step without making it do more."""
+    step without making it do more.
+
+    Blind spot, measured by QA: CPU time does not see a wait. A step that sleeps 150 to 500 ms
+    (mutants wb10, wb11, wb12) passes this test; a blocking call is not what it guards."""
     w = large_tree_walk
     times = sorted(w.cpu_step_times)
     second_slowest = times[-2] if len(times) >= 2 else times[-1]
@@ -309,6 +312,8 @@ def test_criterion2_no_single_step_runs_much_longer_than_the_step_budget(large_t
 
 
 def test_criterion2_main_loop_has_the_first_image_long_before_the_full_walk_ends(large_tree_walk):
+    """CPU time again, so the same blind spot: a sleeping step is not seen (see the test of the
+    step length above)."""
     w = large_tree_walk
     assert w.cpu_first_returned < 10 * w.budget  # CPU time, see the fixture
     assert w.cpu_first_returned < w.cpu_full / 4
@@ -1282,3 +1287,39 @@ def test_probe_opens_without_blocking_and_without_a_controlling_terminal(tmp_pat
     monkeypatch.setattr("slideshow_lock.image_source.os.open", recording_open)
     probe_image(make_image(tmp_path / "a.png"))
     assert seen and seen[0] & os.O_NONBLOCK and seen[0] & os.O_NOCTTY
+
+
+#: What each format's first bytes look like, and the name gdk-pixbuf gives the format. Checked on
+#: the bytes alone (no loader), so the result is the same on a machine without a WebP or TIFF
+#: loader: ``probe_loadable`` compares this name with the names of the loaders.
+HEADERS = [
+    ("jpeg", b"\xff\xd8\xff\xe0" + bytes(12)),
+    ("png", PNG),
+    ("gif", b"GIF87a" + bytes(10)),
+    ("gif", b"GIF89a" + bytes(10)),
+    ("bmp", b"BM" + bytes(14)),
+    ("tiff", b"II*\x00" + bytes(12)),
+    ("tiff", b"MM\x00*" + bytes(12)),
+    ("webp", b"RIFF\x10\x00\x00\x00WEBPVP8 "),
+]
+
+
+@pytest.mark.parametrize("name,head", HEADERS, ids=[f"{n}-{h[:6]!r}" for n, h in HEADERS])
+def test_probe_names_the_format_the_way_gdk_pixbuf_does(tmp_path, name, head):
+    assert probe_image(make_image(tmp_path / "x.img", head)) == name
+
+
+@pytest.mark.parametrize(
+    "head",
+    [
+        b"RIFF\x10\x00\x00\x00WAVEfmt ",  # a RIFF file that is not WebP
+        b"RIFF\x10\x00\x00\x00AVI LIST",
+        b"FORM\x10\x00\x00\x00WEBPVP8 ",  # the WebP tag without the RIFF one
+        b"GIF88a" + bytes(10),
+        b"II*\x01" + bytes(12),
+    ],
+    ids=["wave", "avi", "webp-tag-only", "gif88a", "tiff-bad-magic"],
+)
+def test_probe_rejects_a_header_that_only_looks_like_a_known_one(tmp_path, head):
+    with pytest.raises(ValueError, match="not a recognised image header"):
+        probe_image(make_image(tmp_path / "x.img", head))

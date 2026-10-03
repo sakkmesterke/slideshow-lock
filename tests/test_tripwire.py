@@ -30,6 +30,17 @@ CALLS = {
     "GLib.spawn_async": lambda: GLib.spawn_async(["/bin/true"]),
     "Gio.bus_get_sync": lambda: Gio.bus_get_sync(Gio.BusType.SESSION, None),
     "Gio.bus_watch_name": lambda: Gio.bus_watch_name(Gio.BusType.SESSION, "x.y", 0, None, None),
+    "Gio.Subprocess.new": lambda: Gio.Subprocess.new(["true"], Gio.SubprocessFlags.NONE),
+    "Gio.Subprocess.newv": lambda: Gio.Subprocess.newv(["true"], Gio.SubprocessFlags.NONE),
+    "Gio.SubprocessLauncher.spawnv": lambda: Gio.SubprocessLauncher.new(
+        Gio.SubprocessFlags.NONE
+    ).spawnv(["true"]),
+    "Gio.AppInfo.create_from_commandline": lambda: Gio.AppInfo.create_from_commandline(
+        "true", None, Gio.AppInfoCreateFlags.NONE
+    ),
+    "Gio.AppInfo.launch_default_for_uri": lambda: Gio.AppInfo.launch_default_for_uri(
+        "file:///nonexistent/x", None
+    ),
 }
 
 

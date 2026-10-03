@@ -213,21 +213,30 @@ machine and what else runs on it, and the earlier range stays the one to expect.
   to cost 12.05 bytes per pixel (575 MiB at 50 MP, 13 % over the frame below): the repacking
   joined one string per row, a third copy of the frame at the peak. It now takes the pixbuf's
   bytes and adds the padding its last row lacks, which is one copy less (7071 x 7071: 430 MiB;
-  7068 x 7068, a multiple of 4: 430 MiB; 10000 x 5000: 431 MiB). At 50 MP with two 4K-class
-  monitors (3840 x 2160 and 2160 x 3840) the growth is 449 MiB, which is 9.4 bytes per pixel
-  (JPEG, PNG with alpha; 441 MiB for the EXIF-rotated JPEG); `fill` 36 MP 259 MiB, 50 MP 359 MiB
-  (7.5 bytes per pixel, a 4:3 landscape picture on a 1080p monitor).
+  7068 x 7068, a multiple of 4: 430 MiB; 10000 x 5000: 431 MiB). With two 4K-class monitors
+  (3840 x 2160 and 2160 x 3840) the growth depends on the shape of the picture: a 4:3 landscape
+  one (8164 x 6124, 50 MP) takes 449 MiB, which is 9.4 bytes per pixel (JPEG 448.5, PNG with alpha
+  446 to 448; 441 MiB for the EXIF-rotated JPEG), and a square one (7071 x 7071, 50 MP) takes 430 to
+  431 MiB, 9.03 bytes per pixel, the same as with two landscape monitors. Review measured 435 MiB
+  (9.13 bytes per pixel) for the square picture on the mixed pair; that is 1 % more than the
+  430 MiB measured here and was not reproduced (another stack), so the figure follows the
+  machine by that much. `fill` 36 MP 259 MiB, 50 MP 359 MiB (7.5 bytes per pixel, a 4:3 landscape
+  picture on a 1080p monitor).
 - Memory frame: 512 MiB for the decode step. 512 MiB / 9.4 B = 57 MP; rounded down to **50 MP**,
   which leaves 12 % headroom (449 MiB at 50 MP, the worst of the measurements above, for every
-  width) in `fit` and `fill`.
+  width) in `fit` and `fill`. The frame is a design figure, not a limit the code enforces: only
+  `MAX_PIXELS` is.
 - **`fit` is not the worst mode.** A panning frame (`--pan`, animations on) is: the decode, the
   whole tall frame and the copies of it are alive together. Measured in fresh processes on two 4K
-  monitors, `fill` with the pan on: a 4000 x 12500 picture (50 MP, a frame of 3840 x 12000) 526 MiB,
-  which is 11.0 bytes per source pixel and **2.7 % over the 512 MiB frame**, not under it (review
-  measured about 11.9); 5000 x 10000 (50 MP) 430 MiB; 3000 x 6000 (18 MP) 307 MiB. The limit is not
-  changed here (`MAX_PIXELS` stays at 50 MP); that the pan path can exceed the frame by a few
-  percent is a fact for whoever decides whether the pan stays on by default. The 6x pan limit bounds
-  the frame, not the source.
+  monitors, `fill` with the pan on: a 4000 x 12500 picture (50 MP, a frame of 3840 x 12000) 538 to
+  542 MiB (three runs, the same at the last three commits of the pull request), which is 11.3
+  bytes per source pixel and **5 to 6 % over the 512 MiB frame**, not under it; 5000 x 10000
+  (50 MP) 430 MiB; 3000 x 6000 (18 MP) 307 MiB. An earlier version of this section said 526 MiB
+  (11.0 bytes per pixel, 2.7 % over); that figure was not reproduced by the probe used now, and
+  review measured about 11.9 bytes per pixel. So **512 MiB is not a hard limit** for the pan path:
+  it can pass it by some tens of MiB. The limit is not narrowed (`MAX_PIXELS` stays at 50 MP); that
+  the pan path can exceed the frame is a fact for whoever decides whether the pan stays on by
+  default. The 6x pan limit bounds the frame, not the source.
 - The earlier 100 MP would have been about 0.9 to 1.2 GB by the same arithmetic (extrapolated;
   100 MP was not run). `test_the_pixel_limit_is_the_documented_one` only pins the number, so a
   change is a decision. That the cost per pixel holds for every width is measured by
@@ -318,7 +327,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (108 tests): order, interval (also counted from when a picture appeared, not from the start),
+  (110 tests): order, interval (also counted from when a picture appeared, not from the start),
   switching, a late next picture shown the moment it is ready, also when settings or the window size
   change meanwhile, live settings, a refresh that is still running when the next picture is
   replaced, damaged pictures with a negative control, failures that are not in a row not adding up,
@@ -326,8 +335,11 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   worker result delivered on the main loop only, and the main loop staying free while a worker
   thread decodes (with a negative control showing the measurement catches a block), also for the
   redo after a settings or size change. A redo of the shown picture that fails out is tried again
-  once per interval (not in a loop, and the log line that promises it is true), and a picture
-  prepared for the old mode is never shown when the interval ends before the redo.
+  once per interval (not in a loop, and the log line that promises it is true), a picture
+  prepared for the old mode is never shown when the interval ends before the redo, and the
+  frames of a prepared picture that is deleted are not shown under its follower's name (the
+  reset in the source-changed handler; the two resets of the prepared frames in `_prefetch` and
+  `_swap` cover each other, so each alone can be taken out unseen, both together cannot).
 - The "never locks" proof has three parts, and each has a limit. (1) A method spy: every call the
   controller makes on the objects handed to it is on a list of picture and timing methods; it sees
   nothing the controller does on its own (a call in `stop()` that goes to a subprocess is invisible
@@ -352,10 +364,14 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   taken from a table) passes it. (3) A tripwire in `tests/conftest.py`, active in every test unless
   it is marked `spawns_processes` (the tests that carry the mark are on a list in
   `tests/test_tripwire.py`, three now; a new one fails there until the list is changed): `os.system`, `popen`, `fork`, `exec*`, `spawn*`, `posix_spawn*`,
-  `subprocess.Popen`, `GLib.spawn_*` and `Gio.bus_*` raise when called. It catches a call made
+  `subprocess.Popen`, `GLib.spawn_*`, `Gio.bus_*`, `Gio.Subprocess.new` and `newv`,
+  `Gio.SubprocessLauncher.spawnv` (`spawn` is not in the typelib) and `Gio.AppInfo.create_from_commandline`,
+  `launch_default_for_uri` and `launch_default_for_uri_async` raise when called. It catches a call made
   through one of those names that the scan cannot see (a name assembled and looked up at the time
   of the call, `getattr(os, ...)`) wherever a test runs the line. It does **not** catch `ctypes`,
-  `Gio.Subprocess`, or a function object taken before the test started. Its negative controls are
+  a `Gio.AppInfo` object's own `launch` and `launch_uris`, `_posixsubprocess.fork_exec`, or a
+  function object taken before the test started. Of 19 mutants that put a call into `stop()`, QA
+  measured it 17 caught by the tripwire and the other two (`ctypes`, the key handler) by the scan only. Its negative controls are
   in `tests/test_tripwire.py` (the exec ones name a program that does not exist, so that with the
   tripwire off they fail instead of replacing the test process). What neither (2) nor (3) catches is an assembled name in code that no test
   runs. Measured by putting an `os.system` call into the window code: in `_on_key` it is caught
@@ -393,18 +409,20 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   peak memory, and the bytes per pixel of a whole `prepare` in a fresh process for a width with
   and without a row multiple of 4. A noisy photo cut off at 60 % is skipped with the real step
   limit.
-- `tests/test_preview_window_logic.py` (13): the input logic of the window (first enter is a
+- `tests/test_preview_window_logic.py` (19): the input logic of the window (first enter is a
   baseline, a second enter is motion, the 2 px threshold from the baseline, key, scroll, a close
   request) and the canvas deciding between a scrolling frame and its middle when the desktop's
   animation choice changes before a frame is shown (`set_frame`, with the drawing calls replaced),
   without a display: the handlers are plain methods, run on an instance made without the
-  GTK constructor. Which controller calls which handler, and the hidden cursor, are the smoke
+  GTK constructor. `animations_enabled()` is tested with a faked `Gtk.Settings` (true, false, a
+  value that is not a bool, no settings object, a change between two calls, the property name);
+  whether the desktop's choice reaches the property is not (manual test). Which controller calls which handler, and the hidden cursor, are the smoke
   tool's.
 - `tests/test_preview_app.py` (18): the command line, the settings of one run (an override of
   `false` or `0` still counts), the worker thread closed with the preview, the source with the
   probe. The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
   verify step checks that the GTK 4 typelibs import.
-- `tests/test_tripwire.py` (18): the negative controls of the tripwire in `conftest.py` (every kind
+- `tests/test_tripwire.py` (23): the negative controls of the tripwire in `conftest.py` (every kind
   of call it guards raises; an opted-out test can start a program; ordinary calls are not in the
   way) and the list of tests that may opt out.
 - `tools/wayland-smoke/run.sh`: the real windows, scaler and source inside a headless mutter with two
