@@ -297,18 +297,25 @@ def test_ac5_negative_control_the_whole_file_passes(tmp_path):
 
 def test_ac5_a_file_that_grows_while_it_is_read_is_skipped(tmp_path, monkeypatch):
     path = settled(tmp_path / "growing.jpg", fake_jpeg())
-    real_read = os.read
+    real_readv = os.readv
     state = {"done": False}
 
-    def growing_read(fd, count):
-        data = real_read(fd, count)
+    def growing_readv(fd, buffers):
+        count = real_readv(fd, buffers)
         if not state["done"]:
             state["done"] = True
             with open(path, "ab") as handle:  # the copy goes on while we read
                 handle.write(b"\x00" * 10)
-        return data
+        return count
 
-    monkeypatch.setattr(scaling.os, "read", growing_read)
+    monkeypatch.setattr(scaling.os, "readv", growing_readv)
+    with pytest.raises(ImageSkipped, match="changed while it was read"):
+        read_image_file(path)
+
+
+def test_ac5_a_file_that_shrinks_while_it_is_read_is_skipped(tmp_path, monkeypatch):
+    path = settled(tmp_path / "shrinking.jpg", fake_jpeg())
+    monkeypatch.setattr(scaling.os, "readv", lambda fd, buffers: 0)  # the data is gone
     with pytest.raises(ImageSkipped, match="changed while it was read"):
         read_image_file(path)
 

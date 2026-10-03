@@ -75,15 +75,15 @@ class SessionSettings:
 
 
 def start_preview(settings, source: ImageSource) -> PreviewController:
-    """Open the preview windows and start showing. *source* must be started by the caller."""
+    """Open the preview windows and start showing. *source* must be started by the caller.
+
+    The returned controller is for this one preview: its worker thread is closed when it stops.
+    """
+    worker = ThreadWorker()
     controller = PreviewController(
-        source,
-        settings,
-        open_monitor_windows,
-        ImageScaler(),
-        clock=GLibClock(),
-        worker=ThreadWorker(),
+        source, settings, open_monitor_windows, ImageScaler(), clock=GLibClock(), worker=worker
     )
+    controller.connect_stopped(lambda _reason: worker.close())  # do not leave a thread behind
     controller.start()
     return controller
 
