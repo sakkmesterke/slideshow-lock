@@ -157,14 +157,38 @@ def test_ac_3_5_2_d28_an_idle_inhibit_does_not_keep_the_sleep_lock_from_being_ma
     assert inhibition.queries == 0
 
 
-def test_a_lock_that_is_already_there_is_not_made_again_and_suspend_is_not_held_back():
+def test_a_session_that_looks_locked_already_is_locked_again_before_suspend():
     r = Rig()
     r.lock.set_locked(True)
     r.sleep.fire(True)
-    assert r.lock.lock_calls == 0
+    assert r.lock.lock_calls == 1
     assert r.sleep.inhibitors[0].released
     r.run_main()
     assert r.listener.events == ["started", ("finished", True)]
+
+
+def test_an_answer_with_no_lock_screen_behind_it_does_not_keep_later_sleeps_from_locking():
+    """A lock facility can answer ``Lock()`` with success and show nothing (the login1 signal is
+    a broadcast). The guard must not take that answer for a lock state: three sleeps, three
+    lock calls."""
+    r = Rig()
+    r.lock.shows_screen = False
+    for expected in (1, 2, 3):
+        r.sleep.fire(True)
+        assert r.lock.lock_calls == expected
+        r.sleep.fire(False)
+    assert not r.lock.locked  # nothing ever said the session is locked
+
+
+def test_a_lock_facility_that_reports_its_screen_is_locked_before_every_sleep_too():
+    """Control for the test above, with a facility shaped like the real screensaver: the screen
+    comes up (``ActiveChanged`` true) and goes away (false) between the sleeps."""
+    r = Rig()
+    for expected in (1, 2):
+        r.sleep.fire(True)
+        assert r.lock.lock_calls == expected
+        r.sleep.fire(False)
+        r.lock.set_locked(False)
 
 
 def test_a_failed_lock_is_an_error_and_still_lets_suspend_go_on(caplog):
@@ -280,7 +304,7 @@ def test_the_elapsed_time_counts_while_the_machine_sleeps():
     assert abs(sleep_guard.boottime_clock() - boot) < 1.0
 
 
-# -- the thread: the lock does not wait for the main loop (Nicole's condition) --------------------
+# -- the thread: the lock does not wait for the main loop (the security condition) -----------------
 
 
 def _guard_thread(main, *, lock_mode="auto"):

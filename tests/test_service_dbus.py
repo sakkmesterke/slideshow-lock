@@ -174,7 +174,7 @@ def test_a_failed_screensaver_lock_before_suspend_is_an_error_and_suspend_is_not
 def test_the_lock_before_suspend_goes_out_while_the_main_loop_is_stuck_in_the_image_source(
     tmp_path, monkeypatch
 ):
-    """Nicole's condition, end to end: the main loop is blocked inside ``os.scandir`` of a real
+    """The security condition, end to end: the main loop is blocked inside ``os.scandir`` of a real
     ImageSource while PrepareForSleep arrives on the (fake) system bus. The lock call reaches the
     screensaver and the inhibitor is released while the main loop is still stuck."""
     release = threading.Event()
@@ -245,7 +245,7 @@ def test_without_login1_the_service_refuses_to_start_and_leaves_no_guard_thread_
         assert wait_until(lambda: {t.name for t in threading.enumerate()} <= before, 3)
 
 
-def test_the_lock_falls_back_to_login1_when_there_is_no_screensaver():
+def test_the_lock_falls_back_to_login1_when_there_is_no_screensaver_and_a_sleep_locks_again():
     with Desktop(screensaver=False) as desktop:
         r = Run(desktop)
         try:
@@ -255,9 +255,11 @@ def test_the_lock_falls_back_to_login1_when_there_is_no_screensaver():
             assert r.settle(lambda: len(desktop.session_lock_calls) == 1)
             assert desktop.lock_calls == []
             assert r.settle(lambda: r.machine.state is State.LOCKED)
-            desktop.prepare_for_sleep(True)  # already locked: no second lock, suspend not held
+            # a sleep while the session is locked is locked again: the answer of the login1
+            # signal is not proof of a lock screen, so nothing is remembered between the calls
+            desktop.prepare_for_sleep(True)
+            assert r.settle(lambda: len(desktop.session_lock_calls) == 2)
             assert r.settle(lambda: desktop.held == 0)
-            assert len(desktop.session_lock_calls) == 1
         finally:
             r.close()
 

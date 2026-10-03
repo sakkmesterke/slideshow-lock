@@ -97,13 +97,17 @@ class FakeInhibition:
 
 class FakeSessionLock:
     """``mode``: ``"auto"`` answers at once with ``result``; ``"manual"`` keeps the callbacks in
-    ``pending`` until ``complete()``. ``lock_calls`` counts every lock request."""
+    ``pending`` until ``complete()``. ``lock_calls`` counts every lock request.
+    ``shows_screen``: a successful answer also makes the session locked (``ActiveChanged`` and
+    ``is_active``); False is the answer of a facility with nobody behind it, as the login1
+    ``Lock`` signal can be."""
 
     def __init__(self, deliver: Callable = _direct, shared: Optional[list] = None) -> None:
         self._deliver = deliver
         self.locked = False
         self.mode = "auto"
         self.result = LockResult(True)
+        self.shows_screen = True
         self.raises: Optional[Exception] = None
         self.is_active_error: Optional[Exception] = None
         self.calls = shared if shared is not None else []
@@ -124,7 +128,7 @@ class FakeSessionLock:
         self._answer(on_done)
 
     def _answer(self, on_done) -> None:
-        if self.result.ok:
+        if self.result.ok and self.shows_screen:
             self.set_locked(True)
         self._deliver(lambda: on_done(self.result))
 
