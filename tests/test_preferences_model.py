@@ -144,7 +144,7 @@ def test_with_nothing_chosen_the_default_folder_is_in_use_and_the_field_stays_em
     view = model.folder_view()
     assert view.text == ""
     assert view.default == default_picture_folder()
-    assert os.path.basename(view.default) == "slideshow-lock"
+    assert os.path.basename(view.default) != "slideshow-lock"  # the pictures folder itself
     assert view.default in view.note
 
 

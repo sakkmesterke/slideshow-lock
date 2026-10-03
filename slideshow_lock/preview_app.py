@@ -7,8 +7,8 @@ One fullscreen window per monitor, the pictures of the folder, any key press, mo
 movement, click or scroll ends it. It never locks the session (D11) and does not touch
 the stored settings: ``--interval``, ``--order``, ``--scaling`` and ``--pan`` only apply
 to this run. Without ``--folder`` and the other options the stored settings are used; the
-stored folder, if none was chosen, is the ``slideshow-lock`` folder inside the system's
-pictures folder (``~/Képek`` on a Hungarian system, ``~/Pictures`` if none is configured).
+stored folder, if none was chosen, is the system's pictures folder itself, read
+recursively (``~/Képek`` on a Hungarian system, ``~/Pictures`` if none is configured).
 
 ``start_preview`` is the part the settings window (UI-1) and the service (CORE-1) will
 call: it builds the controller from the real GTK windows, the real scaler and the GLib

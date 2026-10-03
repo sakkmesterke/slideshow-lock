@@ -104,7 +104,7 @@ round); the settings window (UI-1); changing the default of the pan switch.
   worker thread while the current one is on screen. If it is not ready when the interval ends,
   it appears the moment it is. A single picture is decoded once and reused.
 - **Empty source** (`current()` is `None`, which includes an empty or missing folder): a defined
-  state, not an error. The windows show "No pictures to show" on black, one line is logged
+  state, not an error. The windows show "No pictures to show" and the folder searched, on black, one line is logged
   (`[slideshow-dir] no picture to show ...`, WARNING once the folder scan is complete, INFO while
   it still runs), and the preview carries on by itself when a picture turns up. For the preview
   this is on purpose: whoever pressed "Preview" sees why nothing is shown. It is *not* the
@@ -277,10 +277,10 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app [--folder PATH]
 ```
 
 Without `--folder` the stored picture folder is used. While none was chosen, that is the
-`slideshow-lock` folder inside the system's pictures folder (the `XDG_PICTURES_DIR` of
-`~/.config/user-dirs.dirs`, `~/Képek` on a Hungarian system);
-`~/Pictures` only if the system has none configured. That folder does not exist until someone
-creates it: the preview then shows "No pictures to show" and logs the path it looked at.
+the system's pictures folder itself (the `XDG_PICTURES_DIR` of
+`~/.config/user-dirs.dirs`, `~/Képek` on a Hungarian system), read recursively;
+`~/Pictures` only if the system has none configured. If that folder holds no picture, the
+preview shows "No pictures to show" with the path it looked at on the next line, and logs the same path.
 
 Options (`--interval`, `--order`, `--scaling`, `--pan`, `--debug`) apply to that run only and are
 never written to the settings. Any key, click, scroll or mouse movement ends it.

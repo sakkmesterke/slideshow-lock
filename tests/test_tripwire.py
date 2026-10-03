@@ -110,6 +110,10 @@ OPT_OUTS = {
         "test_a_pictures_dir_that_is_the_home_directory_means_off_and_falls_back",
     ),
     ("test_picture_folder_xdg.py", "test_a_relative_pictures_dir_is_not_used"),
+    (
+        "test_picture_folder_xdg.py",
+        "test_pictures_in_the_system_folder_show_with_no_subfolder_created",
+    ),
 }
 
 
