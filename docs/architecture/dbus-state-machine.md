@@ -237,7 +237,12 @@ feed the same internal `input_detected` state machine event:
 
 - `IDLE`: subscribe to `IdleWatcher.on_user_active()`.
 - `MANUAL_PREVIEW`: subscribe directly to the slideshow window's own GTK input
-  controllers (motion, click, key), one per monitor window, any one firing is sufficient.
+  controllers (motion, click, key, scroll), one per monitor window, any one firing is sufficient.
+  As built in CORE-2 (`docs/preview.md`) a close request on a preview window counts as input too
+  (a window closed from outside would otherwise leave a process with no window), and a pointer
+  that merely rests under a new window does not count: the first position is the baseline and
+  motion counts from 2 px away. Whether 2 px is enough on a touchpad or on a desk that shakes
+  is open and only a live trial can decide it.
 
 ### 6.2 Inhibition scope is per-path, not a single flag (D28)
 

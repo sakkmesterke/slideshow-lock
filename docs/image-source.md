@@ -32,7 +32,12 @@ becomes empty (`None`). It does not fire for `advance()`.
   header opens the file with `O_NONBLOCK` and checks `fstat`, so a file swapped for
   a FIFO cannot hang the walk; but a hung network mount can still block `open()`
   or `scandir()` in the kernel, and then the whole main loop stands still. Nothing
-  in this module can prevent that (CORE-1 has its own condition for it).
+  in this module can prevent that (CORE-1 has its own condition for it). The tests of
+  the step budget guard the cost budget only: they measure the CPU time of the walking
+  thread and, on a fake clock, how much work a step does; they do not see a blocking
+  call or a sleep (a step that waits is not busy, and a wall-clock threshold does not
+  tell it from a loaded machine; QA measured that a step with a 150 to 500 ms sleep passes
+  them). That is covered by a hand measurement on a real slow mount, not by a test.
 - **Symlink loops.** Directories are identified by `(st_dev, st_ino)`. A loop, or a
   folder reachable through two links, is walked once. Symlinks are followed, so
   linking in a folder from elsewhere works. A symlinked *file* is its own entry.
@@ -99,7 +104,7 @@ becomes empty (`None`). It does not fire for `advance()`.
   Anything else with an image extension is skipped with a WARNING naming the file.
   A file still being copied is re-checked when the writer finishes, and only
   logged then. The check reads the header only: a file damaged deeper in is for
-  the display layer to skip the same way.
+  the display layer to skip the same way (it does: see [`preview.md`](preview.md), section 3).
 - **Order.** `name`: case-insensitive by full path. `random`: every image once per
   cycle, no image twice in a row across a cycle boundary; a new image joins the
   current cycle.
@@ -131,3 +136,7 @@ changes nothing and stays. To try it by hand, on a test machine:
 manual scheduler (deterministic, no main loop). `tests/test_image_source_gio.py`
 runs the same behaviours through the real `Gio.FileMonitor` and a pumped GLib main
 context. Test names carry the acceptance criterion they prove.
+The format name `probe_image` returns for each of the six headers (`jpeg`, `png`, `gif` for both
+signatures, `bmp`, `tiff` for both byte orders, `webp`) is pinned on the bytes alone, without a
+loader, together with headers that only look like a known one (a RIFF file that is not WebP, the
+WebP tag without RIFF, `GIF88a`, a TIFF with a wrong magic number).
