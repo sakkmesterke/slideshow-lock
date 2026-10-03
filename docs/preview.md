@@ -109,7 +109,8 @@ round); the settings window (UI-1); changing the default of the pan switch.
   it still runs), and the preview carries on by itself when a picture turns up. For the preview
   this is on purpose: whoever pressed "Preview" sees why nothing is shown. It is *not* the
   idle path's behaviour: REQ-1 AC-3.7-1 says no slideshow starts there when there is nothing to
-  show. Which of the two the service does is CORE-1's decision and is not made here. If the last picture on screen is deleted the windows go
+  show. The service does what the criterion says: `PreviewSlideshow.start` refuses, with the reason,
+  when `current()` is `None` (`docs/service.md`). If the last picture on screen is deleted the windows go
   to the same state; a picture that is deleted while it is on screen stays (its pixels are in
   memory).
 - **Input.** The window's own GTK controllers: pointer motion, button press (any button), key
@@ -189,8 +190,11 @@ The walk is chopped into steps of a time budget (see the image source's document
 `scandir`, `stat`, `open` or monitor creation on a hung network mount blocks inside the kernel,
 and then the main loop stops with it. So the claim is: *picture decoding and picture reading are
 not on the main loop; the image source's walk and header reads are*. Putting the source's I/O on
-its own thread or process is a precondition of CORE-1 (the safety condition that locking before
-sleep never waits for picture I/O depends on it) and is not done here.
+its own thread or process was named a precondition of CORE-1 for the safety condition that locking
+before sleep never waits for picture I/O. CORE-1 meets the condition the other way round: the sleep
+path runs on a thread of its own with its own main context and never waits for the main loop
+(`docs/service.md`, tested with a real image source stuck inside `os.scandir`), so the source stays
+where it is, and a stuck folder can delay a picture or the slideshow's own stop, not the lock.
 
 **What the worker still does to the main loop:** it holds the GIL while it copies pixel data in
 Python (`read_pixel_bytes().get_data()` and the repacking), and that stalls the main loop for as
@@ -327,7 +331,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (110 tests): order, interval (also counted from when a picture appeared, not from the start),
+  (121 tests): order, interval (also counted from when a picture appeared, not from the start),
   switching, a late next picture shown the moment it is ready, also when settings or the window size
   change meanwhile, live settings, a refresh that is still running when the next picture is
   replaced, damaged pictures with a negative control, failures that are not in a row not adding up,
@@ -343,7 +347,11 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 - The "never locks" proof has three parts, and each has a limit. (1) A method spy: every call the
   controller makes on the objects handed to it is on a list of picture and timing methods; it sees
   nothing the controller does on its own (a call in `stop()` that goes to a subprocess is invisible
-  to it). (2) A code scan of every module of the package, `__init__.py` included (a list of
+  to it). (2) A code scan of every module of the package that is not on the list of lock-side modules (the
+  five of the service, `LOCK_SIDE_MODULES` in `tests/test_preview.py`, the only ones that name the
+  lock, the session and the bus on purpose; a module goes on that list only by a decision made
+  there), `__init__.py` included, plus a check that no scanned module imports one of the five (a
+  list of
   the preview's own modules once let a literal `os.system("true")` in `__init__.py` through both
   layers; measured): every identifier, import and string constant (docstrings excluded) is
   squashed to lower-case letters and digits and must contain none of: a whole word of the lock

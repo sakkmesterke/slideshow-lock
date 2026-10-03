@@ -25,7 +25,11 @@ from tests.test_image_source import make_image
 
 pytestmark = [
     pytest.mark.spawns_processes,
-    pytest.mark.skipif(not dbus_daemon_available(), reason="no dbus-daemon on this machine"),
+    # CI installs it and checks for it; a skip there would be a silent loss (the no-skip gate)
+    pytest.mark.skipif(
+        not dbus_daemon_available() and not os.environ.get("CI"),
+        reason="no dbus-daemon on this machine",
+    ),
 ]
 
 
