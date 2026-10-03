@@ -8,7 +8,8 @@ movement, click or scroll ends it. It never locks the session (D11) and does not
 the stored settings: ``--interval``, ``--order``, ``--scaling`` and ``--pan`` only apply
 to this run. Without ``--folder`` and the other options the stored settings are used; the
 stored folder, if none was chosen, is the system's pictures folder itself, read
-recursively (``~/Képek`` on a Hungarian system, ``~/Pictures`` if none is configured).
+recursively (``~/Képek`` on a Hungarian system; ``~/Pictures`` if none is configured or it is
+the home directory itself).
 
 ``start_preview`` is the part the settings window (UI-1) and the service (CORE-1) will
 call: it builds the controller from the real GTK windows, the real scaler and the GLib

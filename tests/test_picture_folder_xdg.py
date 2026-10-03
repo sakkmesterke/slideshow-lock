@@ -163,7 +163,16 @@ def test_a_user_dirs_file_without_the_pictures_line_falls_back_too(tmp_path):
     assert got["stored"] == f"{home}/Pictures"
 
 
-@pytest.mark.parametrize("line", ['XDG_PICTURES_DIR="$HOME"\n', 'XDG_PICTURES_DIR="$HOME/"\n'])
+@pytest.mark.parametrize(
+    "line",
+    [
+        'XDG_PICTURES_DIR="$HOME"\n',
+        'XDG_PICTURES_DIR="$HOME/"\n',
+        # GLib hands this one back unnormalised; it is the home directory all the same, and the
+        # default is now read recursively, so it would be the whole home directory.
+        'XDG_PICTURES_DIR="$HOME/Képek/.."\n',
+    ],
+)
 def test_a_pictures_dir_that_is_the_home_directory_means_off_and_falls_back(tmp_path, line):
     # XDG writes the home directory for "no pictures directory". GLib returns it unchanged
     # (measured, GLib 2.74), so the slideshow would read the whole home directory and the "off"
