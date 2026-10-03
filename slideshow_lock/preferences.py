@@ -14,9 +14,12 @@ the stored settings, in this process. It never locks the session (D11); any key,
 or mouse movement ends it. There is no on/off switch here: that goes through the systemd user
 unit (D4), which is not part of this window.
 
-The slide interval is three sliders (hours, minutes, seconds) and the resulting HH:MM:SS line;
-it is stored in seconds in the same key as before, from 00:00:01 to 23:59:59. The idle time and
-the lock grace period are plain number fields.
+The slide interval is one slider and a big HH:MM:SS line above it; it is stored in seconds in
+the same key as before, from 00:00:01 to 23:59:59. The left half of the slider is every second
+from 1 to 60, the right half snaps to round values up to 24 hours (see ``INTERVAL_STOPS``); an
+arrow key moves one step of that scale. A stored value that is not a step is shown at the
+nearest one and stays stored until the user moves the slider. The idle time and the lock
+grace period are plain number fields.
 
 Plain Gtk widgets, not libadwaita: the CI has no libadwaita typelib and the spec lists no
 libadwaita package for the CI, so the groups are drawn with a few CSS rules of this module
@@ -47,11 +50,13 @@ from slideshow_lock import APP_ID, _  # noqa: E402
 from slideshow_lock.preferences_model import (  # noqa: E402
     CHOICES,
     INT_RANGES,
-    INTERVAL_MAX_SECONDS,
-    INTERVAL_MIN_SECONDS,
+    INTERVAL_SLIDER_MAX,
+    INTERVAL_STOPS,
     PreferencesModel,
     format_hms,
-    split_hms,
+    interval_position_for_seconds,
+    snap_interval_position,
+    step_interval_position,
 )
 from slideshow_lock.preview_app import build_source, start_preview  # noqa: E402
 from slideshow_lock.settings import (  # noqa: E402
@@ -60,7 +65,6 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_ORDER,
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_SCALING,
-    KEY_SLIDE_INTERVAL_SECONDS,
     Settings,
 )
 
@@ -75,8 +79,7 @@ _CSS = b"""
 .sl-group { border: 1px solid alpha(currentColor, 0.18); border-radius: 12px; }
 .sl-group-title { font-weight: bold; }
 .sl-subtitle { font-size: 0.9em; }
-.sl-value { font-feature-settings: "tnum"; }
-.sl-time { font-size: 1.5em; font-weight: bold; font-feature-settings: "tnum"; }
+.sl-time-big { font-size: 2.6em; font-weight: bold; font-feature-settings: "tnum"; }
 """
 _css_installed = False
 
@@ -182,43 +185,34 @@ class PreferencesWindow(Gtk.Window):
             )
         )
 
-        # -- timing: the slide interval as hours, minutes, seconds; the grace period -----------
-        self.interval_total = Gtk.Label(
-            label=format_hms(INTERVAL_MIN_SECONDS), valign=Gtk.Align.CENTER
-        )
-        self.interval_total.add_css_class("sl-time")
-        self.interval_hours = self._slider(23)
-        self.interval_minutes = self._slider(59)
-        self.interval_seconds = self._slider(59)
+        # -- timing: the slide interval on one slider; the grace period -------------------------
+        self.interval_total = Gtk.Label(label=format_hms(1), halign=Gtk.Align.CENTER)
+        self.interval_total.add_css_class("sl-time-big")
+        self.interval_caption = self._subtitle("")
+        self.interval_caption.set_halign(Gtk.Align.CENTER)
+        self.interval_caption.set_justify(Gtk.Justification.CENTER)
+        self.interval_scale = self._interval_slider()
+        interval_body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ROW_SPACING)
+        interval_body.append(self.interval_total)
+        interval_body.append(self.interval_caption)
+        interval_body.append(self.interval_scale)
         self.grace_spin = self._spin(KEY_LOCK_GRACE_PERIOD_SECONDS)
-        timing_rows = [
-            self._row(
-                _("Show each picture for"),
-                _("How long a picture stays before the next one, from %(low)s to %(high)s.")
-                % {
-                    "low": format_hms(INTERVAL_MIN_SECONDS),
-                    "high": format_hms(INTERVAL_MAX_SECONDS),
-                },
-                control=self.interval_total,
-            )
-        ]
-        for title, slider in (
-            (_("Hours"), self.interval_hours),
-            (_("Minutes"), self.interval_minutes),
-            (_("Seconds"), self.interval_seconds),
-        ):
-            timing_rows.append(self._slider_row(title, slider))
-        timing_rows.append(
-            self._row(
-                _("Lock grace period"),
-                _(
-                    "Input sooner than this after the slideshow starts does not lock the "
-                    "session (strictly sooner; 0 means every input locks)."
-                ),
-                control=self._with_unit(self.grace_spin, _("seconds")),
+        page.append(
+            self._group(
+                _("Timing"),
+                [
+                    self._stacked_row(_("Show each picture for"), interval_body),
+                    self._row(
+                        _("Lock grace period"),
+                        _(
+                            "Input sooner than this after the slideshow starts does not lock the "
+                            "session (strictly sooner; 0 means every input locks)."
+                        ),
+                        control=self._with_unit(self.grace_spin, _("seconds")),
+                    ),
+                ],
             )
         )
-        page.append(self._group(_("Timing"), timing_rows))
 
         # -- preview and status ------------------------------------------------------------
         self.preview_button = Gtk.Button(label=_("Preview"), valign=Gtk.Align.CENTER)
@@ -290,21 +284,6 @@ class PreferencesWindow(Gtk.Window):
         box.append(self._label(unit))
         return box
 
-    def _slider_row(self, title: str, slider: Gtk.Scale):
-        label = self._label(title)
-        label.set_width_chars(10)
-        # The value is a label of fixed width, not the scale's own: that one makes a slider with a
-        # two-digit value shorter than its neighbours.
-        value = Gtk.Label(label="0", xalign=1, valign=Gtk.Align.CENTER, width_chars=3)
-        value.add_css_class("sl-value")
-        slider.connect("value-changed", lambda scale: value.set_label("%d" % scale.get_value()))
-        value.set_label("%d" % slider.get_value())
-        box = Gtk.Box(spacing=ROW_SPACING)
-        box.append(label)
-        box.append(slider)
-        box.append(value)
-        return self._padded(box)
-
     @staticmethod
     def _group(title: str, rows) -> Gtk.Box:
         """A titled group of rows in one rounded frame, like the groups of the GNOME settings."""
@@ -319,14 +298,36 @@ class PreferencesWindow(Gtk.Window):
         group.append(frame)
         return group
 
-    def _slider(self, high: int) -> Gtk.Scale:
-        """One of the interval sliders: whole numbers from 0 to *high*; the row shows the value."""
-        scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, high, 1)
-        scale.set_digits(0)
+    def _interval_slider(self) -> Gtk.Scale:
+        """The slide-interval slider. Its position is not the seconds: the left half is the seconds
+        1 to 60, the right half the round values above (``INTERVAL_STOPS``). Every position is
+        snapped to a step; the keys and the wheel move one step, which the default handling of a
+        scale could not (a one-unit move would snap back)."""
+        scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, INTERVAL_SLIDER_MAX, 1)
         scale.set_draw_value(False)
         scale.set_hexpand(True)
-        scale.set_size_request(260, -1)
+        scale.set_size_request(380, -1)
+        for seconds, label in (
+            (1, _("1 s")),
+            (30, _("30 s")),
+            (60, _("1 min")),
+            (600, _("10 min")),
+            (3600, _("1 h")),
+            (21600, _("6 h")),
+            (INTERVAL_STOPS[-1], _("24 h")),
+        ):
+            scale.add_mark(interval_position_for_seconds(seconds), Gtk.PositionType.BOTTOM, label)
         scale.connect("value-changed", lambda _scale: self._on_interval())
+        keys = Gtk.EventControllerKey()
+        keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        keys.connect("key-pressed", self._on_interval_key)
+        scale.add_controller(keys)
+        wheel = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
+        wheel.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
+        wheel.connect("scroll", self._on_interval_wheel)
+        scale.add_controller(wheel)
+        self._interval_keys = keys
+        self._interval_wheel = wheel
         return scale
 
     def _spin(self, key: str) -> Gtk.SpinButton:
@@ -365,16 +366,16 @@ class PreferencesWindow(Gtk.Window):
             self._updating = False
 
     def _show_interval(self) -> None:
-        """Put the three sliders and the HH:MM:SS line to the stored slide interval."""
+        """Put the slider, the big HH:MM:SS line and the caption to the stored slide interval.
+        Only shows: a stored value that is not a step stays as it is (the slider sits at the
+        nearest step, and ``_updating`` keeps the signal this raises from saving it)."""
         was_updating = self._updating
         self._updating = True
         try:
-            seconds = self._model.get(KEY_SLIDE_INTERVAL_SECONDS)
-            hours, minutes, secs = split_hms(seconds)
-            self.interval_hours.set_value(hours)
-            self.interval_minutes.set_value(minutes)
-            self.interval_seconds.set_value(secs)
-            self.interval_total.set_label(format_hms(seconds))
+            view = self._model.interval_view()
+            self.interval_scale.set_value(view.position)
+            self.interval_total.set_label(view.text)
+            self.interval_caption.set_label(view.caption)
         finally:
             self._updating = was_updating
 
@@ -391,23 +392,60 @@ class PreferencesWindow(Gtk.Window):
             self._report(self._model.set_int(key, spin.get_value_as_int()))
 
     def _on_interval(self) -> None:
-        """A slider moved: save the slide interval, then show what is stored (which also puts the
-        sliders to 00:00:01 when all three were at zero).
+        """The slider moved (by the user): snap it to its step and save that step.
 
         A slider set from inside its own handler is announced again after the handler ended, when
-        the ``_updating`` guard is down (measured). That echo shows what is stored already, so
-        it is dropped here: nothing is saved twice and "Saved." does not replace the message."""
+        the ``_updating`` guard is down (measured). That echo sits on a step and the step is what
+        is stored by then, so it is dropped here: nothing is saved twice and "Saved." does not
+        replace a message."""
         if self._updating:
             return
-        shown = (
-            int(self.interval_hours.get_value()),
-            int(self.interval_minutes.get_value()),
-            int(self.interval_seconds.get_value()),
-        )
-        if shown == split_hms(self._model.get(KEY_SLIDE_INTERVAL_SECONDS)):
+        raw = int(round(self.interval_scale.get_value()))
+        snapped = snap_interval_position(raw)
+        if snapped != raw:
+            self._move_interval_slider(snapped)
+        stored = self._model.interval_view()
+        if stored.on_scale and stored.position == snapped:
             return
-        self._report(self._model.set_interval(*shown))
+        self._report(self._model.set_interval_position(snapped))
         self._show_interval()
+
+    def _move_interval_slider(self, position: int) -> None:
+        was_updating = self._updating
+        self._updating = True
+        try:
+            self.interval_scale.set_value(position)
+        finally:
+            self._updating = was_updating
+
+    def _step_interval(self, steps: int) -> None:
+        """Move the slider *steps* steps of the scale; this saves like a drag does."""
+        current = snap_interval_position(int(round(self.interval_scale.get_value())))
+        self.interval_scale.set_value(step_interval_position(current, steps))
+
+    def _on_interval_key(self, _controller, keyval, _keycode, _state) -> bool:
+        steps = {
+            Gdk.KEY_Left: -1,
+            Gdk.KEY_Down: -1,
+            Gdk.KEY_Right: 1,
+            Gdk.KEY_Up: 1,
+            Gdk.KEY_Page_Down: -5,
+            Gdk.KEY_Page_Up: 5,
+        }
+        if keyval in steps:
+            self._step_interval(steps[keyval])
+            return True
+        if keyval in (Gdk.KEY_Home, Gdk.KEY_End):
+            self._step_interval(
+                -len(INTERVAL_STOPS) if keyval == Gdk.KEY_Home else len(INTERVAL_STOPS)
+            )
+            return True
+        return False
+
+    def _on_interval_wheel(self, _controller, _dx, dy) -> bool:
+        if dy:
+            self._step_interval(1 if dy < 0 else -1)
+        return True
 
     def _on_choice(self, key: str) -> None:
         if self._updating:

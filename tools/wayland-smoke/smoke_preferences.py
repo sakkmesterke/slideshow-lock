@@ -26,13 +26,20 @@ import tempfile
 
 import gi
 
+gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import GLib, Gtk  # noqa: E402
+from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 from smoke_preview import RESULTS, check, make_pictures  # noqa: E402
 
 from slideshow_lock.preferences import PreferencesWindow  # noqa: E402
-from slideshow_lock.preferences_model import CHOICES  # noqa: E402
+from slideshow_lock.preferences_model import (  # noqa: E402
+    CHOICES,
+    INTERVAL_POSITIONS,
+    INTERVAL_SLIDER_MAX,
+    INTERVAL_STOPS,
+    interval_position_for_seconds,
+)
 from slideshow_lock.settings import (  # noqa: E402
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
@@ -140,28 +147,29 @@ def main() -> int:
         (
             window.idle_spin.get_value_as_int(),
             window.grace_spin.get_value_as_int(),
-            window.interval_hours.get_value(),
-            window.interval_minutes.get_value(),
-            window.interval_seconds.get_value(),
+            window.interval_scale.get_value(),
             window.order_drop.get_selected(),
             window.scaling_drop.get_selected(),
             window.pan_switch.get_active(),
         )
-        == (120, 0, 0, 0, 10, 0, 0, False),
+        == (120, 0, interval_position_for_seconds(10), 0, 0, False),
     )
     check(
-        "the slide interval shows as HH:MM:SS beside the three sliders",
-        window.interval_total.get_label() == "00:00:10",
-        window.interval_total.get_label(),
+        "the slide interval shows as a big HH:MM:SS and a short text above one slider",
+        window.interval_total.get_label() == "00:00:10"
+        and window.interval_caption.get_label() == "10 s",
+        f"{window.interval_total.get_label()!r} {window.interval_caption.get_label()!r}",
     )
     check(
-        "the sliders run hours 0-23, minutes 0-59, seconds 0-59",
-        [
-            (w.get_adjustment().get_lower(), w.get_adjustment().get_upper())
-            for w in (window.interval_hours, window.interval_minutes, window.interval_seconds)
-        ]
-        == [(0, 23), (0, 59), (0, 59)],
+        "the slider runs over the whole scale",
+        (
+            window.interval_scale.get_adjustment().get_lower(),
+            window.interval_scale.get_adjustment().get_upper(),
+        )
+        == (0, INTERVAL_SLIDER_MAX),
     )
+    user_value = stored._settings.get_user_value("slide-interval-seconds")
+    check("opening the window wrote nothing", user_value is None, str(user_value))
     check(
         "the idle time and the grace period are plain number fields",
         window.idle_spin.get_adjustment().get_upper() == 86400
@@ -185,9 +193,9 @@ def main() -> int:
     # -- every field reaches the settings --------------------------------------------------
     window.idle_spin.set_value(300)
     window.grace_spin.set_value(5)
-    window.interval_seconds.set_value(20)
+    window.interval_scale.set_value(interval_position_for_seconds(20))
     check(
-        "the two number fields and the slide interval sliders are saved",
+        "the two number fields and the slide interval slider are saved",
         (
             stored.get_idle_timeout_seconds(),
             stored.get_lock_grace_period_seconds(),
@@ -239,41 +247,141 @@ def main() -> int:
         f"stored {stored.get_lock_grace_period_seconds()}",
     )
     window.grace_spin.set_value(5)
-    window.interval_hours.set_value(1)
-    window.interval_minutes.set_value(1)
-    window.interval_seconds.set_value(1)
+    scale = window.interval_scale
+    keys = window._interval_keys
+
+    def press(key):
+        return keys.emit("key-pressed", key, 0, Gdk.ModifierType(0))
+
+    def show(*_a):
+        return f"{stored.get_slide_interval_seconds()} {window.interval_total.get_label()}"
+
     check(
-        "1 h 1 min 1 s is 3661 seconds and reads 01:01:01",
-        stored.get_slide_interval_seconds() == 3661
-        and window.interval_total.get_label() == "01:01:01",
-        f"{stored.get_slide_interval_seconds()} {window.interval_total.get_label()}",
+        "the slider on a step: stored seconds, big text and caption agree",
+        stored.get_slide_interval_seconds() == 20
+        and window.interval_total.get_label() == "00:00:20"
+        and window.interval_caption.get_label() == "20 s",
+        show(),
     )
-    window.interval_hours.set_value(23)
-    window.interval_minutes.set_value(59)
-    window.interval_seconds.set_value(59)
+    scale.set_value(interval_position_for_seconds(60))
+    press(Gdk.KEY_Right)
     check(
-        "the longest slide interval, 23:59:59, is 86399 seconds",
+        "an arrow moves one step of the scale: 1 min -> 2 min",
+        stored.get_slide_interval_seconds() == 120
+        and window.interval_total.get_label() == "00:02:00"
+        and window.interval_caption.get_label() == "2 min",
+        show(),
+    )
+    press(Gdk.KEY_Up)
+    press(Gdk.KEY_Right)
+    check(
+        "up and right are steps too: 3 min, 5 min",
+        stored.get_slide_interval_seconds() == 300,
+        show(),
+    )
+    press(Gdk.KEY_Left)
+    press(Gdk.KEY_Down)
+    press(Gdk.KEY_Left)
+    check(
+        "left and down go back: 3 min, 2 min, 1 min",
+        stored.get_slide_interval_seconds() == 60,
+        show(),
+    )
+    press(Gdk.KEY_Left)
+    check(
+        "below a minute a step is one second: 59 s",
+        stored.get_slide_interval_seconds() == 59,
+        show(),
+    )
+    press(Gdk.KEY_End)
+    check(
+        "End is the longest interval, 23:59:59 (86399 s), not 24 hours",
         stored.get_slide_interval_seconds() == 86399
-        and window.interval_total.get_label() == "23:59:59",
+        and window.interval_total.get_label() == "23:59:59"
+        and "24" not in window.interval_caption.get_label()
+        and scale.get_value() == INTERVAL_SLIDER_MAX,
+        f"{show()} {window.interval_caption.get_label()!r}",
     )
-    window.interval_hours.set_value(0)
-    window.interval_minutes.set_value(0)
-    window.interval_seconds.set_value(0)
-    pump(0.3)  # a slider set from its own handler is announced after the handler ended
+    press(Gdk.KEY_Right)
     check(
-        "all three sliders at zero become 00:00:01, shown and stored",
+        "an arrow at the end stays at the end", stored.get_slide_interval_seconds() == 86399, show()
+    )
+    press(Gdk.KEY_Left)
+    check(
+        "one step back from the end is 12 h", stored.get_slide_interval_seconds() == 43200, show()
+    )
+    press(Gdk.KEY_Home)
+    check(
+        "Home is the shortest interval, 00:00:01",
         stored.get_slide_interval_seconds() == 1
         and window.interval_total.get_label() == "00:00:01"
-        and window.interval_seconds.get_value() == 1
-        and "00:00:01" in window.status.get_label(),
-        f"{stored.get_slide_interval_seconds()} {window.status.get_label()!r}",
+        and scale.get_value() == 0,
+        show(),
     )
-    window.interval_minutes.set_value(5)
+    press(Gdk.KEY_Left)
     check(
-        "a slider on the minimum can be moved up again",
-        stored.get_slide_interval_seconds() == 301
-        and window.interval_total.get_label() == "00:05:01",
-        f"{stored.get_slide_interval_seconds()} {window.interval_total.get_label()}",
+        "an arrow at the start stays at 1 s (0 is not possible)",
+        stored.get_slide_interval_seconds() == 1,
+        show(),
+    )
+    window._interval_wheel.emit("scroll", 0.0, -1.0)
+    check("the wheel moves one step too", stored.get_slide_interval_seconds() == 2, show())
+    scale.set_value(240)  # between 1 min (236) and 2 min (255): snaps to the nearer one
+    pump(0.3)  # a slider set from its own handler is announced after the handler ended
+    check(
+        "a position between two steps snaps to the nearest and saves it",
+        scale.get_value() == 236 and stored.get_slide_interval_seconds() == 60,
+        f"{scale.get_value()} {show()}",
+    )
+    check(
+        "the status still says Saved. after the echo",
+        window.status.get_label() == "Saved.",
+        window.status.get_label(),
+    )
+    walked = []
+    for position in INTERVAL_POSITIONS:
+        scale.set_value(position)
+        walked.append(stored.get_slide_interval_seconds())
+    check(
+        "every step of the scale, set one by one, is saved as its seconds",
+        walked == list(INTERVAL_STOPS),
+        f"{sum(a != b for a, b in zip(walked, INTERVAL_STOPS))} differ",
+    )
+    # -- a stored value that is not a step: shown at the nearest, never written back -------------
+    stored.set_slide_interval_seconds(100)
+    pump(1.0, until=lambda: window.interval_total.get_label() == "00:01:40")
+    pump(0.5)
+    check(
+        "a stored 100 s: the slider sits at the 2 min step, the big text says 00:01:40",
+        scale.get_value() == interval_position_for_seconds(120)
+        and window.interval_total.get_label() == "00:01:40",
+        f"{scale.get_value()} {window.interval_total.get_label()}",
+    )
+    check(
+        "...and the stored value is still 100 (nothing was written back)",
+        stored.get_slide_interval_seconds() == 100
+        and stored._settings.get_user_value("slide-interval-seconds").get_uint32() == 100,
+        show(),
+    )
+    check(
+        "the caption says it is not a step",
+        "nearest" in window.interval_caption.get_label(),
+        window.interval_caption.get_label(),
+    )
+    press(Gdk.KEY_Right)
+    check(
+        "an arrow from there goes one step on: 3 min",
+        stored.get_slide_interval_seconds() == 180,
+        show(),
+    )
+    stored.set_slide_interval_seconds(77)  # another process changes a value, off the scale
+    pump(1.0, until=lambda: window.interval_total.get_label() == "00:01:17")
+    pump(0.5)
+    check(
+        "a value set elsewhere shows at the nearest step and stays 77",
+        scale.get_value() == interval_position_for_seconds(60)
+        and stored.get_slide_interval_seconds() == 77,
+        f"{scale.get_value()} {show()}",
     )
     window.idle_spin.set_text("86400")
     window.idle_spin.update()
@@ -281,17 +389,6 @@ def main() -> int:
     window.idle_spin.set_text("20")
     window.idle_spin.update()
     check("a typed number is saved", stored.get_idle_timeout_seconds() == 20)
-    stored.set_slide_interval_seconds(77)  # another process changes a value
-    pump(1.0, until=lambda: window.interval_total.get_label() == "00:01:17")
-    check(
-        "a slide interval set elsewhere moves the sliders",
-        (
-            window.interval_hours.get_value(),
-            window.interval_minutes.get_value(),
-            window.interval_seconds.get_value(),
-        )
-        == (0, 1, 17),
-    )
     stored.set_idle_timeout_seconds(77)
     pump(1.0, until=lambda: window.idle_spin.get_value_as_int() == 77)
     check(
