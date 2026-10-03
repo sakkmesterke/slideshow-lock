@@ -17,9 +17,13 @@ The sequence on ``PrepareForSleep(true)``, in this order:
 3. when the round trip is over, success or not, release the delay inhibitor (``_on_lock_done``);
 4. post the result to the main loop.
 
-Nothing else runs between the signal and the lock call. The idle inhibition query is not an
-argument of this class and is never asked here (D28): an application that inhibits idle, a video
-call say, does not keep the lock from being made.
+Nothing else runs between the signal and the lock call. The guard keeps no picture of the lock
+state and never skips the call because the session looks locked already: the answer to ``Lock()``
+is not proof that a lock screen is up (on the login1 fallback it only means that a signal was
+sent, with nobody necessarily listening), and a remembered "locked" would keep every later
+suspend from being locked. The idle inhibition query is not an argument of this class and is
+never asked here (D28): an application that inhibits idle, a video call say, does not keep the
+lock from being made.
 
 ``PrepareForSleep(false)`` before step 3 has finished is the D34 case: the machine woke while
 the lock was still on its way, so it may have resumed unlocked. That is logged at WARNING with
@@ -92,7 +96,6 @@ class SleepGuard:
         self._clock = clock
 
         self._inhibitor: Optional[DelayInhibitor] = None
-        self._locked = False  # from this guard's own view of the lock state
         self._sleeping = False
         self._round: Optional[_Round] = None
         self._running = False
@@ -103,11 +106,6 @@ class SleepGuard:
         """Subscribe, take the delay inhibitor, read the delay ceiling. Raises if the inhibitor
         cannot be had: the service must not run without it (ARCH-1 section 7)."""
         self._sleep.on_prepare_for_sleep(self._on_prepare_for_sleep)
-        self._lock.on_active_changed(self._on_active_changed)
-        try:
-            self._locked = self._lock.is_active()
-        except Exception as exc:
-            _LOG.warning("[lock] could not ask whether the session is locked (%s)", exc)
         self._inhibitor = self._sleep.acquire_delay_inhibitor()
         self._running = True
         try:
@@ -122,9 +120,6 @@ class SleepGuard:
         self._release()
 
     # -- the sleep signal -----------------------------------------------------------------
-
-    def _on_active_changed(self, locked: bool) -> None:
-        self._locked = locked
 
     def _on_prepare_for_sleep(self, going_to_sleep: bool) -> None:
         if not self._running:
@@ -141,10 +136,6 @@ class SleepGuard:
         current = self._round = _Round(self._clock())
         _LOG.info("[sleep-inhibit] PrepareForSleep(true): locking before suspend")
         self._to_main(self._listener.sleep_started)
-        if self._locked:
-            _LOG.debug("[lock] already locked, nothing to lock before suspend")
-            self._on_lock_done(current, LockResult(True))
-            return
         try:
             self._lock.lock(lambda result: self._on_lock_done(current, result))
         except Exception as exc:  # the protocol says it does not raise; do not hold suspend back
@@ -160,7 +151,6 @@ class SleepGuard:
             return  # the inhibitor held now belongs to the newer round
         self._release()  # always: holding it longer only blocks suspend for everybody
         if result.ok:
-            self._locked = True
             _LOG.info("[lock] session locked before suspend (elapsed=%dms)", elapsed_ms)
         else:
             _LOG.error(
