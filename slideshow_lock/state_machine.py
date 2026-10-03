@@ -228,7 +228,7 @@ class StateMachine:
 
     def _end_slideshow_and_lock_if_due(self, cause: str) -> None:
         """Stop the running slideshow and lock the session if it ran for the grace period or
-        longer (strict ``<`` for "within", D16: a grace of 0 never skips the lock). The one place
+        longer (strict ``<`` for "within": a grace of 0 never skips the lock). The one place
         where a slideshow ends with a possible lock, for input and for a new idle inhibitor
         alike; a slideshow that is not idle-triggered (the preview) never locks."""
         trigger = self._trigger
