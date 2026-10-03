@@ -835,6 +835,19 @@ def test_ac7_picture_work_runs_on_another_thread_and_the_main_loop_keeps_turning
     assert gap < 0.15, f"the main loop stood still for {gap:.3f} s"
 
 
+def test_ac7_closing_the_worker_ends_its_thread(tmp_path, backends):
+    worker = ThreadWorker()
+    done = []
+    worker.submit(lambda: 42, lambda result, error: done.append((result, error)))
+    assert _pump(lambda: done)
+    assert done == [(42, None)]
+    thread = worker._thread
+    assert thread.is_alive() and thread.daemon  # a stuck picture can never keep the process alive
+    worker.close()
+    thread.join(5)
+    assert not thread.is_alive()
+
+
 def test_ac7_negative_control_the_same_work_on_the_main_loop_is_caught(tmp_path, backends):
     gap, scaler = _longest_main_loop_gap(tmp_path, backends, InlineWorker(), work_seconds=0.4)
     assert threading.get_ident() in scaler.threads

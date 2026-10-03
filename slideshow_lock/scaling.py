@@ -78,7 +78,6 @@ METHOD_LANCZOS3 = "lanczos3-videoscale"
 METHOD_BILINEAR = "bilinear-gdkpixbuf"
 METHOD_NONE = "none"  # the picture already had the target size
 
-_READ_CHUNK = 1 << 20
 _FEED_CHUNK = 1 << 16
 _PULL_TIMEOUT_NS = 15 * 1_000_000_000
 
@@ -230,11 +229,12 @@ def incomplete_reason(data: bytes) -> Optional[str]:
     return None
 
 
-def read_image_file(path: str, *, settle_seconds: float = SETTLE_SECONDS) -> bytes:
+def read_image_file(path: str, *, settle_seconds: float = SETTLE_SECONDS) -> bytearray:
     """Read a picture file for decoding, or raise ``ImageSkipped``.
 
     Opened ``O_NONBLOCK`` and checked with ``fstat`` on the descriptor, like the image
-    source does, so a file swapped for a FIFO cannot hang the worker.
+    source does, so a file swapped for a FIFO cannot hang the worker. The file is read into
+    one buffer of the size ``fstat`` reported, so a large file is held in memory once.
     """
     try:
         fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY | os.O_CLOEXEC)
@@ -246,25 +246,25 @@ def read_image_file(path: str, *, settle_seconds: float = SETTLE_SECONDS) -> byt
             raise ImageSkipped("not a regular file")
         if before.st_size > MAX_FILE_BYTES:
             raise ImageSkipped(f"file is larger than {MAX_FILE_BYTES >> 20} MiB")
-        chunks: List[bytes] = []
-        total = 0
-        while True:
-            chunk = os.read(fd, _READ_CHUNK)
-            if not chunk:
+        data = bytearray(before.st_size)
+        view = memoryview(data)
+        filled = 0
+        while filled < len(data):
+            count = os.readv(fd, [view[filled:]])
+            if count == 0:
                 break
-            total += len(chunk)
-            if total > MAX_FILE_BYTES:
-                raise ImageSkipped(f"file is larger than {MAX_FILE_BYTES >> 20} MiB")
-            chunks.append(chunk)
+            filled += count
+        grew = filled == len(data) and bool(os.read(fd, 1))
         after = os.fstat(fd)
     except OSError as exc:
         raise ImageSkipped(f"cannot be read: {exc.strerror or exc}") from exc
     finally:
         os.close(fd)
-    data = b"".join(chunks)
-    if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns) or len(
-        data
-    ) != before.st_size:
+    if (
+        grew
+        or filled != len(data)
+        or (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns)
+    ):
         raise ImageSkipped("changed while it was read, probably still being copied")
     age = time.time() - before.st_mtime
     if 0 <= age < settle_seconds:
@@ -314,7 +314,7 @@ class ImageScaler:
     # -- decoding --------------------------------------------------------------
 
     @staticmethod
-    def _decode(data: bytes):
+    def _decode(data):
         import gi
 
         gi.require_version("GdkPixbuf", "2.0")
