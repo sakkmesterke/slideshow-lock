@@ -69,7 +69,7 @@ Then no lock occurs; the event is treated as an ordinary idle-timer reset only.
 > sleep-triggered lock is an independent trigger, so the idle-triggered-and-running
 > precondition in this section does not apply to it. These three criteria are final as written.
 
-## 3.4 — Idle-inhibit blocks start (and stops an active slideshow if raised mid-run)
+## 3.4 — Idle-inhibit blocks start (and stops an active slideshow if raised mid-run, locking once the grace period is over)
 
 **AC-3.4-1 [AUTO]**
 Given an application holds an active idle-inhibit at the moment the idle threshold would be
@@ -77,11 +77,17 @@ reached,
 When the threshold is reached,
 Then the slideshow does NOT start.
 
-**AC-3.4-2 [AUTO]** (D5 -- PENDING confirmation from the project owner, see "Open items")
-Given an idle-triggered slideshow is currently running,
+**AC-3.4-2 [AUTO]**
+Given an idle-triggered slideshow has been running for `t` seconds, with a configured
+grace period `G` seconds,
 When an application raises an idle-inhibit during that run,
-Then the slideshow stops immediately, and the session is NOT locked as a result of this
-stop (inhibit-triggered stop is never a lock trigger).
+Then the slideshow stops immediately, and the lock decision is the same one as for input
+(AC-3.2-2, strict `<`, the same elapsed time):
+- if `t < G`: the session is NOT locked as a result of this stop.
+- if `t >= G`: the session locks at once, without waiting for the next input.
+(With `G = 0` the lock is always due.) A slideshow started by the Preview action is never
+locked by this event. The idle-inhibit suppresses only the idle-start branch and this stop;
+it never suppresses the sleep-lock branch (AC-3.5-2).
 
 ## 3.5 — Sleep stops the slideshow and locks (independent trigger)
 
@@ -144,8 +150,10 @@ OPS-1's deliverable, this criterion only fixes the externally observable behavio
    unconditionally, independent of whether a slideshow was running or how it was started.
    Locking is a standalone safety function, not a side effect of the slideshow. AC-3.5-1 is
    final as written; no revision pending.
-2. **D5 (inhibit stops a running idle slideshow)** — pending confirmation from the project
-   owner. AC-3.4-2 is written per D5's proposed behavior.
+2. **Idle-inhibit raised during a running idle slideshow -- resolved.** The slideshow stops;
+   if it ran for the grace period or longer (the same strict `<` as for input) the session
+   also locks at once, within the grace period it does not. AC-3.4-2 is final as written;
+   no revision pending.
 
 ---
 
