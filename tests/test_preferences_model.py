@@ -15,9 +15,9 @@ from gi.repository import Gio
 from slideshow_lock import APP_ID
 from slideshow_lock.preferences_model import (
     CHOICES,
-    IDLE_MAX_SECONDS,
-    IDLE_MIN_SECONDS,
     INT_RANGES,
+    INTERVAL_MAX_SECONDS,
+    INTERVAL_MIN_SECONDS,
     PreferencesModel,
     format_hms,
     join_hms,
@@ -115,13 +115,21 @@ def test_the_idle_timeout_cannot_be_zero_but_the_grace_period_can(model):
     assert model.set_int(KEY_LOCK_GRACE_PERIOD_SECONDS, 0).ok  # 0: every input counts (D16)
 
 
-# -- the idle time as hours, minutes and seconds ---------------------------------------------
+def test_the_idle_timeout_and_the_grace_period_keep_their_plain_ranges(model):
+    # The three sliders are for the slide interval only: the idle time stays 1 to 86400 seconds.
+    assert INT_RANGES[KEY_IDLE_TIMEOUT_SECONDS] == (1, 86400)
+    assert INT_RANGES[KEY_LOCK_GRACE_PERIOD_SECONDS] == (0, 86400)
+    assert model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 86400).ok
+    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 86400
 
 
-def test_the_idle_time_runs_from_00_00_01_to_23_59_59():
-    assert IDLE_MIN_SECONDS == join_hms(0, 0, 1) == 1
-    assert IDLE_MAX_SECONDS == join_hms(23, 59, 59) == 86399
-    assert INT_RANGES[KEY_IDLE_TIMEOUT_SECONDS] == (1, 86399)
+# -- the slide interval as hours, minutes and seconds ---------------------------------------------
+
+
+def test_the_slide_interval_runs_from_00_00_01_to_23_59_59():
+    assert INTERVAL_MIN_SECONDS == join_hms(0, 0, 1) == 1
+    assert INTERVAL_MAX_SECONDS == join_hms(23, 59, 59) == 86399
+    assert INT_RANGES[KEY_SLIDE_INTERVAL_SECONDS] == (1, 86399)
 
 
 @pytest.mark.parametrize(
@@ -144,8 +152,8 @@ def test_seconds_and_the_three_sliders_convert_both_ways(seconds, parts, text):
     assert format_hms(seconds) == text
 
 
-def test_every_idle_time_survives_the_round_trip_through_the_sliders():
-    for seconds in range(IDLE_MIN_SECONDS, IDLE_MAX_SECONDS + 1):
+def test_every_slide_interval_survives_the_round_trip_through_the_sliders():
+    for seconds in range(INTERVAL_MIN_SECONDS, INTERVAL_MAX_SECONDS + 1):
         hours, minutes, secs = split_hms(seconds)
         assert 0 <= hours <= 23 and 0 <= minutes <= 59 and 0 <= secs <= 59
         assert join_hms(hours, minutes, secs) == seconds
@@ -169,42 +177,42 @@ def test_every_position_of_the_sliders_is_a_distinct_number_of_seconds():
     ],
 )
 def test_the_sliders_are_saved_as_seconds(model, parts, stored):
-    result = model.set_idle(*parts)
+    result = model.set_interval(*parts)
     assert result.ok and result.message == "Saved.", result
-    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == stored
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == stored
 
 
-def test_all_three_sliders_at_zero_become_the_shortest_idle_time(model):
-    model.set_idle(0, 5, 0)
-    result = model.set_idle(0, 0, 0)
+def test_all_three_sliders_at_zero_become_the_shortest_slide_interval(model):
+    model.set_interval(0, 5, 0)
+    result = model.set_interval(0, 0, 0)
     assert result.ok
     assert "00:00:01" in result.message and result.message != "Saved."
-    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 1
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 1
 
 
 @pytest.mark.parametrize("parts", [(24, 0, 0), (0, 60, 0), (0, 0, 60), (-1, 0, 5), (0, -1, 5)])
 def test_a_slider_value_outside_its_range_is_refused_and_the_stored_time_stays(model, parts):
-    model.set_idle(0, 5, 0)
-    result = model.set_idle(*parts)
+    model.set_interval(0, 5, 0)
+    result = model.set_interval(*parts)
     assert not result.ok
     assert result.message.startswith(
         "Hours must be 0 to 23"
     )  # the model's own check, not the schema's
-    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 300
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 300
 
 
 @pytest.mark.parametrize("parts", [(True, 0, 1), (0, 1.5, 0), (0, 0, "1"), (None, 0, 1)])
 def test_slider_values_that_are_not_whole_numbers_are_refused(model, parts):
-    assert not model.set_idle(*parts).ok
-    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 120
+    assert not model.set_interval(*parts).ok
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 10
 
 
-def test_the_idle_time_in_seconds_takes_one_second_and_a_day_less_one_second_only(model):
-    assert model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 1).ok
-    assert model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 86399).ok
-    assert not model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 0).ok  # 00:00:00
-    assert not model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 86400).ok  # 24:00:00
-    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 86399
+def test_the_slide_interval_in_seconds_takes_one_second_and_a_day_less_one_second_only(model):
+    assert model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 1).ok
+    assert model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 86399).ok
+    assert not model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 0).ok  # 00:00:00
+    assert not model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 86400).ok  # 24:00:00
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 86399
 
 
 # -- where the folder chooser opens ----------------------------------------------------------

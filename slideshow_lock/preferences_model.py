@@ -30,16 +30,16 @@ from slideshow_lock.settings import (
     default_picture_folder,
 )
 
-#: The idle timeout runs from 00:00:01 to 23:59:59, in seconds (the schema's range). Zero is no
-#: idle time at all and 24:00:00 does not fit the three sliders (hours 0-23).
-IDLE_MIN_SECONDS = 1
-IDLE_MAX_SECONDS = 23 * 3600 + 59 * 60 + 59
+#: The slide interval runs from 00:00:01 to 23:59:59, in seconds (the schema's range). Zero is no
+#: interval at all and 24:00:00 does not fit the three sliders (hours 0-23).
+INTERVAL_MIN_SECONDS = 1
+INTERVAL_MAX_SECONDS = 23 * 3600 + 59 * 60 + 59
 
 #: (minimum, maximum) of the whole-number keys, in seconds. The same as the schema's ranges.
 INT_RANGES = {
-    KEY_IDLE_TIMEOUT_SECONDS: (IDLE_MIN_SECONDS, IDLE_MAX_SECONDS),
+    KEY_IDLE_TIMEOUT_SECONDS: (1, 86400),
     KEY_LOCK_GRACE_PERIOD_SECONDS: (0, 86400),
-    KEY_SLIDE_INTERVAL_SECONDS: (1, 3600),
+    KEY_SLIDE_INTERVAL_SECONDS: (INTERVAL_MIN_SECONDS, INTERVAL_MAX_SECONDS),
 }
 
 #: The values of the choice keys, in the order the window lists them. The schema's choices.
@@ -81,7 +81,7 @@ def _saved() -> SaveResult:
 
 
 def split_hms(seconds: int):
-    """Seconds as (hours, minutes, seconds), for the three idle-time sliders: 3661 -> (1, 1, 1)."""
+    """Seconds as (hours, minutes, seconds), for the three interval sliders: 3661 -> (1, 1, 1)."""
     return seconds // 3600, seconds % 3600 // 60, seconds % 60
 
 
@@ -91,7 +91,7 @@ def join_hms(hours: int, minutes: int, seconds: int) -> int:
 
 
 def format_hms(seconds: int) -> str:
-    """Seconds as HH:MM:SS, the way the window shows the idle time: 300 -> '00:05:00'."""
+    """Seconds as HH:MM:SS, the way the window shows the slide interval: 300 -> '00:05:00'."""
     return "%02d:%02d:%02d" % split_hms(seconds)
 
 
@@ -144,9 +144,9 @@ class PreferencesModel:
             )
         return self._store(key, value)
 
-    def set_idle(self, hours, minutes, seconds) -> SaveResult:
-        """Save the idle timeout given as the three sliders' values (hours 0-23, minutes and
-        seconds 0-59). All three at zero is not an idle time: it is corrected to the shortest
+    def set_interval(self, hours, minutes, seconds) -> SaveResult:
+        """Save the slide interval given as the three sliders' values (hours 0-23, minutes and
+        seconds 0-59). All three at zero is not an interval: it is corrected to the shortest
         one, 00:00:01, which is saved and said so (the window puts the sliders to it)."""
         parts = (hours, minutes, seconds)
         if any(isinstance(p, bool) or not isinstance(p, int) for p in parts):
@@ -154,16 +154,16 @@ class PreferencesModel:
         if not (0 <= hours <= 23 and 0 <= minutes <= 59 and 0 <= seconds <= 59):
             return SaveResult(False, _("Hours must be 0 to 23, minutes and seconds 0 to 59."))
         total = join_hms(hours, minutes, seconds)
-        if total < IDLE_MIN_SECONDS:
-            result = self._store(KEY_IDLE_TIMEOUT_SECONDS, IDLE_MIN_SECONDS)
+        if total < INTERVAL_MIN_SECONDS:
+            result = self._store(KEY_SLIDE_INTERVAL_SECONDS, INTERVAL_MIN_SECONDS)
             if not result.ok:
                 return result
             return SaveResult(
                 True,
-                _("The shortest idle time is %s, it was set to that.")
-                % format_hms(IDLE_MIN_SECONDS),
+                _("The shortest slide interval is %s, it was set to that.")
+                % format_hms(INTERVAL_MIN_SECONDS),
             )
-        return self._store(KEY_IDLE_TIMEOUT_SECONDS, total)
+        return self._store(KEY_SLIDE_INTERVAL_SECONDS, total)
 
     def set_choice(self, key: str, value) -> SaveResult:
         if value not in CHOICES[key]:

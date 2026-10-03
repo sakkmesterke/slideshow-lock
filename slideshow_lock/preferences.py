@@ -14,8 +14,9 @@ the stored settings, in this process. It never locks the session (D11); any key,
 or mouse movement ends it. There is no on/off switch here: that goes through the systemd user
 unit (D4), which is not part of this window.
 
-The idle time is three sliders (hours, minutes, seconds) and the resulting HH:MM:SS line; it is
-stored in seconds in the same key as before, from 00:00:01 to 23:59:59.
+The slide interval is three sliders (hours, minutes, seconds) and the resulting HH:MM:SS line;
+it is stored in seconds in the same key as before, from 00:00:01 to 23:59:59. The idle time and
+the lock grace period are plain number fields.
 
 Plain Gtk widgets, not libadwaita: the CI has no libadwaita typelib and the spec lists no
 libadwaita package for the CI, so the groups are drawn with a few CSS rules of this module
@@ -45,9 +46,9 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 from slideshow_lock import APP_ID, _  # noqa: E402
 from slideshow_lock.preferences_model import (  # noqa: E402
     CHOICES,
-    IDLE_MAX_SECONDS,
-    IDLE_MIN_SECONDS,
     INT_RANGES,
+    INTERVAL_MAX_SECONDS,
+    INTERVAL_MIN_SECONDS,
     PreferencesModel,
     format_hms,
     split_hms,
@@ -74,6 +75,7 @@ _CSS = b"""
 .sl-group { border: 1px solid alpha(currentColor, 0.18); border-radius: 12px; }
 .sl-group-title { font-weight: bold; }
 .sl-subtitle { font-size: 0.9em; }
+.sl-value { font-feature-settings: "tnum"; }
 .sl-time { font-size: 1.5em; font-weight: bold; font-feature-settings: "tnum"; }
 """
 _css_installed = False
@@ -165,50 +167,58 @@ class PreferencesWindow(Gtk.Window):
             )
         )
 
-        # -- idle time: hours, minutes, seconds -----------------------------------------------
-        self.idle_total = Gtk.Label(label=format_hms(IDLE_MIN_SECONDS), valign=Gtk.Align.CENTER)
-        self.idle_total.add_css_class("sl-time")
-        self.idle_hours = self._slider(23)
-        self.idle_minutes = self._slider(59)
-        self.idle_seconds = self._slider(59)
-        idle_rows = [
-            self._row(
-                _("Idle time"),
-                _("How long without input before the slideshow starts, from %(low)s to %(high)s.")
-                % {"low": format_hms(IDLE_MIN_SECONDS), "high": format_hms(IDLE_MAX_SECONDS)},
-                control=self.idle_total,
-            )
-        ]
-        for title, slider in (
-            (_("Hours"), self.idle_hours),
-            (_("Minutes"), self.idle_minutes),
-            (_("Seconds"), self.idle_seconds),
-        ):
-            idle_rows.append(self._slider_row(title, slider))
-        page.append(self._group(_("Start the slideshow"), idle_rows))
-
-        # -- timing ------------------------------------------------------------------------
-        self.grace_spin = self._spin(KEY_LOCK_GRACE_PERIOD_SECONDS)
-        self.interval_spin = self._spin(KEY_SLIDE_INTERVAL_SECONDS)
+        # -- start the slideshow: the idle time ---------------------------------------------
+        self.idle_spin = self._spin(KEY_IDLE_TIMEOUT_SECONDS)
         page.append(
             self._group(
-                _("Timing"),
+                _("Start the slideshow"),
                 [
                     self._row(
-                        _("Show each picture for"),
-                        control=self._with_unit(self.interval_spin, _("seconds")),
-                    ),
-                    self._row(
-                        _("Lock grace period"),
-                        _(
-                            "Input sooner than this after the slideshow starts does not lock the "
-                            "session (strictly sooner; 0 means every input locks)."
-                        ),
-                        control=self._with_unit(self.grace_spin, _("seconds")),
-                    ),
+                        _("Idle time"),
+                        _("How long without input before the slideshow starts."),
+                        control=self._with_unit(self.idle_spin, _("seconds")),
+                    )
                 ],
             )
         )
+
+        # -- timing: the slide interval as hours, minutes, seconds; the grace period -----------
+        self.interval_total = Gtk.Label(
+            label=format_hms(INTERVAL_MIN_SECONDS), valign=Gtk.Align.CENTER
+        )
+        self.interval_total.add_css_class("sl-time")
+        self.interval_hours = self._slider(23)
+        self.interval_minutes = self._slider(59)
+        self.interval_seconds = self._slider(59)
+        self.grace_spin = self._spin(KEY_LOCK_GRACE_PERIOD_SECONDS)
+        timing_rows = [
+            self._row(
+                _("Show each picture for"),
+                _("How long a picture stays before the next one, from %(low)s to %(high)s.")
+                % {
+                    "low": format_hms(INTERVAL_MIN_SECONDS),
+                    "high": format_hms(INTERVAL_MAX_SECONDS),
+                },
+                control=self.interval_total,
+            )
+        ]
+        for title, slider in (
+            (_("Hours"), self.interval_hours),
+            (_("Minutes"), self.interval_minutes),
+            (_("Seconds"), self.interval_seconds),
+        ):
+            timing_rows.append(self._slider_row(title, slider))
+        timing_rows.append(
+            self._row(
+                _("Lock grace period"),
+                _(
+                    "Input sooner than this after the slideshow starts does not lock the "
+                    "session (strictly sooner; 0 means every input locks)."
+                ),
+                control=self._with_unit(self.grace_spin, _("seconds")),
+            )
+        )
+        page.append(self._group(_("Timing"), timing_rows))
 
         # -- preview and status ------------------------------------------------------------
         self.preview_button = Gtk.Button(label=_("Preview"), valign=Gtk.Align.CENTER)
@@ -282,10 +292,17 @@ class PreferencesWindow(Gtk.Window):
 
     def _slider_row(self, title: str, slider: Gtk.Scale):
         label = self._label(title)
-        label.set_width_chars(8)
+        label.set_width_chars(10)
+        # The value is a label of fixed width, not the scale's own: that one makes a slider with a
+        # two-digit value shorter than its neighbours.
+        value = Gtk.Label(label="0", xalign=1, valign=Gtk.Align.CENTER, width_chars=3)
+        value.add_css_class("sl-value")
+        slider.connect("value-changed", lambda scale: value.set_label("%d" % scale.get_value()))
+        value.set_label("%d" % slider.get_value())
         box = Gtk.Box(spacing=ROW_SPACING)
         box.append(label)
         box.append(slider)
+        box.append(value)
         return self._padded(box)
 
     @staticmethod
@@ -303,14 +320,13 @@ class PreferencesWindow(Gtk.Window):
         return group
 
     def _slider(self, high: int) -> Gtk.Scale:
-        """One of the idle-time sliders: whole numbers from 0 to *high*, the value beside it."""
+        """One of the interval sliders: whole numbers from 0 to *high*; the row shows the value."""
         scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, high, 1)
         scale.set_digits(0)
-        scale.set_draw_value(True)
-        scale.set_value_pos(Gtk.PositionType.RIGHT)
+        scale.set_draw_value(False)
         scale.set_hexpand(True)
         scale.set_size_request(260, -1)
-        scale.connect("value-changed", lambda _scale: self._on_idle())
+        scale.connect("value-changed", lambda _scale: self._on_interval())
         return scale
 
     def _spin(self, key: str) -> Gtk.SpinButton:
@@ -335,10 +351,10 @@ class PreferencesWindow(Gtk.Window):
             self.folder_entry.set_text(view.text)
             self.folder_entry.set_placeholder_text(view.default)
             self.folder_note.set_label(view.note)
-            self._show_idle()
+            self._show_interval()
             for key, spin in (
+                (KEY_IDLE_TIMEOUT_SECONDS, self.idle_spin),
                 (KEY_LOCK_GRACE_PERIOD_SECONDS, self.grace_spin),
-                (KEY_SLIDE_INTERVAL_SECONDS, self.interval_spin),
             ):
                 spin.set_value(self._model.get(key))
             self.order_drop.set_selected(CHOICES[KEY_ORDER].index(self._model.get(KEY_ORDER)))
@@ -348,17 +364,17 @@ class PreferencesWindow(Gtk.Window):
         finally:
             self._updating = False
 
-    def _show_idle(self) -> None:
-        """Put the three sliders and the HH:MM:SS line to the stored idle time."""
+    def _show_interval(self) -> None:
+        """Put the three sliders and the HH:MM:SS line to the stored slide interval."""
         was_updating = self._updating
         self._updating = True
         try:
-            seconds = self._model.get(KEY_IDLE_TIMEOUT_SECONDS)
+            seconds = self._model.get(KEY_SLIDE_INTERVAL_SECONDS)
             hours, minutes, secs = split_hms(seconds)
-            self.idle_hours.set_value(hours)
-            self.idle_minutes.set_value(minutes)
-            self.idle_seconds.set_value(secs)
-            self.idle_total.set_label(format_hms(seconds))
+            self.interval_hours.set_value(hours)
+            self.interval_minutes.set_value(minutes)
+            self.interval_seconds.set_value(secs)
+            self.interval_total.set_label(format_hms(seconds))
         finally:
             self._updating = was_updating
 
@@ -374,8 +390,8 @@ class PreferencesWindow(Gtk.Window):
         if not self._updating:
             self._report(self._model.set_int(key, spin.get_value_as_int()))
 
-    def _on_idle(self) -> None:
-        """A slider moved: save the idle time, then show what is stored (which also puts the
+    def _on_interval(self) -> None:
+        """A slider moved: save the slide interval, then show what is stored (which also puts the
         sliders to 00:00:01 when all three were at zero).
 
         A slider set from inside its own handler is announced again after the handler ended, when
@@ -384,14 +400,14 @@ class PreferencesWindow(Gtk.Window):
         if self._updating:
             return
         shown = (
-            int(self.idle_hours.get_value()),
-            int(self.idle_minutes.get_value()),
-            int(self.idle_seconds.get_value()),
+            int(self.interval_hours.get_value()),
+            int(self.interval_minutes.get_value()),
+            int(self.interval_seconds.get_value()),
         )
-        if shown == split_hms(self._model.get(KEY_IDLE_TIMEOUT_SECONDS)):
+        if shown == split_hms(self._model.get(KEY_SLIDE_INTERVAL_SECONDS)):
             return
-        self._report(self._model.set_idle(*shown))
-        self._show_idle()
+        self._report(self._model.set_interval(*shown))
+        self._show_interval()
 
     def _on_choice(self, key: str) -> None:
         if self._updating:

@@ -122,26 +122,11 @@ def test_picture_folder_roundtrip(tmp_path):
 def test_idle_timeout_seconds_rejects_out_of_range(caplog):
     settings = Settings()
     with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
-        ok = settings.set_idle_timeout_seconds(999999)  # schema max is 86399
+        ok = settings.set_idle_timeout_seconds(999999)  # schema max is 86400
     assert ok is False
     assert settings.get_idle_timeout_seconds() == 120  # unchanged default
     assert any("[config]" in record.message for record in caplog.records)
     assert any("idle-timeout-seconds" in record.message for record in caplog.records)
-
-
-@pytest.mark.parametrize("value", [1, 59, 60, 3661, 86399])
-def test_idle_timeout_seconds_takes_00_00_01_up_to_23_59_59(value):
-    settings = Settings()
-    assert settings.set_idle_timeout_seconds(value) is True
-    assert settings.get_idle_timeout_seconds() == value
-
-
-@pytest.mark.parametrize("value", [0, 86400, 86401])
-def test_idle_timeout_seconds_takes_neither_00_00_00_nor_24_00_00(value):
-    settings = Settings()
-    assert settings.set_idle_timeout_seconds(300) is True
-    assert settings.set_idle_timeout_seconds(value) is False
-    assert settings.get_idle_timeout_seconds() == 300  # unchanged
 
 
 def test_idle_timeout_seconds_rejects_zero():
@@ -149,6 +134,21 @@ def test_idle_timeout_seconds_rejects_zero():
     settings = Settings()
     assert settings.set_idle_timeout_seconds(0) is False
     assert settings.get_idle_timeout_seconds() == 120
+
+
+@pytest.mark.parametrize("value", [1, 59, 60, 3600, 3661, 86399])
+def test_slide_interval_seconds_takes_00_00_01_up_to_23_59_59(value):
+    settings = Settings()
+    assert settings.set_slide_interval_seconds(value) is True
+    assert settings.get_slide_interval_seconds() == value
+
+
+@pytest.mark.parametrize("value", [0, 86400, 86401])
+def test_slide_interval_seconds_takes_neither_00_00_00_nor_24_00_00(value):
+    settings = Settings()
+    assert settings.set_slide_interval_seconds(30) is True
+    assert settings.set_slide_interval_seconds(value) is False
+    assert settings.get_slide_interval_seconds() == 30  # unchanged
 
 
 def test_order_rejects_unknown_choice(caplog):

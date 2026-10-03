@@ -138,29 +138,34 @@ def main() -> int:
     check(
         "the fields start from the stored defaults",
         (
-            window.idle_hours.get_value(),
-            window.idle_minutes.get_value(),
-            window.idle_seconds.get_value(),
+            window.idle_spin.get_value_as_int(),
             window.grace_spin.get_value_as_int(),
-            window.interval_spin.get_value_as_int(),
+            window.interval_hours.get_value(),
+            window.interval_minutes.get_value(),
+            window.interval_seconds.get_value(),
             window.order_drop.get_selected(),
             window.scaling_drop.get_selected(),
             window.pan_switch.get_active(),
         )
-        == (0, 2, 0, 0, 10, 0, 0, False),
+        == (120, 0, 0, 0, 10, 0, 0, False),
     )
     check(
-        "the idle time shows as HH:MM:SS beside the three sliders",
-        window.idle_total.get_label() == "00:02:00",
-        window.idle_total.get_label(),
+        "the slide interval shows as HH:MM:SS beside the three sliders",
+        window.interval_total.get_label() == "00:00:10",
+        window.interval_total.get_label(),
     )
     check(
         "the sliders run hours 0-23, minutes 0-59, seconds 0-59",
         [
             (w.get_adjustment().get_lower(), w.get_adjustment().get_upper())
-            for w in (window.idle_hours, window.idle_minutes, window.idle_seconds)
+            for w in (window.interval_hours, window.interval_minutes, window.interval_seconds)
         ]
         == [(0, 23), (0, 59), (0, 59)],
+    )
+    check(
+        "the idle time and the grace period are plain number fields",
+        window.idle_spin.get_adjustment().get_upper() == 86400
+        and window.grace_spin.get_adjustment().get_upper() == 86400,
     )
     check(
         "the folder field is empty and hints at the XDG default (D25)",
@@ -178,11 +183,11 @@ def main() -> int:
         screenshot(window, os.path.join(args.screenshot, "window.png"))
 
     # -- every field reaches the settings --------------------------------------------------
-    window.idle_minutes.set_value(5)
+    window.idle_spin.set_value(300)
     window.grace_spin.set_value(5)
-    window.interval_spin.set_value(20)
+    window.interval_seconds.set_value(20)
     check(
-        "the idle time and the two number fields are saved",
+        "the two number fields and the slide interval sliders are saved",
         (
             stored.get_idle_timeout_seconds(),
             stored.get_lock_grace_period_seconds(),
@@ -190,7 +195,7 @@ def main() -> int:
         )
         == (300, 5, 20),
     )
-    check("the HH:MM:SS line follows", window.idle_total.get_label() == "00:05:00")
+    check("the HH:MM:SS line follows", window.interval_total.get_label() == "00:00:20")
     check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
     window.order_drop.set_selected(CHOICES[KEY_ORDER].index("name"))
     window.scaling_drop.set_selected(CHOICES[KEY_SCALING].index("fit"))
@@ -219,14 +224,12 @@ def main() -> int:
         window.status.get_label(),
     )
     for text in ("abc", "", "99999", "-3", "1.5"):
-        window.interval_spin.set_text(text)
-        window.interval_spin.update()
+        window.idle_spin.set_text(text)
+        window.idle_spin.update()
         check(
             f"{text!r} in a number field changes nothing, the old value stays",
-            stored.get_slide_interval_seconds() == 20
-            and window.interval_spin.get_value_as_int() == 20,
-            f"stored {stored.get_slide_interval_seconds()}, "
-            f"field {window.interval_spin.get_text()!r}",
+            stored.get_idle_timeout_seconds() == 300 and window.idle_spin.get_value_as_int() == 300,
+            f"stored {stored.get_idle_timeout_seconds()}, field {window.idle_spin.get_text()!r}",
         )
     window.grace_spin.set_text("")  # known corner: an emptied grace field reads as 0, its minimum
     window.grace_spin.update()
@@ -236,50 +239,64 @@ def main() -> int:
         f"stored {stored.get_lock_grace_period_seconds()}",
     )
     window.grace_spin.set_value(5)
-    window.idle_hours.set_value(1)
-    window.idle_minutes.set_value(1)
-    window.idle_seconds.set_value(1)
+    window.interval_hours.set_value(1)
+    window.interval_minutes.set_value(1)
+    window.interval_seconds.set_value(1)
     check(
         "1 h 1 min 1 s is 3661 seconds and reads 01:01:01",
-        stored.get_idle_timeout_seconds() == 3661 and window.idle_total.get_label() == "01:01:01",
-        f"{stored.get_idle_timeout_seconds()} {window.idle_total.get_label()}",
+        stored.get_slide_interval_seconds() == 3661
+        and window.interval_total.get_label() == "01:01:01",
+        f"{stored.get_slide_interval_seconds()} {window.interval_total.get_label()}",
     )
-    window.idle_hours.set_value(23)
-    window.idle_minutes.set_value(59)
-    window.idle_seconds.set_value(59)
+    window.interval_hours.set_value(23)
+    window.interval_minutes.set_value(59)
+    window.interval_seconds.set_value(59)
     check(
-        "the longest idle time, 23:59:59, is 86399 seconds",
-        stored.get_idle_timeout_seconds() == 86399 and window.idle_total.get_label() == "23:59:59",
+        "the longest slide interval, 23:59:59, is 86399 seconds",
+        stored.get_slide_interval_seconds() == 86399
+        and window.interval_total.get_label() == "23:59:59",
     )
-    window.idle_hours.set_value(0)
-    window.idle_minutes.set_value(0)
-    window.idle_seconds.set_value(0)
+    window.interval_hours.set_value(0)
+    window.interval_minutes.set_value(0)
+    window.interval_seconds.set_value(0)
     pump(0.3)  # a slider set from its own handler is announced after the handler ended
     check(
         "all three sliders at zero become 00:00:01, shown and stored",
-        stored.get_idle_timeout_seconds() == 1
-        and window.idle_total.get_label() == "00:00:01"
-        and window.idle_seconds.get_value() == 1
+        stored.get_slide_interval_seconds() == 1
+        and window.interval_total.get_label() == "00:00:01"
+        and window.interval_seconds.get_value() == 1
         and "00:00:01" in window.status.get_label(),
-        f"{stored.get_idle_timeout_seconds()} {window.status.get_label()!r}",
+        f"{stored.get_slide_interval_seconds()} {window.status.get_label()!r}",
     )
-    stored.set_idle_timeout_seconds(300)
-    pump(1.0, until=lambda: window.idle_total.get_label() == "00:05:00")
+    window.interval_minutes.set_value(5)
     check(
-        "an idle time set elsewhere moves the sliders",
-        (window.idle_hours.get_value(), window.idle_minutes.get_value()) == (0, 5),
+        "a slider on the minimum can be moved up again",
+        stored.get_slide_interval_seconds() == 301
+        and window.interval_total.get_label() == "00:05:01",
+        f"{stored.get_slide_interval_seconds()} {window.interval_total.get_label()}",
     )
-    window.interval_spin.set_text("3600")
-    window.interval_spin.update()
-    check("the upper limit typed in is saved", stored.get_slide_interval_seconds() == 3600)
-    window.interval_spin.set_text("20")
-    window.interval_spin.update()
-    check("a typed number is saved", stored.get_slide_interval_seconds() == 20)
+    window.idle_spin.set_text("86400")
+    window.idle_spin.update()
+    check("the idle time still takes 86400", stored.get_idle_timeout_seconds() == 86400)
+    window.idle_spin.set_text("20")
+    window.idle_spin.update()
+    check("a typed number is saved", stored.get_idle_timeout_seconds() == 20)
     stored.set_slide_interval_seconds(77)  # another process changes a value
-    pump(1.0, until=lambda: window.interval_spin.get_value_as_int() == 77)
+    pump(1.0, until=lambda: window.interval_total.get_label() == "00:01:17")
     check(
-        "a change made elsewhere shows up in the window",
-        window.interval_spin.get_value_as_int() == 77,
+        "a slide interval set elsewhere moves the sliders",
+        (
+            window.interval_hours.get_value(),
+            window.interval_minutes.get_value(),
+            window.interval_seconds.get_value(),
+        )
+        == (0, 1, 17),
+    )
+    stored.set_idle_timeout_seconds(77)
+    pump(1.0, until=lambda: window.idle_spin.get_value_as_int() == 77)
+    check(
+        "an idle time set elsewhere shows up in the window",
+        window.idle_spin.get_value_as_int() == 77,
     )
 
     # -- the folder chooser: only the paths a headless run can reach ------------------------
