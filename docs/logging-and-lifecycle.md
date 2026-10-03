@@ -16,7 +16,7 @@ correct claim is **"automated tests green, live verification pending"** -- never
   journald fields (`PRIORITY`, `SYSLOG_IDENTIFIER`, `MESSAGE`).
 - `SYSLOG_IDENTIFIER=slideshow-lock`.
 - Every message is prefixed with a bracketed event tag, e.g. `[idle-trigger]`,
-  `[lock]`, `[sleep-inhibit]`, `[config]`, `[slideshow-dir]`, so filtering works
+  `[lock]`, `[sleep-inhibit]`, `[config]`, `[slideshow-dir]`, `[slideshow]`, so filtering works
   even without parsing structured fields.
 - Single-line messages only.
 

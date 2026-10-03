@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+# The job only reads the repository: no write scope for the token.
+permissions:
+  contents: read
+
 jobs:
   lint-test:
     name: lint, format, pytest, pot-extract
@@ -31,7 +35,11 @@ jobs:
             libcairo2-dev \
             pkg-config \
             gcc \
-            python3-dev
+            python3-dev \
+            gir1.2-gdkpixbuf-2.0 \
+            gir1.2-gst-plugins-base-1.0 \
+            gstreamer1.0-plugins-base \
+            gir1.2-gtk-4.0
           pip install PyGObject
 
       - name: Verify GI stack is actually usable (anti-silent-skip gate)
@@ -46,6 +54,17 @@ jobs:
           # job green".
           python3 -c "import gi; gi.require_version('GLib', '2.0'); from gi.repository import GLib; print('gi import OK:', gi.__version__)"
           glib-compile-schemas --version
+          # CORE-2: the scaling tests decode with GdkPixbuf and scale with GStreamer's
+          # videoscale. Without these typelibs tests/test_scaling_gdk.py skips its whole
+          # module, so a missing package must fail here, loudly, instead.
+          python3 -c "import gi; gi.require_version('GdkPixbuf', '2.0'); from gi.repository import GdkPixbuf; print('GdkPixbuf OK:', GdkPixbuf.PIXBUF_VERSION)"
+          python3 -c "import gi; gi.require_version('Gst', '1.0'); from gi.repository import Gst; Gst.init(None); assert Gst.ElementFactory.find('videoscale'), 'videoscale element missing'; print('GStreamer OK:', Gst.version_string())"
+          # CORE-2: tests/test_preview_app.py imports slideshow_lock.preview_app, which needs the
+          # GTK 4 typelibs (no display is opened). Without them the module fails at import, or
+          # would be skipped by an importorskip and caught only by the no-skip gate: a missing
+          # package is named here, up front, instead.
+          python3 -c "import gi; gi.require_version('Gtk', '4.0'); gi.require_version('Gdk', '4.0'); gi.require_version('Graphene', '1.0'); from gi.repository import Gtk, Gdk, Graphene; print('GTK OK:', Gtk.get_major_version(), Gtk.get_minor_version())"
+          python3 -c "import slideshow_lock.preview_app, slideshow_lock.preview_window; print('preview modules import OK')"
 
       - name: Install project (editable) with dev dependencies
         run: |

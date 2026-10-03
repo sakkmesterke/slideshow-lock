@@ -62,6 +62,8 @@ def test_defaults_match_brief_section_5():
     assert settings.get_slide_interval_seconds() == 10
     assert settings.get_order() == "random"
     assert settings.get_scaling() == "fill"
+    # Battery-sensitive animation: stays off until it is measured on the reference laptop.
+    assert settings.get_pan_portrait_images() is False
 
 
 # -- roundtrips -----------------------------------------------------------------
@@ -97,6 +99,14 @@ def test_scaling_roundtrip_both_choices():
     settings = Settings()
     assert settings.set_scaling("fit") is True
     assert settings.get_scaling() == "fit"
+
+
+def test_pan_portrait_images_roundtrip():
+    settings = Settings()
+    assert settings.set_pan_portrait_images(True) is True
+    assert settings.get_pan_portrait_images() is True
+    assert settings.set_pan_portrait_images(False) is True
+    assert settings.get_pan_portrait_images() is False
 
 
 def test_picture_folder_roundtrip(tmp_path):
@@ -139,6 +149,16 @@ def test_scaling_rejects_unknown_choice():
     settings = Settings()
     assert settings.set_scaling("stretch") is False
     assert settings.get_scaling() == "fill"
+
+
+def test_pan_portrait_images_rejects_values_that_are_not_a_real_bool(caplog):
+    # Gio would happily store the truthiness of "no" or 1, so the wrapper must refuse them.
+    settings = Settings()
+    for bad in ("no", "false", 1, 0, None, [], "yes"):
+        with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+            assert settings.set_pan_portrait_images(bad) is False
+        assert settings.get_pan_portrait_images() is False  # unchanged default
+    assert any("pan-portrait-images" in record.message for record in caplog.records)
 
 
 # -- acceptance criterion 1: no restart needed ---------------------------------

@@ -222,25 +222,47 @@ def large_tree_walk(tmp_path_factory):
     src.connect_current_changed(lambda _path: found_at.append(time.monotonic()))
     src.start()
 
+    # Wall-clock numbers are only reported. What the assertions use is the CPU time of this
+    # thread (``cpu_*``): on a loaded machine a step can be descheduled for tens of milliseconds
+    # between two clock reads (measured: the wall-clock assertions failed in most runs with eight
+    # test runs on two cores), which says nothing about the walk. A walk that ignores its budget
+    # is a step that is busy for the whole walk, and that shows in CPU time all the same.
+    # What this guards is the cost budget. CPU time does not see a blocking call or a sleep
+    # (a step that waits on a slow file system is not busy), and a wall-clock threshold does not
+    # separate that from a loaded machine (measured: 54-489 ms for the longest step with eight
+    # runs on two cores). A blocked step is covered by a hand measurement on a real slow mount,
+    # not by this test; ``test_criterion2_a_step_does_the_work_of_its_budget_and_not_more`` below
+    # checks the budget logic itself on a fake clock.
     walk = SimpleNamespace(
-        total=total, budget=STEP_BUDGET, steps_to_first=0, longest_step=0.0, step_times=[]
+        total=total,
+        budget=STEP_BUDGET,
+        steps_to_first=0,
+        longest_step=0.0,
+        step_times=[],
+        cpu_step_times=[],
     )
     t_start = time.monotonic()
+    cpu_start = time.thread_time()
     while True:
         t0 = time.monotonic()
+        cpu0 = time.thread_time()
         more = scheduler.run_one()
         now = time.monotonic()
+        cpu_now = time.thread_time()
         walk.longest_step = max(walk.longest_step, now - t0)
         walk.step_times.append(now - t0)
+        walk.cpu_step_times.append(cpu_now - cpu0)
         if len(src) and not walk.steps_to_first:
             walk.steps_to_first = scheduler.steps_run
             walk.queue_at_first = len(src)
             walk.complete_at_first = src.scan_complete
             walk.first_returned = now - t_start  # main loop has control again, image in queue
+            walk.cpu_first_returned = cpu_now - cpu_start
             walk.first_found = found_at[0] - t_start
         if not more:
             break
     walk.full = time.monotonic() - t_start
+    walk.cpu_full = time.thread_time() - cpu_start
     walk.steps = scheduler.steps_run
     walk.images = len(src)
     return walk
@@ -274,21 +296,79 @@ def test_criterion2_the_walk_is_split_into_many_steps(large_tree_walk):
 
 
 def test_criterion2_no_single_step_runs_much_longer_than_the_step_budget(large_tree_walk):
-    """Noise tolerant: one slow step (a scheduler hiccup on a busy machine) is allowed, two
-    are not, and the slowest step must stay well below the whole walk. A walk that ignores
-    the budget is a single step as long as the whole walk, so it fails the second check
-    (and the deterministic step-count tests above)."""
+    """Noise tolerant: one slow step is allowed, two are not, and the slowest step must stay
+    well below the whole walk. A walk that ignores the budget is a single step as long as the
+    whole walk, so it fails the second check (and the deterministic step-count tests above).
+    Measured in CPU time of the walking thread (see the fixture): a busy machine delays a
+    step without making it do more.
+
+    Blind spot, measured by QA: CPU time does not see a wait. A step that sleeps 150 to 500 ms
+    (mutants wb10, wb11, wb12) passes this test; a blocking call is not what it guards."""
     w = large_tree_walk
-    times = sorted(w.step_times)
+    times = sorted(w.cpu_step_times)
     second_slowest = times[-2] if len(times) >= 2 else times[-1]
     assert second_slowest < 10 * w.budget
-    assert times[-1] < w.full / 2
+    assert times[-1] < w.cpu_full / 2
 
 
 def test_criterion2_main_loop_has_the_first_image_long_before_the_full_walk_ends(large_tree_walk):
+    """CPU time again, so the same blind spot: a sleeping step is not seen (see the test of the
+    step length above)."""
     w = large_tree_walk
-    assert w.first_returned < 10 * w.budget
-    assert w.first_returned < w.full / 4
+    assert w.cpu_first_returned < 10 * w.budget  # CPU time, see the fixture
+    assert w.cpu_first_returned < w.cpu_full / 4
+
+
+class _TickingTime:
+    """``time`` for the image source with a clock that moves one unit per reading and never by
+    itself: how much work a step does within its budget no longer depends on the machine."""
+
+    def __init__(self):
+        self.now = 0.0
+
+    def monotonic(self):
+        self.now += 1.0
+        return self.now
+
+    def __getattr__(self, name):
+        return getattr(time, name)
+
+
+def test_criterion2_a_step_does_the_work_of_its_budget_and_not_more(
+    tmp_path, backends, monkeypatch
+):
+    """Deterministic: the budget is eight clock units, and the clock moves one unit per reading,
+    so a step may do at most eight units of work (one more for the reading that ends it). A walk
+    that ignores the budget, one that checks the clock only every so many units, and one that
+    widens the budget fail this on any machine, whatever one unit of work costs. Complements the
+    CPU-time test above, which measures real time and does not replace this one."""
+    for folder in range(10):
+        for number in range(12):
+            make_image(tmp_path / f"d{folder}" / f"img{number:02d}.png")
+    monkeypatch.setattr("slideshow_lock.image_source.time", _TickingTime())
+    src = make_source(tmp_path, backends, step_budget_seconds=8.0)
+    done = []
+    real_work = src._work
+
+    def counting_work():
+        did = real_work()
+        if did:
+            done.append(1)
+        return did
+
+    monkeypatch.setattr(src, "_work", counting_work)
+    src.start()
+    per_step = []
+    while True:
+        before = len(done)
+        more = backends[1].run_one()
+        per_step.append(len(done) - before)
+        if not more:
+            break
+    assert len(src) == 120
+    assert len(per_step) >= 15  # the walk really is cut into steps
+    assert max(per_step) <= 8 + 1
+    assert max(per_step) >= 8  # and a step does use its budget: no step of one unit each
 
 
 # -- criterion 3: live monitoring in both directions --------------------------------
@@ -1207,3 +1287,39 @@ def test_probe_opens_without_blocking_and_without_a_controlling_terminal(tmp_pat
     monkeypatch.setattr("slideshow_lock.image_source.os.open", recording_open)
     probe_image(make_image(tmp_path / "a.png"))
     assert seen and seen[0] & os.O_NONBLOCK and seen[0] & os.O_NOCTTY
+
+
+#: What each format's first bytes look like, and the name gdk-pixbuf gives the format. Checked on
+#: the bytes alone (no loader), so the result is the same on a machine without a WebP or TIFF
+#: loader: ``probe_loadable`` compares this name with the names of the loaders.
+HEADERS = [
+    ("jpeg", b"\xff\xd8\xff\xe0" + bytes(12)),
+    ("png", PNG),
+    ("gif", b"GIF87a" + bytes(10)),
+    ("gif", b"GIF89a" + bytes(10)),
+    ("bmp", b"BM" + bytes(14)),
+    ("tiff", b"II*\x00" + bytes(12)),
+    ("tiff", b"MM\x00*" + bytes(12)),
+    ("webp", b"RIFF\x10\x00\x00\x00WEBPVP8 "),
+]
+
+
+@pytest.mark.parametrize("name,head", HEADERS, ids=[f"{n}-{h[:6]!r}" for n, h in HEADERS])
+def test_probe_names_the_format_the_way_gdk_pixbuf_does(tmp_path, name, head):
+    assert probe_image(make_image(tmp_path / "x.img", head)) == name
+
+
+@pytest.mark.parametrize(
+    "head",
+    [
+        b"RIFF\x10\x00\x00\x00WAVEfmt ",  # a RIFF file that is not WebP
+        b"RIFF\x10\x00\x00\x00AVI LIST",
+        b"FORM\x10\x00\x00\x00WEBPVP8 ",  # the WebP tag without the RIFF one
+        b"GIF88a" + bytes(10),
+        b"II*\x01" + bytes(12),
+    ],
+    ids=["wave", "avi", "webp-tag-only", "gif88a", "tiff-bad-magic"],
+)
+def test_probe_rejects_a_header_that_only_looks_like_a_known_one(tmp_path, head):
+    with pytest.raises(ValueError, match="not a recognised image header"):
+        probe_image(make_image(tmp_path / "x.img", head))

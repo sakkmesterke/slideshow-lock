@@ -51,7 +51,7 @@ import os
 import random
 import stat
 import time
-from typing import Callable, Deque, Dict, List, Optional, Set, Tuple
+from typing import Any, Callable, Deque, Dict, List, Optional, Set, Tuple
 
 _LOG = logging.getLogger(__name__)
 
@@ -98,14 +98,20 @@ WatcherFactory = Callable[[str, EventCallback], Optional[Callable[[], None]]]
 Scheduler = Callable[[Callable[[], bool]], Callable[[], None]]
 
 
-def probe_image(path: str) -> None:
-    """Raise if *path* is not a readable file with a known image header.
+def probe_image(path: str) -> str:
+    """Raise if *path* is not a readable file with a known image header; else its format name.
 
     ``OSError`` means unreadable, ``ValueError`` means not a regular file, empty,
     or not a known image format. Opened ``O_NONBLOCK`` and checked with ``fstat``
     on the open descriptor, so a file swapped for a FIFO after the directory
     listing cannot hang the walk (TOCTOU). A stuck network mount can still block
-    ``open()`` in the kernel; that is not something this call can prevent.
+    ``open()`` in the kernel, and the same goes for the directory listing (``os.scandir``)
+    and the ``stat`` calls of the walk; that is not something this call can prevent, and the
+    tests of the step budget do not see it (they measure CPU time and a fake clock).
+
+    The name is the one gdk-pixbuf uses for the format (``"jpeg"``, ``"png"``, ``"gif"``,
+    ``"bmp"``, ``"tiff"``, ``"webp"``), so a caller can tell what the header said without
+    opening the file a second time.
     """
     fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY | os.O_CLOEXEC)
     try:
@@ -116,15 +122,19 @@ def probe_image(path: str) -> None:
         os.close(fd)
     if not head:
         raise ValueError("empty file")
-    if not (
-        head.startswith(b"\xff\xd8\xff")  # JPEG
-        or head.startswith(b"\x89PNG\r\n\x1a\n")
-        or head.startswith((b"GIF87a", b"GIF89a"))
-        or head.startswith(b"BM")
-        or head.startswith((b"II*\x00", b"MM\x00*"))  # TIFF
-        or (head[:4] == b"RIFF" and head[8:12] == b"WEBP")
-    ):
-        raise ValueError("not a recognised image header")
+    if head.startswith(b"\xff\xd8\xff"):
+        return "jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if head.startswith((b"GIF87a", b"GIF89a")):
+        return "gif"
+    if head.startswith(b"BM"):
+        return "bmp"
+    if head.startswith((b"II*\x00", b"MM\x00*")):
+        return "tiff"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    raise ValueError("not a recognised image header")
 
 
 def _now() -> float:
@@ -146,6 +156,9 @@ class _BurstLog:
         self._suppressed = 0
 
     def warn(self, message: str, *args) -> None:
+        self.log(logging.WARNING, message, *args)
+
+    def log(self, level: int, message: str, *args) -> None:
         now = _now()
         if self._window_start is None or now - self._window_start >= LOG_WINDOW_SECONDS:
             self.flush()
@@ -153,7 +166,7 @@ class _BurstLog:
             self._emitted = 0
         if self._emitted < LOG_FIRST_N:
             self._emitted += 1
-            _LOG.warning(message, *args)
+            _LOG.log(level, message, *args)
         else:
             self._suppressed += 1
 
@@ -226,7 +239,7 @@ class ImageSource:
         folder: str,
         *,
         order: str = ORDER_RANDOM,
-        probe: Callable[[str], None] = probe_image,
+        probe: Callable[[str], Any] = probe_image,
         watcher: Optional[WatcherFactory] = None,
         scheduler: Optional[Scheduler] = None,
         rng: Optional[random.Random] = None,
