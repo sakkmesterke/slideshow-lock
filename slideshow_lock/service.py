@@ -200,7 +200,8 @@ def build_service(
 ) -> Service:
     """Probe the interfaces, make the adapters, wire the state machine and the sleep guard, and
     enable the machine. Call it on the thread of the main loop. Raises if the sleep path cannot
-    be set up (``UnsupportedSessionInterface``, ``OSError``): the service must not run without it.
+    be set up (``UnsupportedSessionInterface``, ``OSError``, a bus error): the service must not
+    run without it.
     """
     to_main = to_main or current_poster()
     closers: List[Callable] = []
@@ -366,7 +367,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             state["service"] = build_service(
                 session, system, settings, PreviewSlideshow(controller, source)
             )
-        except (UnsupportedSessionInterface, OSError, TimeoutError) as exc:
+        except Exception as exc:
+            # Any failure, not a list of known ones: a GLib.Error from a bus call that is not an
+            # UnsupportedSessionInterface would otherwise leave the held application running
+            # with no sleep guard, exit status 0 and nothing in the log.
             fail("[sleep-inhibit] the lock before suspend cannot be set up (%s): not running", exc)
             return
         _LOG.info("[config] service running (stored settings are not written)")
