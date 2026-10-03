@@ -128,6 +128,19 @@ class _Subscriptions:
                 lambda _c, _sender, _path, _iface, _signal, params: handler(params),
             )
         )
+        # ``signal_subscribe`` only queues the match rule for the bus daemon. A round trip on the
+        # same connection comes after it, so once ``add`` returns no signal can be missed.
+        self._conn.call_sync(
+            "org.freedesktop.DBus",
+            "/org/freedesktop/DBus",
+            "org.freedesktop.DBus",
+            "GetId",
+            None,
+            GLib.VariantType("(s)"),
+            Gio.DBusCallFlags.NONE,
+            CALL_TIMEOUT_MS,
+            None,
+        )
 
     def close(self) -> None:
         ids, self._ids = self._ids, []
@@ -448,7 +461,7 @@ class Login1Sleep:
                 None,
             )
             index = result.get_child_value(0).get_handle()
-            fd = fds.get(index)
+            fd = fds.steal_fds()[index]  # ours alone: ``get`` would leave a copy in the list
         except GLib.Error as exc:
             raise UnsupportedSessionInterface("login1.Manager.Inhibit", exc.message) from exc
         return _FdInhibitor(fd)

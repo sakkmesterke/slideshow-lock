@@ -115,7 +115,17 @@ class Desktop:
     """``with Desktop() as d:`` -> ``d.session`` and ``d.system`` are connections for the
     adapters (their own, separate from the ones the services use)."""
 
-    def __init__(self, *, screensaver: bool = True, idle_monitor: bool = True) -> None:
+    def __init__(
+        self,
+        *,
+        screensaver: bool = True,
+        idle_monitor: bool = True,
+        session_address: Optional[str] = None,
+    ) -> None:
+        """*session_address*: serve on an existing session bus (a compositor's, in the smoke
+        tool) instead of a private daemon; give ``idle_monitor=False`` there, the compositor has
+        its own."""
+        self._session_address = session_address
         self._with_screensaver = screensaver
         self._with_idle_monitor = idle_monitor
         self.watches: Dict[int, str] = {}  # id -> "idle" | "active"
@@ -138,12 +148,14 @@ class Desktop:
 
     def __enter__(self) -> "Desktop":
         self._dir = tempfile.mkdtemp(prefix="slideshow-lock-dbus-")
-        self._session_daemon = _Daemon(self._dir, "session")
+        self._session_daemon = None if self._session_address else _Daemon(self._dir, "session")
         self._system_daemon = _Daemon(self._dir, "system")
+        self.session_address = self._session_address or self._session_daemon.address
+        self.system_address = self._system_daemon.address
         self.service_loop = LoopThread("fake-desktop")
         self.service_loop.call(self._serve)
-        self.session = _connect(self._session_daemon.address)
-        self.system = _connect(self._system_daemon.address)
+        self.session = _connect(self.session_address)
+        self.system = _connect(self.system_address)
         return self
 
     def __exit__(self, *exc) -> None:
@@ -156,7 +168,8 @@ class Desktop:
                 os.close(write_fd)
             except OSError:
                 pass
-        self._session_daemon.stop()
+        if self._session_daemon is not None:
+            self._session_daemon.stop()
         self._system_daemon.stop()
         shutil.rmtree(self._dir, ignore_errors=True)
 
@@ -165,8 +178,8 @@ class Desktop:
             conn.close_sync(None)
 
     def _serve(self) -> None:
-        self._svc_session = _connect(self._session_daemon.address)
-        self._svc_system = _connect(self._system_daemon.address)
+        self._svc_session = _connect(self.session_address)
+        self._svc_system = _connect(self.system_address)
         if self._with_idle_monitor:
             self._register(
                 self._svc_session,

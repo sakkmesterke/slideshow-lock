@@ -286,6 +286,8 @@ class StateMachine:
                     "[lock] the session was locked while the slideshow ran: slideshow stopped"
                 )
                 self._finish_slideshow()
+            if self._state is not State.LOCKED:
+                _LOG.info("[lock] session is locked")
             self._state = State.LOCKED
         elif self._state is State.LOCKED:
             _LOG.info("[lock] session unlocked")

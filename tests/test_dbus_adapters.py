@@ -13,6 +13,8 @@ where there is no ``dbus-daemon``.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from slideshow_lock import dbus_adapters as adapters
@@ -21,7 +23,11 @@ from tests.fake_dbus import Desktop, dbus_daemon_available, wait_for
 
 pytestmark = [
     pytest.mark.spawns_processes,
-    pytest.mark.skipif(not dbus_daemon_available(), reason="no dbus-daemon on this machine"),
+    # CI installs it and checks for it; a skip there would be a silent loss (the no-skip gate)
+    pytest.mark.skipif(
+        not dbus_daemon_available() and not os.environ.get("CI"),
+        reason="no dbus-daemon on this machine",
+    ),
 ]
 
 
@@ -161,7 +167,7 @@ def test_the_delay_inhibitor_is_a_sleep_delay_lock_whose_fd_release_lets_go(desk
     assert (what, mode) == ("sleep", "delay") and who and why
     assert desktop.held == 1
     inhibitor.release()
-    assert desktop.held == 0
+    assert wait_for(lambda: desktop.held == 0)  # the fake's own copy goes when its message does
     inhibitor.release()  # idempotent
     sleep.close()
 
