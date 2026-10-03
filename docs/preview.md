@@ -144,12 +144,14 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 - Pan costs redraws: with the headless compositor, a static picture was redrawn 1 to 2 times, a
   panning portrait picture 103 times over a 2 s interval and 162 times over 3 s. That is the reason
   for the switch. It says nothing about watts.
-- Main-loop gaps (a 10 ms timer, software GL, two virtual monitors): the longest gap was 42 to
-  88 ms over about a dozen runs. In the three runs where the gaps were sorted by time it fell
+- Main-loop gaps (a 10 ms timer, software GL, two virtual monitors): the longest gap was 41 to
+  110 ms over some twenty runs. In the three runs where the gaps were sorted by time it fell
   within 0.6 s after a picture appeared (54 to 78 ms, against 28 to 34 ms at all other times),
   which is texture upload and drawing; with the decoding cached the longest gap was still 44 to
   54 ms. File I/O, decoding and scaling are not on the main loop (tests), but the texture upload
   is, and on software GL it is not small. On a GPU it was not measured.
+- The tests also ran on a second stack, the CI runner image: GStreamer 1.24.2, gdk-pixbuf 2.42.10,
+  PyGObject 3.58, Python 3.12 (358 tests, none skipped).
 
 ## 8. Tests, and what they do not prove
 
