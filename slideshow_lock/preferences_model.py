@@ -50,7 +50,7 @@ INTERVAL_STOPS = (
 )
 
 #: Where each step sits on the slider, which runs 0 to ``INTERVAL_SLIDER_MAX``. The left half
-#: (0-240) holds the 60 one-second steps 4 apart; the right half (240-480) holds the 16 steps
+#: (0-236) holds the 60 one-second steps 4 apart; the right half (255-480) holds the 16 steps
 #: above one minute, 15 apart, the last one at the very end. The slider is therefore half seconds
 #: and half the round values, as asked, and a step of the slider is a step of the scale.
 INTERVAL_SLIDER_MAX = 480
