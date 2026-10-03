@@ -4,6 +4,8 @@
 #   ./run.sh check              look for the dependencies, install nothing
 #   ./run.sh preview [args...]  the fullscreen preview (never locks), args go to preview_app
 #   ./run.sh settings           the settings window
+#   ./run.sh service [args...]  the whole chain in the foreground (idle, slideshow, lock), args go
+#                               to slideshow_lock.service, e.g. --idle-timeout 20 --grace 3
 #
 # The settings schema is compiled into ${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/schemas.
 set -euo pipefail
@@ -20,6 +22,8 @@ usage() {
 usage: ./run.sh check              look for the dependencies (installs nothing)
        ./run.sh preview [args...]  fullscreen preview, e.g. --interval 5 (never locks)
        ./run.sh settings           the settings window
+       ./run.sh service [args...]  idle, slideshow and lock in the foreground, e.g.
+                                   --idle-timeout 20 --grace 3 (Ctrl+C stops it)
 EOF
 }
 
@@ -60,7 +64,7 @@ check_typelib() {
     fi
 }
 
-# Looks for everything the preview and the settings window load. VERBOSE=1 prints the ok lines.
+# Looks for everything the preview, the settings window and the service load. VERBOSE=1 prints the ok lines.
 do_check() {
     MISSING=0
 
@@ -160,6 +164,12 @@ case "${1:-}" in
         do_check || exit 1
         prepare_env
         exec python3 -m slideshow_lock.preferences
+        ;;
+    service)
+        shift
+        do_check || exit 1
+        prepare_env
+        exec python3 -m slideshow_lock.service "$@"
         ;;
     -h | --help | help)
         usage
