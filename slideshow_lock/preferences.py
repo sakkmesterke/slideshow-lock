@@ -15,11 +15,11 @@ or mouse movement ends it. There is no on/off switch here: that goes through the
 unit (D4), which is not part of this window.
 
 The slide interval is one slider and a big HH:MM:SS line above it; it is stored in seconds in
-the same key as before, from 00:00:01 to 23:59:59. The left half of the slider is every second
-from 1 to 60, the right half snaps to round values up to 24 hours (see ``INTERVAL_STOPS``); an
-arrow key moves one step of that scale. A stored value that is not a step is shown at the
-nearest one and stays stored until the user moves the slider. The idle time and the lock
-grace period are plain number fields.
+the same key as before, from 00:00:01 to 23:59:59. The slider is four equal quarters: every second
+from 1 to 10, every 5 seconds from 10 to 60, round minutes from 1 to 60, round hours from 1 to 24
+(see ``INTERVAL_STOPS``); an arrow key moves one step of that scale. A stored value that is not a
+step is shown at the nearest one and stays stored until the user moves the slider. The idle time
+and the lock grace period are plain number fields.
 
 Plain Gtk widgets, not libadwaita: the CI has no libadwaita typelib and the spec lists no
 libadwaita package for the CI, so the groups are drawn with a few CSS rules of this module
@@ -299,21 +299,18 @@ class PreferencesWindow(Gtk.Window):
         return group
 
     def _interval_slider(self) -> Gtk.Scale:
-        """The slide-interval slider. Its position is not the seconds: the left half is the seconds
-        1 to 60, the right half the round values above (``INTERVAL_STOPS``). Every position is
+        """The slide-interval slider. Its position is not the seconds: it is four equal quarters of
+        seconds, 5-second steps, minutes and hours (``INTERVAL_STOPS``). Every position is
         snapped to a step; the keys and the wheel move one step, which the default handling of a
         scale could not (a one-unit move would snap back)."""
         scale = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, INTERVAL_SLIDER_MAX, 1)
         scale.set_draw_value(False)
         scale.set_hexpand(True)
         scale.set_size_request(380, -1)
-        for seconds, label in (
-            (1, _("1 s")),
-            (30, _("30 s")),
+        for seconds, label in (  # the ends of the quarters and of the slider
+            (10, _("10 s")),
             (60, _("1 min")),
-            (600, _("10 min")),
             (3600, _("1 h")),
-            (21600, _("6 h")),
             (INTERVAL_STOPS[-1], _("24 h")),
         ):
             scale.add_mark(interval_position_for_seconds(seconds), Gtk.PositionType.BOTTOM, label)

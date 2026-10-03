@@ -36,27 +36,44 @@ from slideshow_lock.settings import (
 INTERVAL_MIN_SECONDS = 1
 INTERVAL_MAX_SECONDS = 23 * 3600 + 59 * 60 + 59
 
-#: The steps of the slide-interval slider, in seconds. The left half is every second from 1 to 60;
-#: the right half, above one minute, snaps to round values (2, 3, 5, 10, 15, 20, 30, 45 minutes,
-#: then 1, 2, 3, 4, 6, 8, 12 hours) and ends at the longest interval, 23:59:59 ("24 hours").
-#: One minute is the last step of the left half only: it is not on the scale twice. Whole hours
-#: from 1 to 24 would be 24 steps for a half that is meant to be coarse; the list above is kept
-#: because it has the round values people ask for, and it needs no more room.
+#: The steps of the slide-interval slider, in seconds. The slider is split into four equal
+#: quarters of its length:
+#:   1st: 1 to 10 s, every second;
+#:   2nd: 10 to 60 s, every 5 seconds;
+#:   3rd: 1 to 60 minutes, round values (1, 2, 3, 5, 10, 15, 20, 30, 45, 60);
+#:   4th: 1 to 24 hours, round values (1, 2, 3, 4, 6, 8, 12, 24); the end is the longest interval,
+#:        23:59:59 (86399 s), shown as "24 h" under the slider.
+#: A step where two quarters meet (10 s, 1 minute, 1 hour) is one step, not two: 36 steps in all.
 INTERVAL_STOPS = (
-    *range(1, 61),
-    *(m * 60 for m in (2, 3, 5, 10, 15, 20, 30, 45)),
-    *(h * 3600 for h in (1, 2, 3, 4, 6, 8, 12)),
+    *range(1, 11),
+    *range(15, 61, 5),
+    *(m * 60 for m in (2, 3, 5, 10, 15, 20, 30, 45, 60)),
+    *(h * 3600 for h in (2, 3, 4, 6, 8, 12)),
     INTERVAL_MAX_SECONDS,
 )
 
-#: Where each step sits on the slider, which runs 0 to ``INTERVAL_SLIDER_MAX``. The left half
-#: (0-236) holds the 60 one-second steps 4 apart; the right half (255-480) holds the 16 steps
-#: above one minute, 15 apart, the last one at the very end. The slider is therefore half seconds
-#: and half the round values, as asked, and a step of the slider is a step of the scale.
-INTERVAL_SLIDER_MAX = 480
+#: A quarter of the slider's length, in slider positions. 630 is the smallest length that every
+#: quarter's steps divide evenly: the quarters hold 9, 10, 9 and 7 equal gaps between steps.
+_QUARTER = 630
+
+
+def _spread(start: int, gaps: int) -> tuple:
+    """The positions of the *gaps* steps after *start*: one quarter, cut into equal gaps."""
+    assert _QUARTER % gaps == 0, "a quarter must divide evenly into its gaps"
+    return tuple(start + _QUARTER // gaps * k for k in range(1, gaps + 1))
+
+
+#: Where each step sits on the slider, which runs 0 to ``INTERVAL_SLIDER_MAX``. Each quarter is a
+#: quarter of the length (25 %, 50 %, 75 % and 100 % are 10 s, 1 minute, 1 hour and the end), and
+#: its steps are spread evenly inside it, so the gap between steps is 70, 63, 70 and 90 positions
+#: in the four quarters. A step of the slider is a step of the scale.
+INTERVAL_SLIDER_MAX = 4 * _QUARTER
 INTERVAL_POSITIONS = (
-    *(4 * n for n in range(60)),
-    *(240 + 15 * (k + 1) for k in range(len(INTERVAL_STOPS) - 60)),
+    0,
+    *_spread(0, 9),  # 2 s ... 10 s
+    *_spread(_QUARTER, 10),  # 15 s ... 1 min
+    *_spread(2 * _QUARTER, 9),  # 2 min ... 1 h
+    *_spread(3 * _QUARTER, 7),  # 2 h ... the end
 )
 
 #: (minimum, maximum) of the whole-number keys, in seconds. The same as the schema's ranges.
@@ -148,7 +165,7 @@ def interval_index_for_position(position) -> int:
 
 
 def interval_seconds_for_position(position) -> int:
-    """Seconds of the step nearest to a raw slider position: 0 -> 1, 480 -> 86399."""
+    """Seconds of the step nearest to a raw slider position: 0 -> 1, the slider's end -> 86399."""
     return INTERVAL_STOPS[interval_index_for_position(position)]
 
 
@@ -159,7 +176,7 @@ def snap_interval_position(position) -> int:
 
 def step_interval_position(position, steps: int) -> int:
     """The position *steps* steps of the scale from *position* (negative: towards the short end),
-    stopping at the ends. One step is one second up to a minute, then the next round value."""
+    stopping at the ends. One step is the next value of the scale, not a distance on the slider."""
     index = interval_index_for_position(position) + steps
     return INTERVAL_POSITIONS[max(0, min(index, len(INTERVAL_STOPS) - 1))]
 
