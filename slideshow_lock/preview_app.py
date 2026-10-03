@@ -10,7 +10,12 @@ to this run. Without ``--folder`` and the other options the stored settings are 
 
 ``start_preview`` is the part the settings window (UI-1) and the service (CORE-1) will
 call: it builds the controller from the real GTK windows, the real scaler and the GLib
-clock and worker.
+clock and worker. ``build_source`` builds the source for it (with the loader probe).
+
+``Gtk.Application`` registers itself on the session bus, which opens one session-bus
+connection (measured). That is application registration, not a lock call: nothing here
+calls the session, screensaver or login manager (the test in ``tests/test_preview.py``
+scans for exactly that).
 """
 
 from __future__ import annotations
@@ -32,7 +37,7 @@ from slideshow_lock import APP_ID, _  # noqa: E402
 from slideshow_lock.image_source import ImageSource, source_from_settings  # noqa: E402
 from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  # noqa: E402
 from slideshow_lock.preview_window import open_monitor_windows  # noqa: E402
-from slideshow_lock.scaling import ImageScaler  # noqa: E402
+from slideshow_lock.scaling import ImageScaler, probe_loadable  # noqa: E402
 from slideshow_lock.settings import (  # noqa: E402
     KEY_ORDER,
     KEY_PAN_PORTRAIT_IMAGES,
@@ -74,6 +79,12 @@ class SessionSettings:
         return self._get(KEY_PAN_PORTRAIT_IMAGES, self._settings.get_pan_portrait_images)
 
 
+def build_source(settings) -> ImageSource:
+    """The image source for a preview: not started, and with the loader probe in place, so a
+    picture that no installed gdk-pixbuf loader can read never gets into the queue."""
+    return source_from_settings(settings, probe=probe_loadable)
+
+
 def start_preview(settings, source: ImageSource) -> PreviewController:
     """Open the preview windows and start showing. *source* must be started by the caller.
 
@@ -104,6 +115,25 @@ def _parse(argv: Optional[List[str]]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def overrides_from_args(args: argparse.Namespace) -> dict:
+    """The settings this run replaces, from the command line. Raises ``ValueError`` (with the
+    message to print) for a value outside its range. Nothing is replaced unless it was given."""
+    overrides = {}
+    if args.folder is not None:
+        overrides[KEY_PICTURE_FOLDER] = args.folder
+    if args.interval is not None:
+        if not 1 <= args.interval <= 3600:
+            raise ValueError(_("The interval must be between 1 and 3600 seconds."))
+        overrides[KEY_SLIDE_INTERVAL_SECONDS] = args.interval
+    if args.order is not None:
+        overrides[KEY_ORDER] = args.order
+    if args.scaling is not None:
+        overrides[KEY_SCALING] = args.scaling
+    if args.pan:
+        overrides[KEY_PAN_PORTRAIT_IMAGES] = True
+    return overrides
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     args = _parse(argv)
     logging.basicConfig(
@@ -122,20 +152,11 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
         return 2
 
-    overrides = {}
-    if args.folder is not None:
-        overrides[KEY_PICTURE_FOLDER] = args.folder
-    if args.interval is not None:
-        if not 1 <= args.interval <= 3600:
-            print(_("The interval must be between 1 and 3600 seconds."), file=sys.stderr)
-            return 2
-        overrides[KEY_SLIDE_INTERVAL_SECONDS] = args.interval
-    if args.order is not None:
-        overrides[KEY_ORDER] = args.order
-    if args.scaling is not None:
-        overrides[KEY_SCALING] = args.scaling
-    if args.pan:
-        overrides[KEY_PAN_PORTRAIT_IMAGES] = True
+    try:
+        overrides = overrides_from_args(args)
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     settings = SessionSettings(Settings(), overrides)
 
     app = Gtk.Application(application_id=APP_ID + ".Preview")
@@ -143,7 +164,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     def on_activate(application: Gtk.Application) -> None:
         application.hold()
-        source = source_from_settings(settings)
+        source = build_source(settings)
         source.start()
         controller = start_preview(settings, source)
         state["source"], state["controller"] = source, controller

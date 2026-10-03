@@ -16,6 +16,7 @@ import pytest
 from slideshow_lock import scaling
 from slideshow_lock.scaling import (
     MAX_PAN_PIXEL_FACTOR,
+    MAX_PIXELS,
     MAX_TEXTURE_SIDE,
     ImageSkipped,
     bmp_is_complete,
@@ -159,6 +160,39 @@ def test_ac4_an_extremely_tall_picture_is_not_panned_in_one_giant_frame():
     assert plan.out[0] * plan.out[1] <= MAX_PAN_PIXEL_FACTOR * 1920 * 1080
 
 
+def test_ac4_a_portrait_picture_on_a_portrait_monitor_is_panned_when_it_overflows_vertically():
+    # 1:3 picture on a 9:16 monitor: the picture is narrower than the monitor, so its width
+    # is the limiting side and its height overflows. "Portrait on portrait" is not the rule.
+    plan = plan_render(1000, 3000, 1080, 1920, "fill", pan=True)
+    assert plan.pan_range == (0, 1320)
+    assert plan.out == (1080, 3240)
+    # 3:4 picture on the same monitor is wider than the monitor: the height limits, no pan
+    assert plan_render(3000, 4000, 1080, 1920, "fill", pan=True).pan_range == (0, 0)
+
+
+def test_ac4_a_panning_frame_of_more_than_six_monitors_is_cropped_instead():
+    """The limit that binds on a 1080p monitor is the pixel factor, not the texture side."""
+    just_inside = plan_render(1000, 3000, 1920, 1080, "fill", pan=True)  # 1920 x 5760
+    assert just_inside.pan_range == (0, 5760 - 1080)
+    assert just_inside.out[0] * just_inside.out[1] <= MAX_PAN_PIXEL_FACTOR * 1920 * 1080
+    just_over = plan_render(1000, 4000, 1920, 1080, "fill", pan=True)  # would be 1920 x 7680
+    assert 7680 <= MAX_TEXTURE_SIDE  # the texture side limit is not what stops it
+    assert 1920 * 7680 > MAX_PAN_PIXEL_FACTOR * 1920 * 1080
+    assert just_over.pan_range == (0, 0)
+    assert just_over.out == (1920, 1080)  # the middle crop
+
+
+def test_ac4_a_panning_frame_taller_than_the_texture_limit_is_cropped_instead():
+    """On a large monitor the texture side limit binds before the pixel factor does: a 3000 x
+    3000 monitor allows a frame of 54 MP, but not a side of 18000 px."""
+    inside = plan_render(1000, 5000, 3000, 3000, "fill", pan=True)  # 3000 x 15000
+    assert inside.pan_range == (0, 15000 - 3000)
+    outside = plan_render(1000, 6000, 3000, 3000, "fill", pan=True)  # 3000 x 18000, exactly 6x
+    assert 3000 * 18000 <= MAX_PAN_PIXEL_FACTOR * 3000 * 3000  # the pixel factor lets it through
+    assert outside.pan_range == (0, 0)  # the texture limit does not
+    assert outside.out == (3000, 3000)
+
+
 def test_the_plan_refuses_nonsense():
     with pytest.raises(ValueError):
         plan_render(0, 100, 1920, 1080, "fit")
@@ -194,6 +228,50 @@ def test_ac5_the_end_marker_of_an_embedded_thumbnail_does_not_make_a_truncated_j
 
 def test_ac5_a_segment_that_runs_past_the_end_is_incomplete():
     assert not jpeg_is_complete(b"\xff\xd8\xff\xe0\x10\x00JFIF")
+
+
+def test_ac5_the_structure_walk_gives_up_after_a_bounded_number_of_steps(monkeypatch):
+    """A crafted file must not keep the worker busy: past the cap the answer is "complete"
+    and the decoder decides. Below the cap a truncation is still found."""
+    cut = fake_jpeg()[:-3]  # no end-of-image marker, so incomplete ...
+    assert not jpeg_is_complete(cut)
+    monkeypatch.setattr(scaling, "MAX_STRUCTURE_STEPS", 5)  # ... unless the walk stops early
+    assert jpeg_is_complete(cut)
+    monkeypatch.setattr(scaling, "MAX_STRUCTURE_STEPS", 1_000_000)
+    assert not jpeg_is_complete(cut)
+
+
+def test_ac5_a_run_of_fill_bytes_costs_a_bounded_number_of_steps(monkeypatch):
+    """Every 0xFF is one step, so a file of fill bytes is the worst case for the walk."""
+    steps = []
+    real_find = bytes.find
+
+    class Counting(bytes):
+        def find(self, *args):
+            steps.append(1)
+            return real_find(self, *args)
+
+    monkeypatch.setattr(scaling, "MAX_STRUCTURE_STEPS", 1000)
+    data = Counting(b"\xff\xd8" + b"\xff" * 50_000)  # no end-of-image marker anywhere
+    assert jpeg_is_complete(data)  # "complete": the walk stopped, the decoder decides
+    assert len(steps) == 1000
+
+
+def test_ac5_a_png_with_endless_tiny_chunks_is_not_walked_to_the_end(monkeypatch):
+    chunk = b"\x00\x00\x00\x00tEXt\x00\x00\x00\x00"
+    data = b"\x89PNG\r\n\x1a\n" + chunk * 50  # no IEND
+    assert not png_is_complete(data)
+    monkeypatch.setattr(scaling, "MAX_STRUCTURE_STEPS", 10)
+    assert png_is_complete(data)
+
+
+def test_the_pixel_limit_follows_from_the_measured_bytes_per_pixel_and_the_memory_frame():
+    """docs/preview.md section 7: peak growth was 9.0 to 9.4 bytes per source pixel (fit, 36 and
+    50 MP), the frame is 512 MiB. A limit above what that frame holds is not the documented one."""
+    measured_bytes_per_pixel = 9.4
+    memory_frame = 512 * 1024 * 1024
+    assert MAX_PIXELS * measured_bytes_per_pixel <= memory_frame
+    assert MAX_PIXELS == 50_000_000
 
 
 def test_things_that_are_not_jpeg_are_not_judged():
@@ -311,6 +389,27 @@ def test_ac5_a_file_that_grows_while_it_is_read_is_skipped(tmp_path, monkeypatch
     monkeypatch.setattr(scaling.os, "readv", growing_readv)
     with pytest.raises(ImageSkipped, match="changed while it was read"):
         read_image_file(path)
+
+
+def test_ac5_a_file_rewritten_in_place_to_the_same_size_is_caught_by_its_mtime_alone(
+    tmp_path, monkeypatch
+):
+    path = settled(tmp_path / "rewritten.jpg", fake_jpeg())
+    real_readv = os.readv
+    state = {"done": False}
+
+    def rewriting_readv(fd, buffers):
+        count = real_readv(fd, buffers)
+        if not state["done"]:
+            state["done"] = True
+            os.utime(path, (time.time() - 1800, time.time() - 1799))  # same bytes, same size
+        return count
+
+    monkeypatch.setattr(scaling.os, "readv", rewriting_readv)
+    with pytest.raises(ImageSkipped, match="changed while it was read"):
+        read_image_file(path)
+    monkeypatch.undo()
+    assert read_image_file(path)  # negative control: untouched, the same file is read
 
 
 def test_ac5_a_file_that_shrinks_while_it_is_read_is_skipped(tmp_path, monkeypatch):

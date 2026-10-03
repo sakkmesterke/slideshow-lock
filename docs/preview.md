@@ -12,8 +12,11 @@ machine; section 8 lists exactly what was and was not checked.
 ## 1. What it does
 
 One fullscreen window per monitor, showing the pictures of the picture folder, each scaled to
-the monitor's real pixel size. Any input ends it. It never locks the session (D11): there is no
-lock, session or D-Bus call anywhere in these modules, and a test scans the code for one.
+the monitor's real pixel size. Any input ends it. It never locks the session (D11): the preview
+code makes no call to the session, the screensaver, the login manager or any lock facility, and
+two tests look for one (section 8). The `Gtk.Application` of `preview_app` registers itself on
+the session bus, which opens one session-bus connection (measured in review); that is application
+registration, not a lock call, and it is the only bus traffic of the preview itself.
 
 Not in this card: locking, the state machine, D-Bus, systemd (CORE-1); cross-fades (a later
 round); the settings window (UI-1); changing the default of the pan switch.
@@ -28,17 +31,29 @@ round); the settings window (UI-1); changing the default of the pan switch.
 - **Scaling** (`scaling` key), always to the exact device-pixel size
   `round(logical size * surface scale)` of the window:
   - `fit`: the whole picture, aspect ratio kept, centred, black bars on the short side.
-  - `fill`: the picture covers the monitor, aspect ratio kept, the overflow is cropped from the
-    centre. A portrait picture on a landscape monitor therefore fills the monitor's **width**;
-    a landscape picture on a portrait monitor fills its **height**. The crop is cut from the
-    source before scaling, and has the monitor's aspect ratio to within one source pixel.
-- **Pan** (`pan-portrait-images`, **off by default**): with `fill`, a portrait picture that
-  overflows the monitor vertically is scrolled slowly from top to bottom, over 90 % of the
-  slide interval, instead of being cropped to its middle. Landscape pictures, `fit`, and
-  portrait pictures on a portrait monitor are never panned. A picture that would need a frame of
-  more than 6 times the monitor's pixels, or taller than 16384 px, is cropped instead. The switch
-  is off because the animation redraws every frame (measured below); the default only changes
-  after a battery measurement on the reference laptop
+  - `fill` (the default): the picture covers the monitor, aspect ratio kept, the overflow is
+    cropped from the centre. A portrait picture on a landscape monitor therefore fills the
+    monitor's **width**; a landscape picture on a portrait monitor fills its **height**, and its
+    sides are cropped. The crop is cut from the source before scaling, and has the monitor's
+    aspect ratio to within one source pixel.
+  - What `fill` costs, as the share of the picture that stays visible (the rest is cropped away):
+    3:2 landscape on a 16:9 monitor 84 %, 4:3 landscape 75 %; 3:4 portrait on a 16:9 monitor
+    **42 %**, a 9:16 phone photo **32 %**. **Open decision:** the default stays `fill`; whether it
+    is the right one for the pictures actually in the folder is the owner's call on the reference
+    machine. `fit` is one line in the schema (`<default>'fit'</default>` of the `scaling` key,
+    `data/*.gschema.xml`) and it is a live setting either way.
+- **Pan** (`pan-portrait-images`, **off by default**): with `fill`, a portrait picture whose
+  **width is the limiting side** (so that its height overflows the monitor) is scrolled slowly
+  from top to bottom, over 90 % of the slide interval, instead of being cropped to its middle.
+  That is a portrait picture on a landscape monitor, and also a picture that is narrower than the
+  monitor on a portrait monitor (a 1:3 picture on a 9:16 monitor: pan range 1320 px), but not a
+  3:4 picture on a 9:16 monitor, whose height limits. Landscape pictures and `fit` are never
+  panned. A picture that would need a frame of more than 6 times the monitor's pixels, or taller
+  than 16384 px, is cropped instead (on a 1080p monitor the 6x limit binds, on a very large
+  one the texture side does; both are tested). If the desktop's "reduce animations" choice is
+  on (`gtk-enable-animations` is false), nothing scrolls and the middle of the picture is shown,
+  like the centre crop. The switch is off because the animation redraws every frame (measured
+  below); the default only changes after a battery measurement on the reference laptop
   ([`measurements/pan-battery-protocol.md`](measurements/pan-battery-protocol.md)).
 - **Scaler.** `videoscale method=lanczos envelope=3` through GStreamer, which is the only path
   that may be called Lanczos-3, and only as "Lanczos as implemented by videoscale" (MEAS-1,
@@ -47,22 +62,43 @@ round); the settings window (UI-1); changing the default of the pan switch.
   WARNING per process (`[slideshow] Lanczos scaling through GStreamer is unavailable ...`). A
   picture that already has the target size is not resampled.
 - **Decoding** is `GdkPixbuf` (on the MEAS-1 stack: GIF, JPEG, PNG, TIFF; WebP and others only if a
-  loader is installed, otherwise the picture is skipped and logged). EXIF orientation is applied
-  (phone photos are stored sideways), transparent areas are shown black, an animated GIF shows
-  its first frame.
+  loader is installed). EXIF orientation is applied (phone photos are stored sideways),
+  transparent areas are shown black, an animated GIF shows its first frame.
+- **Formats without a loader.** The image source's extension list (`IMAGE_EXTENSIONS`) is not
+  narrowed: where a loader exists, a `.webp` or `.bmp` is shown. `scaling.probe_loadable`, which
+  `preview_app.build_source` hands to the image source, asks gdk-pixbuf
+  (`Pixbuf.get_file_info`) whether any installed loader knows the picture, and a picture without
+  one is skipped with a log line when the folder is scanned (burst-limited like every other skip),
+  instead of failing again at every pass. Measured here on 303 files, 300 of them WebP headers
+  without a loader (gdk-pixbuf 2.42.10, Debian 12, which has no WebP loader): the walk keeps 3
+  and takes 19 ms, against 4 ms and 303 queued with the plain header sniff; the probe costs about
+  50 microseconds per file, once. What a failing pass costs depends on the files (review measured
+  1.56 ms per file and pass with a repeated WARNING on its set; with these 40-byte files it was
+  0.06 ms). The loader list of the RHEL machine has not been seen by anyone; what its gdk-pixbuf
+  reads is not claimed here.
 - **Next picture first.** The next picture is chosen with `advance()` and decoded and scaled on a
   worker thread while the current one is on screen. If it is not ready when the interval ends,
   it appears the moment it is. A single picture is decoded once and reused.
-- **Empty source** (`current()` is `None`): a defined state, not an error. The windows show
-  "No pictures to show" on black, one line is logged (`[slideshow-dir] no picture to show ...`,
-  WARNING once the folder scan is complete, INFO while it still runs), and the preview carries on
-  by itself when a picture turns up. If the last picture on screen is deleted the windows go
+- **Empty source** (`current()` is `None`, which includes an empty or missing folder): a defined
+  state, not an error. The windows show "No pictures to show" on black, one line is logged
+  (`[slideshow-dir] no picture to show ...`, WARNING once the folder scan is complete, INFO while
+  it still runs), and the preview carries on by itself when a picture turns up. For the preview
+  this is on purpose: whoever pressed "Preview" sees why nothing is shown. It is *not* the
+  idle path's behaviour: REQ-1 AC-3.7-1 says no slideshow starts there when there is nothing to
+  show. Which of the two the service does is CORE-1's decision and is not made here. If the last picture on screen is deleted the windows go
   to the same state; a picture that is deleted while it is on screen stays (its pixels are in
   memory).
-- **Input.** The window's own GTK controllers: pointer motion, button press, key press, scroll.
-  Any one of them, on any monitor's window, stops the preview and closes every window. A pointer
-  that simply rests where the window appears is not input: the first position the window sees is
-  the baseline, and motion counts once the pointer is 2 px away from it.
+- **Input.** The window's own GTK controllers: pointer motion, button press (any button), key
+  press, scroll, and a close request on a window (the window was closed from outside, from the
+  overview for example). Any one of them, on any monitor's window, stops the preview and closes
+  every window. A pointer that simply rests where the window appears is not input: the first
+  position the window sees is the baseline, and motion counts once the pointer is 2 px away from
+  it. **Open, only a live trial decides:** 2 px may be too little on a touchpad or on a desk that
+  shakes. One more fact from the headless compositor: the first pointer event of a window carried
+  coordinates of another frame than the later ones (27, 66 first, then 257, 176 for a pointer
+  that had moved 1 px), so the baseline of the first event is not reliable there; it was not
+  measured on a real GNOME session. The smoke test therefore resets the baseline by hand before it
+  checks the threshold (section 8).
 - **Live settings.** The interval re-arms the running timer. `scaling` and `pan-portrait-images`
   redo the picture on screen and the prepared one. The folder and the order are applied by
   `source_from_settings`; after an order change the picture that is already prepared is still
@@ -79,26 +115,76 @@ log: the first 10 per 60 s, then one count line) and goes to the next picture at
 | decoder error (JPEG header followed by garbage, truncated TIFF or GIF, ...) | the decoder's error |
 | truncated JPEG, PNG or BMP with a valid header | marker structure: JPEG without end-of-image, PNG without IEND, BMP shorter than its header says. The `GdkPixbuf` loader accepts all three without any error (measured, see section 7) |
 | file still being copied | modified less than 2 s ago, or its size or modification time changed while it was read |
-| decompression bomb | the loader is told to produce a 0 x 0 picture as soon as the header announces more than 100 megapixels, before anything is allocated |
+| decompression bomb | the loader is told to produce a 0 x 0 picture as soon as the header announces more than 50 megapixels (`MAX_PIXELS`, derived in section 4), before anything is allocated |
 | file over 256 MiB, not a regular file (FIFO), unreadable | refused when it is opened; opened `O_NONBLOCK`, so a FIFO cannot hang the worker |
 
-Not detected: a JPEG that is damaged inside its entropy-coded data but structurally complete.
-libjpeg conceals that and `GdkPixbuf` reports nothing, so the picture is shown as decoded.
+The structure checks (JPEG markers, PNG chunks) stop after 1 000 000 steps and then say "complete":
+the decoder decides. Without that, a crafted JPEG of 0xFF fill bytes kept the worker's Python loop
+busy for 4.35 s per 32 MiB (about 35 s extrapolated to the 256 MiB file limit; review measured
+4.3 s as well); with the cap, 0.13 s. A PNG of empty chunks: 0.61 s per 32 MiB, 0.21 s with the
+cap. The check does not hold the GIL for long stretches in between (review: a 1 ms timer on the
+main loop saw p99 9.5 ms, against 2.3 ms idle). A truncation beyond the cap is therefore not found by the
+structure check; real files are far below it (a 250 MB JPEG has about a million stuffed bytes, a
+PNG some thousand chunks).
+
+Not detected, both shown as decoded without any error: a JPEG that is damaged inside its
+entropy-coded data but structurally complete (libjpeg conceals that and `GdkPixbuf` reports
+nothing), and a PNG whose zlib stream is garbage but still decodes (the `png zlib garbage` test
+fixture decodes without error, so the PNG case is no better than the JPEG one).
 
 If as many pictures in a row fail as the queue holds, the controller stops trying until the next
 interval (one WARNING), keeps what is on screen (or shows the empty-state message if nothing was
 shown yet), and tries again at the next interval. No busy loop, no crash. An unexpected exception
 inside the scaler is logged and treated as a skip.
 
-## 4. The main loop never decodes or scales
+## 4. What is on the main loop, and what is not
 
-All file reads, decoding and scaling run on one worker thread; the result is handed back to the
-main loop with `GLib.idle_add`. The main loop does only cheap things: it wraps the finished pixels
-into a texture, and GTK uploads and draws it. This is what the CORE-1 safety condition rests on:
-locking before sleep must not wait for picture I/O.
+**Not on the main loop:** reading a picture file, decoding it, scaling it, and copying the finished
+pixels into the `GLib.Bytes` that the window wraps into a texture. All of that runs on one worker
+thread; the result is handed back with `GLib.idle_add`.
 
-The image source still scans folders on the main loop (see its document); that part is bounded
-by its own time budget and is not changed here.
+**On the main loop:** wrapping the finished pixels into a texture (no copy, the `GLib.Bytes` is
+already there), GTK's upload and drawing, and **the image source**: its folder walk (`os.scandir`
+at `image_source.py:620`, `os.stat` at `:680`) and the header read of each new file
+(`probe_image`, `os.open` and `os.read`, `:110`, plus `Pixbuf.get_file_info` through
+`probe_loadable`). The walk is chopped into steps of a time budget (see the image source's
+document), but a single `scandir`, `stat` or `open` on a hung network mount blocks inside the
+kernel, and then the main loop stops with it. So the claim is: *picture decoding and picture
+reading are not on the main loop; the image source's walk and header reads are*. Putting the
+source's I/O on its own thread or process is a precondition of CORE-1 (the safety condition that
+locking before sleep never waits for picture I/O depends on it) and is not done here.
+
+**What the worker still does to the main loop:** it holds the GIL while it copies pixel data in
+Python (`read_pixel_bytes().get_data()` and the repacking), and that stalls the main loop for as
+long as the copy takes. Measured here, a 1 ms timer on the main loop while one picture is prepared
+(`fit`, one 1080p monitor): 12 MP 13 ms, 24 MP 65 to 190 ms, 50 MP 150 to 290 ms between runs; review
+measured 12 MP 15 to 18 ms, 24 MP 26 to 32 ms, and 1346 ms for an 88 MP picture, which the 50 MP limit
+below now refuses. `fill` is cheaper (a crop is copied, not the whole picture): 50 MP 52 ms.
+
+### Memory, and the pixel limit
+
+`MAX_PIXELS` is 50 000 000, derived and not guessed:
+
+- Peak resident growth while one picture was prepared (a new process per run, JPEG and PNG with and
+  without alpha, EXIF-rotated JPEG, one 1080p monitor, `fit`, the mode that copies the whole
+  picture): 9.0 bytes per source pixel at 36 MP (310 MiB), 9.1 at 9 MP, and between 9 and 12 at
+  16 MP where allocator granularity shows. At 50 MP with two 4K-class monitors (3840 x 2160 and
+  2160 x 3840) the growth was 449 MiB, which is 9.4 bytes per pixel; with one 1080p monitor 246 to
+  294 MiB; `fill` with pan 359 MiB. `fill` without pan was lower (36 MP: 161 MiB).
+- Memory frame: 512 MiB for the decode step. 512 MiB / 9.4 B = 57 MP; rounded down to **50 MP**,
+  which leaves 12 % headroom (about 450 MiB at 50 MP, measured).
+- The earlier 100 MP would have been about 0.9 to 1.2 GB by the same arithmetic (extrapolated;
+  100 MP was not run). The test `test_the_pixel_limit_follows_from_...` ties the constant to this
+  arithmetic.
+- The file itself is held in memory while it is decoded, up to `MAX_FILE_BYTES` (256 MiB), so the
+  worst case is that on top of the above; a normal 50 MP JPEG is some 25 MB. Lowering
+  `MAX_FILE_BYTES` is a separate decision and is not made here.
+- **What this does not do:** it bounds the memory of the decode step. It does not protect the
+  process against running out of memory. Under a memory limit (cgroup, `RLIMIT_AS`) GLib's
+  `failed to allocate` ends the **whole process** with SIGTRAP, and `except Exception` does not
+  catch that; nor does it help against the kernel's OOM killer. Decoding in a separate process
+  with `RLIMIT_AS` is the answer to that, and is a separate item before CORE-1, not part of this
+  card.
 
 ## 5. Where the code stands in the layers
 
@@ -145,33 +231,96 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   panning portrait picture 103 times over a 2 s interval and 162 times over 3 s. That is the reason
   for the switch. It says nothing about watts.
 - Main-loop gaps (a 10 ms timer, software GL, two virtual monitors): the longest gap was 41 to
-  110 ms over some twenty runs. In the three runs where the gaps were sorted by time it fell
-  within 0.6 s after a picture appeared (54 to 78 ms, against 28 to 34 ms at all other times),
-  which is texture upload and drawing; with the decoding cached the longest gap was still 44 to
-  54 ms. File I/O, decoding and scaling are not on the main loop (tests), but the texture upload
-  is, and on software GL it is not small. On a GPU it was not measured.
+  110 ms over some twenty runs in the first round, 55 to 240 ms on clean runs of three different
+  machines in review. In the three runs where the gaps were sorted by time it fell within 0.6 s
+  after a picture appeared (54 to 78 ms, against 28 to 34 ms at all other times), which is texture
+  upload and drawing; with the decoding cached the longest gap was still 44 to 54 ms. Picture
+  reading, decoding and scaling are not on the main loop (tests), but the texture upload is, and on
+  software GL it is not small. On a GPU it was not measured. The smoke test prints this number and
+  does not gate on it (section 8).
+- A panning frame of 36 MP source at 4K (3840 x 11520, 127 MiB): wrapping it into a `GLib.Bytes`
+  on the main loop took 41 to 50 ms; made on the worker it takes no time on the main loop, and the
+  worker's own stall of the main loop did not grow (46 to 47 ms in five runs, against 47 to 73 ms
+  before). Review measured 300 to 530 ms for this copy on another machine.
+- `Gtk.Settings` has the property `gtk-enable-animations` on GTK 4.8.3, true in the headless
+  compositor, and it can be set. That the desktop's "reduce animations" choice of a GNOME session
+  reaches it was **not measured** (no GNOME session here): the pan check against it is part of the
+  manual test on the reference machine.
+- `videoscale` Lanczos is not exact on flat areas: a flat 60 came out as 62 and a flat 200 as 206 at
+  a 5:1 reduction on this stack (GStreamer 1.22), exact at 6:1. That is the quantised taps MEAS-1
+  mentions. Not changed; only an eye on the reference machine can say whether it shows. The
+  scaler test therefore measures ringing relative to the flat parts (section 8).
+- The first pointer event of a window can carry another coordinate frame than the later ones
+  (section 2, "Input").
 - The tests also ran on a second stack, the CI runner image: GStreamer 1.24.2, gdk-pixbuf 2.42.10,
-  PyGObject 3.58, Python 3.12 (358 tests, none skipped).
+  PyGObject 3.58, Python 3.12 (the result of the latest run is in the pull request).
 
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (52 tests): order, interval, switching, live settings, damaged pictures with a negative control,
-  empty source, deleted pictures, input on every window and kind, the lock-free proof (every call the
-  controller makes is on a list of picture and timing methods, plus a code scan with its own
-  negative control), the main loop staying free while a worker thread decodes (and a negative control
-  showing the measurement does catch a block).
-- `tests/test_scaling.py`: the geometry for 72 monitor and picture combinations, each for `fit`
-  and `fill`; JPEG, PNG and BMP completeness; the file checks.
-- `tests/test_scaling_gdk.py`: real decoding and scaling of real files: sizes, pixel positions of
-  `fit` and `fill` crops, odd strides, EXIF orientation, transparency, truncated and bomb files, the
-  fallback. Which scaler produced a frame is read from `Frame.method`.
+  (76 tests): order, interval (also counted from when a picture appeared, not from the start),
+  switching, a late next picture shown the moment it is ready, also when settings or the window size
+  change meanwhile, live settings, a refresh that is still running when the next picture is
+  replaced, damaged pictures with a negative control, failures that are not in a row not adding up,
+  burst-limited error lines, empty source, deleted pictures, input on every window and kind, the
+  worker result delivered on the main loop only, and the main loop staying free while a worker
+  thread decodes (with a negative control showing the measurement catches a block).
+- The "never locks" proof has two parts, and each has a limit. (1) A method spy: every call the
+  controller makes on the objects handed to it is on a list of picture and timing methods; it sees
+  nothing the controller does on its own (a call in `stop()` that goes to a subprocess is invisible
+  to it). (2) A code scan of the six modules the preview uses (controller, window, app, scaler,
+  image source, settings): every identifier, import and string constant (docstrings excluded) is
+  squashed to lower-case letters and digits and must contain none of: a whole word of the lock
+  family, or the fragments `screensaver`, `dbus`, `setactive`, `loginctl`, `busctl`, `qdbus`,
+  `gdbus`, `subprocess`, `spawn`, `pydbus`, `suspend`, `logout`, `systemctl`, `session`, `bus`,
+  `login1`, `logind`, `systemd`, `inhibit`, `popen`. Six exact names are allowed (the
+  `SessionSettings` class, the `--help` sentence "It never locks the session", and the
+  `lock-grace-period-seconds` key with its constant, getter and setter), and a test fails if an
+  allowance is no longer used. Nine real lock calls (busctl, gdbus, qdbus, loginctl, a Gio
+  `call_sync` on the ScreenSaver, systemctl, pydbus, a bus socket, a `Logout` call) are inserted
+  into `stop()` of the real source in turn, and the scan must find each. It is a net, not a proof:
+  a name assembled at runtime would pass. Review showed that the earlier, narrower scan and the
+  method spy let such calls through (reproduced here for busctl, qdbus, systemctl and a Gio bus
+  call); the same lines are now found.
+- `tests/test_scaling.py` (186): the geometry for 72 monitor and picture combinations, each for `fit`
+  and `fill`; the pan rule (including the 1:3 picture on a portrait monitor, the 6x frame limit and
+  the texture side limit as separate tests); JPEG, PNG and BMP completeness and the step cap; the
+  file checks, including a file rewritten in place to the same size, which only its modification
+  time reveals; the derivation of the pixel limit.
+- `tests/test_scaling_gdk.py` (62, every scaling test twice when GStreamer is there: once on the
+  Lanczos path, once with GStreamer switched off): real decoding and scaling of real files: sizes,
+  pixel positions of `fit` and `fill` crops, odd strides on both paths, EXIF orientation,
+  transparency, truncated and bomb files, the fallback. `Frame.method` is only a label of the
+  path taken; what the Lanczos path does is measured by a hard edge (40 to 220, 600 px down to
+  100): the Lanczos result dips at least 4 levels below the dark side and peaks at least 4 above the
+  bright side (measured 6 and 6 here), bilinear and a smaller envelope do not. A test that fails in
+  CI when GStreamer is missing keeps the Lanczos path from silently dropping out. The probe for
+  pictures without a loader.
+- `tests/test_preview_app.py` (16): the command line, the settings of one run (an override of
+  `false` or `0` still counts), the worker thread closed with the preview, the source with the
+  probe. The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
+  verify step checks that the GTK 4 typelibs import.
 - `tools/wayland-smoke/run.sh`: the real windows, scaler and source inside a headless mutter with two
   virtual monitors, with real pointer motion, button and scroll events injected through mutter's
-  remote-desktop service. It is not part of pytest or CI (it needs a compositor). Key presses are
-  fired on the key controller by hand, because a headless mutter without a shell gives no window
-  keyboard focus: that checks the wiring, not delivery by the compositor.
+  remote-desktop service. It is not part of pytest or CI (it needs a compositor). What each input
+  check proves: pointer motion (`--input motion`), left, right and middle button (`button`,
+  `rbutton`, `mbutton`) and scroll are real events injected into the compositor and delivered to
+  the window; `motion-small` resets the baseline by hand (section 2) and then shows that 1 px more
+  does not end the preview and 4 + 3 px does; `key` fires the controller's `key-pressed` signal by
+  hand, `close` calls `Gtk.Window.close()` by hand. Those two prove that the controller is wired
+  to the preview, **not** that GTK or mutter produce a key event or a close request on their own
+  (a headless mutter without a shell gives windows no keyboard focus). `--input none` injects
+  nothing and does not park the pointer: it rests wherever the compositor left it, so it shows
+  that nothing ends the preview by itself, not that a resting pointer is tolerated (that is
+  what the baseline logic is for, and only a live session can test it). `--animations off --pan`
+  switches `gtk-enable-animations` off before the windows open and checks that a portrait picture
+  stays at its middle with no tick running. Every window's cursor property is checked to be
+  `none`, which is the property, not what the compositor draws. The stall of the main loop is
+  printed and not gated: it gave 55 to 240 ms on clean runs on three machines, so a threshold
+  measured the machine, not the code; that picture work is off the main loop is what
+  `test_ac7_*` prove, with a negative control.
 
 Not proven by any of this: how the pictures look, behaviour on a real GPU or with fractional
-scaling, real multi-monitor hardware, battery cost of the pan animation, behaviour on RHEL 10.2.
-These belong on the manual test list (DOC-2).
+scaling, real multi-monitor hardware, battery cost of the pan animation, behaviour on RHEL 10.2,
+that the GNOME "reduce animations" choice reaches `gtk-enable-animations`. These belong on the
+manual test list (DOC-2).

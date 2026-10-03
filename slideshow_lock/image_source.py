@@ -146,6 +146,9 @@ class _BurstLog:
         self._suppressed = 0
 
     def warn(self, message: str, *args) -> None:
+        self.log(logging.WARNING, message, *args)
+
+    def log(self, level: int, message: str, *args) -> None:
         now = _now()
         if self._window_start is None or now - self._window_start >= LOG_WINDOW_SECONDS:
             self.flush()
@@ -153,7 +156,7 @@ class _BurstLog:
             self._emitted = 0
         if self._emitted < LOG_FIRST_N:
             self._emitted += 1
-            _LOG.warning(message, *args)
+            _LOG.log(level, message, *args)
         else:
             self._suppressed += 1
 

@@ -13,7 +13,9 @@ the window (a panning portrait picture) is scrolled by whole pixels from a frame
 tick, which only runs while there is something to scroll.
 
 Input: the window's own GTK controllers (motion, click, key, scroll) call
-``on_input``. Any one of them is enough, on any monitor's window (state machine
+``on_input``, and so does a ``close-request`` (the window was closed from outside, from the
+overview for example: without that the process would run on with no window, changing
+pictures nobody sees). Any one of them is enough, on any monitor's window (state machine
 document, section 6.1). A pointer that merely rests under a window that appears is not
 input: the first position the window sees is the baseline, and pointer motion counts
 only once the pointer is ``MOTION_THRESHOLD_PIXELS`` away from it. (Not a timer after
@@ -37,6 +39,7 @@ from gi.repository import Gdk, GLib, Graphene, Gtk  # noqa: E402
 from slideshow_lock import _  # noqa: E402
 from slideshow_lock.preview import (  # noqa: E402
     INPUT_BUTTON,
+    INPUT_CLOSE,
     INPUT_KEY,
     INPUT_MOTION,
     INPUT_SCROLL,
@@ -49,6 +52,17 @@ MOTION_THRESHOLD_PIXELS = 2.0
 
 def _smoothstep(t: float) -> float:
     return t * t * (3 - 2 * t)
+
+
+def animations_enabled() -> bool:
+    """The desktop's "reduce animations" choice, as GTK reports it (``gtk-enable-animations``).
+
+    Read for every picture, so a change takes effect with the next one. On GTK 4.8 the property
+    exists and can be switched (measured); that the GNOME setting reaches it was not measured
+    here (no GNOME session), so on the reference machine this is part of the manual test.
+    """
+    settings = Gtk.Settings.get_default()
+    return settings is None or bool(settings.get_property("gtk-enable-animations"))
 
 
 class _Canvas(Gtk.Widget):
@@ -80,10 +94,13 @@ class _Canvas(Gtk.Widget):
             )
             self._frame = frame
         self._offset = (0, 0)
-        if frame is not None and pan_seconds > 0 and frame.pan_range != (0, 0):
-            self._pan_seconds = pan_seconds
-            self._pan_t0 = None
-            self._tick_id = self.add_tick_callback(self._on_tick)
+        if frame is not None and frame.pan_range != (0, 0):
+            if pan_seconds > 0 and animations_enabled():
+                self._pan_seconds = pan_seconds
+                self._pan_t0 = None
+                self._tick_id = self.add_tick_callback(self._on_tick)
+            else:  # animations are off: the middle of the picture, like the centre crop
+                self._offset = (frame.pan_range[0] // 2, frame.pan_range[1] // 2)
         self.queue_draw()
 
     def _stop_pan(self) -> None:
@@ -162,6 +179,7 @@ class PreviewWindow:
             self._window.add_controller(controller)
 
         self._window.connect("realize", self._on_realize)
+        self._window.connect("close-request", self._on_close_request)
         self._window.fullscreen_on_monitor(monitor)
         self._window.present()
 
@@ -250,6 +268,14 @@ class PreviewWindow:
             return
         if math.hypot(x - self._origin[0], y - self._origin[1]) >= MOTION_THRESHOLD_PIXELS:
             self._input(INPUT_MOTION)
+
+    def _on_close_request(self, _window) -> bool:
+        """Closed from outside: that ends the preview, and the controller closes every window.
+        True keeps GTK from destroying this one itself; ``close()`` does it, once."""
+        if not self._input_callbacks:
+            return False
+        self._input(INPUT_CLOSE)
+        return True
 
     def _on_key(self, *_args) -> bool:
         self._input(INPUT_KEY)
