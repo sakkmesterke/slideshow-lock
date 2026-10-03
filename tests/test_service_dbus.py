@@ -94,6 +94,7 @@ def test_input_within_the_grace_period_stops_the_slideshow_without_a_lock():
 def test_an_idle_inhibit_at_the_threshold_keeps_the_slideshow_down_and_one_during_the_run_stops_it(
     run,
 ):
+    """The grace period is 0 here, so the stop by the inhibitor locks at once."""
     run.desktop.set_inhibited(True)
     run.desktop.fire_idle()
     assert not run.settle(lambda: run.slideshow.starts, timeout=0.4)
@@ -102,8 +103,23 @@ def test_an_idle_inhibit_at_the_threshold_keeps_the_slideshow_down_and_one_durin
     run.desktop.fire_idle()
     assert run.settle(lambda: run.machine.state is State.SLIDESHOW_RUNNING)
     run.desktop.set_inhibited(True)
-    assert run.settle(lambda: run.machine.state is State.IDLE_WATCHING)
-    assert run.desktop.lock_calls == []
+    assert run.settle(lambda: run.machine.state is State.LOCKED)
+    assert not run.slideshow.running
+    assert len(run.desktop.lock_calls) == 1
+
+
+def test_an_idle_inhibit_within_the_grace_period_stops_the_slideshow_and_does_not_lock():
+    with Desktop() as desktop:
+        r = Run(desktop, grace=3600)
+        try:
+            desktop.fire_idle()
+            assert r.settle(lambda: r.machine.state is State.SLIDESHOW_RUNNING)
+            desktop.set_inhibited(True)
+            assert r.settle(lambda: r.machine.state is State.IDLE_WATCHING)
+            assert not r.slideshow.running
+            assert not r.settle(lambda: desktop.lock_calls, timeout=0.4)
+        finally:
+            r.close()
 
 
 def test_sleep_stops_the_slideshow_locks_releases_the_inhibitor_and_takes_it_again(run):

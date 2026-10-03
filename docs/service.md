@@ -37,8 +37,9 @@ No RPM, no systemd:
 2. Touch the mouse: the slideshow goes and the lock screen shows. Unlock.
 3. Repeat with `--grace 10`: input within 10 s of the start must not lock; input after must.
 4. Play a video (or use `systemd-inhibit --what=idle sleep 600` as the inhibitor) and wait the
-   timeout: no slideshow. Start the slideshow first, then raise the inhibitor: it must stop, with
-   no lock.
+   timeout: no slideshow. Start the slideshow first, then raise the inhibitor: it must stop, and
+   lock if it had run for `--grace` seconds or longer (use `--grace 0` to see the lock, `--grace
+   60` to see none). The slideshow does not wait for the next input.
 5. `systemctl suspend` with the slideshow running, and again with an idle inhibitor held: on
    wake the lock screen must be there, no slideshow, no unlocked desktop visible (AC-3.5-4).
 6. Look for the D34 warning in the output after a suspend (`resume received before lock
@@ -66,7 +67,8 @@ every protocol, so every row of the transition table runs without a bus (`tests/
 | 3.2-1 first input stops it at once | `_input_detected` (idle monitor's active transition, or a window's input) | same |
 | 3.2-2 grace period, strict `<` (D16) | `_input_detected`: `elapsed < grace` means no lock | the boundary table, `G = 0` and `G > 0` |
 | 3.3-1/2/3 lock only for a running, idle-triggered slideshow; a preview never locks (D11) | `_LOCKING_SOURCES = {IDLE}`: a preview has no path to the lock call | the preview with every grace and timing; input with nothing running |
-| 3.4-1/2 inhibit blocks the start; one raised during the run stops it, no lock (D5) | `_on_idle`, `_on_inhibit_changed` | same |
+| 3.4-1 inhibit blocks the start | `_on_idle` | `test_state_machine.py` |
+| 3.4-2 one raised during the run stops it, and locks at once if the grace period is over (the same strict `<` and elapsed time as input), none within it; a preview is left alone | `_on_inhibit_changed`, `_end_slideshow_and_lock_if_due` | the boundary table for both ends of a slideshow, a control that compares them, a failing lock, no running slideshow, the preview |
 | 3.5-1 sleep stops the slideshow and locks, independent of how it started (D10, D35) | `SleepGuard` locks, `StateMachine.sleep_started` stops | `test_sleep_guard.py`, `test_service_dbus.py` |
 | 3.5-2 an idle inhibit never keeps the sleep lock back (D28) | `SleepGuard` has no inhibition query, by its constructor and by its imports | an AST test on the module; an end-to-end test with the inhibit set |
 | 3.5-3 resume before the lock round trip ended: WARNING (D32, D34) | `SleepGuard._after_wake` | with fakes and with the real adapters and an artificial delay |
@@ -89,7 +91,8 @@ would sleep unlocked, with no error. So:
   signals and call answers there.
 - On `PrepareForSleep(true)` the guard (1) posts "sleep started" to the main loop, which stops the
   slideshow there, and does not wait for it; (2) starts the `Lock()` call, asynchronous so the
-  thread can still see the wake signal; (3) when the answer is in, releases the delay inhibitor;
+  thread can still see the wake signal (every time: the guard does not remember that a lock was
+  made, see below); (3) when the answer is in, releases the delay inhibitor;
   (4) posts the result. The inhibitor is held until the round trip is over, not until the call
   was made (ARCH-1 section 3.6: release in a `finally`).
 - Nothing in the guard touches the image source, the windows, the settings or the state machine's
@@ -108,6 +111,22 @@ Tests: `test_the_lock_before_suspend_goes_out_while_the_main_loop_is_stuck_in_th
 released while it is stuck; its negative control wires the same guard onto the stuck loop and shows
 the lock waiting.
 
+**No remembered lock state.** The guard calls `Lock()` before every suspend, also when the session
+looks locked already. Skipping the call after an earlier success would be wrong: on the login1
+fallback a successful `Lock()` only means that logind sent its `Lock` signal to the session's
+clients (as its documentation describes it; not measured on a real session), with no lock screen
+necessarily behind it, and a remembered "locked" would keep every later suspend from being
+locked, silently. Tests: three sleeps against a facility that answers success and shows nothing
+give three `Lock()` calls (`test_sleep_guard.py`), and the login1 fallback on the fake desktop
+locks again when a sleep comes while the session is locked (`test_service_dbus.py`). Whether
+repeated `Lock()` calls to the GNOME ScreenSaver are harmless is not measured on a real session.
+
+**A failed lock after an inhibitor stop.** When an application starts inhibiting idle during a
+slideshow that has run for the grace period, the slideshow stops and the lock goes through the same
+method as the lock after input. If that `Lock()` fails the result is the same as after input: ERROR
+in the log, the state goes back to idle-watching, and the session stays unlocked until the next
+idle period or sleep (there is no retry).
+
 **What this does not cover:** the *D-Bus daemon* or the *shell* being slow, and `Lock()` taking
 longer than the window: that is the D34 case, logged, not fixed. What "confirmed" means here is the
 `Lock()` answer, not the lock screen being drawn.
@@ -121,6 +140,7 @@ longer than the window: that is the D34 case, logged, not fixed. What "confirmed
 | `org.gnome.ScreenSaver` | falls back to `login1.Session.Lock` and its `LockedHint`; WARNING |
 | both lock facilities | fatal: the sleep path has nothing to lock with |
 | `login1` (`PrepareForSleep`, `Inhibit`, `InhibitDelayMaxUSec`) | fatal: exit status 1, ERROR |
+| any other error while the sleep path is set up (a failed bus call, say) | fatal: exit status 1, ERROR; the program does not keep running without the guard |
 
 A running guard that cannot take the delay inhibitor again after a wake logs ERROR (the next
 suspend would not wait for the lock).
