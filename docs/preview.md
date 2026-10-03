@@ -56,9 +56,11 @@ round); the settings window (UI-1); changing the default of the pan switch.
   argument, `preview_window.animations_enabled` in the app) and then makes no tall frame at all:
   the ordinary centre crop covers the same part of the picture. Measured here for a 3000 x 6000
   picture on two 4K monitors, `fill`: the centre crop is a 24 MiB frame, 0.16 s on the worker and
-  a peak of 136 MiB, the panning frame 84 MiB, 0.54 s and 306 MiB. The animation setting is read
-  when a picture is prepared; a picture already prepared keeps what it was made for. The switch is off because the animation redraws every frame (measured
-  below); the default only changes after a battery measurement on the reference laptop
+  a peak of 132 to 176 MiB (review, on two machines and two folders; the peak follows the machine
+  and the libraries), the panning frame 84 MiB, 0.54 s and 306 MiB. The animation setting is read
+  when a picture is prepared; a picture already prepared keeps what it was made for. The switch is
+  off because the animation redraws every frame (measured below); the default only changes after a
+  battery measurement on the reference laptop
   ([`measurements/pan-battery-protocol.md`](measurements/pan-battery-protocol.md)).
 - **Scaler.** `videoscale method=lanczos envelope=3` through GStreamer, which is the only path
   that may be called Lanczos-3, and only as "Lanczos as implemented by videoscale" (MEAS-1,
@@ -81,14 +83,23 @@ round); the settings window (UI-1); changing the default of the pan switch.
   after the first look (measured: the call did not return). Measured here on 303 files, 300 of
   them WebP headers without a loader (gdk-pixbuf 2.42.10, Debian 12, which has no WebP loader): the
   walk keeps 3 and takes 19 ms, against 4 ms and 303 queued with the plain header sniff. The
-  probe itself, in a loop over real 640 x 480 JPEG and PNG files: 37 microseconds per file (the old
-  one: 515 microseconds, because `get_file_info` reads and parses more of the file). The first
-  call of a process imports the GdkPixbuf typelib, about 10 ms here (14 to 28 ms on slower
-  runs, review), once, on the main loop and outside the 5 ms step budget of the walk; a second call is
-  about 0.07 ms. What a failing pass costs depends on the files (review measured 1.56 ms per file
+  probe itself, in a loop over real 640 x 480 JPEG and PNG files: 35 microseconds per file in the
+  steady state (the old one: 64 to 103 microseconds for a JPEG and 345 to 385 for a PNG, because
+  `get_file_info` reads and parses more of the file). The first call of a process imports the
+  GdkPixbuf typelib: 16 to 20 ms (10 ms on a quiet run here), once, on the main loop and outside the
+  step budget of the walk. What a failing pass costs depends on the files (review measured 1.56 ms per file
   and pass with a repeated WARNING on its set; with these 40-byte files it was 0.06 ms). The loader
   list of the RHEL machine has not been seen by anyone; what its gdk-pixbuf reads is not claimed
   here.
+  **The probe is wider than the call it replaced:** it checks the header sniff and the loader list,
+  it does not parse the header. A file whose first bytes are right and whose header is broken
+  (`BM` and then noise, a 3-byte JPEG, a PNG cut after its signature, a TIFF header and noise)
+  passes the probe (`get_file_info` refused all four, measured), is queued, and is skipped, with a
+  log line, when it is decoded: at every pass over the queue again. That is bounded: the controller
+  stops after as many failures in a row as the queue holds (section 3), and a failing pass costs
+  about 0.06 ms for a small file. Reading the header in the probe would be code of ours that parses
+  untrusted bytes, and the FIFO safety would have to be measured again; it is not done.
+  `test_the_probe_is_wider_than_get_file_info_...` pins the behaviour.
 - **Next picture first.** The next picture is chosen with `advance()` and decoded and scaled on a
   worker thread while the current one is on screen. If it is not ready when the interval ends,
   it appears the moment it is. A single picture is decoded once and reused.
@@ -167,6 +178,8 @@ function (line numbers drift, names do not):
   where the file system gives no entry type, a `stat`);
 - `_stat_key`: `os.stat`, from `_claim_dir` and `_reconcile_root`;
 - `_on_created` and `_rewatch_ancestor`: `os.path.isdir` and `os.path.isfile`;
+- `__init__` and `set_folder`: `os.path.abspath` (string work, and `os.getcwd()` for a relative
+  folder; it does not touch the folder, so it cannot block on a mount);
 - `probe_image`: `os.open` (`O_NONBLOCK`), `os.fstat`, `os.read` of the 16 header bytes of each new
   file, and `probe_loadable` after it, which does no file access of its own;
 - `gio_directory_watcher`: creating the directory monitor (`monitor_directory`) of each folder;
@@ -206,14 +219,23 @@ machine and what else runs on it, and the earlier range stays the one to expect.
   (7.5 bytes per pixel, a 4:3 landscape picture on a 1080p monitor).
 - Memory frame: 512 MiB for the decode step. 512 MiB / 9.4 B = 57 MP; rounded down to **50 MP**,
   which leaves 12 % headroom (449 MiB at 50 MP, the worst of the measurements above, for every
-  width).
+  width) in `fit` and `fill`.
+- **`fit` is not the worst mode.** A panning frame (`--pan`, animations on) is: the decode, the
+  whole tall frame and the copies of it are alive together. Measured in fresh processes on two 4K
+  monitors, `fill` with the pan on: a 4000 x 12500 picture (50 MP, a frame of 3840 x 12000) 526 MiB,
+  which is 11.0 bytes per source pixel and **2.7 % over the 512 MiB frame**, not under it (review
+  measured about 11.9); 5000 x 10000 (50 MP) 430 MiB; 3000 x 6000 (18 MP) 307 MiB. The limit is not
+  changed here (`MAX_PIXELS` stays at 50 MP); that the pan path can exceed the frame by a few
+  percent is a fact for whoever decides whether the pan stays on by default. The 6x pan limit bounds
+  the frame, not the source.
 - The earlier 100 MP would have been about 0.9 to 1.2 GB by the same arithmetic (extrapolated;
   100 MP was not run). `test_the_pixel_limit_is_the_documented_one` only pins the number, so a
   change is a decision. That the cost per pixel holds for every width is measured by
   `test_preparing_a_picture_costs_about_the_same_bytes_per_pixel_for_every_width`, which prepares a
   9 MP picture of a width with and without a row multiple of 4 in a fresh process and reads the
-  peak resident size (limit 10.5 bytes per pixel; 9.0 and 9.5 measured, 9.0 and 12.1 before the
-  fix); `test_rows_peaks_at_two_copies_...` checks the Python-side peak of the repacking itself.
+  peak resident size (limit 10.5 bytes per pixel; measured 9.0 to 10.1: review got 9.54 and 10.08 at
+  the 3001 side with other libraries, so the limit leaves 4 % above the highest; 12.1 and 12.6
+  before the fix); `test_rows_peaks_at_two_copies_...` checks the Python-side peak of the repacking itself.
 - The file itself is held in memory while it is decoded, up to `MAX_FILE_BYTES` (256 MiB), so the
   worst case is that on top of the above; a normal 50 MP JPEG is some 25 MB. Lowering
   `MAX_FILE_BYTES` is a separate decision and is not made here.
@@ -296,7 +318,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (102 tests): order, interval (also counted from when a picture appeared, not from the start),
+  (108 tests): order, interval (also counted from when a picture appeared, not from the start),
   switching, a late next picture shown the moment it is ready, also when settings or the window size
   change meanwhile, live settings, a refresh that is still running when the next picture is
   replaced, damaged pictures with a negative control, failures that are not in a row not adding up,
@@ -309,15 +331,17 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 - The "never locks" proof has three parts, and each has a limit. (1) A method spy: every call the
   controller makes on the objects handed to it is on a list of picture and timing methods; it sees
   nothing the controller does on its own (a call in `stop()` that goes to a subprocess is invisible
-  to it). (2) A code scan of the six modules the preview uses (controller, window, app, scaler,
-  image source, settings): every identifier, import and string constant (docstrings excluded) is
+  to it). (2) A code scan of every module of the package, `__init__.py` included (a list of
+  the preview's own modules once let a literal `os.system("true")` in `__init__.py` through both
+  layers; measured): every identifier, import and string constant (docstrings excluded) is
   squashed to lower-case letters and digits and must contain none of: a whole word of the lock
   family (`lock`, `unlock`, `screensaver`, `dbus`, `systemd`, `inhibit`, ... and the ways to start
   any program: `system`, `execv`, `execve`, `execvp`, `execvpe`, `execl`, `execle`, `execlp`,
   `execlpe`, `startfile`, `ctypes`, `cdll`), or one of the fragments `screensaver`, `dbus`,
   `setactive`, `loginctl`, `busctl`, `qdbus`, `gdbus`, `subprocess`, `spawn`, `pydbus`, `suspend`,
   `logout`, `systemctl`, `session`, `bus`, `login1`, `logind`, `systemd`, `inhibit`, `popen`, and
-  the names of other lockers: `locker`, `securelock`, `swaylock`, `i3lock`, `xlock`, `xtrlock`,
+  the names of other lockers (`locker` looks redundant next to the others and is not: measured
+  with it removed, `light-locker-command` passes the scan): `locker`, `securelock`, `swaylock`, `i3lock`, `xlock`, `xtrlock`,
   `slock`. Six exact names are allowed (the `SessionSettings` class, the `--help` sentence "It never
   locks the session", and the `lock-grace-period-seconds` key with its constant, getter and
   setter), and a test fails if an allowance is no longer used. Twenty-eight real calls (busctl,
@@ -326,10 +350,14 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   programs by name) are inserted into `stop()` of the real source in turn, and the scan must find
   each. It is a net, not a proof: a name assembled at runtime (a hex-encoded `os.system`, a name
   taken from a table) passes it. (3) A tripwire in `tests/conftest.py`, active in every test unless
-  it is marked `spawns_processes`: `os.system`, `popen`, `fork`, `exec*`, `spawn*`, `posix_spawn*`,
-  `subprocess.Popen`, `GLib.spawn_*` and `Gio.bus_*` raise when called. It catches what the scan
-  cannot see (an assembled name) wherever a test runs the line; its negative controls are in
-  `tests/test_tripwire.py`. What neither (2) nor (3) catches is an assembled name in code that no test
+  it is marked `spawns_processes` (the tests that carry the mark are on a list in
+  `tests/test_tripwire.py`, three now; a new one fails there until the list is changed): `os.system`, `popen`, `fork`, `exec*`, `spawn*`, `posix_spawn*`,
+  `subprocess.Popen`, `GLib.spawn_*` and `Gio.bus_*` raise when called. It catches a call made
+  through one of those names that the scan cannot see (a name assembled and looked up at the time
+  of the call, `getattr(os, ...)`) wherever a test runs the line. It does **not** catch `ctypes`,
+  `Gio.Subprocess`, or a function object taken before the test started. Its negative controls are
+  in `tests/test_tripwire.py` (the exec ones name a program that does not exist, so that with the
+  tripwire off they fail instead of replacing the test process). What neither (2) nor (3) catches is an assembled name in code that no test
   runs. Measured by putting an `os.system` call into the window code: in `_on_key` it is caught
   (the window-logic tests call that handler), in the click handler's lambda or in `_on_tick` it is
   not (nothing calls them without a display), and the Wayland smoke does not run the tripwire.
@@ -337,7 +365,13 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   `os.execv`, `os.execvpe`, `os.startfile`, `os.popen`, `subprocess.run`) is found by the scan and
   by the tripwire, a bare name (`ctypes`, `cdll`, a locker's program name) by the scan alone, and
   an assembled one (hex-encoded `os.system`, `"po" + "pen"`, `"sub" + "process"`, `"b" + "us_..."`,
-  a `GLib.spawn_` name built from two strings) by the tripwire alone. Review showed that the earlier, narrower scan and the method spy let such
+  a `GLib.spawn_` name built from two strings) by the tripwire alone. Measured the third way: a
+  name assembled from pieces and bound where no test runs (`getattr(os, "sys" + "tem")`,
+  `getattr(Gio, "b" + "us_get_sync")` in the click lambda or in `_on_tick`) passes both. So the
+  protection comes from the construction (there is no import and no name in the code that starts
+  a program or reaches a bus, and a scan and a tripwire check that on every change); it is not
+  a defence against someone who sets out to get round it. The Wayland smoke has no tripwire, so
+  nothing sees such a line in a handler that only a display runs. Review showed that the earlier, narrower scan and the method spy let such
   calls through; the same lines are now found.
 - `tests/test_scaling.py` (188): the geometry for 72 monitor and picture combinations, each for `fit`
   and `fill`; the pan rule (including the 1:3 picture on a portrait monitor, the 6x frame limit and
@@ -346,7 +380,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   PNG and BMP completeness and the step cap, including the shipped default of a million steps; the
   file checks, including a file rewritten in place to the same size, which only its modification
   time reveals; the pixel limit.
-- `tests/test_scaling_gdk.py` (92, every scaling test twice when GStreamer is there: once on the
+- `tests/test_scaling_gdk.py` (99, every scaling test twice when GStreamer is there: once on the
   Lanczos path, once with GStreamer switched off): real decoding and scaling of real files: sizes,
   pixel positions of `fit` and `fill` crops, odd strides on both paths, EXIF orientation,
   transparency, truncated and bomb files, the fallback. `Frame.method` is only a label of the
@@ -359,15 +393,20 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   peak memory, and the bytes per pixel of a whole `prepare` in a fresh process for a width with
   and without a row multiple of 4. A noisy photo cut off at 60 % is skipped with the real step
   limit.
-- `tests/test_preview_window_logic.py` (10): the input logic of the window (first enter is a
+- `tests/test_preview_window_logic.py` (13): the input logic of the window (first enter is a
   baseline, a second enter is motion, the 2 px threshold from the baseline, key, scroll, a close
-  request), without a display: the handlers are plain methods, run on an instance made without the
+  request) and the canvas deciding between a scrolling frame and its middle when the desktop's
+  animation choice changes before a frame is shown (`set_frame`, with the drawing calls replaced),
+  without a display: the handlers are plain methods, run on an instance made without the
   GTK constructor. Which controller calls which handler, and the hidden cursor, are the smoke
   tool's.
-- `tests/test_preview_app.py` (16): the command line, the settings of one run (an override of
+- `tests/test_preview_app.py` (18): the command line, the settings of one run (an override of
   `false` or `0` still counts), the worker thread closed with the preview, the source with the
   probe. The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
   verify step checks that the GTK 4 typelibs import.
+- `tests/test_tripwire.py` (18): the negative controls of the tripwire in `conftest.py` (every kind
+  of call it guards raises; an opted-out test can start a program; ordinary calls are not in the
+  way) and the list of tests that may opt out.
 - `tools/wayland-smoke/run.sh`: the real windows, scaler and source inside a headless mutter with two
   virtual monitors, with real pointer motion, button and scroll events injected through mutter's
   remote-desktop service. It is not part of pytest or CI (it needs a compositor). What each input

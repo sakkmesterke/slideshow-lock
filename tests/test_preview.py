@@ -632,6 +632,29 @@ def test_a_refresh_that_keeps_failing_is_tried_once_per_interval_not_in_a_loop(
     assert r.windows[0].frames[-1][0].method == "fake-fit-0"
 
 
+def test_a_timer_that_fires_while_a_failed_redo_waits_for_sizes_does_not_overwrite_its_wish(
+    tmp_path, backends
+):
+    """The redo of the shown picture failed out, and its follow-up request waits because no
+    window knows its size yet. The interval timer fires in that gap: the request that waits must
+    not be replaced by "the next picture" (``_on_timer`` asks only when nothing is pending).
+    Replaced, the picture that just failed is asked for again, and ``c.png`` is skipped."""
+    r = rig(tmp_path, backends, windows=1, settings=FakeSettings(interval=1))
+    r.settings.set(KEY_SCALING, "fit")  # the redo of a.png is on the worker
+    r.windows[0].size = None  # and now no window knows its size
+    r.scaler.fail_next = 1
+    r.worker.run_one()  # it fails out: the request for c.png (redo) waits for sizes
+    assert not r.worker.jobs
+    r.clock.advance(1.0)  # the interval timer fires in that gap
+    assert not r.worker.jobs  # still waiting for sizes
+    r.windows[0].size = (1920, 1080)  # known again, but no size event: the wait runs out
+    r.clock.advance(1.5)
+    r.worker.run_all()
+    r.tick(1)
+    r.tick(1)
+    assert r.windows[0].shown()[:3] == ["a.png", "c.png", "b.png"]
+
+
 # -- AC5: damaged pictures are skipped, empty source is a defined state --------------------------
 
 
@@ -1095,18 +1118,15 @@ def _package_file(module: str) -> str:
     return os.path.join(os.path.dirname(preview_module.__file__), module)
 
 
-#: The preview, and the two modules it leans on: neither may reach a lock facility either.
-PREVIEW_MODULES = [
-    "preview.py",
-    "preview_window.py",
-    "preview_app.py",
-    "scaling.py",
-    "image_source.py",
-    "settings.py",
-]
+#: Every module of the package, ``__init__.py`` included: a list of the preview's own modules let
+#: a literal ``os.system("true")`` in ``__init__.py`` through both layers (measured). A module
+#: added later is in the scan from the start.
+PACKAGE_MODULES = sorted(
+    name for name in os.listdir(os.path.dirname(preview_module.__file__)) if name.endswith(".py")
+)
 
 
-@pytest.mark.parametrize("module", PREVIEW_MODULES)
+@pytest.mark.parametrize("module", PACKAGE_MODULES)
 def test_ac6_d11_the_preview_code_has_no_lock_session_or_bus_reference(module):
     with open(_package_file(module), encoding="utf-8") as handle:
         assert lock_references(handle.read()) == set()
@@ -1115,7 +1135,7 @@ def test_ac6_d11_the_preview_code_has_no_lock_session_or_bus_reference(module):
 def test_ac6_d11_every_allowed_name_is_still_in_use():
     """An allowance for a name that no longer exists would silently allow its return."""
     used = set()
-    for module in PREVIEW_MODULES:
+    for module in PACKAGE_MODULES:
         with open(_package_file(module), encoding="utf-8") as handle:
             lock_references(handle.read(), used)
     assert used == set(ALLOWED_NAMES)

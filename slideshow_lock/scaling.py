@@ -61,10 +61,11 @@ SCALING_FILL = "fill"
 #: Pictures above this many pixels are refused (a decompression bomb in the picture folder
 #: must not take the session down). Derived, not guessed (``docs/preview.md``, section 4):
 #: preparing one picture peaked at 9.0 to 9.4 bytes per source pixel, whatever the width (36
-#: and 50 MP, ``fit``, the worst mode), so a frame of 512 MiB holds 512 MiB / 9.4 B = 57 MP,
-#: rounded down to 50 MP (about 450 MiB measured at 50 MP on two 4K-class monitors). This
-#: bounds the memory of the decode step; it does not protect against an out-of-memory kill of
-#: the whole process.
+#: and 50 MP, ``fit``, the mode that copies the whole picture; a panning frame is worse, about
+#: 11 bytes per pixel, see ``docs/preview.md``, section 4), so a frame of 512 MiB holds 512 MiB /
+#: 9.4 B = 57 MP, rounded down to 50 MP (about 450 MiB measured at 50 MP on two 4K-class
+#: monitors). This bounds the memory of the decode step; it does not protect against an
+#: out-of-memory kill of the whole process.
 MAX_PIXELS = 50_000_000
 
 #: The structure checks below stop after this many steps and say "complete" (the decoder
@@ -254,6 +255,14 @@ def probe_loadable(path: str) -> None:
     once, instead of the preview finding out again on every pass. The extension list of the
     image source is not narrowed: where a loader exists, the picture is shown.
 
+    The check is wider than the ``get_file_info`` call it replaced: it does not parse the
+    header, so a file whose first bytes are right and whose header is broken (``BM`` and then
+    noise, a 3-byte JPEG, a PNG cut after its signature) passes here and is skipped, and logged
+    once, when it is decoded. Such a file stays in the queue and fails at every pass over it;
+    the controller's loop is bounded by the number of pictures in the queue, and a failing
+    pass costs about 0.06 ms per small file. Reading the header here would be code of our own
+    that parses untrusted bytes, and the FIFO safety would have to be measured again.
+
     The file is opened once, by ``probe_image``, with ``O_NONBLOCK`` and ``fstat``. Asking
     ``Pixbuf.get_file_info(path)`` instead would open it again by name with a blocking
     ``open``, which hangs on a file swapped for a FIFO in between (measured). This runs on the
@@ -392,8 +401,11 @@ class ImageScaler:
             return ImageSkipped(f"{w}x{h} pixels is more than the {MAX_PIXELS} pixel limit")
 
         try:
+            view = memoryview(data)
             for offset in range(0, len(data), _FEED_CHUNK):
-                loader.write(data[offset : offset + _FEED_CHUNK])
+                # ``bytes``, not the bytearray slice: PyGObject converts a bytearray item by
+                # item (57 MiB BMP: 1.2 s CPU with the GIL held, 0.04 s with ``bytes``).
+                loader.write(bytes(view[offset : offset + _FEED_CHUNK]))
                 if too_big:
                     raise too_big_error()
             loader.close()
@@ -464,8 +476,12 @@ class ImageScaler:
         buffer allocated up front and read from the pixbuf a block of rows at a time. Never a
         string per row joined at the end: that held a second full copy of the frame. The result
         is ``bytes`` and not ``bytearray`` because PyGObject hands only ``bytes`` to GLib and
-        GStreamer in one piece (a ``bytearray`` is converted item by item: about 3 s for 150 MB,
-        measured).
+        GStreamer in one piece (a ``bytearray`` is converted item by item: about 3.3 s of CPU
+        for 150 MiB, 30 to 60 times a ``bytes``; the wall time follows the load of the machine).
+
+        The padding bytes of a row are the pixbuf's own, not zeros, when the pixbuf already has
+        the stride (only the tail padding of the last row is zero): the pixels are the same, and
+        the pixels are the same.
         """
         width, height, stride = pixbuf.get_width(), pixbuf.get_height(), pixbuf.get_rowstride()
         want = _gst_row_stride(width)

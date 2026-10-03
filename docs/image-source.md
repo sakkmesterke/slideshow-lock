@@ -32,7 +32,12 @@ becomes empty (`None`). It does not fire for `advance()`.
   header opens the file with `O_NONBLOCK` and checks `fstat`, so a file swapped for
   a FIFO cannot hang the walk; but a hung network mount can still block `open()`
   or `scandir()` in the kernel, and then the whole main loop stands still. Nothing
-  in this module can prevent that (CORE-1 has its own condition for it).
+  in this module can prevent that (CORE-1 has its own condition for it). The tests of
+  the step budget guard the cost budget only: they measure the CPU time of the walking
+  thread and, on a fake clock, how much work a step does; they do not see a blocking
+  call or a sleep (a step that waits is not busy, and a wall-clock threshold does not
+  tell it from a loaded machine). That is covered by a hand measurement on a real slow
+  mount, not by a test.
 - **Symlink loops.** Directories are identified by `(st_dev, st_ino)`. A loop, or a
   folder reachable through two links, is walked once. Symlinks are followed, so
   linking in a folder from elsewhere works. A symlinked *file* is its own entry.
