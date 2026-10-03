@@ -2,6 +2,7 @@
 # Run the preview smoke test inside a headless mutter with virtual monitors.
 #
 #   tools/wayland-smoke/run.sh [--monitors 1280x720,800x1000] [smoke_preview.py arguments]
+#   SMOKE_SCRIPT=smoke_preferences.py tools/wayland-smoke/run.sh [arguments]   # the settings window
 #
 # Needs: mutter (with --headless), dbus-run-session, glib-compile-schemas, and PyGObject with
 # GTK 4 and GStreamer (gir1.2-gtk-4.0, gir1.2-gst-plugins-base-1.0, gstreamer1.0-plugins-base).

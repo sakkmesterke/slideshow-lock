@@ -279,7 +279,7 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app --folder ~/Pictu
 Options (`--interval`, `--order`, `--scaling`, `--pan`, `--debug`) apply to that run only and are
 never written to the settings. Any key, click, scroll or mouse movement ends it.
 `start_preview(settings, source)` in the same module is what the service and the settings window
-will call.
+call (the settings window: see `docs/preferences.md`).
 
 ## 7. Facts measured while building it
 
