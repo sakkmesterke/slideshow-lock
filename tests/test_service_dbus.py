@@ -287,3 +287,34 @@ def test_close_disables_the_machine_drops_the_watches_and_releases_the_inhibitor
         assert r.machine.state is State.DISABLED
         assert desktop.held == 0
         assert wait_for(lambda: desktop.watches == {})
+
+
+def test_disable_and_enable_cycles_do_not_leave_signal_subscriptions_behind(monkeypatch):
+    """Every disable stops the guard thread; the signal subscriptions of its adapters must go
+    with it, or five cycles leave the connection with ten more live ones."""
+    from slideshow_lock import dbus_adapters
+
+    made = []
+    real_init = dbus_adapters._Subscriptions.__init__
+
+    def recording_init(self, conn):
+        real_init(self, conn)
+        made.append(self)
+
+    monkeypatch.setattr(dbus_adapters._Subscriptions, "__init__", recording_init)
+
+    def live():
+        return sum(len(subs._ids) for subs in made)
+
+    with Desktop() as desktop:
+        r = Run(desktop)
+        try:
+            baseline = live()
+            assert baseline > 0
+            for _ in range(5):
+                r.machine.disable()
+                r.machine.enable()
+            assert r.settle(lambda: desktop.held == 1)
+            assert live() == baseline
+        finally:
+            r.close()

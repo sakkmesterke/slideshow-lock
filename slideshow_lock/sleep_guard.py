@@ -199,6 +199,17 @@ class SleepGuard:
             )
 
 
+def _close_adapter(adapter: object) -> None:
+    # ``close`` is not part of the two protocols; the real adapters have it, a stand-in may not
+    close = getattr(adapter, "close", None)
+    if close is None:
+        return
+    try:
+        close()
+    except Exception:
+        _LOG.exception("[sleep-inhibit] closing an adapter of the sleep guard failed")
+
+
 class GuardThread:
     """A ``SleepGuardControl``: runs a ``SleepGuard`` on a thread with its own GLib main context.
 
@@ -266,9 +277,11 @@ class GuardThread:
         context.push_thread_default()
         loop = GLib.MainLoop.new(context, False)
         guard: Optional[SleepGuard] = None
+        adapters: Tuple[object, ...] = ()
         try:
             try:
                 sleep, lock = self._build()
+                adapters = (sleep, lock)
                 guard = SleepGuard(sleep, lock, self._listener, self._to_main, self._clock)
                 guard.setup()
             except BaseException as exc:
@@ -280,5 +293,9 @@ class GuardThread:
         finally:
             if guard is not None:
                 guard.teardown()
+            # the adapters are this thread's: their signal subscriptions end here, or every
+            # disable/enable cycle would leave two more on the bus connection
+            for adapter in adapters:
+                _close_adapter(adapter)
             context.pop_thread_default()
             self._ready.set()

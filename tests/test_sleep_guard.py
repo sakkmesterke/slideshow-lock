@@ -362,6 +362,102 @@ def test_stop_releases_the_inhibitor_on_the_guards_thread():
     assert made["sleep"].held == 0
 
 
+class _ClosingSleepSignal(FakeSleepSignal):
+    def __init__(self, deliver, closed):
+        super().__init__(deliver)
+        self._closed = closed
+
+    def close(self):
+        self._closed.append(("sleep", threading.current_thread()))
+
+
+class _ClosingSessionLock(FakeSessionLock):
+    def __init__(self, deliver, closed):
+        super().__init__(deliver)
+        self._closed = closed
+
+    def close(self):
+        self._closed.append(("lock", threading.current_thread()))
+
+
+def _closing_guard_thread(main, closed, *, setup_error=None):
+    def build():
+        deliver = current_poster()
+        sleep = _ClosingSleepSignal(deliver, closed)
+        if setup_error is not None:
+            sleep.acquire_delay_inhibitor = lambda: (_ for _ in ()).throw(setup_error)
+        return sleep, _ClosingSessionLock(deliver, closed)
+
+    return GuardThread(build, Listener(), main.post)
+
+
+def test_stop_closes_both_adapters_on_the_guards_thread():
+    main = LoopThread()
+    closed = []
+    guard = _closing_guard_thread(main, closed)
+    try:
+        guard.start()
+        thread = guard.thread
+        assert closed == []
+        guard.stop()
+    finally:
+        main.stop()
+    assert sorted(kind for kind, _ in closed) == ["lock", "sleep"]
+    assert all(where is thread for _, where in closed)
+
+
+def test_adapters_are_closed_in_every_cycle_of_start_and_stop():
+    """Five disable/enable cycles close ten adapters, not none: each one left open keeps its
+    signal subscriptions on the bus connection."""
+    main = LoopThread()
+    closed = []
+    guard = _closing_guard_thread(main, closed)
+    try:
+        for cycle in range(1, 6):
+            guard.start()
+            guard.stop()
+            assert len(closed) == 2 * cycle
+    finally:
+        main.stop()
+
+
+def test_adapters_are_closed_when_the_guard_cannot_come_up():
+    main = LoopThread()
+    closed = []
+    guard = _closing_guard_thread(main, closed, setup_error=OSError("logind refused"))
+    try:
+        with pytest.raises(OSError, match="logind refused"):
+            guard.start()
+    finally:
+        main.stop()
+    assert wait_until(lambda: len(closed) == 2, 3)
+
+
+def test_an_adapter_that_fails_to_close_is_logged_and_does_not_keep_the_other_open(caplog):
+    main = LoopThread()
+    closed = []
+
+    def build():
+        deliver = current_poster()
+        sleep = _ClosingSleepSignal(deliver, closed)
+
+        def broken_close():
+            raise RuntimeError("connection is gone")
+
+        sleep.close = broken_close
+        return sleep, _ClosingSessionLock(deliver, closed)
+
+    guard = GuardThread(build, Listener(), main.post)
+    try:
+        with caplog.at_level(logging.ERROR):
+            guard.start()
+            guard.stop()
+    finally:
+        main.stop()
+    assert [kind for kind, _ in closed] == ["lock"]
+    assert any("closing an adapter" in m for m in caplog.messages)
+
+
 class _BlockingScandir:
     """``os.scandir`` that blocks, as a hard NFS mount does: one listing, for as long as the
     test says."""
