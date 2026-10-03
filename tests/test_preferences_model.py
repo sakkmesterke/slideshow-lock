@@ -13,7 +13,16 @@ import pytest
 from gi.repository import Gio
 
 from slideshow_lock import APP_ID
-from slideshow_lock.preferences_model import CHOICES, INT_RANGES, PreferencesModel
+from slideshow_lock.preferences_model import (
+    CHOICES,
+    IDLE_MAX_SECONDS,
+    IDLE_MIN_SECONDS,
+    INT_RANGES,
+    PreferencesModel,
+    format_hms,
+    join_hms,
+    split_hms,
+)
 from slideshow_lock.settings import (
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
@@ -104,6 +113,142 @@ def test_something_that_is_not_a_whole_number_is_refused(model, value):
 def test_the_idle_timeout_cannot_be_zero_but_the_grace_period_can(model):
     assert not model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 0).ok
     assert model.set_int(KEY_LOCK_GRACE_PERIOD_SECONDS, 0).ok  # 0: every input counts (D16)
+
+
+# -- the idle time as hours, minutes and seconds ---------------------------------------------
+
+
+def test_the_idle_time_runs_from_00_00_01_to_23_59_59():
+    assert IDLE_MIN_SECONDS == join_hms(0, 0, 1) == 1
+    assert IDLE_MAX_SECONDS == join_hms(23, 59, 59) == 86399
+    assert INT_RANGES[KEY_IDLE_TIMEOUT_SECONDS] == (1, 86399)
+
+
+@pytest.mark.parametrize(
+    ("seconds", "parts", "text"),
+    [
+        (1, (0, 0, 1), "00:00:01"),
+        (59, (0, 0, 59), "00:00:59"),
+        (60, (0, 1, 0), "00:01:00"),
+        (120, (0, 2, 0), "00:02:00"),
+        (300, (0, 5, 0), "00:05:00"),
+        (3599, (0, 59, 59), "00:59:59"),
+        (3600, (1, 0, 0), "01:00:00"),
+        (3661, (1, 1, 1), "01:01:01"),
+        (86399, (23, 59, 59), "23:59:59"),
+    ],
+)
+def test_seconds_and_the_three_sliders_convert_both_ways(seconds, parts, text):
+    assert split_hms(seconds) == parts
+    assert join_hms(*parts) == seconds
+    assert format_hms(seconds) == text
+
+
+def test_every_idle_time_survives_the_round_trip_through_the_sliders():
+    for seconds in range(IDLE_MIN_SECONDS, IDLE_MAX_SECONDS + 1):
+        hours, minutes, secs = split_hms(seconds)
+        assert 0 <= hours <= 23 and 0 <= minutes <= 59 and 0 <= secs <= 59
+        assert join_hms(hours, minutes, secs) == seconds
+
+
+def test_every_position_of_the_sliders_is_a_distinct_number_of_seconds():
+    seen = {join_hms(h, m, s) for h in range(24) for m in range(60) for s in range(60)}
+    assert seen == set(range(0, 86400))  # 00:00:00 up to 23:59:59, none twice, none missing
+
+
+@pytest.mark.parametrize(
+    ("parts", "stored"),
+    [
+        ((0, 0, 1), 1),  # the shortest
+        ((0, 0, 59), 59),
+        ((0, 1, 0), 60),
+        ((0, 59, 59), 3599),
+        ((1, 0, 0), 3600),
+        ((1, 1, 1), 3661),
+        ((23, 59, 59), 86399),  # the longest
+    ],
+)
+def test_the_sliders_are_saved_as_seconds(model, parts, stored):
+    result = model.set_idle(*parts)
+    assert result.ok and result.message == "Saved.", result
+    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == stored
+
+
+def test_all_three_sliders_at_zero_become_the_shortest_idle_time(model):
+    model.set_idle(0, 5, 0)
+    result = model.set_idle(0, 0, 0)
+    assert result.ok
+    assert "00:00:01" in result.message and result.message != "Saved."
+    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 1
+
+
+@pytest.mark.parametrize("parts", [(24, 0, 0), (0, 60, 0), (0, 0, 60), (-1, 0, 5), (0, -1, 5)])
+def test_a_slider_value_outside_its_range_is_refused_and_the_stored_time_stays(model, parts):
+    model.set_idle(0, 5, 0)
+    result = model.set_idle(*parts)
+    assert not result.ok
+    assert result.message.startswith(
+        "Hours must be 0 to 23"
+    )  # the model's own check, not the schema's
+    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 300
+
+
+@pytest.mark.parametrize("parts", [(True, 0, 1), (0, 1.5, 0), (0, 0, "1"), (None, 0, 1)])
+def test_slider_values_that_are_not_whole_numbers_are_refused(model, parts):
+    assert not model.set_idle(*parts).ok
+    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 120
+
+
+def test_the_idle_time_in_seconds_takes_one_second_and_a_day_less_one_second_only(model):
+    assert model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 1).ok
+    assert model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 86399).ok
+    assert not model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 0).ok  # 00:00:00
+    assert not model.set_int(KEY_IDLE_TIMEOUT_SECONDS, 86400).ok  # 24:00:00
+    assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 86399
+
+
+# -- where the folder chooser opens ----------------------------------------------------------
+
+
+def _with_default(monkeypatch, path):
+    monkeypatch.setattr("slideshow_lock.preferences_model.default_picture_folder", lambda: path)
+
+
+def test_the_chooser_opens_in_the_folder_in_use_when_it_exists(model, tmp_path, monkeypatch):
+    chosen = tmp_path / "chosen"
+    system = tmp_path / "Képek"
+    chosen.mkdir()
+    system.mkdir()
+    _with_default(monkeypatch, str(system))
+    model.set_folder(str(chosen))
+    assert model.chooser_start_folder() == str(chosen)
+
+
+def test_the_chooser_opens_in_the_system_pictures_folder_when_the_default_is_in_use(
+    model, tmp_path, monkeypatch
+):
+    system = tmp_path / "Képek"
+    system.mkdir()
+    _with_default(monkeypatch, str(system))
+    assert model.chooser_start_folder() == str(system)  # nothing chosen: the default is in use
+
+
+def test_the_chooser_opens_in_the_system_pictures_folder_when_the_chosen_one_is_gone(
+    model, tmp_path, monkeypatch
+):
+    system = tmp_path / "Képek"
+    system.mkdir()
+    _with_default(monkeypatch, str(system))
+    model.set_folder(str(tmp_path / "gone"))  # a missing folder can be stored (brief 3.7)
+    assert model.chooser_start_folder() == str(system)
+
+
+def test_the_chooser_opens_in_the_home_directory_only_when_no_pictures_folder_exists(
+    model, tmp_path, monkeypatch
+):
+    _with_default(monkeypatch, str(tmp_path / "Képek"))  # does not exist
+    model.set_folder(str(tmp_path / "gone"))
+    assert model.chooser_start_folder() == os.path.expanduser("~")
 
 
 # -- choices and the pan switch ----------------------------------------------------------------

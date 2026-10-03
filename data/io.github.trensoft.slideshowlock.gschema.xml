@@ -13,12 +13,14 @@
           path="/io/github/trensoft/slideshowlock/">
 
     <key name="idle-timeout-seconds" type="u">
-      <range min="1" max="86400"/>
+      <range min="1" max="86399"/>
       <default>120</default>
       <summary>Idle timeout before the slideshow starts</summary>
       <description>
         Seconds of user inactivity after which the fullscreen slideshow
-        starts (brief section 3, point 1).
+        starts (brief section 3, point 1). From 1 second (00:00:01) to
+        23:59:59 (86399 seconds); zero and a full day (86400) are not valid.
+        The settings window shows it as hours, minutes and seconds.
       </description>
     </key>
 

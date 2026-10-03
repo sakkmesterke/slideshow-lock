@@ -138,14 +138,29 @@ def main() -> int:
     check(
         "the fields start from the stored defaults",
         (
-            window.idle_spin.get_value_as_int(),
+            window.idle_hours.get_value(),
+            window.idle_minutes.get_value(),
+            window.idle_seconds.get_value(),
             window.grace_spin.get_value_as_int(),
             window.interval_spin.get_value_as_int(),
             window.order_drop.get_selected(),
             window.scaling_drop.get_selected(),
             window.pan_switch.get_active(),
         )
-        == (120, 0, 10, 0, 0, False),
+        == (0, 2, 0, 0, 10, 0, 0, False),
+    )
+    check(
+        "the idle time shows as HH:MM:SS beside the three sliders",
+        window.idle_total.get_label() == "00:02:00",
+        window.idle_total.get_label(),
+    )
+    check(
+        "the sliders run hours 0-23, minutes 0-59, seconds 0-59",
+        [
+            (w.get_adjustment().get_lower(), w.get_adjustment().get_upper())
+            for w in (window.idle_hours, window.idle_minutes, window.idle_seconds)
+        ]
+        == [(0, 23), (0, 59), (0, 59)],
     )
     check(
         "the folder field is empty and hints at the XDG default (D25)",
@@ -163,11 +178,11 @@ def main() -> int:
         screenshot(window, os.path.join(args.screenshot, "window.png"))
 
     # -- every field reaches the settings --------------------------------------------------
-    window.idle_spin.set_value(300)
+    window.idle_minutes.set_value(5)
     window.grace_spin.set_value(5)
     window.interval_spin.set_value(20)
     check(
-        "the three number fields are saved",
+        "the idle time and the two number fields are saved",
         (
             stored.get_idle_timeout_seconds(),
             stored.get_lock_grace_period_seconds(),
@@ -175,6 +190,7 @@ def main() -> int:
         )
         == (300, 5, 20),
     )
+    check("the HH:MM:SS line follows", window.idle_total.get_label() == "00:05:00")
     check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
     window.order_drop.set_selected(CHOICES[KEY_ORDER].index("name"))
     window.scaling_drop.set_selected(CHOICES[KEY_SCALING].index("fit"))
@@ -220,9 +236,39 @@ def main() -> int:
         f"stored {stored.get_lock_grace_period_seconds()}",
     )
     window.grace_spin.set_value(5)
-    window.idle_spin.set_text("0")  # the idle timeout starts at 1
-    window.idle_spin.update()
-    check("0 in the idle timeout (minimum 1) is refused", stored.get_idle_timeout_seconds() == 300)
+    window.idle_hours.set_value(1)
+    window.idle_minutes.set_value(1)
+    window.idle_seconds.set_value(1)
+    check(
+        "1 h 1 min 1 s is 3661 seconds and reads 01:01:01",
+        stored.get_idle_timeout_seconds() == 3661 and window.idle_total.get_label() == "01:01:01",
+        f"{stored.get_idle_timeout_seconds()} {window.idle_total.get_label()}",
+    )
+    window.idle_hours.set_value(23)
+    window.idle_minutes.set_value(59)
+    window.idle_seconds.set_value(59)
+    check(
+        "the longest idle time, 23:59:59, is 86399 seconds",
+        stored.get_idle_timeout_seconds() == 86399 and window.idle_total.get_label() == "23:59:59",
+    )
+    window.idle_hours.set_value(0)
+    window.idle_minutes.set_value(0)
+    window.idle_seconds.set_value(0)
+    pump(0.3)  # a slider set from its own handler is announced after the handler ended
+    check(
+        "all three sliders at zero become 00:00:01, shown and stored",
+        stored.get_idle_timeout_seconds() == 1
+        and window.idle_total.get_label() == "00:00:01"
+        and window.idle_seconds.get_value() == 1
+        and "00:00:01" in window.status.get_label(),
+        f"{stored.get_idle_timeout_seconds()} {window.status.get_label()!r}",
+    )
+    stored.set_idle_timeout_seconds(300)
+    pump(1.0, until=lambda: window.idle_total.get_label() == "00:05:00")
+    check(
+        "an idle time set elsewhere moves the sliders",
+        (window.idle_hours.get_value(), window.idle_minutes.get_value()) == (0, 5),
+    )
     window.interval_spin.set_text("3600")
     window.interval_spin.update()
     check("the upper limit typed in is saved", stored.get_slide_interval_seconds() == 3600)
@@ -240,8 +286,31 @@ def main() -> int:
     window.browse_button.emit("clicked")
     pump(0.5)
     check("Browse opens a chooser", window._chooser is not None)
+    start = window._chooser.get_current_folder()
+    check(
+        "the chooser opens in the folder in use",
+        start is not None and start.get_path() == folder,
+        None if start is None else start.get_path(),
+    )
     window._on_folder_chosen(window._chooser, Gtk.ResponseType.CANCEL)
     check("cancelling the chooser changes nothing", stored.get_picture_folder() == folder)
+    missing = os.path.join(folder, "not-there")
+    window.folder_entry.set_text(missing)
+    window.folder_entry.emit("activate")
+    window.browse_button.emit("clicked")
+    pump(0.5)
+    start = window._chooser.get_current_folder()
+    expected = default_picture_folder()
+    if not os.path.isdir(expected):
+        expected = os.path.expanduser("~")
+    check(
+        "a missing folder in use: the chooser opens in the pictures folder, not in that folder",
+        start is not None and start.get_path() == expected,
+        None if start is None else start.get_path(),
+    )
+    window._on_folder_chosen(window._chooser, Gtk.ResponseType.CANCEL)
+    window.folder_entry.set_text(folder)
+    window.folder_entry.emit("activate")
     other = tempfile.mkdtemp(prefix="slideshow-smoke-prefs-")
     window._on_folder_chosen(_Chosen(other), Gtk.ResponseType.ACCEPT)
     check(

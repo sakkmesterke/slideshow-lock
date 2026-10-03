@@ -30,9 +30,14 @@ from slideshow_lock.settings import (
     default_picture_folder,
 )
 
+#: The idle timeout runs from 00:00:01 to 23:59:59, in seconds (the schema's range). Zero is no
+#: idle time at all and 24:00:00 does not fit the three sliders (hours 0-23).
+IDLE_MIN_SECONDS = 1
+IDLE_MAX_SECONDS = 23 * 3600 + 59 * 60 + 59
+
 #: (minimum, maximum) of the whole-number keys, in seconds. The same as the schema's ranges.
 INT_RANGES = {
-    KEY_IDLE_TIMEOUT_SECONDS: (1, 86400),
+    KEY_IDLE_TIMEOUT_SECONDS: (IDLE_MIN_SECONDS, IDLE_MAX_SECONDS),
     KEY_LOCK_GRACE_PERIOD_SECONDS: (0, 86400),
     KEY_SLIDE_INTERVAL_SECONDS: (1, 3600),
 }
@@ -75,6 +80,21 @@ def _saved() -> SaveResult:
     return SaveResult(True, _("Saved."))
 
 
+def split_hms(seconds: int):
+    """Seconds as (hours, minutes, seconds), for the three idle-time sliders: 3661 -> (1, 1, 1)."""
+    return seconds // 3600, seconds % 3600 // 60, seconds % 60
+
+
+def join_hms(hours: int, minutes: int, seconds: int) -> int:
+    """The three sliders as seconds: (1, 1, 1) -> 3661. The inverse of ``split_hms``."""
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def format_hms(seconds: int) -> str:
+    """Seconds as HH:MM:SS, the way the window shows the idle time: 300 -> '00:05:00'."""
+    return "%02d:%02d:%02d" % split_hms(seconds)
+
+
 class PreferencesModel:
     """The window's view of a ``Settings`` object (or anything with the same getters/setters)."""
 
@@ -100,6 +120,17 @@ class PreferencesModel:
         # pretending the user typed it.
         return FolderView("" if folder == default else folder, default, note)
 
+    def chooser_start_folder(self) -> str:
+        """Where the folder chooser opens: the folder in use when it exists, otherwise the system
+        pictures folder (the default, ``~/Képek`` on a Hungarian system; ``~/Pictures`` when the
+        system has none or it is the home directory), and the home directory only when even that
+        is missing. Never "wherever the chooser was last": it starts at the pictures."""
+        view = self.folder_view()
+        for candidate in (view.text, view.default):
+            if candidate and os.path.isdir(candidate):
+                return candidate
+        return os.path.expanduser("~")
+
     # -- writing ---------------------------------------------------------------------------
 
     def set_int(self, key: str, value) -> SaveResult:
@@ -112,6 +143,27 @@ class PreferencesModel:
                 _("The value must be between %(low)d and %(high)d.") % {"low": low, "high": high},
             )
         return self._store(key, value)
+
+    def set_idle(self, hours, minutes, seconds) -> SaveResult:
+        """Save the idle timeout given as the three sliders' values (hours 0-23, minutes and
+        seconds 0-59). All three at zero is not an idle time: it is corrected to the shortest
+        one, 00:00:01, which is saved and said so (the window puts the sliders to it)."""
+        parts = (hours, minutes, seconds)
+        if any(isinstance(p, bool) or not isinstance(p, int) for p in parts):
+            return SaveResult(False, _("Enter whole numbers for hours, minutes and seconds."))
+        if not (0 <= hours <= 23 and 0 <= minutes <= 59 and 0 <= seconds <= 59):
+            return SaveResult(False, _("Hours must be 0 to 23, minutes and seconds 0 to 59."))
+        total = join_hms(hours, minutes, seconds)
+        if total < IDLE_MIN_SECONDS:
+            result = self._store(KEY_IDLE_TIMEOUT_SECONDS, IDLE_MIN_SECONDS)
+            if not result.ok:
+                return result
+            return SaveResult(
+                True,
+                _("The shortest idle time is %s, it was set to that.")
+                % format_hms(IDLE_MIN_SECONDS),
+            )
+        return self._store(KEY_IDLE_TIMEOUT_SECONDS, total)
 
     def set_choice(self, key: str, value) -> SaveResult:
         if value not in CHOICES[key]:
