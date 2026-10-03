@@ -77,5 +77,18 @@
       </description>
     </key>
 
+    <key name="pan-portrait-images" type="b">
+      <default>false</default>
+      <summary>Slowly pan portrait pictures</summary>
+      <description>
+        When true and the scaling mode is "fill", a portrait picture on a
+        landscape monitor is scrolled slowly from top to bottom while it is
+        shown, instead of being cropped to its middle. The default is false
+        on purpose: the animation redraws every frame, so it costs battery.
+        The default only changes after a battery measurement on the
+        reference laptop (docs/measurements/pan-battery-protocol.md).
+      </description>
+    </key>
+
   </schema>
 </schemalist>
