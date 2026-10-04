@@ -454,7 +454,7 @@ def test_without_an_application_the_preview_asks_for_nothing_and_still_runs(
 def test_a_desktop_that_does_not_accept_the_request_is_logged_and_the_preview_runs(
     tmp_path, monkeypatch, caplog
 ):
-    application = FakeApplication(cookie=0)  # GTK answers 0 when the desktop said no
+    application = FakeApplication(cookie=0)  # a backend that answers 0 (the Wayland one never does)
     with caplog.at_level(logging.WARNING):
         controller, windows = preview_with(tmp_path, monkeypatch, application)
     try:
@@ -612,6 +612,125 @@ def test_main_hands_the_application_to_the_preview_and_stops_it_at_shutdown(monk
         before = application.quit_calls
         assert handler() is False
         assert application.quit_calls == before + 1
+
+
+class AskingGtkApplication(FakeApplication):
+    """An application that takes and gives back idle requests (and counts them), and is activated
+    twice before it shuts down: a second start on the same application id."""
+
+    instances = []
+    between_starts = None  # what happens between the two starts (a test sets it)
+
+    def __init__(self, application_id=None):
+        super().__init__()
+        self.handlers = {}
+        self.hold_calls = 0
+        AskingGtkApplication.instances.append(self)
+
+    def connect(self, name, callback):
+        self.handlers[name] = callback
+
+    def hold(self):
+        self.hold_calls += 1
+
+    def quit(self):
+        pass
+
+    def run(self, _argv):
+        self.handlers["activate"](self)
+        if self.between_starts is not None:
+            self.between_starts()
+        self.handlers["activate"](self)  # the second start: GTK hands it to the running instance
+        self.handlers["shutdown"](self)
+        return 0
+
+
+def _main_with_a_real_preview(tmp_path, monkeypatch, clock, windows, between_starts=None):
+    """``main`` with the real ``start_preview`` over fake windows, scaler and clock: what its
+    second activation does is observable in the requests and timers the preview leaves."""
+    make_image(tmp_path / "a.png")
+    sources = []
+
+    def build(_settings):
+        source = started(tmp_path, (FakeWatcher(), ManualScheduler()))
+        sources.append(source)
+        return source
+
+    AskingGtkApplication.instances.clear()
+    monkeypatch.setattr(
+        AskingGtkApplication,
+        "between_starts",
+        staticmethod(between_starts) if between_starts else None,
+    )
+    monkeypatch.setattr(
+        preview_app,
+        "Gtk",
+        SimpleNamespace(
+            Application=AskingGtkApplication, ApplicationInhibitFlags=Gtk.ApplicationInhibitFlags
+        ),
+    )
+    monkeypatch.setattr(
+        preview_app.Gio.SettingsSchemaSource,
+        "get_default",
+        staticmethod(lambda: SimpleNamespace(lookup=lambda _id, _recursive: object())),
+    )
+    monkeypatch.setattr(preview_app, "Settings", lambda: FakeSettings())
+    monkeypatch.setattr(preview_app, "build_source", build)
+    monkeypatch.setattr(preview_app, "open_monitor_windows", lambda: windows)
+    monkeypatch.setattr(preview_app, "ImageScaler", FakeScaler)
+    monkeypatch.setattr(preview_app, "GLibClock", lambda: clock)
+    monkeypatch.setattr(preview_app.GLib, "unix_signal_add", lambda *_args: 1)
+    monkeypatch.setattr(preview_app.GLib, "idle_add", lambda *_args: 1)  # no main loop here
+    assert preview_app.main([]) == 0
+    (application,) = AskingGtkApplication.instances
+    return application, sources
+
+
+def test_a_second_start_while_the_preview_is_up_changes_nothing(tmp_path, monkeypatch):
+    """A second ``activate`` on the same application id used to build a second controller and a
+    second idle request, and only the last was given back at shutdown (measured: one request
+    stayed on the desktop). It is ignored now: one preview, one request, one limit timer."""
+    clock = FakeClock()
+    windows = [FakeWindow()]
+    application, sources = _main_with_a_real_preview(tmp_path, monkeypatch, clock, windows)
+    assert len(sources) == 1  # no second source, so no second controller
+    assert len(application.inhibit_calls) == 1  # one request ...
+    assert application.held == 0  # ... and it is given back at shutdown, none left
+    assert application.uninhibit_calls == [application.cookie]
+    assert application.hold_calls == 1  # the application is held once, not once per start
+    assert windows[0].closed == 1
+    assert clock.pending == 0  # the limit timer of the first preview is gone, no second one
+
+
+def test_a_second_start_does_not_start_a_second_limit_timer(tmp_path, monkeypatch):
+    """The timer belongs to the first controller: a second one would end a later preview early."""
+    clock = FakeClock()
+    seen = []
+    real_call_later = clock.call_later
+
+    def spy(delay, fn):
+        seen.append(delay)
+        return real_call_later(delay, fn)
+
+    clock.call_later = spy
+    _main_with_a_real_preview(tmp_path, monkeypatch, clock, [FakeWindow()])
+    assert seen.count(PREVIEW_LIMIT_SECONDS) == 1
+
+
+def test_a_start_after_the_preview_has_ended_starts_a_new_one(tmp_path, monkeypatch):
+    """The guard is for a preview that is up: one that ended (input) does not block the next."""
+    clock = FakeClock()
+    windows = [FakeWindow()]
+    application, sources = _main_with_a_real_preview(
+        tmp_path,
+        monkeypatch,
+        clock,
+        windows,
+        between_starts=lambda: windows[0].fire_input(INPUT_KEY),
+    )
+    assert len(sources) == 2
+    assert len(application.inhibit_calls) == 2
+    assert application.held == 0  # both given back
 
 
 # -- the image source ------------------------------------------------------------------------------

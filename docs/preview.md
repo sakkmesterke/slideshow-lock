@@ -156,8 +156,20 @@ round); the settings window (UI-1); changing the default of the pan switch.
   idle lock away for good.
 - **While a preview holds its request**, the desktop's own idle-based blanking and automatic lock
   do not run, for two minutes at most (not measured on a real GNOME session).
-- **If the desktop refuses** (GTK answers cookie 0) or the call raises, a WARNING says the screen
-  may blank under the preview, and the preview runs on.
+- **If the call raises** (or GTK answers cookie 0), a WARNING says the screen may blank under the
+  preview, and the preview runs on. **On Wayland a refusal by the desktop is not detected, and
+  that WARNING does not appear for it:** measured on GTK 4.8.3 in the headless Wayland session, a
+  desktop with no session manager on the bus, one that answers `Inhibit` with a D-Bus error and
+  one that answers cookie 0 all gave `Gtk.Application.inhibit` the cookie 1 (and 2 for a second
+  request), as did one that accepted the request: the Wayland backend hands out its own cookies, not
+  the desktop's answer. The cookie 0 branch is reachable only with a backend that answers 0 itself
+  (QA reported the Broadway backend; not run here). So under a refusing desktop the preview runs
+  with the screen unprotected and says nothing about it. This is a known gap, and the WARNING is no substitute for a check.
+- **A second start on the same application id** (`preview_app` started again while it runs: GTK
+  hands it to the running instance as another `activate`) is ignored while the first preview is
+  up: one preview, one request, one limit timer. Before, the second `activate` built a second
+  controller and a second request, and only the last was given back at shutdown (measured: one
+  request was left on the desktop). A start after the first preview has ended starts a new one.
 - **Without an application** (`start_preview(settings, source)`) nothing is asked.
 - It does not hold back a lock the user asked for, and the preview never locks anyway.
 - Next to the service (`docs/service.md`): while a preview holds its request, the service sees an
@@ -389,7 +401,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (121 tests): order, interval (also counted from when a picture appeared, not from the start),
+  (131 tests): order, interval (also counted from when a picture appeared, not from the start),
   switching, a late next picture shown the moment it is ready, also when settings or the window size
   change meanwhile, live settings, a refresh that is still running when the next picture is
   replaced, damaged pictures with a negative control, failures that are not in a row not adding up,
@@ -426,7 +438,10 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   of the idle request of section 2.1 are allowed in `preview_app.py` only, by (module, name):
   `inhibit`, `uninhibit` and `ApplicationInhibitFlags`, which are `Gtk.Application`'s own idle
   request and name no bus. A test fails if an allowance is no longer used, and one that the same
-  names in `preview.py` or `preferences.py` are findings. Thirty real calls (busctl,
+  names in `preview.py` or `preferences.py` are findings. A separate check of the syntax tree of
+  `preview_app.py` requires exactly one `inhibit` call whose flags are `Gtk.ApplicationInhibitFlags.IDLE`
+  and nothing else: another flag (`SWITCH`, `LOGOUT`, `SUSPEND`), a number, a combination, or any other
+  mention of `ApplicationInhibitFlags` is a finding, and it has negative controls for those. Thirty real calls (busctl,
   gdbus, qdbus, loginctl, a Gio `call_sync` on the ScreenSaver, systemctl, pydbus, a bus socket, a
   `Logout` call, an `Inhibit` call by name and `inhibit` with all flags, `os.system`, every `os.exec*`, `os.startfile`, `ctypes`, `cdll`, and seven locker
   programs by name) are inserted into `stop()` of the real source in turn, and the scan must find
@@ -488,10 +503,11 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   value that is not a bool, no settings object, a change between two calls, the property name);
   whether the desktop's choice reaches the property is not (manual test). Which controller calls which handler, and the hidden cursor, are the smoke
   tool's.
-- `tests/test_preview_app.py` (49): the command line, the settings of one run (an override of
+- `tests/test_preview_app.py` (52): the command line, the settings of one run (an override of
   `false` or `0` still counts), the worker thread closed with the preview, the source with the
-  probe, the idle request on every path, and the two minute limit (on a fake clock: nothing waits
-  for real). The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
+  probe, the idle request on every path, the two minute limit (on a fake clock: nothing waits
+  for real), and a second start of `main` on the same application id (ignored while the preview is
+  up, a new preview after it ended). The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
   verify step checks that the GTK 4 typelibs import.
 - `tests/test_tripwire.py` (23): the negative controls of the tripwire in `conftest.py` (every kind
   of call it guards raises; an opted-out test can start a program; ordinary calls are not in the

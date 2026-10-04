@@ -270,6 +270,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     state = {"controller": None, "source": None}
 
     def on_activate(application: Gtk.Application) -> None:
+        if state["controller"] is not None and state["controller"].running:
+            return  # a second start on this application id: the preview that is up stays the one
         application.hold()
         source = build_source(settings)
         source.start()

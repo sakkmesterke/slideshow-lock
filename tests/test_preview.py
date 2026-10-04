@@ -1278,6 +1278,70 @@ def test_ac6_d11_the_idle_request_names_are_allowed_in_preview_app_and_nowhere_e
     assert lock_references(request, module="preferences.py") >= {"inhibit"}
 
 
+def idle_request_findings(source: str):
+    """What is wrong with the idle request in *source*, as a list of reasons (empty: nothing).
+
+    The request is the call ``<x>.inhibit(window, flags, reason)``; its flags must be exactly
+    ``Gtk.ApplicationInhibitFlags.IDLE``: not a number, not another flag (logout, switch,
+    suspend), not a combination. Any other mention of ``ApplicationInhibitFlags`` is a finding
+    too, so the flag cannot be taken from somewhere else."""
+    tree = ast.parse(source)
+    problems = []
+    flag_nodes = []
+    calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "inhibit"
+    ]
+    if len(calls) != 1:
+        problems.append(f"{len(calls)} calls of inhibit, expected 1")
+    for call in calls:
+        flags = call.args[1] if len(call.args) > 1 else None
+        if not (
+            isinstance(flags, ast.Attribute)
+            and flags.attr == "IDLE"
+            and isinstance(flags.value, ast.Attribute)
+            and flags.value.attr == "ApplicationInhibitFlags"
+            and isinstance(flags.value.value, ast.Name)
+            and flags.value.value.id == "Gtk"
+        ):
+            problems.append(f"flags are not Gtk.ApplicationInhibitFlags.IDLE: {ast.dump(flags)}")
+        else:
+            flag_nodes.append(flags.value)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr == "ApplicationInhibitFlags":
+            if node not in flag_nodes:
+                problems.append("ApplicationInhibitFlags used outside the idle request")
+    return problems
+
+
+def test_ac6_d11_the_idle_request_in_preview_app_uses_the_idle_flag_and_nothing_else():
+    with open(_package_file("preview_app.py"), encoding="utf-8") as handle:
+        assert idle_request_findings(handle.read()) == []
+
+
+def test_ac6_d11_the_idle_flag_check_is_not_blind():
+    """Negative controls: another flag, a number, a combination, the flag taken from elsewhere."""
+    request = "self._application.inhibit(window, {flags}, HOLD_REASON)"
+    good = request.format(flags="Gtk.ApplicationInhibitFlags.IDLE")
+    assert idle_request_findings(good) == []
+    for flags in (
+        "Gtk.ApplicationInhibitFlags.SWITCH",
+        "Gtk.ApplicationInhibitFlags.LOGOUT",
+        "Gtk.ApplicationInhibitFlags.SUSPEND",
+        "8",
+        "15",
+        "Gtk.ApplicationInhibitFlags.IDLE | Gtk.ApplicationInhibitFlags.SWITCH",
+        "FLAGS",
+    ):
+        assert idle_request_findings(request.format(flags=flags)), flags
+    assert idle_request_findings(good + "\nx = Gtk.ApplicationInhibitFlags.SWITCH")
+    assert idle_request_findings("x = 1")  # no request at all
+    assert idle_request_findings(good + "\n" + good)  # a second request
+
+
 #: Calls that really lock, or reach the machinery that does, as a line of code each. They run
 #: or fail at runtime wherever they are put; the scan must find every one of them by the names
 #: and strings alone. (``Gio`` is the one GTK code already imports.)
