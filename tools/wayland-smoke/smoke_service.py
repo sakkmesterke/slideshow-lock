@@ -6,8 +6,9 @@ does not have: the screensaver, the session manager and login1 (``tests/fake_dbu
 
 1. the service takes the logind delay inhibitor and reports it is running;
 2. with no input for ``--idle-timeout`` seconds the slideshow opens a window per monitor;
-3. pointer motion, injected through mutter's remote-desktop service, ends it and the fake
-   screensaver receives ``Lock()``;
+   while it shows, the service holds an idle inhibitor of its own on the fake session manager;
+3. pointer motion, injected through mutter's remote-desktop service, ends it, the fake
+   screensaver receives ``Lock()`` and the idle inhibitor is given back;
 4. ``PrepareForSleep(true)`` makes the fake screensaver receive a second ``Lock()`` and the
    delay inhibitor is released; ``PrepareForSleep(false)`` takes it again;
 5. SIGTERM ends the service cleanly and releases the inhibitor.
@@ -37,6 +38,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from smoke_preview import Injector, check, make_pictures  # noqa: E402
 
+from slideshow_lock import APP_ID  # noqa: E402
 from tests.fake_dbus import Desktop  # noqa: E402
 
 RESULTS_OK = []
@@ -117,6 +119,10 @@ def main() -> int:
                 "the service logs the idle trigger",
                 wait_for(lambda: logged("[slideshow] started (trigger=idle)"), 5),
             )
+            ok(
+                "the slideshow holds an idle inhibitor of its own",
+                wait_for(lambda: len(desktop.inhibitors_of(APP_ID)) == 1, 5),
+            )
             injector = Injector()
             injector.motion()
             ok(
@@ -124,6 +130,10 @@ def main() -> int:
                 wait_for(lambda: len(desktop.lock_calls) == 1, 10),
             )
             ok("the state follows the lock", wait_for(lambda: logged("[lock] session"), 5))
+            ok(
+                "and the idle inhibitor is given back",
+                wait_for(lambda: desktop.inhibitors_of(APP_ID) == [], 5),
+            )
             desktop.set_locked(False)
             ok(
                 "unlocking returns to idle watching",
