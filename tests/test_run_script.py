@@ -116,7 +116,7 @@ def test_without_arguments_it_prints_the_usage_and_fails(tmp_path):
     result = _run([], _env(tmp_path))
     assert result.returncode == 2
     assert "usage: ./run.sh check" in result.stderr
-    assert "preview" in result.stderr and "settings" in result.stderr
+    assert "preview" in result.stderr and "settings" in result.stderr and "service" in result.stderr
 
 
 def test_an_unknown_command_prints_the_usage_and_fails(tmp_path):
@@ -213,3 +213,32 @@ def test_settings_starts_the_window_module(tmp_path, stub_bin):
     result = _run(["settings"], _env(tmp_path, path=path))
     assert result.returncode == 0, result.stderr
     assert "STUB -m slideshow_lock.preferences" in result.stdout
+
+
+def test_service_compiles_the_schema_outside_the_checkout_and_passes_the_arguments(
+    tmp_path, stub_bin
+):
+    before = (_snapshot(REPO), _snapshot(REPO / "data"))
+    path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
+    result = _run(
+        ["service", "--idle-timeout", "20", "--grace", "3", "--folder", "/x y"],
+        _env(tmp_path, path=path),
+    )
+    assert result.returncode == 0, result.stderr
+    out = result.stdout
+    assert "STUB -m slideshow_lock.service --idle-timeout 20 --grace 3 --folder /x y" in out
+    schema_dir = tmp_path / "cache" / "slideshow-lock" / "schemas"
+    assert f"SCHEMA_DIR={schema_dir}" in out
+    assert (schema_dir / "gschemas.compiled").is_file()
+    assert f"PYTHONPATH={REPO}" in out
+    assert (_snapshot(REPO), _snapshot(REPO / "data")) == before, "run.sh touched the checkout"
+
+
+def test_service_without_the_dependencies_stops_with_the_report_and_no_traceback(
+    tmp_path, no_gi_bin
+):
+    result = _run(["service"], _env(tmp_path, path=str(no_gi_bin)))
+    assert result.returncode == 1
+    assert "MISSING: gi (PyGObject)" in result.stderr
+    assert "Traceback" not in result.stderr
+    assert not (tmp_path / "cache").exists()

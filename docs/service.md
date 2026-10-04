@@ -17,8 +17,11 @@ No RPM, no systemd:
         --folder ~/Pictures --idle-timeout 30 --grace 3
 
 - Idle for `--idle-timeout` seconds: one fullscreen window per monitor (the CORE-2 preview windows).
-- The first input ends it. If at least `--grace` seconds have passed since it appeared, the
-  session is locked; sooner, it is not (strict `<`: `--grace 0` always locks).
+- The first input ends it. If at least `--grace` seconds have passed since the slideshow was
+  started, the session is locked; sooner, it is not (strict `<`: `--grace 0` always locks). The
+  time is taken just before the windows are opened, so it includes the time the start itself
+  takes: 0.1 s to 0.8 s in headless runs (the "after N s" of the log line is counted the same way,
+  so it is a little more than the time since the windows appeared). Not measured on a real session.
 - Before the machine suspends the session is locked, whatever else is going on.
 - `Ctrl+C` or `SIGTERM` ends the service. The other options (`--interval`, `--order`,
   `--scaling`, `--pan`, `--debug`) are those of `preview_app`. Nothing is written to the stored
