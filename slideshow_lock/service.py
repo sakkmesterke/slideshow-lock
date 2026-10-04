@@ -158,6 +158,12 @@ class _NoInhibition:
     def on_idle_inhibit_changed(self, callback) -> None:
         pass
 
+    def hold_idle_inhibit(self) -> None:
+        pass
+
+    def release_idle_inhibit(self) -> None:
+        pass
+
 
 class _LateListener:
     """The state machine needs the guard and the guard needs the state machine: this is the

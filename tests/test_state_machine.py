@@ -536,3 +536,153 @@ def test_a_slideshow_that_raises_while_starting_is_a_warning_not_a_crash(caplog)
         r.idle.fire_idle()
     assert r.state is State.IDLE_WATCHING
     assert any("not started" in m for m in caplog.messages)
+
+
+# -- the idle inhibitor of the slideshow itself ---------------------------------------------------
+#
+# While an idle-triggered slideshow shows, the service holds an idle inhibitor of its own, so that
+# the desktop's idle delay does not blank or lock the screen under it. It must be given back on
+# every way the slideshow can end: if it stayed, the next idle would find idle inhibited, and no
+# slideshow would ever start again.
+
+
+def test_an_idle_triggered_slideshow_holds_one_idle_inhibitor_while_it_shows():
+    r = Rig()
+    assert r.inhibition.holds == 0
+    r.start_idle_slideshow()
+    assert r.inhibition.holding and r.inhibition.holds == 1
+    assert r.inhibition.releases == 0
+
+
+def test_a_manual_preview_does_not_hold_an_idle_inhibitor():
+    r = Rig()
+    assert r.machine.start_preview() is True
+    assert r.slideshow.running
+    assert r.inhibition.holds == 0 and not r.inhibition.holding
+    r.machine._on_slideshow_stopped("input")
+    assert r.inhibition.releases == 0
+
+
+@pytest.mark.parametrize("why", ["idle", "inhibit"])
+def test_a_slideshow_that_does_not_start_holds_nothing(why):
+    r = Rig()
+    if why == "idle":
+        r.slideshow.refuse = "no picture to show"
+    else:
+        r.inhibition.inhibited = True
+    r.idle.fire_idle()
+    assert r.state is State.IDLE_WATCHING
+    assert r.inhibition.holds == 0 and not r.inhibition.holding
+
+
+def test_a_slideshow_that_fails_to_start_holds_nothing():
+    r = Rig()
+    r.slideshow.start_error = RuntimeError("no windows")
+    r.idle.fire_idle()
+    assert r.state is State.IDLE_WATCHING
+    assert r.inhibition.holds == 0 and not r.inhibition.holding
+
+
+def _end_by_idle_monitor_input(r):
+    r.input_after(1)
+
+
+def _end_by_window_input(r):
+    r.slideshow.end_by_input()
+
+
+def _end_by_a_foreign_inhibitor(r):
+    r.inhibition.set_inhibited(True)
+
+
+def _end_by_sleep(r):
+    r.machine.sleep_started()
+
+
+def _end_by_somebody_else_locking(r):
+    r.lock.set_locked(True)
+
+
+def _end_by_disable(r):
+    r.machine.disable()
+
+
+@pytest.mark.parametrize(
+    "end",
+    [
+        _end_by_idle_monitor_input,
+        _end_by_window_input,
+        _end_by_a_foreign_inhibitor,
+        _end_by_sleep,
+        _end_by_somebody_else_locking,
+        _end_by_disable,
+    ],
+)
+def test_the_idle_inhibitor_is_given_back_on_every_way_the_slideshow_ends(end):
+    for grace in (0, 3600):  # with and without the lock after the stop
+        r = Rig(grace=grace)
+        r.start_idle_slideshow()
+        end(r)
+        assert not r.inhibition.holding, "the inhibitor outlived the slideshow"
+        assert r.inhibition.holds == 1 and r.inhibition.releases == 1
+
+
+def test_disable_gives_back_an_inhibitor_even_when_no_slideshow_state_remains():
+    r = Rig()
+    r.start_idle_slideshow()
+    r.machine._state = State.IDLE_WATCHING  # the slideshow was torn down some other way
+    r.machine.disable()
+    assert not r.inhibition.holding
+
+
+def test_a_second_slideshow_after_the_first_holds_and_releases_again():
+    r = Rig()
+    for round_no in (1, 2):
+        r.start_idle_slideshow()
+        assert r.inhibition.holding and r.inhibition.holds == round_no
+        r.input_after(1)
+        r.lock.set_locked(False)
+        assert not r.inhibition.holding and r.inhibition.releases == round_no
+        assert r.state is State.IDLE_WATCHING
+
+
+def test_a_refused_idle_inhibitor_is_logged_and_the_slideshow_goes_on(caplog):
+    r = Rig()
+    r.inhibition.hold_error = RuntimeError("the session manager said no")
+    with caplog.at_level(logging.WARNING):
+        r.start_idle_slideshow()
+    assert any("could not take the idle inhibitor" in m and "said no" in m for m in caplog.messages)
+    assert r.slideshow.running
+    r.input_after(1)
+    assert r.inhibition.releases == 0  # nothing was held, so nothing is given back
+    assert r.lock.lock_calls == 1
+
+
+def test_an_idle_inhibitor_that_cannot_be_given_back_is_logged_and_the_machine_carries_on(caplog):
+    r = Rig()
+    r.start_idle_slideshow()
+    r.inhibition.release_error = RuntimeError("the bus is gone")
+    with caplog.at_level(logging.WARNING):
+        r.input_after(1)
+    assert any(
+        "could not give back the idle inhibitor" in m and "bus is gone" in m
+        for m in caplog.messages
+    )
+    assert r.lock.lock_calls == 1 and not r.slideshow.running
+    r.lock.set_locked(False)
+    assert r.state is State.IDLE_WATCHING
+    r.inhibition.release_error = None
+    r.idle.fire_idle()  # and the next slideshow starts
+    assert r.state is State.SLIDESHOW_RUNNING
+
+
+def test_the_sleep_path_still_never_asks_whether_idle_is_inhibited_with_a_slideshow_running():
+    r = Rig()
+    r.start_idle_slideshow()
+    queries = r.inhibition.queries
+    r.inhibition.error = AssertionError("the sleep path asked the inhibition query")
+    r.machine.sleep_started()
+    r.machine.sleep_lock_finished(True)
+    assert r.state is State.LOCKED
+    assert r.inhibition.queries == queries
+    assert not r.inhibition.holding

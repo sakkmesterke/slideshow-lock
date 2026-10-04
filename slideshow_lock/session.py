@@ -70,13 +70,27 @@ class IdleWatcher(Protocol):
 
 
 class InhibitionQuery(Protocol):
-    """Whether an application holds an idle inhibitor (``org.gnome.SessionManager``)."""
+    """Whether an application holds an idle inhibitor (``org.gnome.SessionManager``), and the one
+    idle inhibitor this service holds itself while its slideshow shows.
+
+    "An application" means another one: the inhibitor taken by ``hold_idle_inhibit`` is never
+    reported by ``is_idle_inhibited`` or ``on_idle_inhibit_changed``, whatever order things
+    happen in (see ``dbus_adapters.SessionManagerInhibition``)."""
 
     def is_idle_inhibited(self) -> bool:
         """Raises if the session manager cannot be asked."""
 
     def on_idle_inhibit_changed(self, callback: Callable[[bool], None]) -> None:
-        """Call *callback(inhibited)* when an inhibitor is added or removed."""
+        """Call *callback(inhibited)* when an inhibitor of another application is added or
+        removed."""
+
+    def hold_idle_inhibit(self) -> None:
+        """Take this service's idle inhibitor, so that the desktop's own idle delay does not
+        blank or lock the screen while the slideshow shows. Idempotent. Raises if the session
+        manager refuses."""
+
+    def release_idle_inhibit(self) -> None:
+        """Give it back. Idempotent. Raises if the session manager refuses."""
 
 
 class SessionLock(Protocol):

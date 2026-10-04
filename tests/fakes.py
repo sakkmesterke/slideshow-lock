@@ -74,11 +74,33 @@ class FakeIdleWatcher:
 
 
 class FakeInhibition:
+    """``inhibited`` is what other applications hold. The machine's own idle inhibitor is
+    ``holding``: like the real adapter, it is never part of ``inhibited`` or of the callbacks.
+    ``holds`` and ``releases`` count the calls, ``hold_error`` and ``release_error`` make them
+    raise."""
+
     def __init__(self) -> None:
         self.inhibited = False
         self.queries = 0
         self.error: Optional[Exception] = None
+        self.holding = False
+        self.holds = 0
+        self.releases = 0
+        self.hold_error: Optional[Exception] = None
+        self.release_error: Optional[Exception] = None
         self._callbacks: List[Callable[[bool], None]] = []
+
+    def hold_idle_inhibit(self) -> None:
+        self.holds += 1
+        if self.hold_error is not None:
+            raise self.hold_error
+        self.holding = True
+
+    def release_idle_inhibit(self) -> None:
+        self.releases += 1
+        if self.release_error is not None:
+            raise self.release_error
+        self.holding = False
 
     def is_idle_inhibited(self) -> bool:
         self.queries += 1

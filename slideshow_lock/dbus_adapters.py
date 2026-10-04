@@ -8,6 +8,9 @@ protocol                  bus          interface
 ``IdleWatcher``           session      ``org.gnome.Mutter.IdleMonitor`` (``AddIdleWatch``,
                                        ``AddUserActiveWatch``, ``RemoveWatch``, ``WatchFired``)
 ``InhibitionQuery``       session      ``org.gnome.SessionManager`` (``IsInhibited(8)``,
+                                       ``GetInhibitors`` and, per inhibitor, ``GetAppId`` and
+                                       ``GetFlags``; ``Inhibit(..., 8)`` and ``Uninhibit`` for the
+                                       one the service holds while its slideshow shows;
                                        ``InhibitorAdded``, ``InhibitorRemoved``)
 ``SessionLock``           session      ``org.gnome.ScreenSaver`` (``Lock``, ``GetActive``,
                                        ``ActiveChanged``); fallback: system bus,
@@ -44,6 +47,7 @@ gi.require_version("GLib", "2.0")
 
 from gi.repository import Gio, GLib  # noqa: E402
 
+from slideshow_lock import APP_ID  # noqa: E402
 from slideshow_lock.session import (  # noqa: E402
     Cancel,
     LockResult,
@@ -59,10 +63,18 @@ CALL_TIMEOUT_MS = 5000
 #: ``flags`` of ``org.gnome.SessionManager.IsInhibited``: 8 is "inhibit the session going idle".
 INHIBIT_IDLE = 8
 
+#: The application id and the reason of the idle inhibitor the service holds while its slideshow
+#: shows. The id is how the service tells its own inhibitor from somebody else's (see
+#: ``SessionManagerInhibition.is_idle_inhibited``). The reason is for diagnostics, not for the
+#: user interface, so it is not translated.
+INHIBIT_APP_ID = APP_ID
+INHIBIT_REASON = "A slideshow is showing"
+
 IDLE_MONITOR = ("org.gnome.Mutter.IdleMonitor", "/org/gnome/Mutter/IdleMonitor/Core")
 IDLE_MONITOR_IFACE = "org.gnome.Mutter.IdleMonitor"
 SESSION_MANAGER = ("org.gnome.SessionManager", "/org/gnome/SessionManager")
 SESSION_MANAGER_IFACE = "org.gnome.SessionManager"
+SESSION_INHIBITOR_IFACE = "org.gnome.SessionManager.Inhibitor"
 SCREEN_SAVER = ("org.gnome.ScreenSaver", "/org/gnome/ScreenSaver")
 SCREEN_SAVER_IFACE = "org.gnome.ScreenSaver"
 LOGIN1 = ("org.freedesktop.login1", "/org/freedesktop/login1")
@@ -236,17 +248,26 @@ class MutterIdleWatcher:
 
 
 class SessionManagerInhibition:
-    """``InhibitionQuery`` on ``org.gnome.SessionManager``."""
+    """``InhibitionQuery`` on ``org.gnome.SessionManager``, and the holder of the one idle
+    inhibitor the service takes while its own slideshow shows.
+
+    Without it GNOME's own idle delay would blank and lock the screen while the slideshow runs.
+    The service's inhibitor must not count as "an application inhibits idle", or the state
+    machine would end its own slideshow, and a foreign one added next to it would pass unnoticed
+    (the answer would stay True). So ``is_idle_inhibited`` and the change callback speak about
+    the inhibitors of other applications only: those whose application id is not ours."""
 
     def __init__(self, conn: "Gio.DBusConnection") -> None:
         self._conn = conn
         self._callbacks: List[Callable[[bool], None]] = []
+        self._cookie: Optional[int] = None
         self._last = bool(_probe(SESSION_MANAGER_IFACE, self.is_idle_inhibited))
         self._subs = _Subscriptions(conn)
         self._subs.add(SESSION_MANAGER, SESSION_MANAGER_IFACE, "InhibitorAdded", self._changed)
         self._subs.add(SESSION_MANAGER, SESSION_MANAGER_IFACE, "InhibitorRemoved", self._changed)
 
     def is_idle_inhibited(self) -> bool:
+        """True if an application other than this one holds an idle inhibitor."""
         result = _call_sync(
             self._conn,
             SESSION_MANAGER,
@@ -255,12 +276,72 @@ class SessionManagerInhibition:
             GLib.Variant("(u)", (INHIBIT_IDLE,)),
             "(b)",
         )
-        return bool(result.unpack()[0])
+        if not result.unpack()[0]:
+            return False  # nobody inhibits idle, ours included
+        return self._another_application_inhibits_idle()
+
+    def _another_application_inhibits_idle(self) -> bool:
+        paths = _call_sync(
+            self._conn, SESSION_MANAGER, SESSION_MANAGER_IFACE, "GetInhibitors", None, "(ao)"
+        ).unpack()[0]
+        for path in paths:
+            try:
+                flags = self._inhibitor_property(path, "GetFlags", "(u)")
+                app_id = self._inhibitor_property(path, "GetAppId", "(s)")
+            except GLib.Error:
+                continue  # it went away between the list and the question
+            if flags & INHIBIT_IDLE and app_id != INHIBIT_APP_ID:
+                return True
+        return False
+
+    def _inhibitor_property(self, path: str, method: str, reply: str):
+        return _call_sync(
+            self._conn,
+            (SESSION_MANAGER[0], path),
+            SESSION_INHIBITOR_IFACE,
+            method,
+            None,
+            reply,
+        ).unpack()[0]
+
+    def hold_idle_inhibit(self) -> None:
+        """Take the idle inhibitor (``Inhibit`` with flag 8). A second call while it is held does
+        nothing. Raises ``GLib.Error`` if the session manager refuses."""
+        if self._cookie is not None:
+            return
+        result = _call_sync(
+            self._conn,
+            SESSION_MANAGER,
+            SESSION_MANAGER_IFACE,
+            "Inhibit",
+            GLib.Variant("(susu)", (INHIBIT_APP_ID, 0, INHIBIT_REASON, INHIBIT_IDLE)),
+            "(u)",
+        )
+        self._cookie = result.unpack()[0]
+
+    def release_idle_inhibit(self) -> None:
+        """Give the idle inhibitor back. Nothing happens if it is not held. Raises
+        ``GLib.Error`` if the session manager refuses; the inhibitor is then treated as gone
+        (it is bound to this connection and goes with it), and it never counts as foreign."""
+        cookie, self._cookie = self._cookie, None
+        if cookie is None:
+            return
+        _call_sync(
+            self._conn,
+            SESSION_MANAGER,
+            SESSION_MANAGER_IFACE,
+            "Uninhibit",
+            GLib.Variant("(u)", (cookie,)),
+        )
 
     def on_idle_inhibit_changed(self, callback: Callable[[bool], None]) -> None:
         self._callbacks.append(callback)
 
     def close(self) -> None:
+        try:
+            self.release_idle_inhibit()
+        except GLib.Error as exc:
+            _LOG.warning("[slideshow] releasing the idle inhibitor failed (%s)", exc.message)
         self._subs.close()
 
     def _changed(self, _params) -> None:

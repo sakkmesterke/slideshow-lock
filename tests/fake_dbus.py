@@ -43,8 +43,18 @@ IDLE_XML = """<node><interface name="org.gnome.Mutter.IdleMonitor">
 
 SESSION_MANAGER_XML = """<node><interface name="org.gnome.SessionManager">
 <method name="IsInhibited"><arg type="u" direction="in"/><arg type="b" direction="out"/></method>
+<method name="Inhibit"><arg type="s" direction="in"/><arg type="u" direction="in"/>
+<arg type="s" direction="in"/><arg type="u" direction="in"/><arg type="u" direction="out"/></method>
+<method name="Uninhibit"><arg type="u" direction="in"/></method>
+<method name="GetInhibitors"><arg type="ao" direction="out"/></method>
 <signal name="InhibitorAdded"><arg type="o"/></signal>
 <signal name="InhibitorRemoved"><arg type="o"/></signal></interface></node>"""
+
+SESSION_INHIBITOR_XML = """<node><interface name="org.gnome.SessionManager.Inhibitor">
+<method name="GetAppId"><arg type="s" direction="out"/></method>
+<method name="GetFlags"><arg type="u" direction="out"/></method></interface></node>"""
+
+INHIBITOR_PATH = "/org/gnome/SessionManager/Inhibitor{}"
 
 SCREEN_SAVER_XML = """<node><interface name="org.gnome.ScreenSaver">
 <method name="Lock"/>
@@ -131,7 +141,15 @@ class Desktop:
         self.watches: Dict[int, str] = {}  # id -> "idle" | "active"
         self.idle_timeouts: List[int] = []  # ms, of every AddIdleWatch
         self.removed: List[int] = []
-        self.inhibited = False
+        self.inhibited = False  # the one foreign inhibitor of ``set_inhibited``
+        # every inhibitor the session manager knows: path -> {"app_id", "flags", "reason"}
+        self.inhibitors: Dict[str, dict] = {}
+        self.inhibit_requests: List[tuple] = []  # (app_id, toplevel_xid, reason, flags)
+        self.uninhibit_calls: List[int] = []  # cookies
+        self._cookies: Dict[int, str] = {}  # cookie -> path, of the inhibitors clients took
+        self._inhibitor_regs: Dict[str, int] = {}
+        self._next_cookie = 100
+        self._next_foreign = 1000
         self.locked = False
         self.lock_calls: List[float] = []
         self.session_lock_calls: List[float] = []  # login1 Session.Lock
@@ -220,9 +238,9 @@ class Desktop:
         _own(self._svc_system, "org.freedesktop.login1")
 
     @staticmethod
-    def _register(conn, path, xml, on_call, on_property=None) -> None:
+    def _register(conn, path, xml, on_call, on_property=None) -> int:
         info = Gio.DBusNodeInfo.new_for_xml(xml).interfaces[0]
-        conn.register_object(path, info, on_call, on_property, None)
+        return conn.register_object(path, info, on_call, on_property, None)
 
     # -- the services ------------------------------------------------------------------------------
 
@@ -250,8 +268,65 @@ class Desktop:
                 invocation.return_value(None)
 
     def _session_manager_call(self, conn, sender, path, iface, method, params, invocation) -> None:
-        flags = params.unpack()[0]
-        invocation.return_value(GLib.Variant("(b)", (bool(flags & 8) and self.inhibited,)))
+        if method == "IsInhibited":
+            flags = params.unpack()[0]
+            inhibited = any(i["flags"] & flags for i in self.inhibitors.values())
+            invocation.return_value(GLib.Variant("(b)", (inhibited,)))
+        elif method == "GetInhibitors":
+            invocation.return_value(GLib.Variant("(ao)", (sorted(self.inhibitors),)))
+        elif method == "Inhibit":
+            app_id, xid, reason, flags = params.unpack()
+            self.inhibit_requests.append((app_id, xid, reason, flags))
+            cookie = self._next_cookie
+            self._next_cookie += 1
+            self._cookies[cookie] = self._add_inhibitor(
+                INHIBITOR_PATH.format(cookie), app_id, flags, reason
+            )
+            invocation.return_value(GLib.Variant("(u)", (cookie,)))
+        elif method == "Uninhibit":
+            cookie = params.unpack()[0]
+            self.uninhibit_calls.append(cookie)
+            inhibitor_path = self._cookies.pop(cookie, None)
+            if inhibitor_path is None:
+                invocation.return_dbus_error(
+                    "org.freedesktop.DBus.Error.InvalidArgs", "no such inhibitor"
+                )
+                return
+            self._remove_inhibitor(inhibitor_path)
+            invocation.return_value(None)
+
+    def _inhibitor_call(self, conn, sender, path, iface, method, params, invocation) -> None:
+        inhibitor = self.inhibitors[path]
+        if method == "GetAppId":
+            invocation.return_value(GLib.Variant("(s)", (inhibitor["app_id"],)))
+        else:
+            invocation.return_value(GLib.Variant("(u)", (inhibitor["flags"],)))
+
+    def _add_inhibitor(self, path: str, app_id: str, flags: int, reason: str = "") -> str:
+        """On the service loop. A real session manager emits ``InhibitorAdded`` for each."""
+        self.inhibitors[path] = {"app_id": app_id, "flags": flags, "reason": reason}
+        self._inhibitor_regs[path] = self._register(
+            self._svc_session, path, SESSION_INHIBITOR_XML, self._inhibitor_call
+        )
+        self._emit(
+            self._svc_session,
+            "/org/gnome/SessionManager",
+            "org.gnome.SessionManager",
+            "InhibitorAdded",
+            GLib.Variant("(o)", (path,)),
+        )
+        return path
+
+    def _remove_inhibitor(self, path: str) -> None:
+        self.inhibitors.pop(path, None)
+        self._svc_session.unregister_object(self._inhibitor_regs.pop(path))
+        self._emit(
+            self._svc_session,
+            "/org/gnome/SessionManager",
+            "org.gnome.SessionManager",
+            "InhibitorRemoved",
+            GLib.Variant("(o)", (path,)),
+        )
 
     def _screensaver_call(self, conn, sender, path, iface, method, params, invocation) -> None:
         if method == "GetActive":
@@ -364,17 +439,54 @@ class Desktop:
         self._on_service_loop(go)
 
     def set_inhibited(self, value: bool) -> None:
+        """One foreign idle inhibitor (application id ``other.application``) comes or goes."""
+
         def go() -> None:
             self.inhibited = value
-            self._emit(
-                self._svc_session,
-                "/org/gnome/SessionManager",
-                "org.gnome.SessionManager",
-                "InhibitorAdded" if value else "InhibitorRemoved",
-                GLib.Variant("(o)", ("/org/gnome/SessionManager/Inhibitor1",)),
-            )
+            path = INHIBITOR_PATH.format(1)
+            if value:
+                if path in self.inhibitors:  # already there: a signal, as for a second one
+                    self._emit(
+                        self._svc_session,
+                        "/org/gnome/SessionManager",
+                        "org.gnome.SessionManager",
+                        "InhibitorAdded",
+                        GLib.Variant("(o)", (path,)),
+                    )
+                else:
+                    self._add_inhibitor(path, "other.application", 8, "a video call")
+            elif path in self.inhibitors:
+                self._remove_inhibitor(path)
+            else:
+                self._emit(
+                    self._svc_session,
+                    "/org/gnome/SessionManager",
+                    "org.gnome.SessionManager",
+                    "InhibitorRemoved",
+                    GLib.Variant("(o)", (path,)),
+                )
 
         self._on_service_loop(go)
+
+    def add_inhibitor(self, app_id: str = "another.application", flags: int = 8) -> str:
+        """Another application takes an inhibitor with *flags*. Returns its object path."""
+
+        def go() -> str:
+            path = INHIBITOR_PATH.format(self._next_foreign)
+            self._next_foreign += 1
+            return self._add_inhibitor(path, app_id, flags, "a test")
+
+        return self.service_loop.call(go)
+
+    def remove_inhibitor(self, path: str) -> None:
+        self.service_loop.call(lambda: self._remove_inhibitor(path))
+
+    def inhibitors_of(self, app_id: str) -> List[str]:
+        """The paths of the inhibitors that were taken under *app_id* (read on the service loop,
+        so the answer is not half way through a change)."""
+        return self.service_loop.call(
+            lambda: sorted(p for p, i in self.inhibitors.items() if i["app_id"] == app_id)
+        )
 
     def set_locked(self, value: bool) -> None:
         self._on_service_loop(lambda: self._set_locked(value))
