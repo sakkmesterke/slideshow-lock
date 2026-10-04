@@ -9,6 +9,7 @@ there; on a machine without it the import error is the honest answer, not a sile
 from __future__ import annotations
 
 import logging
+import signal
 from types import SimpleNamespace
 
 import pytest
@@ -485,11 +486,25 @@ def test_main_hands_the_application_to_the_preview_and_stops_it_at_shutdown(monk
         return controller
 
     monkeypatch.setattr(preview_app, "start_preview", fake_start_preview)
+    signal_handlers = {}
+
+    def fake_unix_signal_add(_priority, signum, callback):
+        signal_handlers[signum] = callback
+        return 1
+
+    monkeypatch.setattr(preview_app.GLib, "unix_signal_add", fake_unix_signal_add)
     assert preview_app.main([]) == 0
     (application,) = StubGtkApplication.instances
     assert given[0] is application  # the preview is given the application it asks through
     assert controller.stops == ["application ended"]  # still up at shutdown: stopped, request back
     assert given[-1] == "source stopped"
+    # SIGINT and SIGTERM quit the application (once each, and the source is removed), so the
+    # shutdown above runs for them too
+    assert set(signal_handlers) == {signal.SIGINT, signal.SIGTERM}
+    for handler in signal_handlers.values():
+        before = application.quit_calls
+        assert handler() is False
+        assert application.quit_calls == before + 1
 
 
 # -- the image source ------------------------------------------------------------------------------

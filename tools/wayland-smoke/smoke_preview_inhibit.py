@@ -7,6 +7,7 @@ Real GTK, real windows on mutter's virtual monitors, and a fake session manager
 1. ``python3 -m slideshow_lock.preview_app`` as a separate process: while its windows show, the
    session manager lists one idle inhibitor of its application id; pointer motion ends the
    preview, the process exits 0 and the inhibitor is given back (``Uninhibit`` with its cookie);
+   the same with SIGTERM instead of the input;
 2. the settings window (``PreferencesWindow`` with its ``Gtk.Application``) and its Preview
    button: the inhibitor is there while the preview shows, gone when the preview is stopped, there
    again for a second preview, and gone when the settings window is closed under it.
@@ -19,6 +20,7 @@ does not watch the bus name; a real session manager is not asked here). Not part
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -109,6 +111,47 @@ def preview_process(desktop: Desktop, folder: str) -> None:
             print("\n".join(lines[-40:]))
 
 
+def preview_process_terminated(desktop: Desktop, folder: str) -> None:
+    """The same process, ended by SIGTERM while the preview shows."""
+    app_id = APP_ID + ".Preview"
+    given_back_before = len(desktop.uninhibit_calls)
+    process = subprocess.Popen(
+        [sys.executable, "-u", "-m", "slideshow_lock.preview_app", "--folder", folder, "--debug"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    lines = []
+    reader = threading.Thread(
+        target=lambda: [lines.append(line.rstrip()) for line in process.stdout], daemon=True
+    )
+    reader.start()
+    try:
+        ok(
+            "a second preview_app holds its inhibitor again",
+            wait_for(lambda: len(idle_inhibitors(desktop, app_id)) == 1, 30),
+        )
+        process.send_signal(signal.SIGTERM)
+        ok(
+            "SIGTERM while it shows ends it with status 0",
+            wait_for(lambda: process.poll() == 0, 15),
+            f"status={process.poll()}",
+        )
+        ok(
+            "and the inhibitor is given back",
+            idle_inhibitors(desktop, app_id) == []
+            and len(desktop.uninhibit_calls) == given_back_before + 1,
+            f"uninhibit={desktop.uninhibit_calls}",
+        )
+    finally:
+        if process.poll() is None:
+            process.kill()
+        reader.join(2)
+        if not all(RESULTS):
+            print("--- preview_app log (SIGTERM) ---")
+            print("\n".join(lines[-40:]))
+
+
 def settings_window(desktop: Desktop, folder: str) -> None:
     app_id = APP_ID + ".Preferences"
     settings = Settings()
@@ -166,6 +209,7 @@ def main() -> int:
         idle_monitor=False, session_address=os.environ["DBUS_SESSION_BUS_ADDRESS"]
     ) as desktop:
         preview_process(desktop, folder)
+        preview_process_terminated(desktop, folder)
         settings_window(desktop, folder)
     passed = all(RESULTS)
     print(f"SMOKE result: {'PASS' if passed else 'FAIL'} ({sum(RESULTS)}/{len(RESULTS)} checks)")

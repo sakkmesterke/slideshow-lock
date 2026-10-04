@@ -142,7 +142,8 @@ round); the settings window (UI-1); changing the default of the pan switch.
   logout, switch or suspend flag). With no monitor, or a `start()` that raises, nothing is asked.
 - **Given back** by the controller's stop listener, so by every way the preview ends: any input
   on any window, a close from outside, `controller.stop()` (the settings window closing under a
-  running preview), and, for `preview_app`, the application's `shutdown` signal. Once per
+  running preview), and, for `preview_app`, the application's `shutdown` signal, which SIGINT and
+  SIGTERM now reach (they quit the application; before, they ended the process at once). Once per
   preview: the cookie is cleared before the call, so a second stop cannot give it back twice, and a
   refused or failing give-back is logged and goes no further.
 - **If the desktop refuses** (GTK answers cookie 0) or the call raises, a WARNING says the screen
@@ -363,7 +364,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   manager (`tests/fake_dbus.py`) the request arrives as `Inhibit(application id, 0, reason, 8)`, with
   the application id `<APP_ID>.Preview` (preview_app) or `<APP_ID>.Preferences` (settings window),
   and the give-back as `Uninhibit(cookie)` with the cookie it was handed
-  (`tools/wayland-smoke/smoke_preview_inhibit.py`, 10 checks). **Not measured:** a real GNOME
+  (`tools/wayland-smoke/smoke_preview_inhibit.py`, 13 checks, SIGTERM during a preview included). **Not measured:** a real GNOME
   session manager (that it accepts the call, lists the inhibitor, and really keeps the screen on);
   whether GTK also takes a Wayland idle inhibitor for the window next to the D-Bus one (it was not
   looked at); what a real session manager does with the inhibitor when the process is killed
