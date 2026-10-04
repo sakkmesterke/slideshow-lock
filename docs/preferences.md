@@ -21,7 +21,9 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 
 "Preview" runs the CORE-2 preview (`preview_app.start_preview`) on the stored settings, in the
 same process. It never locks (D11); any key, click, scroll or mouse movement ends it, and
-closing the window ends it too. There is no on/off switch: that goes through the systemd user unit
+closing the window ends it too. While it shows, the window's `Gtk.Application` holds an idle
+request for it, so the desktop's own idle delay does not blank the screen under the preview; it is
+given back whichever way the preview ends (`docs/preview.md`, section 2.1). There is no on/off switch: that goes through the systemd user unit
 (D4) and is not part of this window. No key of its own was added to the schema.
 
 ## How it behaves

@@ -8,11 +8,17 @@ there; on a machine without it the import error is the honest answer, not a sile
 
 from __future__ import annotations
 
+import logging
+from types import SimpleNamespace
+
 import pytest
 
 from slideshow_lock import preview_app
-from slideshow_lock.preview import INPUT_KEY, ThreadWorker
+from slideshow_lock.preview import INPUT_CLOSE, INPUT_KEY, INPUT_MOTION, ThreadWorker
 from slideshow_lock.preview_app import (
+    HOLD_REASON,
+    Gtk,  # the module's own Gtk: the same typelib version
+    IdleHold,
     SessionSettings,
     build_source,
     overrides_from_args,
@@ -191,6 +197,299 @@ def test_start_preview_hands_the_desktops_animation_choice_to_the_controller(
         controller.stop()
     (scaler,) = scalers
     assert {call[3] for call in scaler.calls} == {animations}  # the pan argument of prepare
+
+
+# -- the idle request of a manual preview ---------------------------------------------------------
+
+
+class FakeApplication:
+    """``Gtk.Application`` as far as the preview uses it: ``inhibit`` and ``uninhibit``."""
+
+    def __init__(self, *, cookie=41, inhibit_error=None, uninhibit_error=None):
+        self.cookie = cookie
+        self.inhibit_error = inhibit_error
+        self.uninhibit_error = uninhibit_error
+        self.inhibit_calls = []
+        self.uninhibit_calls = []
+
+    def inhibit(self, window, flags, reason):
+        self.inhibit_calls.append((window, flags, reason))
+        if self.inhibit_error is not None:
+            raise self.inhibit_error
+        return self.cookie
+
+    def uninhibit(self, cookie):
+        self.uninhibit_calls.append(cookie)
+        if self.uninhibit_error is not None:
+            raise self.uninhibit_error
+
+    @property
+    def held(self):
+        return len(self.inhibit_calls) - len(self.uninhibit_calls)
+
+
+def preview_with(tmp_path, monkeypatch, application, windows=None):
+    make_image(tmp_path / "a.png")
+    source = started(tmp_path, (FakeWatcher(), ManualScheduler()))
+    windows = [FakeWindow()] if windows is None else windows
+    monkeypatch.setattr(preview_app, "open_monitor_windows", lambda: windows)
+    monkeypatch.setattr(preview_app, "ImageScaler", FakeScaler)
+    controller = start_preview(FakeSettings(), source, application)
+    return controller, windows
+
+
+def test_a_preview_with_an_application_asks_the_desktop_not_to_idle_once_it_shows(
+    tmp_path, monkeypatch
+):
+    application = FakeApplication()
+    controller, windows = preview_with(tmp_path, monkeypatch, application)
+    try:
+        assert controller.running
+        # no window to hang it on (the windows come and go), the idle flag and nothing else
+        assert application.inhibit_calls == [(None, Gtk.ApplicationInhibitFlags.IDLE, HOLD_REASON)]
+        assert application.held == 1
+    finally:
+        controller.stop()
+
+
+def test_the_request_is_made_for_the_gtk_window_of_the_first_preview_window(tmp_path, monkeypatch):
+    """GTK 4.8 on Wayland logs a critical error for a request without a window (measured in
+    headless mutter), so the real ``PreviewWindow`` hands its GTK window over."""
+
+    class WithGtkWindow(FakeWindow):
+        def __init__(self, gtk_window):
+            super().__init__()
+            self.gtk_window = gtk_window
+
+    first, second = object(), object()
+    application = FakeApplication()
+    controller, _windows = preview_with(
+        tmp_path, monkeypatch, application, [WithGtkWindow(first), WithGtkWindow(second)]
+    )
+    try:
+        assert [call[0] for call in application.inhibit_calls] == [first]
+    finally:
+        controller.stop()
+
+
+@pytest.mark.parametrize("kind", [INPUT_KEY, INPUT_MOTION, INPUT_CLOSE])
+def test_input_on_a_preview_window_gives_the_request_back(tmp_path, monkeypatch, kind):
+    application = FakeApplication(cookie=77)
+    controller, windows = preview_with(tmp_path, monkeypatch, application)
+    windows[0].fire_input(kind)
+    assert not controller.running
+    assert application.uninhibit_calls == [77]  # the cookie it was given, once
+
+
+def test_a_stop_from_outside_gives_the_request_back_and_a_second_stop_changes_nothing(
+    tmp_path, monkeypatch
+):
+    application = FakeApplication(cookie=5)
+    controller, _windows = preview_with(tmp_path, monkeypatch, application)
+    controller.stop("settings window closed")
+    controller.stop("again")
+    assert application.uninhibit_calls == [5]
+
+
+def test_input_on_any_of_several_windows_gives_it_back_once(tmp_path, monkeypatch):
+    application = FakeApplication()
+    controller, windows = preview_with(
+        tmp_path, monkeypatch, application, [FakeWindow(), FakeWindow()]
+    )
+    assert application.held == 1  # one request for the preview, not one per monitor
+    windows[1].fire_input(INPUT_KEY)
+    windows[0].fire_input(INPUT_KEY)
+    assert application.uninhibit_calls == [41]
+
+
+def test_a_second_preview_after_the_first_asks_again_and_gives_that_back_too(tmp_path, monkeypatch):
+    application = FakeApplication()
+    for _round in range(2):
+        controller, windows = preview_with(tmp_path, monkeypatch, application)
+        windows[0].fire_input(INPUT_KEY)
+    assert len(application.inhibit_calls) == 2
+    assert application.held == 0
+
+
+def test_no_monitor_means_no_request(tmp_path, monkeypatch):
+    application = FakeApplication()
+    controller, _windows = preview_with(tmp_path, monkeypatch, application, windows=[])
+    assert not controller.running
+    assert application.inhibit_calls == [] and application.uninhibit_calls == []
+
+
+def test_a_start_that_fails_asks_for_nothing(tmp_path, monkeypatch):
+    make_image(tmp_path / "a.png")
+    source = started(tmp_path, (FakeWatcher(), ManualScheduler()))
+    application = FakeApplication()
+
+    def broken():
+        raise RuntimeError("no display")
+
+    monkeypatch.setattr(preview_app, "open_monitor_windows", broken)
+    with pytest.raises(RuntimeError):
+        start_preview(FakeSettings(), source, application)
+    assert application.inhibit_calls == []
+
+
+def test_without_an_application_the_preview_asks_for_nothing_and_still_runs(
+    tmp_path, monkeypatch, caplog
+):
+    with caplog.at_level(logging.WARNING):
+        controller, windows = preview_with(tmp_path, monkeypatch, None)
+    assert controller.running
+    assert caplog.records == []  # not even a failed attempt that was logged and forgotten
+    windows[0].fire_input(INPUT_KEY)
+    assert not controller.running
+
+
+def test_a_desktop_that_does_not_accept_the_request_is_logged_and_the_preview_runs(
+    tmp_path, monkeypatch, caplog
+):
+    application = FakeApplication(cookie=0)  # GTK answers 0 when the desktop said no
+    with caplog.at_level(logging.WARNING):
+        controller, windows = preview_with(tmp_path, monkeypatch, application)
+    try:
+        assert controller.running
+        assert "did not accept" in caplog.text
+    finally:
+        controller.stop()
+    assert application.uninhibit_calls == []  # there is nothing to give back
+
+
+def test_a_request_that_raises_is_logged_and_the_preview_runs(tmp_path, monkeypatch, caplog):
+    application = FakeApplication(inhibit_error=RuntimeError("boom"))
+    with caplog.at_level(logging.WARNING):
+        controller, windows = preview_with(tmp_path, monkeypatch, application)
+    try:
+        assert controller.running
+        assert "could not keep the screen awake (boom)" in caplog.text
+    finally:
+        controller.stop()
+    assert application.uninhibit_calls == []
+
+
+def test_giving_back_that_fails_is_logged_and_the_worker_thread_still_closes(
+    tmp_path, monkeypatch, caplog
+):
+    application = FakeApplication(uninhibit_error=RuntimeError("gone"))
+    workers = []
+
+    class Recording(ThreadWorker):
+        def __init__(self):
+            super().__init__()
+            workers.append(self)
+
+    monkeypatch.setattr(preview_app, "ThreadWorker", Recording)
+    controller, windows = preview_with(tmp_path, monkeypatch, application)
+    assert _pump(lambda: windows[0].frames)
+    thread = workers[0]._thread
+    with caplog.at_level(logging.WARNING):
+        windows[0].fire_input(INPUT_KEY)
+    assert "giving back the request" in caplog.text and "(gone)" in caplog.text
+    thread.join(5)
+    assert not thread.is_alive()
+    assert application.uninhibit_calls == [41]  # tried once, not retried into a second error
+
+
+def test_the_request_is_not_repeated_and_not_given_back_without_being_taken():
+    application = FakeApplication()
+    hold = IdleHold(application)
+    hold.give_back()  # never taken
+    assert application.uninhibit_calls == []
+    hold.take()
+    hold.take()
+    assert len(application.inhibit_calls) == 1
+    hold.give_back()
+    hold.give_back()
+    assert application.uninhibit_calls == [41]
+
+
+def test_a_refused_request_is_asked_again_by_the_next_take():
+    application = FakeApplication(cookie=0)
+    hold = IdleHold(application)
+    hold.take()
+    application.cookie = 9
+    hold.take()
+    hold.give_back()
+    assert len(application.inhibit_calls) == 2
+    assert application.uninhibit_calls == [9]
+
+
+# -- main: the preview that is still up when the application shuts down ---------------------------
+
+
+class StubController:
+    def __init__(self):
+        self.running = True
+        self.stops = []
+        self.listeners = []
+
+    def connect_stopped(self, callback):
+        self.listeners.append(callback)
+
+    def stop(self, reason="requested"):
+        self.stops.append(reason)
+        self.running = False
+
+
+class StubGtkApplication:
+    """Runs ``activate`` and then ``shutdown`` the way ``Gtk.Application.run`` does."""
+
+    instances = []
+
+    def __init__(self, application_id=None):
+        self.handlers = {}
+        self.held = 0
+        self.quit_calls = 0
+        StubGtkApplication.instances.append(self)
+
+    def connect(self, name, callback):
+        self.handlers[name] = callback
+
+    def hold(self):
+        self.held += 1
+
+    def quit(self):
+        self.quit_calls += 1
+
+    def run(self, _argv):
+        self.handlers["activate"](self)
+        if "shutdown" in self.handlers:
+            self.handlers["shutdown"](self)
+        return 0
+
+
+def test_main_hands_the_application_to_the_preview_and_stops_it_at_shutdown(monkeypatch):
+    controller = StubController()
+    given = []
+    source = SimpleNamespace(start=lambda: None, stop=lambda: given.append("source stopped"))
+    StubGtkApplication.instances.clear()
+    monkeypatch.setattr(
+        preview_app,
+        "Gtk",
+        SimpleNamespace(
+            Application=StubGtkApplication, ApplicationInhibitFlags=Gtk.ApplicationInhibitFlags
+        ),
+    )
+    monkeypatch.setattr(
+        preview_app.Gio.SettingsSchemaSource,
+        "get_default",
+        staticmethod(lambda: SimpleNamespace(lookup=lambda _id, _recursive: object())),
+    )
+    monkeypatch.setattr(preview_app, "Settings", lambda: FakeSettings())
+    monkeypatch.setattr(preview_app, "build_source", lambda _settings: source)
+
+    def fake_start_preview(_settings, _source, application=None):
+        given.append(application)
+        return controller
+
+    monkeypatch.setattr(preview_app, "start_preview", fake_start_preview)
+    assert preview_app.main([]) == 0
+    (application,) = StubGtkApplication.instances
+    assert given[0] is application  # the preview is given the application it asks through
+    assert controller.stops == ["application ended"]  # still up at shutdown: stopped, request back
+    assert given[-1] == "source stopped"
 
 
 # -- the image source ------------------------------------------------------------------------------
