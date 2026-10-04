@@ -417,6 +417,27 @@ def test_closing_the_service_during_a_slideshow_gives_the_idle_inhibitor_back():
         assert desktop.inhibitors == {}
 
 
+@pytest.mark.parametrize("refusals", [1, 2])
+def test_an_idle_inhibitor_whose_release_was_refused_is_gone_after_disable_and_close(refusals):
+    """One refusal at the end of the slideshow: ``disable()`` gives it back. Two: ``close()``
+    does (the adapter keeps the cookie and tries again each time)."""
+    with Desktop() as desktop:
+        r = Run(desktop)
+        try:
+            _start_slideshow(r)
+            desktop.uninhibit_failures = refusals
+            desktop.fire_user_active()
+            assert r.settle(lambda: r.machine.state is State.LOCKED)
+            assert len(_own(desktop)) == 1  # the refused release left it on the bus
+            r.machine.disable()
+            assert (len(_own(desktop)) == 0) == (refusals == 1)
+        finally:
+            r.close()
+        assert r.settle(lambda: _own(desktop) == [])
+        assert desktop.inhibitors == {}
+        assert desktop.uninhibit_calls == [100] * (refusals + 1)
+
+
 def test_a_manual_preview_takes_no_idle_inhibitor(run):
     assert run.machine.start_preview() is True
     assert not run.settle(lambda: _own(run.desktop), timeout=0.4)

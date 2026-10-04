@@ -306,15 +306,23 @@ class StateMachine:
             self._holding_inhibit = True
 
     def _release_idle_inhibit(self) -> None:
-        """Called on every way a slideshow ends. If it stayed, the next idle would find idle
-        inhibited and no slideshow would ever start again."""
+        """Called on every way a slideshow ends, and again by ``disable()``. It is only forgotten
+        after the session manager took it back: if giving it back fails, the next slideshow end
+        and ``disable()`` try again, and until one succeeds the desktop's own blanking and
+        automatic lock stay held back. This service still sees only the inhibitors of other
+        applications, so its own leftover does not keep an idle slideshow from starting."""
         if not self._holding_inhibit:
             return
-        self._holding_inhibit = False
         try:
             self._inhibition.release_idle_inhibit()
         except Exception as exc:
-            _LOG.warning("[slideshow] could not give back the idle inhibitor (%s)", exc)
+            _LOG.warning(
+                "[slideshow] could not give back the idle inhibitor (%s): the desktop's own "
+                "blanking and automatic lock stay held back until it is given back",
+                exc,
+            )
+        else:
+            self._holding_inhibit = False
 
     # -- the lock state (3.6) -----------------------------------------------------------------
 

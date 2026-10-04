@@ -676,6 +676,33 @@ def test_an_idle_inhibitor_that_cannot_be_given_back_is_logged_and_the_machine_c
     assert r.state is State.SLIDESHOW_RUNNING
 
 
+def test_a_refused_give_back_is_remembered_and_disable_gives_the_inhibitor_back(caplog):
+    r = Rig(grace=3600)
+    r.start_idle_slideshow()
+    r.inhibition.release_error = RuntimeError("the bus is gone")
+    with caplog.at_level(logging.WARNING):
+        r.input_after(1)
+    assert r.inhibition.holding and r.inhibition.releases == 1  # tried, still held
+    assert any("held back until it is given back" in m for m in caplog.messages)
+    r.inhibition.release_error = None
+    r.machine.disable()
+    assert not r.inhibition.holding and r.inhibition.releases == 2
+
+
+def test_a_refused_give_back_is_tried_again_by_disable_and_stays_remembered_if_refused_again():
+    r = Rig(grace=3600)
+    r.start_idle_slideshow()
+    r.inhibition.release_error = RuntimeError("the bus is gone")
+    r.input_after(1)
+    r.machine.disable()
+    assert r.inhibition.releases == 2 and r.inhibition.holding
+    r.inhibition.release_error = None
+    r.machine._release_idle_inhibit()  # whatever ends things next (the adapter's close() too)
+    assert not r.inhibition.holding and r.inhibition.releases == 3
+    r.machine._release_idle_inhibit()
+    assert r.inhibition.releases == 3  # given back for good: nothing more is asked
+
+
 def test_the_sleep_path_still_never_asks_whether_idle_is_inhibited_with_a_slideshow_running():
     r = Rig()
     r.start_idle_slideshow()
