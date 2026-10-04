@@ -76,16 +76,26 @@ under the application id), so the preview afterwards uses it.
 Leave the machine alone for about 20 seconds: the slideshow should cover every monitor. Then move
 the mouse. The slideshow ends, and because it had run for at least 3 seconds (`--grace`) the lock
 screen should appear; unlock as usual. Moving within the first 3 seconds should not lock. `Ctrl+C`
-in the terminal stops the service. The log lines (`[idle-trigger]`, `[slideshow]`, `[lock]`) go to
-that terminal. The options are those of `python3 -m slideshow_lock.service`
-([`service.md`](service.md), section 1); `--folder` works as for the preview, and nothing is
-written to your stored settings. Before it suspends, the service also locks the session, which
-this trial does not exercise.
+in the terminal stops the service. The options are those of `python3 -m slideshow_lock.service`
+([`service.md`](service.md), section 1), and nothing is written to your stored settings. Before it
+suspends, the service also locks the session, which this trial does not exercise.
+
+**There must be a picture to show.** The service uses the same folder as the preview (see "Which
+folder" in step 3): your pictures folder unless you give `--folder /path/to/some/pictures`. If that
+folder holds no picture, the terminal shows a `WARNING [slideshow-dir] no displayable images ...`
+line at the start and, when the idle time is up, `WARNING [slideshow-dir] slideshow not started:
+no picture to show ...`. There is no slideshow and no lock, and the service keeps running.
+
+**The log.** It goes to that terminal. Besides `[idle-trigger]`, `[slideshow]` and `[lock]` you
+will also see `[sleep-inhibit]`, `[config]` and `[slideshow-dir]` lines, and two `[slideshow]
+started` lines when the slideshow begins (one from the preview windows, one from the service);
+that is normal.
 
 ## What the script writes
 
 - The compiled settings schema goes to `${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/schemas`.
-  The repository tree is not touched, and the schema is not installed system-wide.
+  No tracked file in the repository is changed (Python may write its bytecode cache into
+  `slideshow_lock/__pycache__`, which git ignores), and the schema is not installed system-wide.
 - `settings` stores the changed settings (see above). `preview` and `service` store nothing.
 - Nothing is installed. `preview` and `settings` never lock the session; `service` does, as in
   step 5.
