@@ -93,6 +93,14 @@ OPT_OUTS = {
     ("test_run_script.py", "test_preview_in_a_checkout_without_the_schema_says_so"),
     ("test_run_script.py", "test_settings_without_the_window_module_says_so_and_is_no_traceback"),
     ("test_run_script.py", "test_settings_starts_the_window_module"),
+    (
+        "test_run_script.py",
+        "test_service_compiles_the_schema_outside_the_checkout_and_passes_the_arguments",
+    ),
+    (
+        "test_run_script.py",
+        "test_service_without_the_dependencies_stops_with_the_report_and_no_traceback",
+    ),
     ("test_picture_folder_xdg.py", "test_a_hungarian_system_uses_its_kepek_folder_everywhere"),
     (
         "test_picture_folder_xdg.py",

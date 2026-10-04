@@ -1,21 +1,21 @@
 # Try it from a checkout
 
 No installation, no RPM. One script, `run.sh` in the root of the repository, runs the slideshow
-preview and the settings window straight from the source tree.
+preview, the settings window and the service (idle, slideshow, lock) straight from the source tree.
 
 Status: automated tests green, live trial still to be done. Nobody has run this on the target
-machine (RHEL 10.2, GNOME, Wayland) yet; what the pictures look like on a real monitor is exactly
-what the first trial is for.
+machine (RHEL 10.2, GNOME, Wayland) yet; what the pictures look like on a real monitor, and whether the
+lock really follows the movement, is exactly what the first trial is for.
 
 ## 1. Get the code
 
 ```
-git clone --branch ui-1-preferences-window https://github.com/trensoft/slideshow-lock.git
+git clone --branch main https://github.com/trensoft/slideshow-lock.git
 cd slideshow-lock
 ```
 
-or download the branch as an archive from GitHub and unpack it. (Once the branch is merged, use
-`main` instead.) If the unpacked `run.sh` is not executable, start it as `bash run.sh ...`.
+or download `main` as an archive from GitHub and unpack it. If the unpacked `run.sh` is not
+executable, start it as `bash run.sh ...`.
 
 ## 2. Check the dependencies
 
@@ -67,12 +67,38 @@ The window of [`preferences.md`](preferences.md): the seven stored settings and 
 Unlike the preview, **this window stores what you change** in your user settings (GSettings
 under the application id), so the preview afterwards uses it.
 
+## 5. Try the whole chain: idle, slideshow, movement, lock
+
+```
+./run.sh service --idle-timeout 20 --grace 3
+```
+
+Leave the machine alone for about 20 seconds: the slideshow should cover every monitor. Then move
+the mouse. The slideshow ends, and because it had run for at least 3 seconds (`--grace`) the lock
+screen should appear; unlock as usual. Moving within the first 3 seconds should not lock. `Ctrl+C`
+in the terminal stops the service. The options are those of `python3 -m slideshow_lock.service`
+([`service.md`](service.md), section 1), and nothing is written to your stored settings. Before it
+suspends, the service also locks the session, which this trial does not exercise.
+
+**There must be a picture to show.** The service uses the same folder as the preview (see "Which
+folder" in step 3): your pictures folder unless you give `--folder /path/to/some/pictures`. If that
+folder holds no picture, the terminal shows a `WARNING [slideshow-dir] no displayable images ...`
+line at the start and, when the idle time is up, `WARNING [slideshow-dir] slideshow not started:
+no picture to show ...`. There is no slideshow and no lock, and the service keeps running.
+
+**The log.** It goes to that terminal. Besides `[idle-trigger]`, `[slideshow]` and `[lock]` you
+will also see `[sleep-inhibit]`, `[config]` and `[slideshow-dir]` lines, and two `[slideshow]
+started` lines when the slideshow begins (one from the preview windows, one from the service);
+that is normal.
+
 ## What the script writes
 
 - The compiled settings schema goes to `${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/schemas`.
-  The repository tree is not touched, and the schema is not installed system-wide.
-- `settings` stores the changed settings (see above). `preview` stores nothing.
-- Nothing is installed, and nothing locks the session.
+  No tracked file in the repository is changed (Python may write its bytecode cache into
+  `slideshow_lock/__pycache__`, which git ignores), and the schema is not installed system-wide.
+- `settings` stores the changed settings (see above). `preview` and `service` store nothing.
+- Nothing is installed. `preview` and `settings` never lock the session; `service` does, as in
+  step 5.
 
 ## What this does not prove
 
@@ -81,4 +107,9 @@ under the application id), so the preview afterwards uses it.
   settings window looks with the real GNOME theme.
 - The package names in `check` are unverified on RHEL 10.2.
 - `run.sh` was exercised on a headless Wayland compositor with a software renderer, not on a real
-  GPU and monitor. Locking, the idle timer and the service are not part of this script.
+  GPU and monitor.
+- `service` was run there against stand-ins for the screensaver, the session manager and logind
+  (the headless-mutter smoke test of [`service.md`](service.md)). Whether it locks a real GNOME
+  session, and what the GNOME lock screen does after it, has not been measured: step 5 is that
+  measurement. The list under "Trial on a real session" in `service.md` covers the cases beyond
+  it (idle inhibitors, suspend).
