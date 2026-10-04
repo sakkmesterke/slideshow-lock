@@ -27,12 +27,19 @@ No RPM, no systemd:
   `io.github.trensoft.slideshowlock`), taken when the slideshow has started and given back on
   every way it ends: first input, a closed window, another application inhibiting idle, a suspend,
   somebody else locking the session, the service closing. Side effect: as long as the slideshow
-  runs the session is not marked idle, so the desktop's own idle delay does not blank the screen or
-  lock it under the slideshow (and whatever else the desktop does when the session goes idle).
+  runs the session is not marked idle, so the desktop's own idle delay should not blank the screen
+  or lock it under the slideshow, nor do whatever else the desktop does when the session goes idle
+  (not measured on a real session).
   A manual preview holds none. If the session manager refuses the inhibitor, a WARNING says so and
-  the slideshow runs on. The service's own inhibitor is never taken for "an application inhibits
-  idle": the adapter answers for other application ids only (`GetInhibitors`, then `GetFlags` and
-  `GetAppId` of each).
+  the slideshow runs on. If it refuses to take the inhibitor back, a WARNING says that the
+  desktop's own blanking and automatic lock stay held back until it is given back: the service
+  keeps the cookie and tries again at the next end of a slideshow, in `disable()` and when the
+  service closes (a cookie is dropped without a retry only when the session manager no longer
+  lists an inhibitor of the service's application id). The service's own inhibitor is never taken
+  for "an application inhibits idle": the adapter answers for other application ids only
+  (`GetInhibitors`, then `GetFlags` and `GetAppId` of each). An inhibitor that vanished between the
+  list and the question is skipped; any other error while asking is "cannot be asked", so no
+  slideshow starts on a guess.
 - Before the machine suspends the session is locked, whatever else is going on.
 - `Ctrl+C` or `SIGTERM` ends the service. The other options (`--interval`, `--order`,
   `--scaling`, `--pan`, `--debug`) are those of `preview_app`. Nothing is written to the stored
@@ -59,8 +66,10 @@ No RPM, no systemd:
 6. Look for the D34 warning in the output after a suspend (`resume received before lock
    sequence completed`); it should not appear.
 7. Let the slideshow run for longer than the desktop's idle delay (shorten "Screen Blank" and
-   "Automatic Screen Lock" in the settings to 1 minute for the trial, with `--grace 0`): the screen
-   must neither blank nor lock by itself while the slideshow shows. While it runs,
+   "Automatic Screen Lock" in the settings to 1 minute for the trial, and run the service with
+   `--idle-timeout 20 --grace 0`: with the default 120 s GNOME blanks the screen first and the
+   slideshow never starts): the screen must neither blank nor lock by itself while the slideshow
+   shows. While it runs,
    `busctl --user call org.gnome.SessionManager /org/gnome/SessionManager org.gnome.SessionManager
    GetInhibitors` lists one inhibitor more, and after the first input it is gone again.
 
@@ -202,6 +211,9 @@ suspend would not wait for the lock).
   `Inhibit` call from this service, answers `GetAppId` with the id the service passed, and then
   really holds back screen blanking and the automatic lock (trial step 7). The tests run against a
   fake session manager that implements `Inhibit`, `Uninhibit`, `GetInhibitors` and the inhibitor
-  objects as this project understands the interface; it was not compared with a real one.
+  objects as this project understands the interface; it was not compared with a real one. That
+  includes the error for an inhibitor object that is gone: the fake (GDBus) answers `UnknownMethod`
+  "Object does not exist at path", the adapter also accepts `UnknownObject`; what GNOME's session
+  manager answers was not measured.
 - A real `InhibitorAdded` flow from GNOME's session manager (the adapter re-asks `IsInhibited(8)` on
   every add and remove, and reports only a change).

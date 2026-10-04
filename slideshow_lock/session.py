@@ -90,7 +90,9 @@ class InhibitionQuery(Protocol):
         manager refuses."""
 
     def release_idle_inhibit(self) -> None:
-        """Give it back. Idempotent. Raises if the session manager refuses."""
+        """Give it back. Idempotent. Raises if the session manager refuses; the inhibitor then
+        counts as still held (unless the session manager no longer lists it), so that calling
+        again tries again."""
 
 
 class SessionLock(Protocol):

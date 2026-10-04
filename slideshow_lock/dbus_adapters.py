@@ -113,6 +113,22 @@ def _call_sync(
     )
 
 
+def _is_unknown_object(exc: "GLib.Error") -> bool:
+    """The session manager says the object path is not there (an inhibitor that was just
+    removed). Every other error says nothing about whether it is.
+
+    A libdbus service answers ``UnknownObject``. GDBus answers ``UnknownMethod`` with "Object
+    does not exist at path" (measured against the fake desktop, which uses GDBus; a real
+    gnome-session was not available): that one counts too. A plain ``UnknownMethod`` (the method
+    is missing on an object that is there) does not."""
+    name = Gio.DBusError.get_remote_error(exc)
+    if name == "org.freedesktop.DBus.Error.UnknownObject":
+        return True
+    return name == "org.freedesktop.DBus.Error.UnknownMethod" and "Object does not exist" in (
+        exc.message
+    )
+
+
 def _probe(what: str, fn: Callable[[], object]) -> object:
     try:
         return fn()
@@ -288,8 +304,10 @@ class SessionManagerInhibition:
             try:
                 flags = self._inhibitor_property(path, "GetFlags", "(u)")
                 app_id = self._inhibitor_property(path, "GetAppId", "(s)")
-            except GLib.Error:
-                continue  # it went away between the list and the question
+            except GLib.Error as exc:
+                if _is_unknown_object(exc):
+                    continue  # it went away between the list and the question
+                raise  # any other failure is "cannot be asked", never "it is not there"
             if flags & INHIBIT_IDLE and app_id != INHIBIT_APP_ID:
                 return True
         return False
@@ -321,18 +339,43 @@ class SessionManagerInhibition:
 
     def release_idle_inhibit(self) -> None:
         """Give the idle inhibitor back. Nothing happens if it is not held. Raises
-        ``GLib.Error`` if the session manager refuses; the inhibitor is then treated as gone
-        (it is bound to this connection and goes with it), and it never counts as foreign."""
-        cookie, self._cookie = self._cookie, None
+        ``GLib.Error`` if the session manager refuses. The cookie is then kept, so that the next
+        call tries again, unless the session manager no longer lists an inhibitor of ours (then
+        it is gone, and the error is still raised once)."""
+        cookie = self._cookie
         if cookie is None:
             return
-        _call_sync(
-            self._conn,
-            SESSION_MANAGER,
-            SESSION_MANAGER_IFACE,
-            "Uninhibit",
-            GLib.Variant("(u)", (cookie,)),
-        )
+        try:
+            _call_sync(
+                self._conn,
+                SESSION_MANAGER,
+                SESSION_MANAGER_IFACE,
+                "Uninhibit",
+                GLib.Variant("(u)", (cookie,)),
+            )
+        except GLib.Error:
+            if self._own_inhibitor_is_gone():
+                self._cookie = None
+            raise
+        self._cookie = None
+
+    def _own_inhibitor_is_gone(self) -> bool:
+        """True only if the session manager answers, and lists no inhibitor of our application id.
+        Any doubt (it cannot be asked, an inhibitor cannot be read) is False."""
+        try:
+            paths = _call_sync(
+                self._conn, SESSION_MANAGER, SESSION_MANAGER_IFACE, "GetInhibitors", None, "(ao)"
+            ).unpack()[0]
+            for path in paths:
+                try:
+                    if self._inhibitor_property(path, "GetAppId", "(s)") == INHIBIT_APP_ID:
+                        return False
+                except GLib.Error as exc:
+                    if not _is_unknown_object(exc):
+                        return False
+        except GLib.Error:
+            return False
+        return True
 
     def on_idle_inhibit_changed(self, callback: Callable[[bool], None]) -> None:
         self._callbacks.append(callback)

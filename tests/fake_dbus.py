@@ -146,6 +146,13 @@ class Desktop:
         self.inhibitors: Dict[str, dict] = {}
         self.inhibit_requests: List[tuple] = []  # (app_id, toplevel_xid, reason, flags)
         self.uninhibit_calls: List[int] = []  # cookies
+        # the next *n* ``Uninhibit`` calls fail with this error and leave the inhibitor in place
+        self.uninhibit_failures = 0
+        self.uninhibit_error = "org.freedesktop.DBus.Error.Failed"
+        # inhibitor method ("GetFlags", "GetAppId") -> the D-Bus error it answers with
+        self.inhibitor_errors: Dict[str, str] = {}
+        # session manager method ("GetInhibitors") -> the D-Bus error it answers with
+        self.session_manager_errors: Dict[str, str] = {}
         self._cookies: Dict[int, str] = {}  # cookie -> path, of the inhibitors clients took
         self._inhibitor_regs: Dict[str, int] = {}
         self._next_cookie = 100
@@ -268,7 +275,9 @@ class Desktop:
                 invocation.return_value(None)
 
     def _session_manager_call(self, conn, sender, path, iface, method, params, invocation) -> None:
-        if method == "IsInhibited":
+        if method in self.session_manager_errors:
+            invocation.return_dbus_error(self.session_manager_errors[method], "refused")
+        elif method == "IsInhibited":
             flags = params.unpack()[0]
             inhibited = any(i["flags"] & flags for i in self.inhibitors.values())
             invocation.return_value(GLib.Variant("(b)", (inhibited,)))
@@ -286,6 +295,10 @@ class Desktop:
         elif method == "Uninhibit":
             cookie = params.unpack()[0]
             self.uninhibit_calls.append(cookie)
+            if self.uninhibit_failures > 0:
+                self.uninhibit_failures -= 1
+                invocation.return_dbus_error(self.uninhibit_error, "refused")
+                return
             inhibitor_path = self._cookies.pop(cookie, None)
             if inhibitor_path is None:
                 invocation.return_dbus_error(
@@ -297,7 +310,9 @@ class Desktop:
 
     def _inhibitor_call(self, conn, sender, path, iface, method, params, invocation) -> None:
         inhibitor = self.inhibitors[path]
-        if method == "GetAppId":
+        if method in self.inhibitor_errors:
+            invocation.return_dbus_error(self.inhibitor_errors[method], "refused")
+        elif method == "GetAppId":
             invocation.return_value(GLib.Variant("(s)", (inhibitor["app_id"],)))
         else:
             invocation.return_value(GLib.Variant("(u)", (inhibitor["flags"],)))
