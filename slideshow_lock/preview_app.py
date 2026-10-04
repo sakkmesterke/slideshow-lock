@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import signal
 import sys
 from typing import Callable, List, Optional
 
@@ -264,6 +265,10 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     app.connect("activate", on_activate)
     app.connect("shutdown", on_shutdown)
+    for signum in (signal.SIGINT, signal.SIGTERM):  # ends it like input does, request given back
+        GLib.unix_signal_add(
+            GLib.PRIORITY_DEFAULT, signum, lambda: app.quit() or GLib.SOURCE_REMOVE
+        )
     status = app.run([sys.argv[0]])
     if state["source"] is not None:
         state["source"].stop()
