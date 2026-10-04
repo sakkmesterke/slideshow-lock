@@ -30,8 +30,10 @@ No RPM, no systemd:
   runs the session is not marked idle, so the desktop's own idle delay should not blank the screen
   or lock it under the slideshow, nor do whatever else the desktop does when the session goes idle
   (not measured on a real session).
-  A manual preview holds none. If the session manager refuses the inhibitor, a WARNING says so and
-  the slideshow runs on. If it refuses to take the inhibitor back, a WARNING says that the
+  The state machine's own manual preview (`StateMachine.start_preview`, which nothing calls yet)
+  holds none; the preview of `preview_app` and of the settings window hold a request of their own
+  (`docs/preview.md`, section 2.1). If the session manager refuses the inhibitor, a WARNING says
+  so and the slideshow runs on. If it refuses to take the inhibitor back, a WARNING says that the
   desktop's own blanking and automatic lock stay held back until it is given back: the service
   keeps the cookie and tries again at the next end of a slideshow, in `disable()` and when the
   service closes (a cookie is dropped without a retry only when the session manager no longer

@@ -2,6 +2,7 @@
 # Run the service smoke test: the real `python3 -m slideshow_lock.service` in a headless mutter.
 #
 #   tools/wayland-smoke/run_service.sh [--monitors 1280x720,800x1000]
+#   SMOKE_SCRIPT=smoke_preview_inhibit.py tools/wayland-smoke/run_service.sh   # the manual preview
 #
 # Same needs as run.sh, plus dbus-daemon. Mutter provides the real idle monitor, the real
 # windows open on its virtual monitors, and pointer motion is injected through its

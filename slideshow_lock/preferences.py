@@ -504,7 +504,7 @@ class PreferencesWindow(Gtk.Window):
             settings = Settings()
             source = build_source(settings)
             source.start()
-            controller = start_preview(settings, source)
+            controller = start_preview(settings, source, self.get_application())
         except Exception:
             _LOG.exception("[slideshow] the preview could not be started")
             self.status.set_label(_("The preview could not be started, see the log."))

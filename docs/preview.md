@@ -18,6 +18,12 @@ two tests look for one (section 8). The `Gtk.Application` of `preview_app` regis
 the session bus, which opens one session-bus connection (measured in review); that is application
 registration, not a lock call, and it is the only bus traffic of the preview itself.
 
+A preview that is given its `Gtk.Application` (`preview_app` and the settings window both give
+theirs) also asks the desktop not to blank the screen under it: `IdleHold` calls
+`Gtk.Application.inhibit` with the idle flag and nothing else, and GTK makes the request. The
+preview code still names no bus and no session; it is an idle request, not a lock call. Lifetime
+and limits: section 2.1.
+
 Not in this card: locking, the state machine, D-Bus, systemd (CORE-1); cross-fades (a later
 round); the settings window (UI-1); changing the default of the pan switch.
 
@@ -128,6 +134,24 @@ round); the settings window (UI-1); changing the default of the pan switch.
   redo the picture on screen and the prepared one. The folder and the order are applied by
   `source_from_settings`; after an order change the picture that is already prepared is still
   shown next, then the new order.
+
+### 2.1 The idle request of a preview
+
+- **Taken** once the windows are open and a monitor was found (`start_preview`, after
+  `controller.start()`), for the first window, with `Gtk.ApplicationInhibitFlags.IDLE` only (no
+  logout, switch or suspend flag). With no monitor, or a `start()` that raises, nothing is asked.
+- **Given back** by the controller's stop listener, so by every way the preview ends: any input
+  on any window, a close from outside, `controller.stop()` (the settings window closing under a
+  running preview), and, for `preview_app`, the application's `shutdown` signal. Once per
+  preview: the cookie is cleared before the call, so a second stop cannot give it back twice, and a
+  refused or failing give-back is logged and goes no further.
+- **If the desktop refuses** (GTK answers cookie 0) or the call raises, a WARNING says the screen
+  may blank under the preview, and the preview runs on.
+- **Without an application** (`start_preview(settings, source)`) nothing is asked.
+- It does not hold back a lock the user asked for, and the preview never locks anyway.
+- Next to the service (`docs/service.md`): while a preview holds its request, the service sees an
+  inhibitor of another application id (`...Preview` or `...Preferences`), so it starts no idle
+  slideshow until the preview has ended. That is the intended order.
 
 ## 3. Pictures that cannot be shown
 
@@ -288,8 +312,10 @@ preview shows "No pictures to show" with the path it looked at on the next line,
 
 Options (`--interval`, `--order`, `--scaling`, `--pan`, `--debug`) apply to that run only and are
 never written to the settings. Any key, click, scroll or mouse movement ends it.
-`start_preview(settings, source)` in the same module is what the service and the settings window
-call (the settings window: see `docs/preferences.md`).
+`start_preview(settings, source, application=None)` in the same module is what the settings window
+calls (see `docs/preferences.md`); the service has its own controller wiring. Give it the
+`Gtk.Application` and the preview also keeps the desktop's idle delay from blanking the screen
+(section 2.1).
 
 ## 7. Facts measured while building it
 
@@ -331,6 +357,17 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   scaler test therefore measures ringing relative to the flat parts (section 8).
 - The first pointer event of a window can carry another coordinate frame than the later ones
   (section 2, "Input").
+- `Gtk.Application.inhibit` on GTK 4.8.3 with a Wayland surface and no window logs `Gtk-CRITICAL
+  gtk_native_get_surface: assertion 'GTK_IS_NATIVE (self)' failed` and still sends the request; with
+  the GTK window of the first preview window the critical error is gone. Against a fake session
+  manager (`tests/fake_dbus.py`) the request arrives as `Inhibit(application id, 0, reason, 8)`, with
+  the application id `<APP_ID>.Preview` (preview_app) or `<APP_ID>.Preferences` (settings window),
+  and the give-back as `Uninhibit(cookie)` with the cookie it was handed
+  (`tools/wayland-smoke/smoke_preview_inhibit.py`, 10 checks). **Not measured:** a real GNOME
+  session manager (that it accepts the call, lists the inhibitor, and really keeps the screen on);
+  whether GTK also takes a Wayland idle inhibitor for the window next to the D-Bus one (it was not
+  looked at); what a real session manager does with the inhibitor when the process is killed
+  (the fake does not watch bus names).
 - The tests also ran on a second stack, the CI runner image: GStreamer 1.24.2, gdk-pixbuf 2.42.10,
   PyGObject 3.58, Python 3.12 (the result of the latest run is in the pull request).
 
@@ -368,9 +405,12 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   `logout`, `systemctl`, `session`, `bus`, `login1`, `logind`, `systemd`, `inhibit`, `popen`, and
   the names of other lockers (`locker` looks redundant next to the others and is not: measured
   with it removed, `light-locker-command` passes the scan): `locker`, `securelock`, `swaylock`, `i3lock`, `xlock`, `xtrlock`,
-  `slock`. Six exact names are allowed (the `SessionSettings` class, the `--help` sentence "It never
-  locks the session", and the `lock-grace-period-seconds` key with its constant, getter and
-  setter), and a test fails if an allowance is no longer used. Twenty-eight real calls (busctl,
+  `slock`. Eleven exact names are allowed (the `SessionSettings` class, the `--help` sentence "It never
+  locks the session", the `lock-grace-period-seconds` key with its constant, getter and setter, two
+  sentences of the settings window about the grace period, and three names of the idle request of
+  section 2.1: `inhibit`, `uninhibit` and `ApplicationInhibitFlags`, which are
+  `Gtk.Application`'s own idle request and name no bus), and a test fails if an allowance is no
+  longer used. Twenty-eight real calls (busctl,
   gdbus, qdbus, loginctl, a Gio `call_sync` on the ScreenSaver, systemctl, pydbus, a bus socket, a
   `Logout` call, `os.system`, every `os.exec*`, `os.startfile`, `ctypes`, `cdll`, and seven locker
   programs by name) are inserted into `stop()` of the real source in turn, and the scan must find

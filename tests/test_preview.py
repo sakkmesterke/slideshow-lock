@@ -1089,6 +1089,16 @@ ALLOWED_NAMES = {
     "keylockgraceperiodseconds": "settings.py: its key constant",
     "getlockgraceperiodseconds": "settings.py: its getter",
     "setlockgraceperiodseconds": "settings.py: its setter",
+    "inhibit": (
+        "preview_app.IdleHold: Gtk.Application.inhibit, the application's own request to the "
+        "desktop not to blank the screen under a manual preview. GTK makes the request: no bus, "
+        "no session, no lock call in the preview code"
+    ),
+    "uninhibit": "preview_app.IdleHold: Gtk.Application.uninhibit, giving that request back",
+    "applicationinhibitflags": (
+        "preview_app.IdleHold: Gtk.ApplicationInhibitFlags.IDLE, the idle flag of that request "
+        "(the only one used; the logout, switch and suspend flags are not)"
+    ),
     "lockgraceperiod": "preferences.py: the label of the grace period field, prose",
     (
         "inputsoonerthanthisaftertheslideshowstartsdoesnotlockthesession"
