@@ -153,6 +153,10 @@ class Desktop:
         self.inhibitor_errors: Dict[str, str] = {}
         # session manager method ("GetInhibitors") -> the D-Bus error it answers with
         self.session_manager_errors: Dict[str, str] = {}
+        # path -> flags of inhibitors that ``IsInhibited`` counts and the next ``GetInhibitors``
+        # lists once, and that have no object on the bus (they went away right after): the race
+        # between the list and the question about one of its entries
+        self.ghost_inhibitors: Dict[str, int] = {}
         self._cookies: Dict[int, str] = {}  # cookie -> path, of the inhibitors clients took
         self._inhibitor_regs: Dict[str, int] = {}
         self._next_cookie = 100
@@ -279,10 +283,14 @@ class Desktop:
             invocation.return_dbus_error(self.session_manager_errors[method], "refused")
         elif method == "IsInhibited":
             flags = params.unpack()[0]
-            inhibited = any(i["flags"] & flags for i in self.inhibitors.values())
+            inhibited = any(i["flags"] & flags for i in self.inhibitors.values()) or any(
+                ghost & flags for ghost in self.ghost_inhibitors.values()
+            )
             invocation.return_value(GLib.Variant("(b)", (inhibited,)))
         elif method == "GetInhibitors":
-            invocation.return_value(GLib.Variant("(ao)", (sorted(self.inhibitors),)))
+            listed = sorted(self.inhibitors) + sorted(self.ghost_inhibitors)
+            self.ghost_inhibitors = {}  # listed once, gone for the next question
+            invocation.return_value(GLib.Variant("(ao)", (listed,)))
         elif method == "Inhibit":
             app_id, xid, reason, flags = params.unpack()
             self.inhibit_requests.append((app_id, xid, reason, flags))

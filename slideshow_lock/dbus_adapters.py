@@ -113,22 +113,6 @@ def _call_sync(
     )
 
 
-def _is_unknown_object(exc: "GLib.Error") -> bool:
-    """The session manager says the object path is not there (an inhibitor that was just
-    removed). Every other error says nothing about whether it is.
-
-    A libdbus service answers ``UnknownObject``. GDBus answers ``UnknownMethod`` with "Object
-    does not exist at path" (measured against the fake desktop, which uses GDBus; a real
-    gnome-session was not available): that one counts too. A plain ``UnknownMethod`` (the method
-    is missing on an object that is there) does not."""
-    name = Gio.DBusError.get_remote_error(exc)
-    if name == "org.freedesktop.DBus.Error.UnknownObject":
-        return True
-    return name == "org.freedesktop.DBus.Error.UnknownMethod" and "Object does not exist" in (
-        exc.message
-    )
-
-
 def _probe(what: str, fn: Callable[[], object]) -> object:
     try:
         return fn()
@@ -297,20 +281,43 @@ class SessionManagerInhibition:
         return self._another_application_inhibits_idle()
 
     def _another_application_inhibits_idle(self) -> bool:
-        paths = _call_sync(
-            self._conn, SESSION_MANAGER, SESSION_MANAGER_IFACE, "GetInhibitors", None, "(ao)"
-        ).unpack()[0]
-        for path in paths:
+        for path in self._list_inhibitors():
             try:
                 flags = self._inhibitor_property(path, "GetFlags", "(u)")
                 app_id = self._inhibitor_property(path, "GetAppId", "(s)")
             except GLib.Error as exc:
-                if _is_unknown_object(exc):
+                if self._inhibitor_is_gone(exc, path):
                     continue  # it went away between the list and the question
                 raise  # any other failure is "cannot be asked", never "it is not there"
             if flags & INHIBIT_IDLE and app_id != INHIBIT_APP_ID:
                 return True
         return False
+
+    def _list_inhibitors(self) -> List[str]:
+        return _call_sync(
+            self._conn, SESSION_MANAGER, SESSION_MANAGER_IFACE, "GetInhibitors", None, "(ao)"
+        ).unpack()[0]
+
+    def _inhibitor_is_gone(self, exc: "GLib.Error", path: str) -> bool:
+        """True if *exc*, the answer to a question about the inhibitor at *path*, means that it
+        went away after it was listed. Decided by the error NAME, never by its text: the text is
+        translated by the session manager's own library (measured with GDBus: the Hungarian and
+        German catalogs of GLib translate "Object does not exist at path").
+
+        ``UnknownObject`` (libdbus services) says it. ``UnknownMethod`` (GDBus services, for an
+        object path that is not there) says it only if a fresh list no longer has the path: the
+        same name also answers a missing method on an object that is there. Every other error,
+        and a fresh list that cannot be read, say nothing: False (the question stays unanswered,
+        never "it is gone")."""
+        name = Gio.DBusError.get_remote_error(exc)
+        if name == "org.freedesktop.DBus.Error.UnknownObject":
+            return True
+        if name != "org.freedesktop.DBus.Error.UnknownMethod":
+            return False
+        try:
+            return path not in self._list_inhibitors()
+        except GLib.Error:
+            return False
 
     def _inhibitor_property(self, path: str, method: str, reply: str):
         return _call_sync(
@@ -363,15 +370,12 @@ class SessionManagerInhibition:
         """True only if the session manager answers, and lists no inhibitor of our application id.
         Any doubt (it cannot be asked, an inhibitor cannot be read) is False."""
         try:
-            paths = _call_sync(
-                self._conn, SESSION_MANAGER, SESSION_MANAGER_IFACE, "GetInhibitors", None, "(ao)"
-            ).unpack()[0]
-            for path in paths:
+            for path in self._list_inhibitors():
                 try:
                     if self._inhibitor_property(path, "GetAppId", "(s)") == INHIBIT_APP_ID:
                         return False
                 except GLib.Error as exc:
-                    if not _is_unknown_object(exc):
+                    if not self._inhibitor_is_gone(exc, path):
                         return False
         except GLib.Error:
             return False
