@@ -18,6 +18,7 @@ from slideshow_lock import preview_app
 from slideshow_lock.preview import INPUT_CLOSE, INPUT_KEY, INPUT_MOTION, ThreadWorker
 from slideshow_lock.preview_app import (
     HOLD_REASON,
+    PREVIEW_LIMIT_SECONDS,
     Gtk,  # the module's own Gtk: the same typelib version
     IdleHold,
     SessionSettings,
@@ -34,7 +35,7 @@ from slideshow_lock.settings import (
     Settings,
 )
 from tests.test_image_source import FakeWatcher, ManualScheduler, make_image, started
-from tests.test_preview import FakeScaler, FakeSettings, FakeWindow, _pump
+from tests.test_preview import FakeClock, FakeScaler, FakeSettings, FakeWindow, _pump
 from tests.timeout_guard import (
     per_test_deadline,  # noqa: F401  (autouse fixture)
 )
@@ -229,12 +230,16 @@ class FakeApplication:
         return len(self.inhibit_calls) - len(self.uninhibit_calls)
 
 
-def preview_with(tmp_path, monkeypatch, application, windows=None):
+def preview_with(tmp_path, monkeypatch, application, windows=None, clock=None):
+    """*clock*: the time the preview runs on (a ``FakeClock`` the test moves); none given, a fresh
+    one that nobody moves, so that no real GLib timer is left behind."""
     make_image(tmp_path / "a.png")
     source = started(tmp_path, (FakeWatcher(), ManualScheduler()))
     windows = [FakeWindow()] if windows is None else windows
+    clock = FakeClock() if clock is None else clock
     monkeypatch.setattr(preview_app, "open_monitor_windows", lambda: windows)
     monkeypatch.setattr(preview_app, "ImageScaler", FakeScaler)
+    monkeypatch.setattr(preview_app, "GLibClock", lambda: clock)
     controller = start_preview(FakeSettings(), source, application)
     return controller, windows
 
@@ -310,6 +315,108 @@ def test_a_second_preview_after_the_first_asks_again_and_gives_that_back_too(tmp
         windows[0].fire_input(INPUT_KEY)
     assert len(application.inhibit_calls) == 2
     assert application.held == 0
+
+
+# -- the two minute limit of a manual preview -----------------------------------------------------
+
+
+def test_the_limit_is_two_minutes_and_a_constant():
+    assert PREVIEW_LIMIT_SECONDS == 120
+
+
+def test_a_preview_ends_by_itself_after_the_limit_and_gives_the_request_back(tmp_path, monkeypatch):
+    application = FakeApplication(cookie=9)
+    clock = FakeClock()
+    controller, windows = preview_with(tmp_path, monkeypatch, application, clock=clock)
+    clock.advance(PREVIEW_LIMIT_SECONDS - 1)
+    assert controller.running and application.held == 1  # not a second early
+    assert application.uninhibit_calls == []
+    clock.advance(1)
+    assert not controller.running
+    assert windows[0].closed == 1  # the window closes the way it does for input
+    assert application.uninhibit_calls == [9]  # the cookie it was given, once
+    assert application.held == 0
+
+
+def test_the_ended_preview_names_the_limit_as_the_reason(tmp_path, monkeypatch):
+    clock = FakeClock()
+    controller, _windows = preview_with(tmp_path, monkeypatch, FakeApplication(), clock=clock)
+    reasons = []
+    controller.connect_stopped(reasons.append)
+    clock.advance(PREVIEW_LIMIT_SECONDS)
+    assert reasons == ["time limit"]
+
+
+def test_the_limit_closes_the_worker_thread_too(tmp_path, monkeypatch):
+    closed = []
+
+    class Recording(ThreadWorker):
+        def close(self):
+            closed.append(True)
+            super().close()
+
+    monkeypatch.setattr(preview_app, "ThreadWorker", Recording)
+    clock = FakeClock()
+    preview_with(tmp_path, monkeypatch, FakeApplication(), clock=clock)
+    clock.advance(PREVIEW_LIMIT_SECONDS)
+    assert closed == [True]
+
+
+def test_a_preview_without_an_application_has_the_limit_too(tmp_path, monkeypatch):
+    clock = FakeClock()
+    controller, _windows = preview_with(tmp_path, monkeypatch, None, clock=clock)
+    clock.advance(PREVIEW_LIMIT_SECONDS)
+    assert not controller.running
+
+
+@pytest.mark.parametrize("how", ["key", "motion", "close", "stop from outside"])
+def test_a_preview_that_ended_before_the_limit_leaves_no_timer_to_go_off_later(
+    tmp_path, monkeypatch, how
+):
+    application = FakeApplication(cookie=3)
+    clock = FakeClock()
+    controller, windows = preview_with(tmp_path, monkeypatch, application, clock=clock)
+    clock.advance(30)
+    if how == "stop from outside":
+        controller.stop("settings window closed")
+    else:
+        windows[0].fire_input({"key": INPUT_KEY, "motion": INPUT_MOTION, "close": INPUT_CLOSE}[how])
+    assert clock.pending == 0  # not the limit's timer either
+    clock.advance(PREVIEW_LIMIT_SECONDS * 10)  # nothing is left to fire
+    assert application.uninhibit_calls == [3]  # no second give-back
+
+
+def test_a_stale_limit_timer_does_not_touch_a_later_preview(tmp_path, monkeypatch):
+    """Each preview has its own timer: the first one's limit has no say over the second."""
+    application = FakeApplication()
+    first_clock, second_clock = FakeClock(), FakeClock()
+    first, first_windows = preview_with(tmp_path, monkeypatch, application, clock=first_clock)
+    first_windows[0].fire_input(INPUT_KEY)
+    second, _windows = preview_with(tmp_path, monkeypatch, application, clock=second_clock)
+    try:
+        first_clock.advance(PREVIEW_LIMIT_SECONDS * 2)
+        assert second.running and application.held == 1
+    finally:
+        second.stop()
+
+
+def test_an_error_while_giving_back_at_the_limit_is_logged_and_the_preview_still_ends(
+    tmp_path, monkeypatch, caplog
+):
+    application = FakeApplication(uninhibit_error=RuntimeError("no such cookie"))
+    clock = FakeClock()
+    controller, windows = preview_with(tmp_path, monkeypatch, application, clock=clock)
+    with caplog.at_level(logging.WARNING):
+        clock.advance(PREVIEW_LIMIT_SECONDS)
+    assert not controller.running and windows[0].closed == 1
+    assert any("giving back" in m for m in caplog.messages)
+
+
+def test_no_monitor_sets_no_limit_timer(tmp_path, monkeypatch):
+    clock = FakeClock()
+    controller, _windows = preview_with(tmp_path, monkeypatch, FakeApplication(), [], clock=clock)
+    assert not controller.running
+    assert clock.pending == 0
 
 
 def test_no_monitor_means_no_request(tmp_path, monkeypatch):

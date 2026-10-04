@@ -10,7 +10,10 @@ Real GTK, real windows on mutter's virtual monitors, and a fake session manager
    the same with SIGTERM instead of the input;
 2. the settings window (``PreferencesWindow`` with its ``Gtk.Application``) and its Preview
    button: the inhibitor is there while the preview shows, gone when the preview is stopped, there
-   again for a second preview, and gone when the settings window is closed under it.
+   again for a second preview, and gone when the settings window is closed under it;
+3. the two minute limit, with ``PREVIEW_LIMIT_SECONDS`` set to 3 s in the process under test (the
+   real GLib timer and the real windows; nothing waits two minutes): ``preview_app`` ends by itself
+   with status 0 and gives its inhibitor back, and so does the settings window's preview.
 
 What it does not prove: anything about GNOME's own session manager (a fake stands in for it), that
 the screen really stays on, or what happens to the inhibitor when the process is killed (the fake
@@ -39,7 +42,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from smoke_preview import Injector, check, make_pictures  # noqa: E402
 from smoke_service import wait_for  # noqa: E402
 
-from slideshow_lock import APP_ID  # noqa: E402
+from slideshow_lock import APP_ID, preview_app  # noqa: E402
 from slideshow_lock.preferences import PreferencesWindow  # noqa: E402
 from slideshow_lock.settings import Settings  # noqa: E402
 from tests.fake_dbus import Desktop  # noqa: E402
@@ -54,11 +57,14 @@ def ok(name: str, value: bool, detail: str = "") -> None:
 
 
 def idle_inhibitors(desktop: Desktop, app_id: str) -> list:
-    return [
-        desktop.inhibitors[path]
-        for path in desktop.inhibitors_of(app_id)
-        if desktop.inhibitors[path]["flags"] == IDLE
-    ]
+    """The idle inhibitors of *app_id*. One that is given back between the list and the read is
+    not there any more: it is skipped, not an error."""
+    found = []
+    for path in desktop.inhibitors_of(app_id):
+        inhibitor = desktop.inhibitors.get(path)
+        if inhibitor is not None and inhibitor["flags"] == IDLE:
+            found.append(inhibitor)
+    return found
 
 
 def preview_process(desktop: Desktop, folder: str) -> None:
@@ -152,6 +158,55 @@ def preview_process_terminated(desktop: Desktop, folder: str) -> None:
             print("\n".join(lines[-40:]))
 
 
+def preview_process_limit(desktop: Desktop, folder: str) -> None:
+    """The same process with the limit shortened to 3 s: nobody touches it."""
+    app_id = APP_ID + ".Preview"
+    given_back_before = len(desktop.uninhibit_calls)
+    code = (
+        "import sys; from slideshow_lock import preview_app as p; p.PREVIEW_LIMIT_SECONDS = 3; "
+        "sys.exit(p.main(['--folder', sys.argv[1], '--debug']))"
+    )
+    process = subprocess.Popen(
+        [sys.executable, "-u", "-c", code, folder],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    lines = []
+    reader = threading.Thread(
+        target=lambda: [lines.append(line.rstrip()) for line in process.stdout], daemon=True
+    )
+    reader.start()
+    try:
+        ok(
+            "a preview_app with a 3 s limit holds its inhibitor while it shows",
+            wait_for(lambda: len(idle_inhibitors(desktop, app_id)) == 1, 30),
+        )
+        started = time.monotonic()
+        ok(
+            "and ends by itself with status 0, nobody touching it",
+            wait_for(lambda: process.poll() == 0, 20),
+            f"status={process.poll()} after {time.monotonic() - started:.1f}s",
+        )
+        ok(
+            "the log names the limit as the reason",
+            any("reason=time limit" in x for x in lines),
+        )
+        ok(
+            "and the inhibitor is given back",
+            idle_inhibitors(desktop, app_id) == []
+            and len(desktop.uninhibit_calls) == given_back_before + 1,
+            f"uninhibit={desktop.uninhibit_calls}",
+        )
+    finally:
+        if process.poll() is None:
+            process.kill()
+        reader.join(2)
+        if not all(RESULTS):
+            print("--- preview_app log (limit) ---")
+            print("\n".join(lines[-40:]))
+
+
 def settings_window(desktop: Desktop, folder: str) -> None:
     app_id = APP_ID + ".Preferences"
     settings = Settings()
@@ -184,6 +239,20 @@ def settings_window(desktop: Desktop, folder: str) -> None:
     window._preview[0].stop("smoke")
     ok("and gives it back when the preview ends", pump(5.0, until=lambda: held() == 0))
     pump(5.0, until=window.preview_button.get_sensitive)
+    preview_app.PREVIEW_LIMIT_SECONDS = 3
+    try:
+        window.preview_button.emit("clicked")
+        ok(
+            "a preview of the settings window under a 3 s limit holds one inhibitor",
+            pump(5.0, until=lambda: held() == 1 and window._preview is not None),
+        )
+        ok(
+            "ends by itself and gives it back, the button is usable again",
+            pump(10.0, until=lambda: held() == 0 and window._preview is None)
+            and window.preview_button.get_sensitive(),
+        )
+    finally:
+        preview_app.PREVIEW_LIMIT_SECONDS = 120
     window.preview_button.emit("clicked")
     ok(
         "a second preview holds one again",
@@ -210,6 +279,7 @@ def main() -> int:
     ) as desktop:
         preview_process(desktop, folder)
         preview_process_terminated(desktop, folder)
+        preview_process_limit(desktop, folder)
         settings_window(desktop, folder)
     passed = all(RESULTS)
     print(f"SMOKE result: {'PASS' if passed else 'FAIL'} ({sum(RESULTS)}/{len(RESULTS)} checks)")

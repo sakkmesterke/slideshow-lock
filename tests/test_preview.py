@@ -1089,21 +1089,29 @@ ALLOWED_NAMES = {
     "keylockgraceperiodseconds": "settings.py: its key constant",
     "getlockgraceperiodseconds": "settings.py: its getter",
     "setlockgraceperiodseconds": "settings.py: its setter",
-    "inhibit": (
-        "preview_app.IdleHold: Gtk.Application.inhibit, the application's own request to the "
-        "desktop not to blank the screen under a manual preview. GTK makes the request: no bus, "
-        "no session, no lock call in the preview code"
-    ),
-    "uninhibit": "preview_app.IdleHold: Gtk.Application.uninhibit, giving that request back",
-    "applicationinhibitflags": (
-        "preview_app.IdleHold: Gtk.ApplicationInhibitFlags.IDLE, the idle flag of that request "
-        "(the only one used; the logout, switch and suspend flags are not)"
-    ),
     "lockgraceperiod": "preferences.py: the label of the grace period field, prose",
     (
         "inputsoonerthanthisaftertheslideshowstartsdoesnotlockthesession"
         "strictlysooner0meanseveryinputlocks"
     ): "preferences.py: the hint under the grace period field, prose about what the number does",
+}
+
+
+#: The names of the idle request of a manual preview, allowed in ``preview_app.py`` only: the key
+#: is (module, squashed name), so the same name in any other module is still a finding.
+MODULE_ALLOWED_NAMES = {
+    ("preview_app.py", "inhibit"): (
+        "preview_app.IdleHold: Gtk.Application.inhibit, the application's own request to the "
+        "desktop not to blank the screen under a manual preview. GTK makes the request: no bus, "
+        "no session, no lock call in the preview code"
+    ),
+    ("preview_app.py", "uninhibit"): (
+        "preview_app.IdleHold: Gtk.Application.uninhibit, giving that request back"
+    ),
+    ("preview_app.py", "applicationinhibitflags"): (
+        "preview_app.IdleHold: Gtk.ApplicationInhibitFlags.IDLE, the idle flag of that request "
+        "(the only one used; the logout, switch and suspend flags are not)"
+    ),
 }
 
 
@@ -1124,10 +1132,11 @@ def _words(text: str):
     return {w.lower() for w in re.split(r"[^A-Za-z0-9]+", text) if w} | {squashed}
 
 
-def lock_references(source: str, used_allowances=None):
+def lock_references(source: str, used_allowances=None, module=None):
     """Identifiers, imports and string constants (docstrings excluded) that name a lock,
     session or bus facility: a forbidden word, or a forbidden fragment, in the name. Names on
-    ``ALLOWED_NAMES`` are skipped (and noted in *used_allowances* if a set is given)."""
+    ``ALLOWED_NAMES``, and those on ``MODULE_ALLOWED_NAMES`` for *module* (the file name), are
+    skipped (and noted in *used_allowances* if a set is given)."""
     tree = ast.parse(source)
     docstrings = set()
     for node in ast.walk(tree):
@@ -1161,6 +1170,10 @@ def lock_references(source: str, used_allowances=None):
             if hits and squashed in ALLOWED_NAMES:
                 if used_allowances is not None:
                     used_allowances.add(squashed)
+                continue
+            if hits and (module, squashed) in MODULE_ALLOWED_NAMES:
+                if used_allowances is not None:
+                    used_allowances.add((module, squashed))
                 continue
             found |= hits
     return found
@@ -1231,7 +1244,7 @@ def test_ac6_d11_the_import_check_would_catch_an_import_of_a_lock_side_module():
 @pytest.mark.parametrize("module", PACKAGE_MODULES)
 def test_ac6_d11_the_preview_code_has_no_lock_session_or_bus_reference(module):
     with open(_package_file(module), encoding="utf-8") as handle:
-        assert lock_references(handle.read()) == set()
+        assert lock_references(handle.read(), module=module) == set()
 
 
 def test_ac6_d11_every_allowed_name_is_still_in_use():
@@ -1239,8 +1252,8 @@ def test_ac6_d11_every_allowed_name_is_still_in_use():
     used = set()
     for module in PACKAGE_MODULES:
         with open(_package_file(module), encoding="utf-8") as handle:
-            lock_references(handle.read(), used)
-    assert used == set(ALLOWED_NAMES)
+            lock_references(handle.read(), used, module)
+    assert used == set(ALLOWED_NAMES) | set(MODULE_ALLOWED_NAMES)
 
 
 def test_ac6_d11_the_scan_would_catch_a_lock_call(tmp_path):
@@ -1255,6 +1268,14 @@ def test_ac6_d11_the_scan_would_catch_a_lock_call(tmp_path):
     assert lock_references('"""never locks"""\nx = 1') == set()  # docstrings are prose
     assert lock_references("from slideshow_lock import preview") == set()  # the product's name
     assert lock_references("x = 'slideshow-lock'") == set()
+
+
+def test_ac6_d11_the_idle_request_names_are_allowed_in_preview_app_and_nowhere_else():
+    request = 'self._application.inhibit(w, Gtk.ApplicationInhibitFlags.IDLE, "r")\nuninhibit(1)'
+    assert lock_references(request, module="preview_app.py") == set()
+    assert lock_references(request) >= {"inhibit"}  # no module: no allowance
+    assert lock_references(request, module="preview.py") >= {"inhibit"}
+    assert lock_references(request, module="preferences.py") >= {"inhibit"}
 
 
 #: Calls that really lock, or reach the machinery that does, as a line of code each. They run
@@ -1273,6 +1294,10 @@ LOCK_SNIPPETS = {
     "pydbus": "import pydbus",
     "bus-socket": 'socket.socket(socket.AF_UNIX).connect("/run/user/1000/bus")',
     "logout": 'x.call("Logout")',
+    # the names the preview's idle request is allowed to use, used for something else, in a
+    # module that has no allowance
+    "inhibit-call": 'x.call("Inhibit", args)',
+    "inhibit-all-flags": 'x.inhibit(w, 15, "r")',
     # starting any program, with nothing in the line that names a lock facility
     "os.system": 'os.system("true")',
     "os.execv": 'os.execv("/bin/true", ["true"])',
@@ -1306,8 +1331,8 @@ def test_ac6_d11_the_scan_finds_a_real_lock_call_hidden_in_stop(name):
     anchor = "        self._running = False\n        self._cancel_timers()\n"
     assert original.count(anchor) == 1
     mutated = original.replace(anchor, anchor + "        " + LOCK_SNIPPETS[name] + "\n")
-    assert lock_references(original) == set()
-    assert lock_references(mutated), f"{name}: the scan did not see it"
+    assert lock_references(original, module="preview.py") == set()
+    assert lock_references(mutated, module="preview.py"), f"{name}: the scan did not see it"
 
 
 # -- AC7: decoding and scaling never run on the main loop ----------------------------------------
