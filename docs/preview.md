@@ -146,13 +146,27 @@ round); the settings window (UI-1); changing the default of the pan switch.
   SIGTERM now reach (they quit the application; before, they ended the process at once). Once per
   preview: the cookie is cleared before the call, so a second stop cannot give it back twice, and a
   refused or failing give-back is logged and goes no further.
+- **Ends by itself after two minutes.** The preview stops 120 seconds after it started showing
+  (`PREVIEW_LIMIT_SECONDS` in `preview_app.py`; a constant, not a setting, and the only time limit).
+  The timer is started in `start_preview`, the path both `preview_app` and the settings window use,
+  and calls `controller.stop("time limit")`: the windows close, the worker thread closes and the
+  request is given back, as for input. Any other end (input, a stop from outside, `shutdown`) takes
+  the timer down, so it cannot go off at a preview that has ended. It applies with or without an
+  application. Why: this is an app that locks; a preview left running must not keep the desktop's
+  idle lock away for good.
+- **While a preview holds its request**, the desktop's own idle-based blanking and automatic lock
+  do not run, for two minutes at most (not measured on a real GNOME session).
 - **If the desktop refuses** (GTK answers cookie 0) or the call raises, a WARNING says the screen
   may blank under the preview, and the preview runs on.
 - **Without an application** (`start_preview(settings, source)`) nothing is asked.
 - It does not hold back a lock the user asked for, and the preview never locks anyway.
 - Next to the service (`docs/service.md`): while a preview holds its request, the service sees an
   inhibitor of another application id (`...Preview` or `...Preferences`), so it starts no idle
-  slideshow until the preview has ended. That is the intended order.
+  slideshow until the preview has ended. That is the intended order. The other way round, a
+  service slideshow that is already showing when a preview takes its request is ended by the
+  service (`_on_inhibit_changed`: another application inhibits idle), and the session is locked if
+  the grace period is over. In practice that is possible only for a `preview_app` started from a
+  command line (the settings window's button is under the slideshow; not tried).
 
 ## 3. Pictures that cannot be shown
 
@@ -364,7 +378,7 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   manager (`tests/fake_dbus.py`) the request arrives as `Inhibit(application id, 0, reason, 8)`, with
   the application id `<APP_ID>.Preview` (preview_app) or `<APP_ID>.Preferences` (settings window),
   and the give-back as `Uninhibit(cookie)` with the cookie it was handed
-  (`tools/wayland-smoke/smoke_preview_inhibit.py`, 13 checks, SIGTERM during a preview included). **Not measured:** a real GNOME
+  (`tools/wayland-smoke/smoke_preview_inhibit.py`, 19 checks, SIGTERM during a preview and the limit shortened to 3 s included). **Not measured:** a real GNOME
   session manager (that it accepts the call, lists the inhibitor, and really keeps the screen on);
   whether GTK also takes a Wayland idle inhibitor for the window next to the D-Bus one (it was not
   looked at); what a real session manager does with the inhibitor when the process is killed
@@ -406,14 +420,15 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   `logout`, `systemctl`, `session`, `bus`, `login1`, `logind`, `systemd`, `inhibit`, `popen`, and
   the names of other lockers (`locker` looks redundant next to the others and is not: measured
   with it removed, `light-locker-command` passes the scan): `locker`, `securelock`, `swaylock`, `i3lock`, `xlock`, `xtrlock`,
-  `slock`. Eleven exact names are allowed (the `SessionSettings` class, the `--help` sentence "It never
-  locks the session", the `lock-grace-period-seconds` key with its constant, getter and setter, two
-  sentences of the settings window about the grace period, and three names of the idle request of
-  section 2.1: `inhibit`, `uninhibit` and `ApplicationInhibitFlags`, which are
-  `Gtk.Application`'s own idle request and name no bus), and a test fails if an allowance is no
-  longer used. Twenty-eight real calls (busctl,
+  `slock`. Eight exact names are allowed in every module (the `SessionSettings` class, the `--help`
+  sentence "It never locks the session", the `lock-grace-period-seconds` key with its constant,
+  getter and setter, two sentences of the settings window about the grace period), and three names
+  of the idle request of section 2.1 are allowed in `preview_app.py` only, by (module, name):
+  `inhibit`, `uninhibit` and `ApplicationInhibitFlags`, which are `Gtk.Application`'s own idle
+  request and name no bus. A test fails if an allowance is no longer used, and one that the same
+  names in `preview.py` or `preferences.py` are findings. Thirty real calls (busctl,
   gdbus, qdbus, loginctl, a Gio `call_sync` on the ScreenSaver, systemctl, pydbus, a bus socket, a
-  `Logout` call, `os.system`, every `os.exec*`, `os.startfile`, `ctypes`, `cdll`, and seven locker
+  `Logout` call, an `Inhibit` call by name and `inhibit` with all flags, `os.system`, every `os.exec*`, `os.startfile`, `ctypes`, `cdll`, and seven locker
   programs by name) are inserted into `stop()` of the real source in turn, and the scan must find
   each. It is a net, not a proof: a name assembled at runtime (a hex-encoded `os.system`, a name
   taken from a table) passes it. (3) A tripwire in `tests/conftest.py`, active in every test unless
@@ -473,9 +488,10 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   value that is not a bool, no settings object, a change between two calls, the property name);
   whether the desktop's choice reaches the property is not (manual test). Which controller calls which handler, and the hidden cursor, are the smoke
   tool's.
-- `tests/test_preview_app.py` (18): the command line, the settings of one run (an override of
+- `tests/test_preview_app.py` (49): the command line, the settings of one run (an override of
   `false` or `0` still counts), the worker thread closed with the preview, the source with the
-  probe. The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
+  probe, the idle request on every path, and the two minute limit (on a fake clock: nothing waits
+  for real). The module imports GTK 4 without opening a display; CI installs `gir1.2-gtk-4.0` and its
   verify step checks that the GTK 4 typelibs import.
 - `tests/test_tripwire.py` (23): the negative controls of the tripwire in `conftest.py` (every kind
   of call it guards raises; an opted-out test can start a program; ordinary calls are not in the

@@ -18,7 +18,10 @@ clock and worker. ``build_source`` builds the source for it (with the loader pro
 A preview that is given its ``Gtk.Application`` also keeps the desktop's own idle delay from
 blanking the screen under it (``IdleHold``): GTK asks the desktop for that, this module names
 no bus and no session. It is taken once the windows are open and given back by the controller's
-stop, whichever way the preview ends.
+stop, whichever way the preview ends. A preview also ends by itself after ``PREVIEW_LIMIT_SECONDS``
+(two minutes, not a setting): this is an app that locks, and a preview left running must not hold
+back the desktop's idle lock for good. The limit is on the same path as the request, so the
+command line and the settings window both have it.
 
 ``Gtk.Application`` registers itself on the session bus, which opens one session-bus
 connection (measured). That is application registration, not a lock call: nothing here
@@ -66,6 +69,10 @@ _LOG = logging.getLogger(__name__)
 #: What the desktop may show next to the request. For diagnostics, not for the user interface,
 #: so it is not translated.
 HOLD_REASON = "The slideshow preview is showing"
+
+#: A manual preview ends by itself after this long, the same way input ends it (the windows
+#: close, the worker and the idle request go). A constant: no setting, no other time limit.
+PREVIEW_LIMIT_SECONDS = 120
 
 
 class IdleHold:
@@ -153,7 +160,8 @@ def start_preview(
 
     The returned controller is for this one preview: its worker thread is closed when it stops.
     With *application* the preview also keeps the desktop's idle delay from blanking the screen
-    while it shows (``IdleHold``); without one it asks for nothing.
+    while it shows (``IdleHold``); without one it asks for nothing. Either way it ends by itself
+    after ``PREVIEW_LIMIT_SECONDS``, through the controller's ``stop`` like any other end.
     """
     hold = IdleHold(application) if application is not None else None
     shown_on = []  # the first window the controller opens: what the request is made for
@@ -164,22 +172,35 @@ def start_preview(
         return windows
 
     worker = ThreadWorker()
+    clock = GLibClock()
     controller = PreviewController(
         source,
         settings,
         open_windows,
         ImageScaler(),
-        clock=GLibClock(),
+        clock=clock,
         worker=worker,
         animations=animations_enabled,
     )
     if hold is not None:
         controller.connect_stopped(lambda _reason: hold.give_back())
     controller.connect_stopped(lambda _reason: worker.close())  # do not leave a thread behind
+    limit = {"cancel": None}  # the timer of the limit, once the preview is up
+    controller.connect_stopped(lambda _reason: _cancel(limit))  # no shot at a stopped preview
     controller.start()
+    if controller.running:
+        limit["cancel"] = clock.call_later(
+            PREVIEW_LIMIT_SECONDS, lambda: controller.stop("time limit")
+        )
     if hold is not None and controller.running:  # no monitor: nothing shows, nothing to hold
         hold.take(shown_on[0])
     return controller
+
+
+def _cancel(timer: dict) -> None:
+    cancel, timer["cancel"] = timer["cancel"], None
+    if cancel is not None:
+        cancel()
 
 
 def _parse(argv: Optional[List[str]]) -> argparse.Namespace:

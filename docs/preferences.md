@@ -23,7 +23,10 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 same process. It never locks (D11); any key, click, scroll or mouse movement ends it, and
 closing the window ends it too. While it shows, the window's `Gtk.Application` holds an idle
 request for it, so the desktop's own idle delay does not blank the screen under the preview; it is
-given back whichever way the preview ends (`docs/preview.md`, section 2.1). There is no on/off switch: that goes through the systemd user unit
+given back whichever way the preview ends (`docs/preview.md`, section 2.1). While it holds the
+request the desktop's idle-based blanking and automatic lock do not run, for two minutes at most:
+the preview ends by itself then (`PREVIEW_LIMIT_SECONDS`; not measured on a real GNOME session).
+There is no on/off switch: that goes through the systemd user unit
 (D4) and is not part of this window. No key of its own was added to the schema.
 
 ## How it behaves
