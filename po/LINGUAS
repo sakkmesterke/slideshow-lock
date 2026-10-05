@@ -1,0 +1,4 @@
+# The languages that are built and shipped: one per line or separated by spaces, each the name of
+# a catalog in this directory (po/<lang>.po). tools/i18n.sh check fails when this list and the
+# .po files differ, so a catalog cannot be forgotten or shipped half-registered.
+# The interface text in the source is English; there is no en.po.

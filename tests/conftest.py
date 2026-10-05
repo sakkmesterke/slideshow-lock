@@ -28,6 +28,11 @@ import tempfile
 
 import pytest
 
+# No translation in any test: the language of the developer's session (LANGUAGE, LC_ALL, LANG) must
+# not decide which text a test sees. A test of the translation sets its own language. Python's
+# gettext reads LANGUAGE first and ``C`` stops the search, so this wins over the other three.
+os.environ["LANGUAGE"] = "C"
+
 pytest.importorskip("gi", reason="PyGObject (gi) is not installed in this environment")
 
 _GSCHEMA_COMPILER = shutil.which("glib-compile-schemas")
