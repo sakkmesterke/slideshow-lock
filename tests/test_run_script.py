@@ -78,6 +78,7 @@ def stub_bin(tmp_path):
         "#!/bin/sh\n"
         'if [ "$1" = "-m" ]; then\n'
         '  echo "STUB $*"\n'
+        '  echo "ARGC=$#"\n'
         '  echo "SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR"\n'
         '  echo "PYTHONPATH=$PYTHONPATH"\n'
         "  exit 0\n"
@@ -213,6 +214,14 @@ def test_settings_starts_the_window_module(tmp_path, stub_bin):
     result = _run(["settings"], _env(tmp_path, path=path))
     assert result.returncode == 0, result.stderr
     assert "STUB -m slideshow_lock.preferences" in result.stdout
+
+
+def test_settings_passes_the_arguments_on_to_the_window_module(tmp_path, stub_bin):
+    path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
+    result = _run(["settings", "--debug", "/x y"], _env(tmp_path, path=path))
+    assert result.returncode == 0, result.stderr
+    assert "STUB -m slideshow_lock.preferences --debug /x y" in result.stdout
+    assert "ARGC=4" in result.stdout, "an argument was split or merged on the way"
 
 
 def test_service_compiles_the_schema_outside_the_checkout_and_passes_the_arguments(
