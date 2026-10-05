@@ -174,6 +174,69 @@ def test_build_rejects_a_catalog_whose_charset_is_not_utf8_and_leaves_no_catalog
     assert _mos(out) == []
 
 
+@pytest.mark.parametrize("charset", ["UTF-8bogus", "UTF-8foo", "UTF-88", "UTF-8 "])
+@pytest.mark.parametrize("command", ["build", "check"])
+def test_a_charset_that_only_starts_with_utf8_is_refused(checkout, tmp_path, charset, command):
+    """``charset=UTF-8bogus`` is a charset Python does not know: the whole line must match."""
+    (checkout / "po" / "LINGUAS").write_text("hu\n")
+    _catalog(checkout, "hu", HUNGARIAN_PO.replace("charset=UTF-8", "charset=" + charset))
+    out = tmp_path / "out"
+    result = _i18n(checkout, command, *((str(out),) if command == "build" else ()))
+    assert result.returncode != 0
+    assert "po/hu.po: the header must say charset=UTF-8" in result.stderr
+    assert _mos(out) == []
+
+
+@pytest.mark.parametrize("command", ["build", "check"])
+def test_a_utf8_line_in_a_later_entry_does_not_make_the_header_utf8(checkout, tmp_path, command):
+    """Only the header entry declares the charset; the same line further down is just text."""
+    (checkout / "po" / "LINGUAS").write_text("hu\n")
+    _catalog(
+        checkout,
+        "hu",
+        PO_HEADER.replace("charset=UTF-8", "charset=ASCII")
+        + '\nmsgid "x\\n"\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n',
+    )
+    out = tmp_path / "out"
+    result = _i18n(checkout, command, *((str(out),) if command == "build" else ()))
+    assert result.returncode != 0
+    assert "po/hu.po: the header must say charset=UTF-8" in result.stderr
+    assert _mos(out) == []
+
+
+def test_a_catalog_without_a_header_entry_is_refused_even_with_the_line_in_an_entry(
+    checkout, tmp_path
+):
+    (checkout / "po" / "LINGUAS").write_text("hu\n")
+    _catalog(
+        checkout,
+        "hu",
+        'msgid "x\\n"\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n',
+    )
+    out = tmp_path / "out"
+    result = _i18n(checkout, "build", str(out))
+    assert result.returncode != 0
+    assert "po/hu.po: the header must say charset=UTF-8" in result.stderr
+    assert _mos(out) == []
+
+
+def test_the_header_is_found_behind_comments_and_among_other_header_lines(checkout, tmp_path):
+    """The shape msginit and msgmerge write: translator comments, a flag, more header lines."""
+    (checkout / "po" / "LINGUAS").write_text("hu\n")
+    _catalog(
+        checkout,
+        "hu",
+        "# Hungarian translation.\n#, fuzzy\n"
+        + PO_HEADER
+        + '"Plural-Forms: nplurals=2; plural=(n != 1);\\n"\n'
+        + '\nmsgid "Slideshow Lock"\nmsgstr "Diavetítés-zár"\n',
+    )
+    out = tmp_path / "out"
+    result = _i18n(checkout, "build", str(out))
+    assert result.returncode == 0, result.stderr
+    assert len(_mos(out)) == 1
+
+
 def test_a_build_that_fails_in_the_second_catalog_leaves_no_catalog_of_the_first(
     checkout, tmp_path
 ):
@@ -190,7 +253,9 @@ def test_a_build_that_fails_in_the_second_catalog_leaves_no_catalog_of_the_first
     assert _mos(out) == []
 
 
-@pytest.mark.parametrize("name", ["../../escaped", "a/b", ".hidden", "..", "a;b", "*"])
+@pytest.mark.parametrize(
+    "name", ["../../escaped", "a/b", ".hidden", "..", "a;b", "*", "pt-BR", "-x"]
+)
 @pytest.mark.parametrize("command", ["build", "check", "update"])
 def test_a_language_name_that_is_not_a_plain_name_is_refused(checkout, tmp_path, name, command):
     """The name is part of a path under po/ and under the output directory."""
@@ -204,6 +269,52 @@ def test_a_language_name_that_is_not_a_plain_name_is_refused(checkout, tmp_path,
     assert '"%s" is not a language name' % name in result.stderr
     assert not (tmp_path / "escaped").exists()
     assert _mos(tmp_path / "deep") == []
+
+
+@pytest.mark.parametrize("command", ["build", "check", "update"])
+def test_a_name_with_a_hyphen_is_refused_with_the_name_gettext_looks_for(
+    checkout, tmp_path, command
+):
+    """Python's gettext looks for pt_BR (LANG=pt_BR.UTF-8), never for a directory pt-BR."""
+    (checkout / "po" / "LINGUAS").write_text("pt-BR\n")
+    _catalog(checkout, "pt-BR", HUNGARIAN_PO)
+    out = tmp_path / "out"
+    result = _i18n(checkout, command, *((str(out),) if command == "build" else ()))
+    assert result.returncode != 0
+    assert (
+        'po/LINGUAS: "pt-BR" is not a language name: gettext looks for pt_BR, use an underscore'
+        in result.stderr
+    )
+    assert _mos(out) == []
+
+
+def test_a_name_with_an_underscore_is_built_and_found_under_the_session_language(
+    checkout, tmp_path
+):
+    (checkout / "po" / "LINGUAS").write_text("pt_BR\n")
+    _catalog(checkout, "pt_BR", HUNGARIAN_PO.replace('"Language: hu', '"Language: pt_BR'))
+    out = tmp_path / "out"
+    result = _i18n(checkout, "build", str(out))
+    assert result.returncode == 0, result.stderr
+    env = dict(
+        os.environ,
+        LANGUAGE="",
+        LC_ALL="pt_BR.UTF-8",
+        PYTHONPATH=str(checkout),
+        SLIDESHOW_LOCK_LOCALEDIR=str(out),
+    )
+    shown = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from slideshow_lock import _, i18n\ni18n.setup()\nprint(_('Slideshow Lock'))",
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert shown.stdout.strip() == "Diavetítés-zár", shown.stderr
 
 
 def test_build_stops_at_a_language_that_has_no_catalog(checkout, tmp_path):
