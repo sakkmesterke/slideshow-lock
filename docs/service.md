@@ -118,6 +118,7 @@ every protocol, so every row of the transition table runs without a bus (`tests/
 | 3.5-3 resume before the lock round trip ended: WARNING (D32, D34) | `SleepGuard._after_wake` | with fakes and with the real adapters and an artificial delay |
 | 3.6-1 locked: nothing happens | `LOCKED` ignores idle, input and inhibit | `test_ac_3_6_1_...` |
 | 3.7-1 no pictures: no slideshow, WARNING, the service keeps running | `PreviewSlideshow.start` returns the reason, the machine logs it | `test_ac_3_7_1_...` |
+| an idle event before the folder scan found its first picture: the refused start is remembered until the scan finds a picture (then it starts, after the same inhibitor check) or the user is active again (then it is dropped); the idle watch itself fires once per idle period, so without this the slideshow waited for the next one | `PreviewSlideshow.connect_ready` (once per start refused while scanning), `StateMachine._remember_refused_start` / `_on_slideshow_ready`; a refused manual preview is not remembered | the "idle event before the first picture" tests of `test_state_machine.py` and `test_service_wiring.py` |
 
 Not automatable, and not claimed: AC-3.1-2 (one window per monitor on a real multi-monitor
 setup), AC-3.5-4 (a real suspend and wake). The headless-mutter smoke below shows two windows on

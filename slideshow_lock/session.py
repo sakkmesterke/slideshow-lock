@@ -144,6 +144,11 @@ class SlideshowControl(Protocol):
         pointer, a click or a scroll on a window; ``"close"`` is reported as ``"input"`` too).
         Not called for a ``stop()`` the state machine asked for."""
 
+    def connect_ready(self, callback: Callable[[], None]) -> None:
+        """Call *callback()* when a ``start()`` that was refused because the picture folder was
+        still being read could succeed now: the scan found its first picture. Once per refused
+        start, and not at all for another reason (an empty folder, no monitor)."""
+
 
 class SleepGuardControl(Protocol):
     """The sleep guard as the state machine sees it: on or off (D4, the preferences toggle)."""
