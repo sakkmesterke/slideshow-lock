@@ -25,7 +25,7 @@ Level mapping:
 | Level   | Used for |
 |---------|----------|
 | DEBUG   | idle/active watch churn, D-Bus call round-trips |
-| INFO    | service start/stop, slideshow start/stop (with trigger source: idle \| preview), lock performed, config reload applied |
+| INFO    | service start/stop, slideshow start/stop (with trigger source: idle \| preview), lock performed, config reload applied, the language at start of each program (`[config] language ...`, see `translations.md`) |
 | WARNING | D34 sleep/lock race (see below); missing/empty picture folder (3.7); invalid config value replaced with default |
 | ERROR   | a required D-Bus interface is missing at runtime (section 2 of the brief: fail with a clear error, don't guess) |
 

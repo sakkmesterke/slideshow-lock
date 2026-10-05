@@ -44,6 +44,7 @@ from slideshow_lock import (  # noqa: E402
     APP_ID,
     _,
     dbus_adapters,  # noqa: E402
+    i18n,
 )
 from slideshow_lock.loop import Poster, current_poster  # noqa: E402
 from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  # noqa: E402
@@ -316,11 +317,13 @@ def overrides_from_args(args: argparse.Namespace) -> dict:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    language = i18n.setup()  # before the command line is parsed: --help is translated too
     args = _parse(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
+    i18n.log_status(language)
     schema = Gio.SettingsSchemaSource.get_default()
     if schema is None or schema.lookup(APP_ID, True) is None:
         print(

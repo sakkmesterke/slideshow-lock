@@ -1211,9 +1211,14 @@ ALLOWED_NAMES = {
 }
 
 
-#: The names of the idle request of a manual preview, allowed in ``preview_app.py`` only: the key
-#: is (module, squashed name), so the same name in any other module is still a finding.
+#: The names of the idle request of a manual preview, allowed in ``preview_app.py`` only, and the
+#: environment variable of the translation directory, allowed in ``i18n.py`` only: the key is
+#: (module, squashed name), so the same name in any other module is still a finding.
 MODULE_ALLOWED_NAMES = {
+    ("i18n.py", "slideshowlocklocaledir"): (
+        "i18n.LOCALEDIR_ENV: SLIDESHOW_LOCK_LOCALEDIR, the product's own name in the name of the "
+        "variable that points at the catalogs (upper case, so the own-name rule does not see it)"
+    ),
     ("preview_app.py", "inhibit"): (
         "preview_app.IdleHold: Gtk.Application.inhibit, the application's own request to the "
         "desktop not to blank the screen under a manual preview. GTK makes the request: no bus, "

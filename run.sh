@@ -7,7 +7,9 @@
 #   ./run.sh service [args...]  the whole chain in the foreground (idle, slideshow, lock), args go
 #                               to slideshow_lock.service, e.g. --idle-timeout 20 --grace 3
 #
-# The settings schema is compiled into ${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/schemas.
+# The settings schema is compiled into ${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/schemas, the
+# translations of po/ (when there are any) into .../slideshow-lock/locale; SLIDESHOW_LOCK_LOCALEDIR
+# points the program there. The language is the one of the session (LANGUAGE, LC_ALL, LANG).
 set -euo pipefail
 
 src="${BASH_SOURCE[0]}"
@@ -116,11 +118,34 @@ sys.exit(0 if Gst.ElementFactory.find("videoscale") else 1)' >/dev/null 2>&1; th
         printf '         likely dnf package, not verified on RHEL 10.2: gstreamer1-plugins-base\n' >&2
     fi
 
+    # Optional: without msgfmt the translations of po/ are not built (one WARNING, English interface).
+    if compgen -G "$REPO/po/*.po" >/dev/null && ! command -v msgfmt >/dev/null 2>&1; then
+        printf 'WARNING: msgfmt was not found (optional).\n' >&2
+        printf '         The translations are not built, the interface stays English.\n' >&2
+        printf '         likely dnf package, not verified on RHEL 10.2: gettext\n' >&2
+    fi
+
     if [ "$MISSING" -gt 0 ]; then
         printf '\n%d required item(s) missing. The package names above are likely names, not verified on RHEL 10.2.\n' "$MISSING" >&2
         return 1
     fi
     return 0
+}
+
+# Compiles the translations of po/ outside the checkout (into $1) and points the program at them.
+# Nothing happens while there is no catalog. Without msgfmt (do_check has warned) or with a catalog
+# that does not compile, the directory stays empty: the interface is English.
+prepare_locale() {
+    local locale=$1
+    compgen -G "$REPO/po/*.po" >/dev/null || return 0
+    rm -rf -- "$locale"
+    mkdir -p -- "$locale" || die "cannot create $locale"
+    if command -v msgfmt >/dev/null 2>&1 && ! bash "$REPO/tools/i18n.sh" build "$locale"; then
+        printf 'WARNING: the translations could not be built (see above), the interface stays English.\n' >&2
+        rm -rf -- "$locale"
+        mkdir -p -- "$locale" || die "cannot create $locale"
+    fi
+    export SLIDESHOW_LOCK_LOCALEDIR="$locale"
 }
 
 # Compiles the schema outside the checkout and points GSettings and Python at the right places.
@@ -144,6 +169,7 @@ prepare_env() {
 
     export GSETTINGS_SCHEMA_DIR="$cache${GSETTINGS_SCHEMA_DIR:+:$GSETTINGS_SCHEMA_DIR}"
     export PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}"
+    prepare_locale "$base/slideshow-lock/locale"
 }
 
 case "${1:-}" in
