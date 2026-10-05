@@ -38,8 +38,12 @@ No RPM, no systemd:
   lists an inhibitor of the service's application id). The service's own inhibitor is never taken
   for "an application inhibits idle": the adapter answers for other application ids only
   (`GetInhibitors`, then `GetFlags` and `GetAppId` of each). An inhibitor that vanished between the
-  list and the question is skipped; any other error while asking is "cannot be asked", so no
-  slideshow starts on a guess.
+  list and the question is skipped. That is decided by the name of the D-Bus error, never by its
+  text (the session manager translates the text: measured with GDBus, the Hungarian and German
+  catalogs of GLib translate "Object does not exist at path"): `UnknownObject` says it; `UnknownMethod`
+  says it only if a fresh `GetInhibitors` no longer lists the path (the same name answers a missing
+  method on an object that is there). Any other error while asking, or a fresh list that cannot be
+  read, is "cannot be asked", so no slideshow starts on a guess.
 - Before the machine suspends the session is locked, whatever else is going on.
 - `Ctrl+C` or `SIGTERM` ends the service. The other options (`--interval`, `--order`,
   `--scaling`, `--pan`, `--debug`) are those of `preview_app`. Nothing is written to the stored
@@ -213,7 +217,7 @@ suspend would not wait for the lock).
   fake session manager that implements `Inhibit`, `Uninhibit`, `GetInhibitors` and the inhibitor
   objects as this project understands the interface; it was not compared with a real one. That
   includes the error for an inhibitor object that is gone: the fake (GDBus) answers `UnknownMethod`
-  "Object does not exist at path", the adapter also accepts `UnknownObject`; what GNOME's session
-  manager answers was not measured.
+  (its text translated into the language of the process: measured for `hu` and `de`), the adapter
+  also accepts `UnknownObject`; what GNOME's session manager answers was not measured.
 - A real `InhibitorAdded` flow from GNOME's session manager (the adapter re-asks `IsInhibited(8)` on
   every add and remove, and reports only a change).
