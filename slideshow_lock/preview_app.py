@@ -45,7 +45,7 @@ gi.require_version("Gtk", "4.0")
 
 from gi.repository import Gio, GLib, Gtk  # noqa: E402
 
-from slideshow_lock import APP_ID, _  # noqa: E402
+from slideshow_lock import APP_ID, _, i18n  # noqa: E402
 from slideshow_lock.image_source import ImageSource, source_from_settings  # noqa: E402
 from slideshow_lock.preferences_model import (  # noqa: E402
     INTERVAL_MAX_SECONDS,
@@ -242,11 +242,13 @@ def overrides_from_args(args: argparse.Namespace) -> dict:
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    language = i18n.setup()  # before the command line is parsed: --help is translated too
     args = _parse(argv)
     logging.basicConfig(
         level=logging.DEBUG if args.debug else logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
+    i18n.log_status(language)
     schema = Gio.SettingsSchemaSource.get_default()
     if schema is None or schema.lookup(APP_ID, True) is None:
         print(

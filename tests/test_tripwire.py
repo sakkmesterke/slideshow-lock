@@ -102,6 +102,58 @@ OPT_OUTS = {
         "test_run_script.py",
         "test_service_without_the_dependencies_stops_with_the_report_and_no_traceback",
     ),
+    ("test_i18n_source.py", "test_xgettext_finds_exactly_the_strings_the_reader_finds"),
+    (
+        "test_run_script.py",
+        "test_the_locale_directory_is_a_link_to_a_directory_that_was_built_apart",
+    ),
+    (
+        "test_run_script.py",
+        "test_the_catalogs_that_are_in_use_stay_in_place_while_the_new_ones_are_built",
+    ),
+    (
+        "test_run_script.py",
+        "test_the_directory_that_was_replaced_is_deleted_a_minute_later_not_at_once",
+    ),
+    (
+        "test_run_script.py",
+        "test_a_plain_directory_left_by_an_older_run_sh_is_replaced_by_the_link",
+    ),
+    (
+        "test_i18n_tools.py",
+        "test_build_rejects_a_catalog_whose_charset_is_not_utf8_and_leaves_no_catalog",
+    ),
+    (
+        "test_i18n_tools.py",
+        "test_a_build_that_fails_in_the_second_catalog_leaves_no_catalog_of_the_first",
+    ),
+    ("test_i18n_tools.py", "test_a_language_name_that_is_not_a_plain_name_is_refused"),
+    ("test_i18n_tools.py", "test_build_stops_at_a_language_that_has_no_catalog"),
+    ("test_i18n_tools.py", "test_build_without_a_directory_says_so"),
+    ("test_i18n_tools.py", "test_build_writes_a_catalog_python_loads_under_the_domain_of_the_app"),
+    ("test_i18n_tools.py", "test_check_fails_for_a_catalog_that_is_not_in_linguas"),
+    ("test_i18n_tools.py", "test_check_fails_for_a_catalog_whose_charset_is_not_utf8"),
+    ("test_i18n_tools.py", "test_check_fails_for_a_catalog_whose_format_directives_do_not_match"),
+    ("test_i18n_tools.py", "test_check_fails_for_a_language_in_linguas_without_a_catalog"),
+    ("test_i18n_tools.py", "test_check_fails_for_a_string_the_extraction_cannot_see"),
+    ("test_i18n_tools.py", "test_check_passes_on_this_checkout"),
+    ("test_i18n_tools.py", "test_check_passes_with_a_catalog_that_is_listed"),
+    ("test_i18n_tools.py", "test_update_adds_the_strings_the_catalog_does_not_have_yet"),
+    (
+        "test_run_script.py",
+        "test_a_catalog_that_does_not_compile_is_a_warning_and_the_interface_stays_english",
+    ),
+    (
+        "test_run_script.py",
+        "test_a_catalog_that_is_gone_from_the_checkout_is_gone_from_the_built_directory",
+    ),
+    ("test_run_script.py", "test_check_mentions_a_missing_msgfmt_only_when_there_is_a_catalog"),
+    (
+        "test_run_script.py",
+        "test_the_catalogs_are_built_outside_the_checkout_and_the_program_is_pointed_at_them",
+    ),
+    ("test_run_script.py", "test_without_a_po_directory_the_locale_directory_is_not_set"),
+    ("test_run_script.py", "test_without_msgfmt_run_sh_warns_once_and_goes_on_in_english"),
     ("test_picture_folder_xdg.py", "test_a_hungarian_system_uses_its_kepek_folder_everywhere"),
     (
         "test_picture_folder_xdg.py",

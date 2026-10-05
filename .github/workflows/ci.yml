@@ -40,7 +40,8 @@ jobs:
             gir1.2-gst-plugins-base-1.0 \
             gstreamer1.0-plugins-base \
             gir1.2-gtk-4.0 \
-            dbus-daemon
+            dbus-daemon \
+            gettext
           pip install PyGObject
 
       - name: Verify GI stack is actually usable (anti-silent-skip gate)
@@ -70,6 +71,12 @@ jobs:
           # dbus-daemon processes (a fake desktop). Locally they skip without the daemon; in CI a
           # missing daemon must be named here, up front.
           dbus-daemon --version | head -1
+          # Translations: tests/test_i18n_tools.py and the run.sh tests run msgfmt, xgettext and
+          # msgmerge (package gettext). Locally they skip without it; in CI a missing tool must be
+          # named here, up front, not found by the no-skip gate after pytest.
+          msgfmt --version | head -1
+          xgettext --version | head -1
+          msgmerge --version | head -1
           python3 -c "import slideshow_lock.service; print('service module imports OK')"
 
       - name: Install project (editable) with dev dependencies
@@ -104,22 +111,8 @@ jobs:
               sys.exit(1)
           PY
 
-      - name: Install gettext (for xgettext)
-        run: sudo apt-get update && sudo apt-get install -y gettext
-
-      - name: Extract translatable strings (D26)
-        run: |
-          mkdir -p po
-          find slideshow_lock -name '*.py' -print0 \
-            | xargs -0 xgettext --language=Python --from-code=UTF-8 --keyword=_ \
-                --package-name=slideshow-lock -o po/messages.pot
-          if [ ! -s po/messages.pot ]; then
-            echo "::error::po/messages.pot was not created (xgettext found zero strings) - check _() wrapping" >&2
-            exit 1
-          fi
-          msgid_count=$(grep -c '^msgid "' po/messages.pot)
-          echo "msgid entries (including the empty header): ${msgid_count}"
-          if [ "${msgid_count}" -le 1 ]; then
-            echo "::error::po/messages.pot has no translatable strings beyond the header - strings are not wrapped in _()" >&2
-            exit 1
-          fi
+      - name: Translations (D26) - catalogs, template, strings
+        # po/LINGUAS and the po/*.po agree, every catalog passes msgfmt -c --check-format, and the
+        # template xgettext makes holds exactly the strings that the source passes to _() (each
+        # one a plain literal, none evaluated at import): the count is compared, not "at least 1".
+        run: bash tools/i18n.sh check
