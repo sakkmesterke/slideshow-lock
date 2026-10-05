@@ -27,7 +27,9 @@ It looks for python3, PyGObject (`gi`), the GTK 4, Gdk, Graphene, GdkPixbuf and 
 `glib-compile-schemas` and a Wayland session (`WAYLAND_DISPLAY`), and prints one `ok:` line per
 item found and one `MISSING:` block per item missing. It installs nothing. The exit code is 0 only
 if everything required is there. GStreamer with the `videoscale` element is optional: without it
-the pictures are scaled bilinear instead of Lanczos, and `check` says so in a warning.
+the pictures are scaled bilinear instead of Lanczos, and `check` says so in a warning. The same for
+`msgfmt` (package `gettext`) once the checkout has translations: without it they are not built and the
+interface stays English ([`translations.md`](translations.md)).
 
 For every missing item the output names a likely `dnf` package. **These are likely names, not
 verified on RHEL 10.2**; the script does not detect the distribution and does not install anything.

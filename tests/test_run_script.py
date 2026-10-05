@@ -79,6 +79,8 @@ def stub_bin(tmp_path):
         'if [ "$1" = "-m" ]; then\n'
         '  echo "STUB $*"\n'
         '  echo "ARGC=$#"\n'
+        '  echo "LOCALEDIR=${SLIDESHOW_LOCK_LOCALEDIR-unset}"\n'
+        '  echo "ARGC=$#"\n'
         '  echo "SCHEMA_DIR=$GSETTINGS_SCHEMA_DIR"\n'
         '  echo "PYTHONPATH=$PYTHONPATH"\n'
         "  exit 0\n"
@@ -96,6 +98,45 @@ def _checkout_copy(tmp_path: Path, *, with_schema: bool) -> Path:
     if with_schema:
         shutil.copytree(REPO / "data", root / "data")
     return root / "run.sh"
+
+
+HUNGARIAN_PO = (
+    'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
+    'msgid "Slideshow Lock"\nmsgstr "Diavetítés-zár"\n'
+)
+BROKEN_PO = (
+    'msgid ""\nmsgstr ""\n"Content-Type: text/plain; charset=UTF-8\\n"\n\n'
+    '#, python-format\nmsgid "%d seconds"\nmsgstr "%s másodperc"\n'
+)
+
+
+def _checkout_with_catalog(tmp_path: Path, po_text: str) -> Path:
+    """A checkout with the schema, the translation tool, and po/hu.po (listed in po/LINGUAS)."""
+    script = _checkout_copy(tmp_path, with_schema=True)
+    root = script.parent
+    (root / "tools").mkdir()
+    shutil.copy2(REPO / "tools" / "i18n.sh", root / "tools" / "i18n.sh")
+    (root / "slideshow_lock").mkdir()
+    shutil.copy2(REPO / "slideshow_lock" / "__init__.py", root / "slideshow_lock" / "__init__.py")
+    (root / "po").mkdir()
+    (root / "po" / "LINGUAS").write_text("hu\n")
+    (root / "po" / "hu.po").write_text(po_text, encoding="utf-8")
+    return script
+
+
+def _need_msgfmt():
+    if shutil.which("msgfmt") is None:
+        pytest.skip("msgfmt is not on PATH (package gettext); the CI installs it before pytest")
+
+
+def _path_without_msgfmt(tmp_path: Path, stub_bin: Path) -> str:
+    """The stub python3 and the few programs run.sh uses before the program starts, no msgfmt."""
+    bin_dir = tmp_path / "no-msgfmt-bin"
+    bin_dir.mkdir()
+    (bin_dir / "python3").symlink_to(stub_bin / "python3")
+    for name in ("glib-compile-schemas", "cp", "mkdir", "rm"):
+        (bin_dir / name).symlink_to(shutil.which(name))
+    return str(bin_dir)
 
 
 def _snapshot(directory: Path):
@@ -251,3 +292,81 @@ def test_service_without_the_dependencies_stops_with_the_report_and_no_traceback
     assert "MISSING: gi (PyGObject)" in result.stderr
     assert "Traceback" not in result.stderr
     assert not (tmp_path / "cache").exists()
+
+
+APP_ID_MO = "io.github.sakkmesterke.SlideshowLock.mo"
+
+
+def test_without_a_po_directory_the_locale_directory_is_not_set(tmp_path, stub_bin):
+    script = _checkout_copy(tmp_path, with_schema=True)
+    path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
+    result = _run(["preview"], _env(tmp_path, path=path), script=script)
+    assert result.returncode == 0, result.stderr
+    assert "LOCALEDIR=unset" in result.stdout
+    assert "msgfmt" not in result.stderr
+    assert not (tmp_path / "cache" / "slideshow-lock" / "locale").exists()
+
+
+@pytest.mark.parametrize("command", ["preview", "settings", "service"])
+def test_the_catalogs_are_built_outside_the_checkout_and_the_program_is_pointed_at_them(
+    tmp_path, stub_bin, command
+):
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    (script.parent / "slideshow_lock" / "preferences.py").write_text("")
+    before = _snapshot(script.parent / "po"), _snapshot(script.parent / "data")
+    path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
+    result = _run([command], _env(tmp_path, path=path), script=script)
+    assert result.returncode == 0, result.stderr
+    locale = tmp_path / "cache" / "slideshow-lock" / "locale"
+    assert f"LOCALEDIR={locale}" in result.stdout
+    assert (locale / "hu" / "LC_MESSAGES" / APP_ID_MO).is_file()
+    assert (_snapshot(script.parent / "po"), _snapshot(script.parent / "data")) == before
+
+
+def test_a_catalog_that_is_gone_from_the_checkout_is_gone_from_the_built_directory(
+    tmp_path, stub_bin
+):
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
+    assert _run(["preview"], _env(tmp_path, path=path), script=script).returncode == 0
+    (script.parent / "po" / "LINGUAS").write_text("")
+    assert _run(["preview"], _env(tmp_path, path=path), script=script).returncode == 0
+    assert not list((tmp_path / "cache" / "slideshow-lock" / "locale").rglob("*.mo"))
+
+
+def test_without_msgfmt_run_sh_warns_once_and_goes_on_in_english(tmp_path, stub_bin):
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    path = _path_without_msgfmt(tmp_path, stub_bin)
+    result = _run(["preview"], _env(tmp_path, path=path), script=script)
+    assert result.returncode == 0, result.stderr
+    assert result.stderr.count("WARNING: msgfmt was not found") == 1
+    assert "the interface stays English" in result.stderr
+    locale = tmp_path / "cache" / "slideshow-lock" / "locale"
+    assert f"LOCALEDIR={locale}" in result.stdout
+    assert locale.is_dir() and not list(locale.rglob("*.mo"))
+
+
+def test_check_mentions_a_missing_msgfmt_only_when_there_is_a_catalog(tmp_path, stub_bin):
+    path = _path_without_msgfmt(tmp_path, stub_bin)
+    with_catalog = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    assert "msgfmt was not found" in _run(["check"], _env(tmp_path, path=path), with_catalog).stderr
+    other = tmp_path / "other"
+    other.mkdir()
+    without = _checkout_copy(other, with_schema=True)
+    assert "msgfmt" not in _run(["check"], _env(tmp_path, path=path), without).stderr
+
+
+def test_a_catalog_that_does_not_compile_is_a_warning_and_the_interface_stays_english(
+    tmp_path, stub_bin
+):
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, BROKEN_PO)
+    path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
+    result = _run(["preview"], _env(tmp_path, path=path), script=script)
+    assert result.returncode == 0, result.stderr
+    assert "the translations could not be built" in result.stderr
+    locale = tmp_path / "cache" / "slideshow-lock" / "locale"
+    assert f"LOCALEDIR={locale}" in result.stdout
+    assert not list(locale.rglob("*.mo"))
