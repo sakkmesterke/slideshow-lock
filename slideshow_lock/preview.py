@@ -308,6 +308,14 @@ class PreviewController:
                     error = ImageSkipped(f"{type(error).__name__}: {error}")
                 self._on_skipped(job, error)
                 return
+            if self._sizes_changed(job):
+                # A window was sized while the picture was being prepared (the first picture
+                # typically: a window not yet sized by the compositor reports a placeholder
+                # size, and the size event can come before the result). Frames of the old
+                # size would sit on screen for a whole interval, so do the job again.
+                self._want = (job.path, job.purpose)
+                self._dispatch()
+                return
             frames = dict(zip(job.order, result))
             self._failures = 0
             self._failed_out = False
@@ -319,6 +327,14 @@ class PreviewController:
                 self._display(job.path, frames, fresh=job.purpose == _JOB_SHOW)
         except Exception:
             _LOG.exception("[slideshow] preview step failed")
+
+    def _sizes_changed(self, job: _Job) -> bool:
+        """True if a window the job was made for now has another size than the job assumed.
+
+        A window that cannot be asked at the moment does not count: its frames are the best
+        there is."""
+        now = self._window_sizes()
+        return any(i in now and now[i] != size for i, size in zip(job.order, job.sizes))
 
     def _on_skipped(self, job: _Job, error: ImageSkipped) -> None:
         self._skip_log.warn("[slideshow-dir] skipping %r: %s", job.path, error)

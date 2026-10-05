@@ -41,6 +41,7 @@ from tests.test_image_source import (
     FakeWatcher,
     ManualScheduler,
     make_image,
+    make_source,
     started,
 )
 from tests.timeout_guard import (
@@ -235,13 +236,18 @@ class Rig:
         scaler=None,
         order="name",
         sizes=None,
+        scan=True,
         **source_kwargs,
     ):
         self.root = tmp_path
         for name in files:
             make_image(tmp_path / name)
         self.backends = backends
-        self.source = started(tmp_path, backends, order=order, **source_kwargs)
+        if scan:
+            self.source = started(tmp_path, backends, order=order, **source_kwargs)
+        else:  # the walk is under way: the test runs its steps (``backends[1].run_all()``)
+            self.source = make_source(tmp_path, backends, order=order, **source_kwargs)
+            self.source.start()
         self.settings = settings or FakeSettings()
         self.scaler = scaler or FakeScaler()
         self.clock = FakeClock()
@@ -407,6 +413,114 @@ def test_ac2_a_window_sized_while_the_first_picture_is_being_prepared_gets_its_f
     r.worker.run_all()
     assert [w.shown() for w in r.windows][1][:1] == ["a.png"]
     assert [w.shown() for w in r.windows][0][:1] == ["a.png"]
+
+
+# A window that the compositor has not sized yet can report a placeholder size (measured on
+# GTK 4.8 under mutter: 1x1, then the real size a few tens of milliseconds later). The first
+# picture is then prepared for that size. These tests give the first window exactly that.
+
+PLACEHOLDER = (1, 1)
+
+
+def _sizes_shown(window):
+    return [(frame.width, frame.height) for frame, _pan in window.frames]
+
+
+def test_a_first_picture_prepared_for_a_placeholder_size_is_redone_at_the_real_size(
+    tmp_path, backends
+):
+    """The service always starts like this (the picture is known, the windows are new); a preview
+    does when its walk is faster than the compositor. The size arrives while the job runs."""
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1, sizes=[PLACEHOLDER])
+    r.controller.start()  # the job goes out with the placeholder size
+    r.windows[0].resize((1920, 1080))  # the compositor sizes the window while it runs
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png"]
+    assert _sizes_shown(r.windows[0]) == [(1920, 1080)]  # never the 1x1 frame
+
+
+def test_a_first_picture_is_redone_when_the_walk_ends_before_the_window_is_sized(
+    tmp_path, backends
+):
+    """The preview of the settings window: the empty state first, the first picture of the walk
+    arrives while the window still has its placeholder size."""
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1, sizes=[PLACEHOLDER], scan=False)
+    r.controller.start()
+    assert backends[1].run_all()  # the walk finds the pictures: a.png goes out at 1x1
+    r.windows[0].resize((1920, 1080))
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png"]
+    assert _sizes_shown(r.windows[0]) == [(1920, 1080)]
+
+
+def test_a_first_picture_is_redone_even_if_no_size_event_arrives(tmp_path, backends):
+    """The window reports an event only when its geometry differs from the last reported one, so
+    a size can change without one reaching the controller: the result must be checked itself."""
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1, sizes=[PLACEHOLDER])
+    r.controller.start()
+    r.windows[0].size = (1920, 1080)  # no event
+    r.worker.run_all()
+    assert _sizes_shown(r.windows[0]) == [(1920, 1080)]
+
+
+def test_a_redone_first_picture_still_gets_a_full_interval(tmp_path, backends):
+    r = Rig(
+        tmp_path,
+        backends,
+        ["a.png", "b.png"],
+        windows=1,
+        sizes=[PLACEHOLDER],
+        settings=FakeSettings(interval=10),
+    )
+    r.controller.start()
+    r.windows[0].resize((1920, 1080))
+    r.worker.run_all()
+    r.tick(9.9)
+    assert r.windows[0].shown() == ["a.png"]
+    r.tick(0.2)
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    assert set(_sizes_shown(r.windows[0])) == {(1920, 1080)}
+
+
+@pytest.mark.parametrize("late", [0, 1])
+def test_every_window_of_a_first_picture_gets_its_real_size(tmp_path, backends, late):
+    real = [(2560, 1440), (1080, 1920)]
+    sizes = list(real)
+    sizes[late] = PLACEHOLDER  # the window that the compositor has not sized yet
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=2, sizes=sizes)
+    r.controller.start()
+    r.windows[late].resize(real[late])
+    r.worker.run_all()
+    assert [_sizes_shown(w) for w in r.windows] == [[real[0]], [real[1]]]
+    assert r.scaler.calls_for("a.png")[-1][1] == real
+
+
+def test_a_prepared_next_picture_made_for_an_outdated_size_is_redone(tmp_path, backends):
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1, settings=FakeSettings(interval=10))
+    r.controller.start()
+    r.worker.run_one()  # a.png is up; b.png is being prepared
+    r.windows[0].size = (2560, 1440)  # no event
+    r.worker.run_all()
+    r.tick(10)
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    assert _sizes_shown(r.windows[0])[-1] == (2560, 1440)
+
+
+def test_a_stable_window_size_prepares_the_first_picture_once(tmp_path, backends):
+    """No redo without a reason: with an unchanged size one job makes the first picture."""
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1)
+    r.controller.start()
+    r.worker.run_all()
+    assert len(r.scaler.calls_for("a.png")) == 1
+    assert len(r.scaler.calls_for("b.png")) == 1
+
+
+def test_a_window_that_lost_its_size_while_a_job_runs_keeps_what_the_job_made(tmp_path, backends):
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1)
+    r.controller.start()
+    r.windows[0].size = None  # not reported at the moment: no reason to throw the result away
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png"]
 
 
 def test_a_changed_interval_counts_from_when_the_picture_appeared_not_from_the_start(
