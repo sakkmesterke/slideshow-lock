@@ -12,7 +12,8 @@ never waited for.
 
 The sequence on ``PrepareForSleep(true)``, in this order:
 
-1. post "sleep started" to the main loop (the slideshow stops there; not waited for);
+1. post "sleep started" to the main loop (the slideshow stops there; not waited for; if the post
+   itself fails it is logged at ERROR and the lock goes on);
 2. start the lock round trip (asynchronous, so this thread stays free to see the wake signal);
 3. when the round trip is over, success or not, release the delay inhibitor (``_on_lock_done``);
 4. post the result to the main loop.
@@ -135,7 +136,13 @@ class SleepGuard:
         self._sleeping = True
         current = self._round = _Round(self._clock())
         _LOG.info("[sleep-inhibit] PrepareForSleep(true): locking before suspend")
-        self._to_main(self._listener.sleep_started)
+        try:
+            self._to_main(self._listener.sleep_started)
+        except Exception:  # the stop of the slideshow is not what suspend waits for: lock anyway
+            _LOG.exception(
+                "[sleep-inhibit] could not hand the sleep start to the main loop: "
+                "the slideshow is not told, locking anyway"
+            )
         try:
             self._lock.lock(lambda result: self._on_lock_done(current, result))
         except Exception as exc:  # the protocol says it does not raise; do not hold suspend back
