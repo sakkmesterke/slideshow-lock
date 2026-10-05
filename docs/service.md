@@ -75,6 +75,15 @@ No RPM, no systemd:
    `busctl --user call org.gnome.SessionManager /org/gnome/SessionManager org.gnome.SessionManager
    GetInhibitors` lists one inhibitor more, and after the first input it is gone again.
 
+Steps 4, 5 and 7 ask for a command while the slideshow is showing. Typing it is input, and the
+first input ends the slideshow, so it cannot be done by hand at that moment. Start the command
+beforehand with a delay that is longer than the idle timeout, from the terminal, before leaving
+the machine alone (for step 4 with `--idle-timeout 20`: `sleep 40; systemd-inhibit --what=idle
+sleep 600`), or run it from another machine over `ssh`. For step 7 let the delayed `busctl` call
+write to a file (`sleep 40; busctl ... > /tmp/inhibitors-during.txt`) and read the file after the
+first input; a second call after the input shows the list without the inhibitor. These delayed
+forms were not tried.
+
 ## 2. The parts
 
 | File | What it is |
