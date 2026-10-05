@@ -52,7 +52,7 @@ class Rig:
     """A guard with fakes, everything delivered in line; ``main`` collects what was posted to
     the main loop and ``run_main()`` runs it."""
 
-    def __init__(self, *, enable=True, to_main=None):
+    def __init__(self, *, enable=True, to_main=None, clock=None):
         self.sleep = FakeSleepSignal()
         self.order = []
         self.lock = FakeSessionLock(shared=self.order)
@@ -60,7 +60,11 @@ class Rig:
         self.main = []
         self.clock = FakeClock()
         self.guard = SleepGuard(
-            self.sleep, self.lock, self.listener, to_main or self.main.append, clock=self.clock
+            self.sleep,
+            self.lock,
+            self.listener,
+            to_main or self.main.append,
+            clock=clock or self.clock,
         )
         if enable:
             self.guard.setup()
@@ -296,6 +300,121 @@ def test_only_exceptions_are_caught_around_the_post_of_the_sleep_start():
     r = _rig_whose_first_post_fails(KeyboardInterrupt())
     with pytest.raises(KeyboardInterrupt):
         r.sleep.fire(True)
+
+
+def _rig_whose_second_post_fails(error):
+    """A rig whose poster queues the sleep start and raises *error* on the next call, the post of
+    the lock result, and queues from then on."""
+    holder = {}
+    r = Rig(to_main=lambda fn: holder["post"](fn))
+    calls = []
+
+    def post(fn):
+        calls.append(fn)
+        if len(calls) == 2:
+            raise error
+        r.main.append(fn)
+
+    holder["post"] = post
+    return r
+
+
+@pytest.mark.parametrize("error", _POST_ERRORS)
+def test_a_failing_post_of_the_lock_result_does_not_escape_the_callback(caplog, error):
+    r = _rig_whose_second_post_fails(error)
+    r.lock.mode = "manual"  # the answer arrives on its own, as the real one does
+    r.sleep.fire(True)
+
+    with caplog.at_level(logging.ERROR):
+        r.lock.complete()  # nothing escapes the lock callback
+
+    assert r.lock.lock_calls == 1
+    assert r.sleep.inhibitors[0].released
+    assert [rec for rec in caplog.records if rec.levelno == logging.ERROR]  # not silent
+    r.run_main()  # only the start reached the main loop
+    assert r.listener.events == ["started"]
+
+
+@pytest.mark.parametrize("error", _POST_ERRORS)
+def test_after_a_failing_post_of_the_lock_result_a_wake_before_the_answer_takes_the_inhibitor_again(
+    error,
+):
+    r = _rig_whose_second_post_fails(error)
+    r.lock.mode = "manual"
+    r.sleep.fire(True)
+    r.sleep.fire(False)  # woke before the answer: the old inhibitor is held until it comes
+    r.lock.complete()  # nothing escapes the lock callback
+    assert r.sleep.inhibitors[0].released
+    assert r.sleep.held == 1  # and the next suspend is guarded
+    r.lock.set_locked(False)
+    r.sleep.fire(True)
+    assert r.lock.lock_calls == 2
+
+
+def test_only_exceptions_are_caught_around_the_post_of_the_lock_result():
+    r = _rig_whose_second_post_fails(KeyboardInterrupt())
+    with pytest.raises(KeyboardInterrupt):
+        r.sleep.fire(True)
+
+
+class _ScriptedClock:
+    """A clock that raises on the calls whose number (from 1) is in *fail_on*."""
+
+    def __init__(self, fail_on):
+        self.fail_on = set(fail_on)
+        self.calls = 0
+
+    def __call__(self):
+        self.calls += 1
+        if self.calls in self.fail_on:
+            raise RuntimeError("clock gone")
+        return 1000.0
+
+
+def test_a_failing_clock_at_the_signal_does_not_keep_the_lock_back():
+    clock = _ScriptedClock({1, 2})  # the start of the round and the end of it
+    r = Rig(clock=clock)
+    r.sleep.fire(True)
+    assert r.lock.lock_calls == 1
+    assert r.sleep.inhibitors[0].released
+    r.run_main()
+    assert r.listener.events == ["started", ("finished", True)]
+
+
+def test_a_failing_clock_at_the_answer_still_releases_the_inhibitor_and_reports():
+    clock = _ScriptedClock({2})
+    r = Rig(clock=clock)
+    r.lock.mode = "manual"
+    r.sleep.fire(True)
+    r.lock.complete()  # nothing escapes the lock callback
+    assert r.sleep.inhibitors[0].released
+    r.run_main()
+    assert r.listener.events == ["started", ("finished", True)]
+
+
+def test_a_failing_clock_at_the_wake_leaves_the_round_trip_to_end_normally():
+    clock = _ScriptedClock({2})
+    r = Rig(clock=clock)
+    r.lock.mode = "manual"
+    r.sleep.fire(True)
+    r.sleep.fire(False)  # nothing escapes the signal callback
+    assert r.sleep.held == 1  # the old inhibitor, still held while the round trip is open
+    r.lock.complete()
+    assert r.sleep.inhibitors[0].released
+    assert r.sleep.held == 1  # and a new one is held now
+    r.run_main()
+    assert r.listener.events == ["started", ("finished", True)]
+
+
+def test_negative_control_a_round_without_a_failure_logs_no_error(caplog):
+    r = Rig()
+    with caplog.at_level(logging.ERROR):
+        r.sleep.fire(True)
+    assert [rec for rec in caplog.records if rec.levelno >= logging.ERROR] == []
+    assert r.lock.lock_calls == 1
+    assert r.sleep.inhibitors[0].released
+    r.run_main()
+    assert r.listener.events == ["started", ("finished", True)]
 
 
 def test_a_repeated_prepare_for_sleep_true_makes_one_lock():
