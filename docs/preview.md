@@ -153,9 +153,11 @@ round); the settings window (UI-1); changing the default of the pan switch.
   request is given back, as for input. Any other end (input, a stop from outside, `shutdown`) takes
   the timer down, so it cannot go off at a preview that has ended. It applies with or without an
   application. Why: this is an app that locks; a preview left running must not keep the desktop's
-  idle lock away for good.
+  idle lock away for good. One exception: a desktop that never answers the request (see "If the
+  session manager never answers" below).
 - **While a preview holds its request**, the desktop's own idle-based blanking and automatic lock
-  do not run, for two minutes at most (not measured on a real GNOME session).
+  do not run, for two minutes at most (not measured on a real GNOME session), except when the
+  desktop never answers the request (see "If the session manager never answers" below).
 - **If the call raises** (or GTK answers cookie 0), a WARNING says the screen may blank under the
   preview, and the preview runs on. **On Wayland a refusal by the desktop is not detected, and
   that WARNING does not appear for it:** measured on GTK 4.8.3 in the headless Wayland session, a
@@ -163,8 +165,22 @@ round); the settings window (UI-1); changing the default of the pan switch.
   one that answers cookie 0 all gave `Gtk.Application.inhibit` the cookie 1 (and 2 for a second
   request), as did one that accepted the request: the Wayland backend hands out its own cookies, not
   the desktop's answer. The cookie 0 branch is reachable only with a backend that answers 0 itself
-  (QA reported the Broadway backend; not run here). So under a refusing desktop the preview runs
-  with the screen unprotected and says nothing about it. This is a known gap, and the WARNING is no substitute for a check.
+  (reported by a tester for the Broadway backend; not run here). So under a refusing desktop the
+  preview runs with the screen unprotected and the application says nothing about it. GTK itself
+  does write a line of its own to stderr when the desktop answers `Inhibit` with a D-Bus error
+  (`Gtk-WARNING ... Calling org.gnome.SessionManager.Inhibit failed: ...`, seen in the headless
+  Wayland session for that one case; the full stderr of the other two cases was not looked at).
+  This is a known gap, and the WARNING is no substitute for a check.
+- **If the session manager never answers, the two minute limit does not apply.**
+  `Gtk.Application.inhibit()` is a synchronous call with no time limit of its own, and it is made
+  on the main loop. Measured in the headless Wayland session (GTK 4.8.3) against a fake session
+  manager that received `Inhibit` and never answered: the call had not returned after 40 seconds,
+  when the probe was ended (one run). A tester reported that it had not returned after 270
+  seconds, that the limit timer, input and SIGTERM then had no effect on `preview_app`, and that
+  only SIGKILL ended it; in the settings window the whole window freezes. Nothing that runs on the
+  main loop can run meanwhile. The case needs a session manager that hangs (a frozen
+  `gnome-session`). The effect is a frozen preview or window, not a way around the lock. This is
+  a known limit and it is not handled here.
 - **A second start on the same application id** (`preview_app` started again while it runs: GTK
   hands it to the running instance as another `activate`) is ignored while the first preview is
   up: one preview, one request, one limit timer. Before, the second `activate` built a second
@@ -338,7 +354,8 @@ the system's pictures folder itself (the `XDG_PICTURES_DIR` of
 preview shows "No pictures to show" with the path it looked at on the next line, and logs the same path.
 
 Options (`--interval`, `--order`, `--scaling`, `--pan`, `--debug`) apply to that run only and are
-never written to the settings. Any key, click, scroll or mouse movement ends it.
+never written to the settings. Any key, click, scroll or mouse movement ends it, and so does
+the time limit of two minutes (section 2.1).
 `start_preview(settings, source, application=None)` in the same module is what the settings window
 calls (see `docs/preferences.md`); the service has its own controller wiring. Give it the
 `Gtk.Application` and the preview also keeps the desktop's idle delay from blanking the screen
@@ -446,7 +463,12 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   `Logout` call, an `Inhibit` call by name and `inhibit` with all flags, `os.system`, every `os.exec*`, `os.startfile`, `ctypes`, `cdll`, and seven locker
   programs by name) are inserted into `stop()` of the real source in turn, and the scan must find
   each. It is a net, not a proof: a name assembled at runtime (a hex-encoded `os.system`, a name
-  taken from a table) passes it. (3) A tripwire in `tests/conftest.py`, active in every test unless
+  taken from a table) passes it. Two such gaps are known for the idle request, both tried by
+  adding them to the real `preview_app.py` source: a second call written as
+  `getattr(app, 'inhibit')(window, 15, reason)` passes the syntax-tree check, which counts only
+  calls of the form `x.inhibit(...)`, and a call with the string `'Inhibit'` as its argument passes
+  the name scan, because that name is allowed in this module. The effect of either is one more
+  idle inhibitor, not a lock; the checks guard the intent, they do not prove it. (3) A tripwire in `tests/conftest.py`, active in every test unless
   it is marked `spawns_processes` (the tests that carry the mark are on a list in
   `tests/test_tripwire.py`, three now; a new one fails there until the list is changed): `os.system`, `popen`, `fork`, `exec*`, `spawn*`, `posix_spawn*`,
   `subprocess.Popen`, `GLib.spawn_*`, `Gio.bus_*`, `Gio.Subprocess.new` and `newv`,
@@ -538,3 +560,5 @@ Not proven by any of this: how the pictures look, behaviour on a real GPU or wit
 scaling, real multi-monitor hardware, battery cost of the pan animation, behaviour on RHEL 10.2,
 that the GNOME "reduce animations" choice reaches `gtk-enable-animations`. These belong on the
 manual test list (DOC-2).
+That list is not in this repository yet; the trial steps that exist are in
+[`try-it.md`](try-it.md) and under "Trial on a real session" in [`service.md`](service.md).

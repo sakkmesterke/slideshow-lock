@@ -26,6 +26,9 @@ request for it, so the desktop's own idle delay does not blank the screen under 
 given back whichever way the preview ends (`docs/preview.md`, section 2.1). While it holds the
 request the desktop's idle-based blanking and automatic lock do not run, for two minutes at most:
 the preview ends by itself then (`PREVIEW_LIMIT_SECONDS`; not measured on a real GNOME session).
+The exception is a session manager that never answers the request: the call has no time limit,
+the settings window freezes with it, and the limit cannot end the preview then
+(`docs/preview.md`, section 2.1).
 There is no on/off switch: that goes through the systemd user unit
 (D4) and is not part of this window. No key of its own was added to the schema.
 
@@ -74,6 +77,9 @@ There is no on/off switch: that goes through the systemd user unit
   that is a file are refused. Clearing the field and saving stores the empty value again, which
   means "the default" (the system's pictures folder, not a folder that was typed earlier).
 - A value changed by another process shows up in the window.
+- "Start the slideshow after" and "Lock grace period" are number fields with the word "seconds"
+  next to them (`_with_unit` in `preferences.py`; read from the source, not looked at on a real
+  screen).
 
 ## Structure
 
