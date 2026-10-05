@@ -22,6 +22,24 @@ No RPM, no systemd:
   time is taken just before the windows are opened, so it includes the time the start itself
   takes: 0.1 s to 0.8 s in headless runs (the "after N s" of the log line is counted the same way,
   so it is a little more than the time since the windows appeared). Not measured on a real session.
+- While an idle-triggered slideshow shows, the service holds an idle inhibitor of its own
+  (`org.gnome.SessionManager.Inhibit` with flag 8, application id
+  `io.github.trensoft.slideshowlock`), taken when the slideshow has started and given back on
+  every way it ends: first input, a closed window, another application inhibiting idle, a suspend,
+  somebody else locking the session, the service closing. Side effect: as long as the slideshow
+  runs the session is not marked idle, so the desktop's own idle delay should not blank the screen
+  or lock it under the slideshow, nor do whatever else the desktop does when the session goes idle
+  (not measured on a real session).
+  A manual preview holds none. If the session manager refuses the inhibitor, a WARNING says so and
+  the slideshow runs on. If it refuses to take the inhibitor back, a WARNING says that the
+  desktop's own blanking and automatic lock stay held back until it is given back: the service
+  keeps the cookie and tries again at the next end of a slideshow, in `disable()` and when the
+  service closes (a cookie is dropped without a retry only when the session manager no longer
+  lists an inhibitor of the service's application id). The service's own inhibitor is never taken
+  for "an application inhibits idle": the adapter answers for other application ids only
+  (`GetInhibitors`, then `GetFlags` and `GetAppId` of each). An inhibitor that vanished between the
+  list and the question is skipped; any other error while asking is "cannot be asked", so no
+  slideshow starts on a guess.
 - Before the machine suspends the session is locked, whatever else is going on.
 - `Ctrl+C` or `SIGTERM` ends the service. The other options (`--interval`, `--order`,
   `--scaling`, `--pan`, `--debug`) are those of `preview_app`. Nothing is written to the stored
@@ -47,6 +65,13 @@ No RPM, no systemd:
    wake the lock screen must be there, no slideshow, no unlocked desktop visible (AC-3.5-4).
 6. Look for the D34 warning in the output after a suspend (`resume received before lock
    sequence completed`); it should not appear.
+7. Let the slideshow run for longer than the desktop's idle delay (shorten "Screen Blank" and
+   "Automatic Screen Lock" in the settings to 1 minute for the trial, and run the service with
+   `--idle-timeout 20 --grace 0`: with the default 120 s GNOME blanks the screen first and the
+   slideshow never starts): the screen must neither blank nor lock by itself while the slideshow
+   shows. While it runs,
+   `busctl --user call org.gnome.SessionManager /org/gnome/SessionManager org.gnome.SessionManager
+   GetInhibitors` lists one inhibitor more, and after the first input it is gone again.
 
 ## 2. The parts
 
@@ -71,6 +96,7 @@ every protocol, so every row of the transition table runs without a bus (`tests/
 | 3.2-2 grace period, strict `<` (D16) | `_input_detected`: `elapsed < grace` means no lock | the boundary table, `G = 0` and `G > 0` |
 | 3.3-1/2/3 lock only for a running, idle-triggered slideshow; a preview never locks (D11) | `_LOCKING_SOURCES = {IDLE}`: a preview has no path to the lock call | the preview with every grace and timing; input with nothing running |
 | 3.4-1 inhibit blocks the start | `_on_idle` | `test_state_machine.py` |
+| the slideshow's own idle inhibitor: held while an idle-triggered slideshow shows, never taken for a preview, given back on every end, never mistaken for another application's, and another application's next to it still ends the slideshow | `StateMachine._hold_idle_inhibit` and `_release_idle_inhibit` (from `_finish_slideshow` and `disable`), `SessionManagerInhibition` | the "idle inhibitor of the slideshow itself" sections of `test_state_machine.py`, `test_dbus_adapters.py` and `test_service_dbus.py` |
 | 3.4-2 one raised during the run stops it, and locks at once if the grace period is over (the same strict `<` and elapsed time as input), none within it; a preview is left alone | `_on_inhibit_changed`, `_end_slideshow_and_lock_if_due` | the boundary table for both ends of a slideshow, a control that compares them, a failing lock, no running slideshow, the preview |
 | 3.5-1 sleep stops the slideshow and locks, independent of how it started (D10, D35) | `SleepGuard` locks, `StateMachine.sleep_started` stops | `test_sleep_guard.py`, `test_service_dbus.py` |
 | 3.5-2 an idle inhibit never keeps the sleep lock back (D28) | `SleepGuard` has no inhibition query, by its constructor and by its imports | an AST test on the module; an end-to-end test with the inhibit set |
@@ -181,5 +207,13 @@ suspend would not wait for the lock).
 - A manual preview as a service function (`StateMachine.start_preview`): the transitions and the D11
   guarantee are there and tested; nothing calls it yet (the settings window's Preview button will).
 - Real timing: whether the lock fits into `InhibitDelayMaxSec` on the reference machine.
+- The idle inhibitor of the slideshow on a real session: that GNOME's session manager accepts the
+  `Inhibit` call from this service, answers `GetAppId` with the id the service passed, and then
+  really holds back screen blanking and the automatic lock (trial step 7). The tests run against a
+  fake session manager that implements `Inhibit`, `Uninhibit`, `GetInhibitors` and the inhibitor
+  objects as this project understands the interface; it was not compared with a real one. That
+  includes the error for an inhibitor object that is gone: the fake (GDBus) answers `UnknownMethod`
+  "Object does not exist at path", the adapter also accepts `UnknownObject`; what GNOME's session
+  manager answers was not measured.
 - A real `InhibitorAdded` flow from GNOME's session manager (the adapter re-asks `IsInhibited(8)` on
   every add and remove, and reports only a change).

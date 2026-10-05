@@ -15,6 +15,7 @@ import threading
 
 import pytest
 
+from slideshow_lock.dbus_adapters import INHIBIT_APP_ID
 from slideshow_lock.image_source import ImageSource
 from slideshow_lock.service import build_service
 from slideshow_lock.session import UnsupportedSessionInterface
@@ -318,3 +319,126 @@ def test_disable_and_enable_cycles_do_not_leave_signal_subscriptions_behind(monk
             assert live() == baseline
         finally:
             r.close()
+
+
+# -- the idle inhibitor of the slideshow itself, end to end -------------------------------------
+#
+# While an idle-triggered slideshow shows, the service holds an idle inhibitor under its own
+# application id, so that the desktop's idle delay does not blank or lock the screen under it. Three
+# things go wrong with the obvious way of doing that, and each has a test here: the service's
+# inhibitor ends its own slideshow; it hides another application's inhibitor that comes next to
+# it; it is not given back, and no slideshow ever starts again.
+
+
+def _own(desktop):
+    return desktop.inhibitors_of(INHIBIT_APP_ID)
+
+
+def _start_slideshow(r):
+    r.desktop.fire_idle()
+    assert r.settle(lambda: r.machine.state is State.SLIDESHOW_RUNNING)
+    assert r.settle(lambda: len(_own(r.desktop)) == 1)
+
+
+def test_the_slideshow_holds_an_idle_inhibitor_and_its_own_inhibitor_does_not_stop_it(run):
+    _start_slideshow(run)
+    request = run.desktop.inhibit_requests[0]
+    assert request[0] == INHIBIT_APP_ID and request[3] == 8
+    # the session manager answers IsInhibited(8) with True from now on, and tells everybody
+    assert run.settle(lambda: run.machine._inhibition._cookie is not None)
+    assert not run.settle(lambda: run.machine.state is not State.SLIDESHOW_RUNNING, timeout=0.6)
+    assert run.slideshow.running and run.slideshow.stops == 0
+    assert run.desktop.lock_calls == []
+
+
+def test_another_application_that_inhibits_idle_next_to_the_own_inhibitor_still_stops_it(run):
+    """The own inhibitor keeps the plain answer at True, so the arrival of another one is no
+    change in it. The slideshow has to end all the same, and (grace 0) the session locks."""
+    _start_slideshow(run)
+    run.desktop.add_inhibitor("video.call")
+    assert run.settle(lambda: run.machine.state is State.LOCKED)
+    assert not run.slideshow.running
+    assert len(run.desktop.lock_calls) == 1
+    assert run.settle(lambda: _own(run.desktop) == [])  # and ours went with the slideshow
+
+
+def test_another_application_that_inhibits_something_else_does_not_stop_the_slideshow(run):
+    _start_slideshow(run)
+    run.desktop.add_inhibitor("editor", flags=4)  # suspend, not idle
+    assert not run.settle(lambda: run.machine.state is not State.SLIDESHOW_RUNNING, timeout=0.6)
+    assert run.slideshow.running
+
+
+def test_the_idle_inhibitor_is_gone_after_the_slideshow_and_the_next_idle_starts_a_new_one(run):
+    _start_slideshow(run)
+    run.desktop.fire_user_active()
+    assert run.settle(lambda: run.machine.state is State.LOCKED)
+    assert run.settle(lambda: _own(run.desktop) == [])
+    assert run.desktop.uninhibit_calls == [100]
+    assert run.machine._inhibition.is_idle_inhibited() is False
+    assert run.desktop.inhibitors == {}
+    run.desktop.set_locked(False)
+    assert run.settle(lambda: run.machine.state is State.IDLE_WATCHING)
+    run.desktop.fire_idle()
+    assert run.settle(lambda: run.machine.state is State.SLIDESHOW_RUNNING)
+    assert run.slideshow.starts == 2
+    assert run.settle(lambda: len(_own(run.desktop)) == 1)
+
+
+def test_the_idle_inhibitor_is_gone_after_input_in_a_slideshow_window_too():
+    with Desktop() as desktop:
+        r = Run(desktop, grace=3600)
+        try:
+            _start_slideshow(r)
+            r.slideshow.end_by_input()
+            assert r.settle(lambda: r.machine.state is State.IDLE_WATCHING)
+            assert r.settle(lambda: _own(desktop) == [])
+            assert desktop.lock_calls == []
+            desktop.fire_idle()
+            assert r.settle(lambda: r.slideshow.starts == 2)
+        finally:
+            r.close()
+
+
+def test_sleep_ends_the_slideshow_and_its_idle_inhibitor_and_the_lock_goes_out(run):
+    _start_slideshow(run)
+    run.desktop.prepare_for_sleep(True)
+    assert run.settle(lambda: len(run.desktop.lock_calls) == 1)
+    assert run.settle(lambda: _own(run.desktop) == [])
+    assert run.settle(lambda: run.desktop.held == 0)  # the sleep inhibitor, released as before
+
+
+def test_closing_the_service_during_a_slideshow_gives_the_idle_inhibitor_back():
+    with Desktop() as desktop:
+        r = Run(desktop)
+        _start_slideshow(r)
+        r.close()
+        assert r.settle(lambda: _own(desktop) == [])
+        assert desktop.inhibitors == {}
+
+
+@pytest.mark.parametrize("refusals", [1, 2])
+def test_an_idle_inhibitor_whose_release_was_refused_is_gone_after_disable_and_close(refusals):
+    """One refusal at the end of the slideshow: ``disable()`` gives it back. Two: ``close()``
+    does (the adapter keeps the cookie and tries again each time)."""
+    with Desktop() as desktop:
+        r = Run(desktop)
+        try:
+            _start_slideshow(r)
+            desktop.uninhibit_failures = refusals
+            desktop.fire_user_active()
+            assert r.settle(lambda: r.machine.state is State.LOCKED)
+            assert len(_own(desktop)) == 1  # the refused release left it on the bus
+            r.machine.disable()
+            assert (len(_own(desktop)) == 0) == (refusals == 1)
+        finally:
+            r.close()
+        assert r.settle(lambda: _own(desktop) == [])
+        assert desktop.inhibitors == {}
+        assert desktop.uninhibit_calls == [100] * (refusals + 1)
+
+
+def test_a_manual_preview_takes_no_idle_inhibitor(run):
+    assert run.machine.start_preview() is True
+    assert not run.settle(lambda: _own(run.desktop), timeout=0.4)
+    assert run.desktop.inhibit_requests == []
