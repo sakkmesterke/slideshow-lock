@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import time
+import warnings
 
 import pytest
 from gi.repository import GLib
@@ -194,6 +195,32 @@ def test_live_reload_notifies_without_restart():
 
     assert _pump_until(lambda: "idle-timeout-seconds" in seen_keys)
     assert reader.get_idle_timeout_seconds() == 240
+
+
+def test_disconnect_changed_stops_every_callback_of_that_object_and_no_other():
+    writer, reader, other = Settings(), Settings(), Settings()
+    first, second, kept = [], [], []
+    reader.connect_changed(first.append)
+    reader.connect_changed(second.append)
+    other.connect_changed(kept.append)
+
+    writer.set_idle_timeout_seconds(241)
+    assert _pump_until(lambda: first and second and kept)  # all three are listening
+
+    reader.disconnect_changed()
+    first.clear()
+    second.clear()
+    kept.clear()
+    writer.set_idle_timeout_seconds(242)
+    assert _pump_until(lambda: kept)  # the change was delivered where a listener is left
+    assert first == [] and second == []
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")  # GLib reports a handler id that is gone as a Warning
+        reader.disconnect_changed()  # a second call changes nothing
+    reader.connect_changed(first.append)  # and the object can listen again
+    writer.set_idle_timeout_seconds(243)
+    assert _pump_until(lambda: first)
 
 
 # -- acceptance criterion 4: XDG-derived default picture folder (D25) ---------
