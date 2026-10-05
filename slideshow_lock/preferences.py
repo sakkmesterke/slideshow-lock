@@ -115,7 +115,7 @@ class PreferencesWindow(Gtk.Window):
         self._settings = settings
         self._model = PreferencesModel(settings)
         self._updating = False  # True while the fields are being set from the stored values
-        self._preview = None  # (controller, source) while the preview runs
+        self._preview = None  # (controller, source, settings) while the preview runs
         self._chooser = None
         self._closed = False
         self.set_default_size(620, -1)
@@ -498,6 +498,7 @@ class PreferencesWindow(Gtk.Window):
         if self._preview is not None:
             return
         self._commit_folder()
+        settings = source = None  # what a failed start has to take down again
         try:
             # Its own Settings object: the source keeps a change listener on the one it is given,
             # and it should not outlive the preview on the window's own.
@@ -507,22 +508,38 @@ class PreferencesWindow(Gtk.Window):
             controller = start_preview(settings, source, self.get_application())
         except Exception:
             _LOG.exception("[slideshow] the preview could not be started")
+            self._release_preview(source, settings)
             self.status.set_label(_("The preview could not be started, see the log."))
             return
         if not controller.running:  # no monitor
-            source.stop()
+            self._release_preview(source, settings)
             self.status.set_label(_("There is no monitor to show the preview on."))
             return
-        self._preview = (controller, source)
+        self._preview = (controller, source, settings)
         self.preview_button.set_sensitive(False)
         self.status.set_label(_("Preview running: press any key or move the mouse to end it."))
         controller.connect_stopped(lambda _reason: GLib.idle_add(self._preview_finished))
 
+    @staticmethod
+    def _release_preview(source, settings) -> None:
+        """Stop a preview's source and drop the change listeners on its own settings. Either may
+        be None (the start failed before it was made); a failure is logged, never raised."""
+        if source is not None:
+            try:
+                source.stop()
+            except Exception:
+                _LOG.exception("[slideshow] stopping the preview source failed")
+        if settings is not None:
+            try:
+                settings.disconnect_changed()
+            except Exception:
+                _LOG.exception("[slideshow] dropping the preview's change listeners failed")
+
     def _preview_finished(self) -> bool:
         if self._preview is not None:
-            _controller, source = self._preview
+            _controller, source, settings = self._preview
             self._preview = None
-            source.stop()
+            self._release_preview(source, settings)
             self.preview_button.set_sensitive(True)
             self.status.set_label("")
         return GLib.SOURCE_REMOVE
