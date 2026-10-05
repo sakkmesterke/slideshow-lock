@@ -31,7 +31,11 @@ round); the settings window (UI-1); changing the default of the pan switch.
 
 - **Monitors.** One window per monitor, each fullscreen on its own monitor. The same picture is
   shown on all of them and they switch together; each gets a frame scaled to its own size. (One
-  picture queue, one cursor: showing different pictures per monitor is not implemented.)
+  picture queue, one cursor: showing different pictures per monitor is not implemented.) A window
+  that the compositor has not sized yet can report a placeholder size (1 x 1 on GTK 4.8 under
+  mutter, measured); a picture made for a size that a window no longer has when the work is done
+  is made again at the new size, so the first picture is not left on screen at the wrong size for a
+  whole interval. Real GNOME with a newer GTK was not measured.
 - **Order and interval** come from the settings (`order`, `slide-interval-seconds`) and apply
   without a restart. The interval counts from the moment a picture appears.
 - **Scaling** (`scaling` key), always to the exact device-pixel size
@@ -418,9 +422,10 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
 ## 8. Tests, and what they do not prove
 
 - `tests/test_preview.py`: the controller with fake windows and clock around the real image source
-  (131 tests): order, interval (also counted from when a picture appeared, not from the start),
+  (140 tests): order, interval (also counted from when a picture appeared, not from the start),
   switching, a late next picture shown the moment it is ready, also when settings or the window size
-  change meanwhile, live settings, a refresh that is still running when the next picture is
+  change meanwhile, a picture prepared for a placeholder or outdated window size made again (first
+  picture, prepared next picture, every window, with and without a size event), live settings, a refresh that is still running when the next picture is
   replaced, damaged pictures with a negative control, failures that are not in a row not adding up,
   burst-limited error lines, empty source, deleted pictures, input on every window and kind, the
   worker result delivered on the main loop only, and the main loop staying free while a worker
