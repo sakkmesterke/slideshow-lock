@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slideshow-lock"
-version = "0.0.0"
+version = "1.0.0"
 description = "GNOME/Wayland idle slideshow screensaver with session-lock integration"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
@@ -12,6 +12,11 @@ dependencies = ["PyGObject>=3.42"]
 
 [project.optional-dependencies]
 dev = ["ruff", "pytest"]
+
+[project.urls]
+Homepage = "https://github.com/trensoft/slideshow-lock"
+Source = "https://github.com/trensoft/slideshow-lock"
+Issues = "https://github.com/trensoft/slideshow-lock/issues"
 
 [tool.setuptools.packages.find]
 include = ["slideshow_lock*"]
