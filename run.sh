@@ -3,7 +3,7 @@
 #
 #   ./run.sh check              look for the dependencies, install nothing
 #   ./run.sh preview [args...]  the fullscreen preview (never locks), args go to preview_app
-#   ./run.sh settings           the settings window
+#   ./run.sh settings [args...] the settings window, args go to slideshow_lock.preferences
 #   ./run.sh service [args...]  the whole chain in the foreground (idle, slideshow, lock), args go
 #                               to slideshow_lock.service, e.g. --idle-timeout 20 --grace 3
 #
@@ -21,7 +21,7 @@ usage() {
     cat <<'EOF'
 usage: ./run.sh check              look for the dependencies (installs nothing)
        ./run.sh preview [args...]  fullscreen preview, e.g. --interval 5 (never locks)
-       ./run.sh settings           the settings window
+       ./run.sh settings [args...] the settings window, e.g. --debug
        ./run.sh service [args...]  idle, slideshow and lock in the foreground, e.g.
                                    --idle-timeout 20 --grace 3 (Ctrl+C stops it)
 EOF
@@ -158,12 +158,13 @@ case "${1:-}" in
         exec python3 -m slideshow_lock.preview_app "$@"
         ;;
     settings)
+        shift
         if [ ! -f "$REPO/slideshow_lock/preferences.py" ]; then
             die "the settings window is not available yet in this checkout"
         fi
         do_check || exit 1
         prepare_env
-        exec python3 -m slideshow_lock.preferences
+        exec python3 -m slideshow_lock.preferences "$@"
         ;;
     service)
         shift
