@@ -166,6 +166,9 @@ prepare_env() {
     else
         die "neither XDG_CACHE_HOME nor HOME is set; cannot choose a place for the compiled schema"
     fi
+    # A relative name that starts with a hyphen would be an option to mktemp, find and
+    # glib-compile-schemas.
+    case $base in -*) base="./$base" ;; esac
     cache="$base/slideshow-lock/schemas"
 
     if ! compgen -G "$REPO/data/*.gschema.xml" >/dev/null; then
