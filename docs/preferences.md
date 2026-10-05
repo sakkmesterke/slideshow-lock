@@ -29,6 +29,11 @@ the preview ends by itself then (`PREVIEW_LIMIT_SECONDS`; not measured on a real
 The exception is a session manager that never answers the request: the call has no time limit,
 the settings window freezes with it, and the limit cannot end the preview then
 (`docs/preview.md`, section 2.1).
+Each "Preview" click makes its own `Settings` object. The image source and the preview controller
+each keep a change listener on it, and both are dropped (`Settings.disconnect_changed`) when the
+preview ends, whichever way: input, the time limit, the window closing, no monitor, or a start
+that failed. The window's own change listener is not part of that: it stays on the window's own
+settings after the window closes, and does nothing from then on (`_closed`).
 There is no on/off switch: that goes through the systemd user unit
 (D4) and is not part of this window. No key of its own was added to the schema.
 
@@ -106,5 +111,3 @@ There is no on/off switch: that goes through the systemd user unit
 - This module is not under the D11 scan of `tests/test_preview.py`: its labels say "lock" and
   "session" on purpose. The preview it starts is that scanned code, and the window itself has no
   lock call.
-- Each "Preview" click gives the image source one more change listener on its own `Settings`
-  object (`source_from_settings` has no disconnect); the listeners of an ended preview do nothing.
