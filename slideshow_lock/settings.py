@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Callable
+from typing import Callable, List
 
 import gi
 
@@ -84,16 +84,25 @@ class Settings:
 
     def __init__(self) -> None:
         self._settings = Gio.Settings.new(APP_ID)
+        self._changed_handlers: List[int] = []
 
     # -- live reload (acceptance criterion 1) ------------------------------
 
     def connect_changed(self, callback: Callable[[str], None]) -> int:
         """Invoke *callback(key)* whenever any key changes, no restart needed.
 
-        Returns the GObject signal handler id (pass to `disconnect` to stop
-        listening).
+        Returns the GObject signal handler id. :meth:`disconnect_changed` stops every callback
+        given here at once.
         """
-        return self._settings.connect("changed", lambda _settings, key: callback(key))
+        handler = self._settings.connect("changed", lambda _settings, key: callback(key))
+        self._changed_handlers.append(handler)
+        return handler
+
+    def disconnect_changed(self) -> None:
+        """Stop every callback given to :meth:`connect_changed` on this object. Idempotent."""
+        handlers, self._changed_handlers = self._changed_handlers, []
+        for handler in handlers:
+            self._settings.disconnect(handler)
 
     # -- idle-timeout-seconds ------------------------------------------------
 
