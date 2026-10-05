@@ -93,6 +93,7 @@ OPT_OUTS = {
     ("test_run_script.py", "test_preview_in_a_checkout_without_the_schema_says_so"),
     ("test_run_script.py", "test_settings_without_the_window_module_says_so_and_is_no_traceback"),
     ("test_run_script.py", "test_settings_starts_the_window_module"),
+    ("test_run_script.py", "test_settings_passes_the_arguments_on_to_the_window_module"),
     (
         "test_run_script.py",
         "test_service_compiles_the_schema_outside_the_checkout_and_passes_the_arguments",
