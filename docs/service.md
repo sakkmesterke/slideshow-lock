@@ -30,8 +30,10 @@ No RPM, no systemd:
   runs the session is not marked idle, so the desktop's own idle delay should not blank the screen
   or lock it under the slideshow, nor do whatever else the desktop does when the session goes idle
   (not measured on a real session).
-  A manual preview holds none. If the session manager refuses the inhibitor, a WARNING says so and
-  the slideshow runs on. If it refuses to take the inhibitor back, a WARNING says that the
+  The state machine's own manual preview (`StateMachine.start_preview`, which nothing calls yet)
+  holds none; the preview of `preview_app` and of the settings window hold a request of their own
+  (`docs/preview.md`, section 2.1). If the session manager refuses the inhibitor, a WARNING says
+  so and the slideshow runs on. If it refuses to take the inhibitor back, a WARNING says that the
   desktop's own blanking and automatic lock stay held back until it is given back: the service
   keeps the cookie and tries again at the next end of a slideshow, in `disable()` and when the
   service closes (a cookie is dropped without a retry only when the session manager no longer
@@ -72,6 +74,15 @@ No RPM, no systemd:
    shows. While it runs,
    `busctl --user call org.gnome.SessionManager /org/gnome/SessionManager org.gnome.SessionManager
    GetInhibitors` lists one inhibitor more, and after the first input it is gone again.
+
+Steps 4, 5 and 7 ask for a command while the slideshow is showing. Typing it is input, and the
+first input ends the slideshow, so it cannot be done by hand at that moment. Start the command
+beforehand with a delay that is longer than the idle timeout, from the terminal, before leaving
+the machine alone (for step 4 with `--idle-timeout 20`: `sleep 40; systemd-inhibit --what=idle
+sleep 600`), or run it from another machine over `ssh`. For step 7 let the delayed `busctl` call
+write to a file (`sleep 40; busctl ... > /tmp/inhibitors-during.txt`) and read the file after the
+first input; a second call after the input shows the list without the inhibitor. These delayed
+forms were not tried.
 
 ## 2. The parts
 
