@@ -103,6 +103,31 @@ OPT_OUTS = {
         "test_service_without_the_dependencies_stops_with_the_report_and_no_traceback",
     ),
     ("test_i18n_source.py", "test_xgettext_finds_exactly_the_strings_the_reader_finds"),
+    (
+        "test_run_script.py",
+        "test_the_locale_directory_is_a_link_to_a_directory_that_was_built_apart",
+    ),
+    (
+        "test_run_script.py",
+        "test_the_catalogs_that_are_in_use_stay_in_place_while_the_new_ones_are_built",
+    ),
+    (
+        "test_run_script.py",
+        "test_the_directory_that_was_replaced_is_deleted_a_minute_later_not_at_once",
+    ),
+    (
+        "test_run_script.py",
+        "test_a_plain_directory_left_by_an_older_run_sh_is_replaced_by_the_link",
+    ),
+    (
+        "test_i18n_tools.py",
+        "test_build_rejects_a_catalog_whose_charset_is_not_utf8_and_leaves_no_catalog",
+    ),
+    (
+        "test_i18n_tools.py",
+        "test_a_build_that_fails_in_the_second_catalog_leaves_no_catalog_of_the_first",
+    ),
+    ("test_i18n_tools.py", "test_a_language_name_that_is_not_a_plain_name_is_refused"),
     ("test_i18n_tools.py", "test_build_stops_at_a_language_that_has_no_catalog"),
     ("test_i18n_tools.py", "test_build_without_a_directory_says_so"),
     ("test_i18n_tools.py", "test_build_writes_a_catalog_python_loads_under_the_domain_of_the_app"),
