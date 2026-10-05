@@ -188,6 +188,12 @@ class PreviewWindow:
         self._window.fullscreen_on_monitor(monitor)
         self._window.present()
 
+    @property
+    def gtk_window(self) -> Gtk.Window:
+        """The GTK window, for the one thing outside the controller that needs it: the request
+        that keeps the desktop's idle delay from blanking the screen (``preview_app.IdleHold``)."""
+        return self._window
+
     # -- interface used by the controller ------------------------------------------------
 
     def device_size(self) -> Optional[Tuple[int, int]]:

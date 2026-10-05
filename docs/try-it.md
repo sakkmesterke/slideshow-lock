@@ -39,7 +39,9 @@ verified on RHEL 10.2**; the script does not detect the distribution and does no
 ```
 
 You should see one fullscreen window per monitor, showing the pictures of the picture folder, each
-scaled to the monitor. Any key, click, scroll or mouse movement ends it. The preview never locks
+scaled to the monitor. Any key, click, scroll or mouse movement ends it, and so does the time
+limit: it stops by itself two minutes after it started showing (with one exception, a session
+manager that never answers, in [`preview.md`](preview.md), section 2.1). The preview never locks
 the session.
 
 **Which folder.** Without `--folder` it uses the picture folder of your settings. Until you choose
@@ -64,18 +66,20 @@ Other options, which apply to that run only and are never stored: `--interval SE
 ```
 
 The window of [`preferences.md`](preferences.md): the seven stored settings and a Preview button.
+It is built from plain GTK 4 widgets, without libadwaita.
 Unlike the preview, **this window stores what you change** in your user settings (GSettings
 under the application id), so the preview afterwards uses it.
 
 ## 5. Try the whole chain: idle, slideshow, movement, lock
 
 ```
-./run.sh service --idle-timeout 20 --grace 3
+./run.sh service --idle-timeout 20 --grace 10
 ```
 
-Leave the machine alone for about 20 seconds: the slideshow should cover every monitor. Then move
-the mouse. The slideshow ends, and because it had run for at least 3 seconds (`--grace`) the lock
-screen should appear; unlock as usual. Moving within the first 3 seconds should not lock. `Ctrl+C`
+Leave the machine alone for about 20 seconds: the slideshow should cover every monitor. Wait
+another 10 seconds or more, then move the mouse. The slideshow ends, and because it had run for at
+least 10 seconds (`--grace`) the lock screen should appear; unlock as usual. Moving within the
+first 10 seconds of the slideshow should not lock. `Ctrl+C`
 in the terminal stops the service. The options are those of `python3 -m slideshow_lock.service`
 ([`service.md`](service.md), section 1), and nothing is written to your stored settings. Before it
 suspends, the service also locks the session, which this trial does not exercise.
@@ -90,6 +94,24 @@ no picture to show ...`. There is no slideshow and no lock, and the service keep
 will also see `[sleep-inhibit]`, `[config]` and `[slideshow-dir]` lines, and two `[slideshow]
 started` lines when the slideshow begins (one from the preview windows, one from the service);
 that is normal.
+
+## Putting your settings back
+
+Only `./run.sh settings` stores anything (step 4). Once `preview`, `settings` or `service` has
+run and compiled the schema (`check` does not), you can see what is stored before the trial, and
+go back to the defaults after it:
+
+```
+export GSETTINGS_SCHEMA_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/schemas"
+gsettings list-recursively io.github.sakkmesterke.SlideshowLock
+gsettings reset-recursively io.github.sakkmesterke.SlideshowLock
+```
+
+The first command prints the seven keys with their current values (defaults included): note them
+if you want to restore your own. The second sets all seven back to their defaults, including any
+that you had changed before the trial. Tried with GLib's keyfile settings backend in a headless
+session (two keys changed, then reset: both back at their defaults); not tried with dconf on a
+desktop.
 
 ## What the script writes
 

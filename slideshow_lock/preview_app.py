@@ -15,6 +15,14 @@ the home directory itself).
 call: it builds the controller from the real GTK windows, the real scaler and the GLib
 clock and worker. ``build_source`` builds the source for it (with the loader probe).
 
+A preview that is given its ``Gtk.Application`` also keeps the desktop's own idle delay from
+blanking the screen under it (``IdleHold``): GTK asks the desktop for that, this module names
+no bus and no session. It is taken once the windows are open and given back by the controller's
+stop, whichever way the preview ends. A preview also ends by itself after ``PREVIEW_LIMIT_SECONDS``
+(two minutes, not a setting): this is an app that locks, and a preview left running must not hold
+back the desktop's idle lock for good. The limit is on the same path as the request, so the
+command line and the settings window both have it.
+
 ``Gtk.Application`` registers itself on the session bus, which opens one session-bus
 connection (measured). That is application registration, not a lock call: nothing here
 calls the session, screensaver or login manager (the test in ``tests/test_preview.py``
@@ -25,6 +33,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import signal
 import sys
 from typing import Callable, List, Optional
 
@@ -55,6 +64,58 @@ from slideshow_lock.settings import (  # noqa: E402
 )
 
 _LOG = logging.getLogger(__name__)
+
+
+#: What the desktop may show next to the request. For diagnostics, not for the user interface,
+#: so it is not translated.
+HOLD_REASON = "The slideshow preview is showing"
+
+#: A manual preview ends by itself after this long, the same way input ends it (the windows
+#: close, the worker and the idle request go). A constant: no setting, no other time limit.
+PREVIEW_LIMIT_SECONDS = 120
+
+
+class IdleHold:
+    """The one "this application is busy" request of a manual preview (idle only: nothing else
+    is held back, nothing is locked), made through ``Gtk.Application``.
+
+    Taken at most once, given back at most once. A refusal or an error is logged and the preview
+    goes on: it only means the desktop may blank the screen under it."""
+
+    def __init__(self, application: Gtk.Application) -> None:
+        self._application = application
+        self._cookie = 0
+
+    def take(self, window=None) -> None:
+        """*window*: the GTK window the request is made for. GTK 4.8 on Wayland complains about
+        a request without one (measured); ``None`` is for callers that have none."""
+        if self._cookie:
+            return
+        try:
+            cookie = self._application.inhibit(
+                window, Gtk.ApplicationInhibitFlags.IDLE, HOLD_REASON
+            )
+        except Exception as exc:
+            _LOG.warning("[slideshow] the preview could not keep the screen awake (%s)", exc)
+            return
+        if not cookie:
+            _LOG.warning(
+                "[slideshow] the desktop did not accept the request to keep the screen awake "
+                "during the preview: it may blank the screen under it"
+            )
+            return
+        self._cookie = cookie
+
+    def give_back(self) -> None:
+        cookie, self._cookie = self._cookie, 0
+        if not cookie:
+            return
+        try:
+            self._application.uninhibit(cookie)
+        except Exception as exc:
+            _LOG.warning(
+                "[slideshow] giving back the request to keep the screen awake failed (%s)", exc
+            )
 
 
 class SessionSettings:
@@ -92,24 +153,54 @@ def build_source(settings) -> ImageSource:
     return source_from_settings(settings, probe=probe_loadable)
 
 
-def start_preview(settings, source: ImageSource) -> PreviewController:
+def start_preview(
+    settings, source: ImageSource, application: Optional[Gtk.Application] = None
+) -> PreviewController:
     """Open the preview windows and start showing. *source* must be started by the caller.
 
     The returned controller is for this one preview: its worker thread is closed when it stops.
+    With *application* the preview also keeps the desktop's idle delay from blanking the screen
+    while it shows (``IdleHold``); without one it asks for nothing. Either way it ends by itself
+    after ``PREVIEW_LIMIT_SECONDS``, through the controller's ``stop`` like any other end.
     """
+    hold = IdleHold(application) if application is not None else None
+    shown_on = []  # the first window the controller opens: what the request is made for
+
+    def open_windows():
+        windows = open_monitor_windows()
+        shown_on[:] = [getattr(windows[0], "gtk_window", None)] if windows else []
+        return windows
+
     worker = ThreadWorker()
+    clock = GLibClock()
     controller = PreviewController(
         source,
         settings,
-        open_monitor_windows,
+        open_windows,
         ImageScaler(),
-        clock=GLibClock(),
+        clock=clock,
         worker=worker,
         animations=animations_enabled,
     )
+    if hold is not None:
+        controller.connect_stopped(lambda _reason: hold.give_back())
     controller.connect_stopped(lambda _reason: worker.close())  # do not leave a thread behind
+    limit = {"cancel": None}  # the timer of the limit, once the preview is up
+    controller.connect_stopped(lambda _reason: _cancel(limit))  # no shot at a stopped preview
     controller.start()
+    if controller.running:
+        limit["cancel"] = clock.call_later(
+            PREVIEW_LIMIT_SECONDS, lambda: controller.stop("time limit")
+        )
+    if hold is not None and controller.running:  # no monitor: nothing shows, nothing to hold
+        hold.take(shown_on[0])
     return controller
+
+
+def _cancel(timer: dict) -> None:
+    cancel, timer["cancel"] = timer["cancel"], None
+    if cancel is not None:
+        cancel()
 
 
 def _parse(argv: Optional[List[str]]) -> argparse.Namespace:
@@ -179,16 +270,28 @@ def main(argv: Optional[List[str]] = None) -> int:
     state = {"controller": None, "source": None}
 
     def on_activate(application: Gtk.Application) -> None:
+        if state["controller"] is not None and state["controller"].running:
+            return  # a second start on this application id: the preview that is up stays the one
         application.hold()
         source = build_source(settings)
         source.start()
-        controller = start_preview(settings, source)
+        controller = start_preview(settings, source, application)
         state["source"], state["controller"] = source, controller
         controller.connect_stopped(lambda _reason: GLib.idle_add(application.quit))
         if not controller.running:  # no monitor
             application.quit()
 
+    def on_shutdown(_application: Gtk.Application) -> None:
+        # runs before GTK lets go of the session: a preview still up gives its request back
+        if state["controller"] is not None:
+            state["controller"].stop("application ended")
+
     app.connect("activate", on_activate)
+    app.connect("shutdown", on_shutdown)
+    for signum in (signal.SIGINT, signal.SIGTERM):  # ends it like input does, request given back
+        GLib.unix_signal_add(
+            GLib.PRIORITY_DEFAULT, signum, lambda: app.quit() or GLib.SOURCE_REMOVE
+        )
     status = app.run([sys.argv[0]])
     if state["source"] is not None:
         state["source"].stop()
