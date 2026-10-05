@@ -139,6 +139,18 @@ OPT_OUTS = {
     ("test_i18n_tools.py", "test_check_passes_on_this_checkout"),
     ("test_i18n_tools.py", "test_check_passes_with_a_catalog_that_is_listed"),
     ("test_i18n_tools.py", "test_update_adds_the_strings_the_catalog_does_not_have_yet"),
+    ("test_i18n_tools.py", "test_a_charset_that_only_starts_with_utf8_is_refused"),
+    ("test_i18n_tools.py", "test_a_utf8_line_in_a_later_entry_does_not_make_the_header_utf8"),
+    (
+        "test_i18n_tools.py",
+        "test_a_catalog_without_a_header_entry_is_refused_even_with_the_line_in_an_entry",
+    ),
+    ("test_i18n_tools.py", "test_the_header_is_found_behind_comments_and_among_other_header_lines"),
+    ("test_i18n_tools.py", "test_a_name_with_a_hyphen_is_refused_with_the_name_gettext_looks_for"),
+    (
+        "test_i18n_tools.py",
+        "test_a_name_with_an_underscore_is_built_and_found_under_the_session_language",
+    ),
     (
         "test_run_script.py",
         "test_a_catalog_that_does_not_compile_is_a_warning_and_the_interface_stays_english",
@@ -151,6 +163,14 @@ OPT_OUTS = {
     (
         "test_run_script.py",
         "test_the_catalogs_are_built_outside_the_checkout_and_the_program_is_pointed_at_them",
+    ),
+    (
+        "test_run_script.py",
+        "test_a_relative_cache_directory_that_starts_with_a_hyphen_is_a_path_not_an_option",
+    ),
+    (
+        "test_run_script.py",
+        "test_the_schema_is_compiled_under_a_relative_cache_directory_that_starts_with_a_hyphen",
     ),
     ("test_run_script.py", "test_without_a_po_directory_the_locale_directory_is_not_set"),
     ("test_run_script.py", "test_without_msgfmt_run_sh_warns_once_and_goes_on_in_english"),

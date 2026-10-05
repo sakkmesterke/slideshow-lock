@@ -50,20 +50,31 @@ linguas() {
 }
 
 # A language name is a file name part under po/ and under the output directory: no slash, no
-# leading dot (so no .. either), nothing but the characters of a locale name.
+# leading dot (so no .. either), nothing but the characters of a locale name. Python's gettext
+# looks for pt_BR (what LANG says, pt_BR.UTF-8), never for a directory pt-BR: a name with a hyphen
+# would be compiled and then not found, so it is refused with the name to use.
 lang_ok() {
     case $1 in
         '' | .* | *[!A-Za-z0-9_@.-]*)
-            printf 'i18n: po/LINGUAS: "%s" is not a language name (letters, digits, _ @ . - only)\n' "$1" >&2
+            printf 'i18n: po/LINGUAS: "%s" is not a language name (letters, digits, _ @ . only)\n' "$1" >&2
+            return 1
+            ;;
+        *-*)
+            printf 'i18n: po/LINGUAS: "%s" is not a language name: gettext looks for %s, use an underscore\n' \
+                "$1" "${1//-/_}" >&2
             return 1
             ;;
     esac
 }
 
 # msginit writes the charset of the shell's locale (ASCII under C), not UTF-8, and Python's gettext
-# stops at a charset it does not know or a catalog that is not in the charset it declares.
+# stops at a charset it does not know or a catalog that is not in the charset it declares. Only the
+# header entry counts (from the first msgid "" to the blank line after it), and the whole line:
+# neither charset=UTF-8bogus nor a line of a later entry makes a catalog UTF-8.
 charset_ok() {
-    if ! grep -q '^"Content-Type: text/plain; charset=UTF-8' "$PO/$1.po"; then
+    local header
+    header="$(awk '/^msgid ""$/ { inside = 1 } inside && /^$/ { exit } inside' "$PO/$1.po")"
+    if ! grep -qxF '"Content-Type: text/plain; charset=UTF-8\n"' <<<"$header"; then
         printf 'i18n: po/%s.po: the header must say charset=UTF-8\n' "$1" >&2
         return 1
     fi

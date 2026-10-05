@@ -4,7 +4,7 @@ The interface follows the language of the session (gettext). The text in the sou
 every user-facing string goes through `_()` (`slideshow_lock/__init__.py`), and without a catalog
 the interface is exactly that English text. A missing catalog is never an error. A catalog that cannot
 be used (not a catalog, a charset Python does not know, bytes that are not in the charset it declares)
-is not an error either: the interface is English and the program logs one WARNING.
+is not an error either: the interface is English and the program writes one WARNING line (section 1).
 
 Status: the machinery is there, **there is no translation yet** (`po/` holds only `LINGUAS`, and that
 is empty). The first catalogs come in a later change. Nobody has checked a translation with a native
@@ -37,7 +37,10 @@ systemd user unit); that is what this line is for.
 A catalog that cannot be used is found by `setup()`, which loads it right away (Python's gettext
 would do it at the first `_()`, and stops the program there for everything but `OSError`). The
 WARNING names the file and the error, the line above says `catalog none`, and the interface is
-English. The catalogs of a `LANGUAGE` list are loaded together, so one broken catalog (`de:hu`)
+English. The WARNING is one line on stderr with the message only, no time stamp and no level:
+`setup()` runs before the command line is parsed (so that `--help` is translated), and so before
+`logging.basicConfig` gives the log its format. The `[config]` line that follows has the usual
+format. The catalogs of a `LANGUAGE` list are loaded together, so one broken catalog (`de:hu`)
 makes the whole interface English.
 
 ## 3. Adding a language
@@ -48,9 +51,12 @@ makes the whole interface English.
    `charset=UTF-8` (msginit writes the charset of the shell's locale, `ASCII` under `C`).
 2. Translate `po/<lang>.po`, and add `<lang>` to `po/LINGUAS`.
 3. `tools/i18n.sh check` (the CI runs it): `po/LINGUAS` and the `.po` files agree, every catalog
-   passes `msgfmt -c --check-format` and says `charset=UTF-8`, the name is a plain name (letters, digits,
-   `_`, `@`, `.`, `-`; no slash, no leading dot), and the template holds exactly the strings the source
-   asks for.
+   passes `msgfmt -c --check-format`, the header entry has the line
+   `"Content-Type: text/plain; charset=UTF-8\n"` on its own (`UTF-8bogus` does not count, nor does
+   a line of a later entry), the name is a plain name (letters, digits, `_`, `@`, `.`; no slash, no
+   leading dot, no hyphen), and the template holds exactly the strings the source asks for. No
+   hyphen because a session says `pt_BR.UTF-8`, and Python's gettext then looks for the
+   directories `pt_BR` and `pt`, not for `pt-BR`: the catalog of Brazilian Portuguese is `pt_BR.po`.
 
 No code changes. `tools/i18n.sh build DIR` compiles the catalogs of `po/LINGUAS` into
 `DIR/<lang>/LC_MESSAGES/<APP_ID>.mo`; `.mo` and `.pot` files are not in git. `build` runs the name
