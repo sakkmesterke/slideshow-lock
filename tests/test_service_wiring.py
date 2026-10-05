@@ -33,9 +33,19 @@ class FakeSource:
         self._current = current
         self.folder = folder
         self.scan_complete = scan_complete
+        self._listeners = []
 
     def current(self):
         return self._current
+
+    def connect_current_changed(self, callback):
+        self._listeners.append(callback)
+
+    def finds(self, path="/pictures/a.jpg"):
+        """The scan found its first picture (or, with ``None``, the queue ran empty)."""
+        self._current = path
+        for callback in list(self._listeners):
+            callback(path)
 
 
 class FakeController:
@@ -134,6 +144,95 @@ def test_the_state_machine_stays_idle_and_warns_when_the_real_slideshow_refuses(
     source._current = "/pictures/a.jpg"  # a picture turned up
     idle.fire_idle()
     assert machine.state is State.SLIDESHOW_RUNNING and controller.running
+
+
+# -- ready: the scan found its first picture after a refused start -------------------------------
+
+
+def _ready_counter(slideshow):
+    heard = []
+    slideshow.connect_ready(lambda: heard.append(1))
+    return heard
+
+
+def test_a_picture_found_after_a_start_refused_while_scanning_says_ready_once():
+    source = FakeSource(current=None, scan_complete=False)
+    slideshow, controller, _ = make_slideshow(source)
+    heard = _ready_counter(slideshow)
+    assert "still being read" in slideshow.start()
+    source.finds("/pictures/a.jpg")
+    source.finds("/pictures/b.jpg")  # a second change is not a second signal
+    assert len(heard) == 1
+    assert controller.starts == 0  # saying so does not start anything: the machine does that
+
+
+def test_a_picture_that_turns_up_without_a_refused_start_says_nothing():
+    source = FakeSource(current=None, scan_complete=False)
+    slideshow, _, _ = make_slideshow(source)
+    heard = _ready_counter(slideshow)
+    source.finds("/pictures/a.jpg")
+    assert heard == []
+
+
+def test_a_start_refused_for_another_reason_does_not_say_ready_later():
+    source = FakeSource(current=None, scan_complete=True)  # an empty folder, not a scan
+    slideshow, _, _ = make_slideshow(source)
+    heard = _ready_counter(slideshow)
+    assert "still being read" not in slideshow.start()
+    source.finds("/pictures/a.jpg")
+    assert heard == []
+
+
+def test_the_queue_running_empty_is_not_ready():
+    source = FakeSource(current=None, scan_complete=False)
+    slideshow, _, _ = make_slideshow(source)
+    heard = _ready_counter(slideshow)
+    slideshow.start()
+    source.finds(None)
+    assert heard == []
+
+
+def test_an_idle_event_before_the_first_picture_starts_the_slideshow_when_the_scan_finds_one():
+    """The real class and the state machine together (the card: idle before the scan's first
+    picture)."""
+    source = FakeSource(current=None, scan_complete=False)
+    slideshow, controller, _ = make_slideshow(source)
+    idle = FakeIdleWatcher()
+    machine = StateMachine(
+        idle=idle,
+        inhibition=FakeInhibition(),
+        lock=FakeSessionLock(),
+        slideshow=slideshow,
+        settings=FakeSettings(),
+        guard=None,
+        clock=FakeClock(),
+    )
+    machine.enable()
+    idle.fire_idle()
+    assert machine.state is State.IDLE_WATCHING and controller.starts == 0
+    source.finds("/pictures/a.jpg")
+    assert machine.state is State.SLIDESHOW_RUNNING and controller.running
+
+
+def test_input_before_the_scan_finds_a_picture_means_no_slideshow_afterwards():
+    source = FakeSource(current=None, scan_complete=False)
+    slideshow, controller, _ = make_slideshow(source)
+    idle = FakeIdleWatcher()
+    machine = StateMachine(
+        idle=idle,
+        inhibition=FakeInhibition(),
+        lock=FakeSessionLock(),
+        slideshow=slideshow,
+        settings=FakeSettings(),
+        guard=None,
+        clock=FakeClock(),
+    )
+    machine.enable()
+    idle.fire_idle()
+    idle.fire_user_active()  # the user is back before the scan is done
+    source.finds("/pictures/a.jpg")
+    assert machine.state is State.IDLE_WATCHING
+    assert controller.starts == 0 and not controller.running
 
 
 # -- stop: the slideshow's own stop is not input --------------------------------------------------

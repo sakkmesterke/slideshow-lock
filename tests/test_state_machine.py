@@ -538,6 +538,130 @@ def test_a_slideshow_that_raises_while_starting_is_a_warning_not_a_crash(caplog)
     assert any("not started" in m for m in caplog.messages)
 
 
+# -- an idle event before the folder scan found its first picture ---------------------------------
+#
+# The idle watch fires once per idle period. A start refused because the scan has no picture yet
+# is remembered until the slideshow says it is ready or the user is active again; without that the
+# slideshow would wait for the next idle period (measured: 150 000 files, none of them a picture).
+
+SCANNING = (
+    "no picture to show: the folder '/x' is missing or has no valid image "
+    "(the folder is still being read)"
+)
+
+
+def _idle_before_the_first_picture():
+    r = Rig()
+    r.slideshow.refuse = SCANNING
+    r.idle.fire_idle()
+    assert r.state is State.IDLE_WATCHING and r.slideshow.starts == 0
+    return r
+
+
+def test_an_idle_event_before_the_first_picture_starts_the_slideshow_when_the_scan_finds_one():
+    r = _idle_before_the_first_picture()
+    r.slideshow.refuse = None  # the scan found a picture
+    r.slideshow.ready()
+    assert r.state is State.SLIDESHOW_RUNNING
+    assert r.machine.trigger_source is TriggerSource.IDLE
+    assert r.slideshow.starts == 1
+    assert r.inhibition.holding  # an idle-triggered slideshow like any other
+
+
+@pytest.mark.parametrize(("input_after", "locks"), [(1, 0), (6, 1)])
+def test_the_grace_period_counts_from_the_late_start_of_a_slideshow(input_after, locks):
+    r = Rig(grace=5)
+    r.slideshow.refuse = SCANNING
+    r.idle.fire_idle()
+    r.clock.advance(30)  # the scan took a while after the idle event
+    r.slideshow.refuse = None
+    r.slideshow.ready()
+    r.input_after(input_after)
+    assert r.state is (State.LOCKED if locks else State.IDLE_WATCHING)
+    assert r.lock.lock_calls == locks
+
+
+def test_a_picture_that_is_there_before_the_idle_event_starts_at_once_and_keeps_nothing():
+    """Negative control: nothing is remembered when the start is not refused."""
+    r = Rig()
+    r.start_idle_slideshow()
+    assert len(r.idle.active_callbacks) == 1  # the slideshow's own input watch, nothing else
+    r.slideshow.ready()  # a late "ready" changes nothing
+    assert r.slideshow.starts == 1
+
+
+def test_input_before_the_first_picture_forgets_the_request_and_a_late_picture_starts_nothing():
+    """The branch that is easiest to forget: idle -> active while the scan runs."""
+    r = _idle_before_the_first_picture()
+    assert len(r.idle.active_callbacks) == 1  # the remembered request
+    r.idle.fire_user_active()  # the user is back
+    assert len(r.idle.active_callbacks) == 0
+    r.slideshow.refuse = None
+    r.slideshow.ready()  # the scan finishes now
+    assert r.state is State.IDLE_WATCHING
+    assert r.slideshow.starts == 0 and not r.slideshow.running
+    assert r.inhibition.holds == 0 and r.lock.lock_calls == 0
+
+
+def test_the_remembered_request_is_dropped_by_the_next_idle_event_and_made_again_if_refused():
+    r = _idle_before_the_first_picture()
+    r.idle.fire_user_active()
+    r.idle.fire_idle()  # the next idle period, the scan is still going
+    assert len(r.idle.active_callbacks) == 1  # exactly one request, not two
+    r.slideshow.refuse = None
+    r.slideshow.ready()
+    assert r.state is State.SLIDESHOW_RUNNING and r.slideshow.starts == 1
+
+
+def test_a_ready_signal_without_a_refused_start_does_nothing():
+    r = Rig()
+    r.slideshow.ready()
+    assert r.state is State.IDLE_WATCHING and r.slideshow.starts == 0
+
+
+def test_the_remembered_request_obeys_an_inhibitor_taken_in_the_meantime():
+    r = _idle_before_the_first_picture()
+    r.inhibition.inhibited = True  # a video player started while the scan ran
+    r.slideshow.refuse = None
+    r.slideshow.ready()
+    assert r.state is State.IDLE_WATCHING and r.slideshow.starts == 0
+    assert len(r.idle.active_callbacks) == 0  # and the request is not kept
+
+
+def test_a_second_refusal_after_ready_keeps_the_request_for_the_next_picture():
+    r = _idle_before_the_first_picture()
+    r.slideshow.ready()  # still refused: the picture was gone again
+    assert r.state is State.IDLE_WATCHING and len(r.idle.active_callbacks) == 1
+    r.slideshow.refuse = None
+    r.slideshow.ready()
+    assert r.state is State.SLIDESHOW_RUNNING
+
+
+@pytest.mark.parametrize("how", ["lock", "sleep", "disable"])
+def test_the_remembered_request_does_not_survive_a_lock_a_sleep_or_disable(how):
+    r = _idle_before_the_first_picture()
+    if how == "lock":
+        r.lock.set_locked(True)
+    elif how == "sleep":
+        r.machine.sleep_started()
+    else:
+        r.machine.disable()
+    assert len(r.idle.active_callbacks) == 0
+    r.slideshow.refuse = None
+    r.slideshow.ready()
+    assert r.slideshow.starts == 0 and not r.slideshow.running
+
+
+def test_a_refused_manual_preview_is_not_remembered():
+    r = Rig()
+    r.slideshow.refuse = SCANNING
+    assert r.machine.start_preview() is False
+    assert len(r.idle.active_callbacks) == 0
+    r.slideshow.refuse = None
+    r.slideshow.ready()
+    assert r.slideshow.starts == 0
+
+
 # -- the idle inhibitor of the slideshow itself ---------------------------------------------------
 #
 # While an idle-triggered slideshow shows, the service holds an idle inhibitor of its own, so that

@@ -21,6 +21,11 @@ The idle path asks ``InhibitionQuery`` in exactly one place, ``_on_idle``, and h
 inhibitor through ``_on_inhibit_changed``; the sleep path never does. The inhibitor only ever
 holds back the idle-triggered slideshow, or ends one: it never holds back a lock that is due.
 
+An idle-triggered start the slideshow refused (no picture yet: the folder scan has not found one)
+is remembered until the slideshow says it is ready or the user is active again, whichever comes
+first (``_remember_refused_start``): the idle event fires once per idle period, so without that
+the slideshow would not start until the next idle.
+
 Threads: every method is called on the main loop's thread. The sleep guard hands its two
 messages over with a main-loop post; it never calls this object from its own thread.
 """
@@ -91,8 +96,10 @@ class StateMachine:
         self._started_at = 0.0
         self._cancel_active: Optional[Cancel] = None
         self._holding_inhibit = False
+        self._cancel_refused_start: Optional[Cancel] = None  # set: an idle start was refused
 
         slideshow.connect_stopped(self._on_slideshow_stopped)
+        slideshow.connect_ready(self._on_slideshow_ready)
         lock.on_active_changed(self._on_active_changed)
         inhibition.on_idle_inhibit_changed(self._on_inhibit_changed)
         settings.connect_changed(self._on_settings_changed)
@@ -137,6 +144,7 @@ class StateMachine:
             self._finish_slideshow()
         self._state = State.DISABLED
         self._trigger = None
+        self._forget_refused_start()
         self._release_idle_inhibit()  # also when no slideshow ran: nothing may outlive the machine
         self._idle.cancel_idle()
         if self._guard is not None:
@@ -156,6 +164,7 @@ class StateMachine:
         return int(self._settings.get_idle_timeout_seconds())
 
     def _on_idle(self) -> None:
+        self._forget_refused_start()
         if self._state is State.LOCKED:
             if self._still_locked():
                 _LOG.debug("[idle-trigger] idle while the session is locked: nothing to do")
@@ -194,6 +203,8 @@ class StateMachine:
             reason = "the slideshow could not be started"
         if reason is not None:
             _LOG.warning("[slideshow-dir] slideshow not started: %s", reason)
+            if trigger is TriggerSource.IDLE:
+                self._remember_refused_start()
             return False
         self._state = State.SLIDESHOW_RUNNING
         self._trigger = trigger
@@ -205,6 +216,35 @@ class StateMachine:
             self._hold_idle_inhibit()
         _LOG.info("[slideshow] started (trigger=%s)", trigger.value)
         return True
+
+    def _remember_refused_start(self) -> None:
+        """The idle event came, the slideshow could not start. Keep the request until the user is
+        active again: ``_on_slideshow_ready`` repeats the start while it is still open. A manual
+        preview is not remembered: whoever asked for it is told at once and asks again."""
+        self._forget_refused_start()
+        try:
+            self._cancel_refused_start = self._idle.on_user_active(self._on_refused_start_expired)
+        except Exception:
+            _LOG.warning("[idle-trigger] could not watch for input: the refused start is not kept")
+
+    def _forget_refused_start(self) -> None:
+        cancel, self._cancel_refused_start = self._cancel_refused_start, None
+        if cancel is not None:
+            cancel()
+
+    def _on_refused_start_expired(self) -> None:
+        """The user is active again: this idle period is over, the request goes with it."""
+        self._cancel_refused_start = None  # one-shot: it fired
+        _LOG.debug("[idle-trigger] input before a picture was found: the refused start is dropped")
+
+    def _on_slideshow_ready(self) -> None:
+        if self._cancel_refused_start is None:
+            return
+        if self._state is not State.IDLE_WATCHING:
+            self._forget_refused_start()
+            return
+        _LOG.info("[idle-trigger] a picture was found while idle: starting the slideshow now")
+        self._on_idle()  # the same checks as the idle event itself (inhibitors, lock state)
 
     def _on_inhibit_changed(self, inhibited: bool) -> None:
         if (
@@ -330,6 +370,7 @@ class StateMachine:
         if self._state is State.DISABLED:
             return
         if locked:
+            self._forget_refused_start()
             if self._state is State.SLIDESHOW_RUNNING:
                 _LOG.info(
                     "[lock] the session was locked while the slideshow ran: slideshow stopped"
@@ -349,6 +390,7 @@ class StateMachine:
         thread. Stop the slideshow, whatever started it (D10: independent of how it began)."""
         if self._state in (State.DISABLED, State.LOCKED):
             return
+        self._forget_refused_start()
         if self._state is State.SLIDESHOW_RUNNING:
             _LOG.info("[slideshow] stopped before sleep")
             self._finish_slideshow()

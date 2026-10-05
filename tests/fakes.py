@@ -219,6 +219,7 @@ class FakeSlideshow:
         self.starts = 0
         self.stops = 0
         self._callbacks: List[Callable[[str], None]] = []
+        self._ready_callbacks: List[Callable[[], None]] = []
         self.start_error: Optional[Exception] = None
 
     def start(self) -> Optional[str]:
@@ -236,6 +237,14 @@ class FakeSlideshow:
 
     def connect_stopped(self, callback) -> None:
         self._callbacks.append(callback)
+
+    def connect_ready(self, callback) -> None:
+        self._ready_callbacks.append(callback)
+
+    # test helper: the folder scan found a picture after a start was refused for lack of one
+    def ready(self) -> None:
+        for callback in list(self._ready_callbacks):
+            callback()
 
     # test helper: the user touched a slideshow window
     def end_by_input(self, reason: str = "input") -> None:

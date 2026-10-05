@@ -82,19 +82,25 @@ class PreviewSlideshow:
     """``SlideshowControl`` on the CORE-2 preview controller and the image source.
 
     ``start`` refuses, with the reason, when there is no picture to show or no monitor (3.7); the
-    controller itself would open empty windows. A stop the state machine asked for is not reported
-    back as input."""
+    controller itself would open empty windows. When it refuses because the folder is still being
+    read, ``connect_ready`` callbacks hear about the first picture the scan finds. A stop the state
+    machine asked for is not reported back as input."""
 
     def __init__(self, controller: PreviewController, source) -> None:
         self._controller = controller
         self._source = source
         self._listeners: List[Callable[[str], None]] = []
+        self._ready_listeners: List[Callable[[], None]] = []
+        self._waiting_for_scan = False
         self._asked = False
         controller.connect_stopped(self._on_stopped)
+        source.connect_current_changed(self._on_current_changed)
 
     def start(self) -> Optional[str]:
+        self._waiting_for_scan = False
         if self._source.current() is None:
             scanning = "" if self._source.scan_complete else " (the folder is still being read)"
+            self._waiting_for_scan = bool(scanning)
             return (
                 f"no picture to show: the folder '{self._source.folder}' is missing or has no "
                 f"valid image{scanning}"
@@ -113,6 +119,16 @@ class PreviewSlideshow:
 
     def connect_stopped(self, callback: Callable[[str], None]) -> None:
         self._listeners.append(callback)
+
+    def connect_ready(self, callback: Callable[[], None]) -> None:
+        self._ready_listeners.append(callback)
+
+    def _on_current_changed(self, path: Optional[str]) -> None:
+        if path is None or not self._waiting_for_scan:
+            return
+        self._waiting_for_scan = False
+        for callback in list(self._ready_listeners):
+            callback()
 
     def _on_stopped(self, reason: str) -> None:
         if self._asked:
