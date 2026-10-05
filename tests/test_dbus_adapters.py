@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 
 import pytest
-from gi.repository import GLib
+from gi.repository import Gio, GLib
 
 from slideshow_lock import dbus_adapters as adapters
 from slideshow_lock.session import LockResult, UnsupportedSessionInterface
@@ -290,13 +290,93 @@ def test_an_inhibitor_that_went_away_between_the_list_and_the_question_is_skippe
     if how == "unknown_object_error":
         desktop.add_inhibitor("video.call")
         desktop.inhibitor_errors["GetFlags"] = "org.freedesktop.DBus.Error.UnknownObject"
-    else:  # listed, but its object is not on the bus: GDBus's "Object does not exist at path"
-        desktop.service_loop.call(
-            lambda: desktop.inhibitors.update(
-                {"/org/gnome/SessionManager/Inhibitor9": {"app_id": "x", "flags": 8, "reason": ""}}
-            )
-        )
+    else:  # listed once, then gone: GDBus answers UnknownMethod for the path that is not there
+        desktop.ghost_inhibitors["/org/gnome/SessionManager/Inhibitor9"] = 8
     assert inhibition.is_idle_inhibited() is False
+    inhibition.close()
+
+
+def _dbus_error(name: str, text: str) -> GLib.Error:
+    """An error as a D-Bus call raises it (the remote name in front of the text)."""
+    return Gio.DBusError.new_for_dbus_error(name, text)
+
+
+#: What GDBus of GLib answers for an object path that is not there, in the languages measured
+#: (``LANGUAGE`` of the process that owns the object; the English text is the one the fake gives
+#: in a test run).
+GONE_TEXTS = {
+    "en": "Object does not exist at path \u201c/org/gnome/SessionManager/Inhibitor9\u201d",
+    "hu": (
+        "Az objektum nem l\u00e9tezik a(z) \u201e/org/gnome/SessionManager/Inhibitor9\u201d "
+        "\u00fatvonalon"
+    ),
+    "de": "Das Objekt existiert nicht am Pfad \u00bb/org/gnome/SessionManager/Inhibitor9\u00ab",
+}
+GONE_PATH = "/org/gnome/SessionManager/Inhibitor9"
+
+
+@pytest.mark.parametrize("language", sorted(GONE_TEXTS))
+def test_a_vanished_inhibitor_is_recognised_by_the_error_name_in_any_language(desktop, language):
+    """The session manager translates the text ("Az objektum nem l\u00e9tezik ..." with a Hungarian
+    session: measured), so the text decides nothing: UnknownMethod and a path that a fresh
+    list no longer has."""
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    error = _dbus_error("org.freedesktop.DBus.Error.UnknownMethod", GONE_TEXTS[language])
+    assert inhibition._inhibitor_is_gone(error, GONE_PATH) is True
+    inhibition.close()
+
+
+def test_unknown_method_for_an_inhibitor_that_is_still_listed_is_not_gone(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    path = desktop.add_inhibitor("video.call")
+    for text in GONE_TEXTS.values():  # whatever it says: the path is there, the method is not
+        error = _dbus_error("org.freedesktop.DBus.Error.UnknownMethod", text)
+        assert inhibition._inhibitor_is_gone(error, path) is False
+    inhibition.close()
+
+
+def test_unknown_method_with_a_list_that_cannot_be_read_is_not_gone(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    desktop.session_manager_errors["GetInhibitors"] = "org.freedesktop.DBus.Error.Failed"
+    error = _dbus_error("org.freedesktop.DBus.Error.UnknownMethod", GONE_TEXTS["hu"])
+    assert inhibition._inhibitor_is_gone(error, GONE_PATH) is False
+    desktop.session_manager_errors.clear()
+    inhibition.close()
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["org.freedesktop.DBus.Error.Failed", "org.freedesktop.DBus.Error.NoReply", "x.y.Odd"],
+)
+def test_any_other_error_name_is_not_gone_whatever_the_text_says(desktop, name):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    for text in GONE_TEXTS.values():
+        assert inhibition._inhibitor_is_gone(_dbus_error(name, text), GONE_PATH) is False
+    inhibition.close()
+
+
+def test_unknown_object_is_gone_without_asking_for_a_list(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    desktop.session_manager_errors["GetInhibitors"] = "org.freedesktop.DBus.Error.Failed"
+    error = _dbus_error("org.freedesktop.DBus.Error.UnknownObject", "no such object")
+    assert inhibition._inhibitor_is_gone(error, GONE_PATH) is True
+    desktop.session_manager_errors.clear()
+    inhibition.close()
+
+
+def test_a_refused_release_drops_the_cookie_when_the_only_listed_inhibitor_vanished(desktop):
+    """The check of ``_own_inhibitor_is_gone`` skips a vanished entry by the same rule: ours is
+    not listed any more, the other entry is listed once and its object is gone."""
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    (own,) = desktop.inhibitors_of(adapters.INHIBIT_APP_ID)
+    desktop.uninhibit_failures = 1
+    desktop.remove_inhibitor(own)
+    desktop.ghost_inhibitors[GONE_PATH] = 8
+    with pytest.raises(GLib.Error):
+        inhibition.release_idle_inhibit()  # the refusal is still raised once
+    inhibition.release_idle_inhibit()  # the cookie was dropped: nothing more to give back
+    assert desktop.uninhibit_calls == [100]
     inhibition.close()
 
 
