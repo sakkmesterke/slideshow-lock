@@ -18,6 +18,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -134,7 +135,17 @@ def _path_without_msgfmt(tmp_path: Path, stub_bin: Path) -> str:
     bin_dir = tmp_path / "no-msgfmt-bin"
     bin_dir.mkdir()
     (bin_dir / "python3").symlink_to(stub_bin / "python3")
-    for name in ("glib-compile-schemas", "cp", "mkdir", "rm"):
+    for name in (
+        "glib-compile-schemas",
+        "cp",
+        "mkdir",
+        "rm",
+        "mktemp",
+        "chmod",
+        "ln",
+        "mv",
+        "find",
+    ):
         (bin_dir / name).symlink_to(shutil.which(name))
     return str(bin_dir)
 
@@ -322,6 +333,76 @@ def test_the_catalogs_are_built_outside_the_checkout_and_the_program_is_pointed_
     assert f"LOCALEDIR={locale}" in result.stdout
     assert (locale / "hu" / "LC_MESSAGES" / APP_ID_MO).is_file()
     assert (_snapshot(script.parent / "po"), _snapshot(script.parent / "data")) == before
+
+
+def _prepare(tmp_path, script, stub_bin, *, front=None):
+    path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
+    if front is not None:
+        path = f"{front}{os.pathsep}{path}"
+    return _run(["preview"], _env(tmp_path, path=path), script=script)
+
+
+def test_the_locale_directory_is_a_link_to_a_directory_that_was_built_apart(tmp_path, stub_bin):
+    """Two run.sh started together must not delete or rebuild what the other one is reading."""
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    assert _prepare(tmp_path, script, stub_bin).returncode == 0
+    locale = tmp_path / "cache" / "slideshow-lock" / "locale"
+    assert locale.is_symlink()
+    built = locale.resolve()
+    assert built != locale and built.parent == locale.parent
+    assert (built / "hu" / "LC_MESSAGES" / APP_ID_MO).is_file()
+    assert (locale / "hu" / "LC_MESSAGES" / APP_ID_MO).is_file()
+
+
+def test_the_catalogs_that_are_in_use_stay_in_place_while_the_new_ones_are_built(
+    tmp_path, stub_bin
+):
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    assert _prepare(tmp_path, script, stub_bin).returncode == 0
+    in_use = tmp_path / "cache" / "slideshow-lock" / "locale" / "hu" / "LC_MESSAGES" / APP_ID_MO
+    probe = tmp_path / "probe-bin"
+    probe.mkdir()
+    seen = tmp_path / "seen"
+    # Records, at the start of the build and at the swap, whether the catalogs in use are there.
+    for name in ("msgfmt", "mv"):
+        _executable(
+            probe / name,
+            '#!/bin/sh\nif [ -f "%s" ]; then state=present; else state=absent; fi\n'
+            'echo "%s $state" >> "%s"\nexec "%s" "$@"\n' % (in_use, name, seen, shutil.which(name)),
+        )
+    result = _prepare(tmp_path, script, stub_bin, front=probe)
+    assert result.returncode == 0, result.stderr
+    assert seen.read_text().split("\n") == ["msgfmt present", "mv present", ""]
+    assert in_use.is_file()
+
+
+def test_the_directory_that_was_replaced_is_deleted_a_minute_later_not_at_once(tmp_path, stub_bin):
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    locale = tmp_path / "cache" / "slideshow-lock" / "locale"
+    assert _prepare(tmp_path, script, stub_bin).returncode == 0
+    first = locale.resolve()
+    assert _prepare(tmp_path, script, stub_bin).returncode == 0
+    second = locale.resolve()
+    assert second != first and first.is_dir()  # a run that is still starting may be reading it
+    stale = time.time() - 120
+    os.utime(first, (stale, stale))
+    assert _prepare(tmp_path, script, stub_bin).returncode == 0
+    assert not first.exists()
+    assert second.is_dir() and locale.resolve() not in (first, second)
+
+
+def test_a_plain_directory_left_by_an_older_run_sh_is_replaced_by_the_link(tmp_path, stub_bin):
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    locale = tmp_path / "cache" / "slideshow-lock" / "locale"
+    (locale / "xx").mkdir(parents=True)
+    result = _prepare(tmp_path, script, stub_bin)
+    assert result.returncode == 0, result.stderr
+    assert locale.is_symlink() and not (locale / "xx").exists()
+    assert (locale / "hu" / "LC_MESSAGES" / APP_ID_MO).is_file()
 
 
 def test_a_catalog_that_is_gone_from_the_checkout_is_gone_from_the_built_directory(

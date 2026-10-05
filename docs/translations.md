@@ -2,7 +2,9 @@
 
 The interface follows the language of the session (gettext). The text in the source is English:
 every user-facing string goes through `_()` (`slideshow_lock/__init__.py`), and without a catalog
-the interface is exactly that English text. A missing catalog is never an error.
+the interface is exactly that English text. A missing catalog is never an error. A catalog that cannot
+be used (not a catalog, a charset Python does not know, bytes that are not in the charset it declares)
+is not an error either: the interface is English and the program logs one WARNING.
 
 Status: the machinery is there, **there is no translation yet** (`po/` holds only `LINGUAS`, and that
 is empty). The first catalogs come in a later change. Nobody has checked a translation with a native
@@ -32,6 +34,12 @@ INFO [config] language LANGUAGE=unset LC_ALL=unset LC_MESSAGES=unset LANG=C.UTF-
 What a process gets as `LANG` depends on how it was started (a terminal, the desktop session, a
 systemd user unit); that is what this line is for.
 
+A catalog that cannot be used is found by `setup()`, which loads it right away (Python's gettext
+would do it at the first `_()`, and stops the program there for everything but `OSError`). The
+WARNING names the file and the error, the line above says `catalog none`, and the interface is
+English. The catalogs of a `LANGUAGE` list are loaded together, so one broken catalog (`de:hu`)
+makes the whole interface English.
+
 ## 3. Adding a language
 
 1. `tools/i18n.sh update` writes the template `po/messages.pot` (not in git) and merges it into the
@@ -40,11 +48,13 @@ systemd user unit); that is what this line is for.
    `charset=UTF-8` (msginit writes the charset of the shell's locale, `ASCII` under `C`).
 2. Translate `po/<lang>.po`, and add `<lang>` to `po/LINGUAS`.
 3. `tools/i18n.sh check` (the CI runs it): `po/LINGUAS` and the `.po` files agree, every catalog
-   passes `msgfmt -c --check-format` and says `charset=UTF-8`, and the template holds exactly the strings the source asks
-   for.
+   passes `msgfmt -c --check-format` and says `charset=UTF-8`, the name is a plain name (letters, digits,
+   `_`, `@`, `.`, `-`; no slash, no leading dot), and the template holds exactly the strings the source
+   asks for.
 
 No code changes. `tools/i18n.sh build DIR` compiles the catalogs of `po/LINGUAS` into
-`DIR/<lang>/LC_MESSAGES/<APP_ID>.mo`; `.mo` and `.pot` files are not in git.
+`DIR/<lang>/LC_MESSAGES/<APP_ID>.mo`; `.mo` and `.pot` files are not in git. `build` runs the name
+and charset checks first, and a build that fails leaves no `.mo` behind.
 
 ## 4. Rules for the source
 
@@ -69,6 +79,8 @@ No code changes. `tools/i18n.sh build DIR` compiles the catalogs of `po/LINGUAS`
 
 `./run.sh preview|settings|service` compiles the catalogs of `po/LINGUAS` into
 `${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/locale` (outside the checkout, rebuilt at every
-start) and points the program there. While `po/` has no catalog, nothing is built and
+start) and points the program there. `locale` is a link to a directory that is built apart and not
+changed afterwards, so two `run.sh` started together do not delete each other's catalogs; the
+replaced directories are deleted a minute later. While `po/` has no catalog, nothing is built and
 `SLIDESHOW_LOCK_LOCALEDIR` is not set. Without `msgfmt` (package `gettext`) `run.sh` warns once
 and the interface stays English; the same for a catalog that does not compile.

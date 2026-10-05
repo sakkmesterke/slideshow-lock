@@ -156,6 +156,56 @@ def test_build_writes_a_catalog_python_loads_under_the_domain_of_the_app(checkou
     assert shown.stdout.strip() == "Diavetítés-zár", shown.stderr
 
 
+def _mos(directory):
+    return [p for p in directory.rglob("*.mo")] if directory.exists() else []
+
+
+def test_build_rejects_a_catalog_whose_charset_is_not_utf8_and_leaves_no_catalog(
+    checkout, tmp_path
+):
+    """Python's gettext stops at a charset it does not know; the build must not make that file."""
+    (checkout / "po" / "LINGUAS").write_text("de hu\n")
+    _catalog(checkout, "de", HUNGARIAN_PO)
+    _catalog(checkout, "hu", HUNGARIAN_PO.replace("charset=UTF-8", "charset=CHARSET"))
+    out = tmp_path / "out"
+    result = _i18n(checkout, "build", str(out))
+    assert result.returncode != 0
+    assert "po/hu.po: the header must say charset=UTF-8" in result.stderr
+    assert _mos(out) == []
+
+
+def test_a_build_that_fails_in_the_second_catalog_leaves_no_catalog_of_the_first(
+    checkout, tmp_path
+):
+    (checkout / "po" / "LINGUAS").write_text("de hu\n")
+    _catalog(checkout, "de", HUNGARIAN_PO)
+    _catalog(
+        checkout,
+        "hu",
+        PO_HEADER + '\n#, python-format\nmsgid "%d seconds"\nmsgstr "%s másodperc"\n',
+    )
+    out = tmp_path / "out"
+    result = _i18n(checkout, "build", str(out))
+    assert result.returncode != 0
+    assert _mos(out) == []
+
+
+@pytest.mark.parametrize("name", ["../../escaped", "a/b", ".hidden", "..", "a;b", "*"])
+@pytest.mark.parametrize("command", ["build", "check", "update"])
+def test_a_language_name_that_is_not_a_plain_name_is_refused(checkout, tmp_path, name, command):
+    """The name is part of a path under po/ and under the output directory."""
+    (checkout / "po" / "LINGUAS").write_text(name + "\n")
+    (tmp_path / "escaped.po").write_text(HUNGARIAN_PO, encoding="utf-8")  # po/../../escaped.po
+    (checkout / "po" / "other.po").write_text(HUNGARIAN_PO, encoding="utf-8")
+    out = tmp_path / "deep" / "out"
+    args = (str(out),) if command == "build" else ()
+    result = _i18n(checkout, command, *args)
+    assert result.returncode != 0
+    assert '"%s" is not a language name' % name in result.stderr
+    assert not (tmp_path / "escaped").exists()
+    assert _mos(tmp_path / "deep") == []
+
+
 def test_build_stops_at_a_language_that_has_no_catalog(checkout, tmp_path):
     (checkout / "po" / "LINGUAS").write_text("hu\n")
     result = _i18n(checkout, "build", str(tmp_path / "out"))

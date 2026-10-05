@@ -12,6 +12,7 @@ from __future__ import annotations
 import gettext
 import logging
 import os
+import random
 import struct
 from array import array
 
@@ -32,13 +33,15 @@ HUNGARIAN = {
 }
 
 
-def write_mo(localedir, lang, messages):
-    """A compiled catalog, ``<localedir>/<lang>/LC_MESSAGES/<APP_ID>.mo`` (what msgfmt makes)."""
+def mo_bytes(messages):
+    """The bytes of a compiled catalog (what msgfmt makes); a value is text or raw bytes."""
     keys = sorted(messages)
     ids = strs = b""
     offsets = []
     for key in keys:
-        key_bytes, value_bytes = key.encode("utf-8"), messages[key].encode("utf-8")
+        value = messages[key]
+        key_bytes = key.encode("utf-8")
+        value_bytes = value if isinstance(value, bytes) else value.encode("utf-8")
         offsets.append((len(ids), len(key_bytes), len(strs), len(value_bytes)))
         ids += key_bytes + b"\0"
         strs += value_bytes + b"\0"
@@ -49,15 +52,42 @@ def write_mo(localedir, lang, messages):
         table += [id_length, id_at + keys_at]
     for id_at, id_length, str_at, str_length in offsets:
         table += [str_length, str_at + values_at]
-    path = localedir / lang / "LC_MESSAGES" / (APP_ID + ".mo")
-    path.parent.mkdir(parents=True)
-    path.write_bytes(
+    return (
         struct.pack("Iiiiiii", 0x950412DE, 0, len(keys), 7 * 4, 7 * 4 + len(keys) * 8, 0, 0)
         + array("i", table).tobytes()
         + ids
         + strs
     )
+
+
+def write_mo(localedir, lang, messages):
+    """``<localedir>/<lang>/LC_MESSAGES/<APP_ID>.mo`` made of ``messages``."""
+    return write_bytes(localedir, lang, mo_bytes(messages))
+
+
+def write_bytes(localedir, lang, data):
+    path = localedir / lang / "LC_MESSAGES" / (APP_ID + ".mo")
+    path.parent.mkdir(parents=True)
+    path.write_bytes(data)
     return path
+
+
+LATIN2_TEXT = "Diavetítés".encode("latin2")  # 0xed is not a UTF-8 sequence
+# What a catalog that cannot be used looks like. Python's gettext swallows only OSError, the
+# others stopped the programs at the first _(): struct.error, LookupError, UnicodeDecodeError,
+# IndexError. The last two are the controls that already fell back to English.
+UNUSABLE_CATALOGS = {
+    "empty file": b"",
+    "four bytes": struct.pack("<I", 0x950412DE),
+    # the header says one message, the table of the message is not there
+    "forty bytes": struct.pack("<10I", 0x950412DE, 0, 1, 28, 36, 0, 0, 0, 0, 0),
+    "unknown charset": mo_bytes({"": "Content-Type: text/plain; charset=NOSUCH-9\n", "a": "b"}),
+    "placeholder charset": mo_bytes({"": "Content-Type: text/plain; charset=CHARSET\n", "a": "b"}),
+    "no charset": mo_bytes({"": "Content-Type: text/plain\n", "a": "b"}),
+    "utf-8 declared, latin2 bytes": mo_bytes({"": HEADER, "Slideshow Lock": LATIN2_TEXT}),
+    "cut in half": mo_bytes(HUNGARIAN)[: len(mo_bytes(HUNGARIAN)) // 2],
+    "random bytes": random.Random(1).randbytes(1000),
+}
 
 
 @pytest.fixture(autouse=True)
@@ -76,6 +106,16 @@ def localedir(tmp_path, monkeypatch):
     write_mo(directory, "hu", HUNGARIAN)
     monkeypatch.setenv(i18n.LOCALEDIR_ENV, str(directory))
     return directory
+
+
+@pytest.fixture(params=sorted(UNUSABLE_CATALOGS))
+def unusable_localedir(request, tmp_path, monkeypatch):
+    """A directory whose Hungarian catalog cannot be used, for each kind of damage."""
+    directory = tmp_path / "locale"
+    path = write_bytes(directory, "hu", UNUSABLE_CATALOGS[request.param])
+    monkeypatch.setenv(i18n.LOCALEDIR_ENV, str(directory))
+    language(monkeypatch, LANGUAGE="hu")
+    return path
 
 
 def language(monkeypatch, **variables):
@@ -214,3 +254,82 @@ def test_every_entry_point_logs_the_language_it_was_given(
     assert len(lines) == 1
     assert "LANGUAGE=hu" in lines[0] and str(localedir) in lines[0] and ".mo" in lines[0]
     capsys.readouterr()
+
+
+def _warnings(caplog):
+    return [r.getMessage() for r in caplog.records if r.levelno == logging.WARNING]
+
+
+def test_a_catalog_that_cannot_be_used_is_a_warning_and_the_interface_stays_english(
+    unusable_localedir, caplog
+):
+    with caplog.at_level(logging.WARNING):
+        status = i18n.setup()
+    assert _("Slideshow Lock") == "Slideshow Lock"
+    assert status.catalogs == ()
+    (warning,) = _warnings(caplog)
+    assert str(unusable_localedir) in warning
+    assert "cannot be used" in warning and "the interface stays English" in warning
+
+
+@pytest.mark.parametrize("module", ENTRY_POINTS, ids=lambda module: module.__name__)
+def test_the_help_of_every_entry_point_is_english_when_the_catalog_cannot_be_used(
+    module, unusable_localedir, caplog, capsys
+):
+    with caplog.at_level(logging.WARNING), pytest.raises(SystemExit) as stopped:
+        module.main(["--help"])
+    assert stopped.value.code == 0
+    assert "log every step" in capsys.readouterr().out
+    assert len(_warnings(caplog)) == 1
+
+
+@pytest.mark.parametrize("module", ENTRY_POINTS, ids=lambda module: module.__name__)
+def test_every_entry_point_starts_and_logs_the_language_line_when_the_catalog_cannot_be_used(
+    module, unusable_localedir, monkeypatch, caplog, capsys
+):
+    monkeypatch.setattr(Gio.SettingsSchemaSource, "get_default", staticmethod(lambda: None))
+    with caplog.at_level(logging.INFO):
+        assert module.main([]) == 2  # the schema is missing: the first thing after the log line
+    messages = caplog.messages
+    (config,) = [m for m in messages if m.startswith("[config] language ")]
+    assert "catalog none (the interface stays English)" in config
+    assert len(_warnings(caplog)) == 1
+    assert "The settings schema is not installed" in capsys.readouterr().err
+
+
+def test_one_catalog_that_cannot_be_used_makes_the_whole_list_english(
+    tmp_path, monkeypatch, caplog
+):
+    """``de:hu``: Python's gettext chains the catalogs, so a broken de takes hu with it."""
+    directory = tmp_path / "locale"
+    write_bytes(directory, "de", b"")
+    write_mo(directory, "hu", HUNGARIAN)
+    monkeypatch.setenv(i18n.LOCALEDIR_ENV, str(directory))
+    language(monkeypatch, LANGUAGE="de:hu")
+    with caplog.at_level(logging.WARNING):
+        i18n.setup()
+    assert _("Slideshow Lock") == "Slideshow Lock"
+    assert len(_warnings(caplog)) == 1
+
+
+def test_a_catalog_that_loads_or_is_missing_logs_no_warning(
+    localedir, tmp_path, monkeypatch, caplog
+):
+    language(monkeypatch, LANGUAGE="hu")
+    with caplog.at_level(logging.DEBUG):
+        i18n.setup()
+        monkeypatch.setenv(i18n.LOCALEDIR_ENV, str(tmp_path / "does-not-exist"))
+        i18n.setup()
+    assert _warnings(caplog) == []
+
+
+def test_an_interrupt_while_the_catalog_is_loaded_is_not_swallowed(localedir, monkeypatch):
+    """Only Exception is a bad catalog; Ctrl+C and the exit of the process go on."""
+    language(monkeypatch, LANGUAGE="hu")
+
+    def interrupted(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(gettext, "translation", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        i18n.setup()
