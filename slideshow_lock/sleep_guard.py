@@ -16,7 +16,8 @@ The sequence on ``PrepareForSleep(true)``, in this order:
    itself fails it is logged at ERROR and the lock goes on);
 2. start the lock round trip (asynchronous, so this thread stays free to see the wake signal);
 3. when the round trip is over, success or not, release the delay inhibitor (``_on_lock_done``);
-4. post the result to the main loop.
+4. post the result to the main loop (if the post fails it is logged at ERROR and the sequence
+   goes on).
 
 Nothing else runs between the signal and the lock call. The guard keeps no picture of the lock
 state and never skips the call because the session looks locked already: the answer to ``Lock()``
@@ -134,7 +135,7 @@ class SleepGuard:
         if self._sleeping:
             return  # a repeated signal: the round trip is on its way already
         self._sleeping = True
-        current = self._round = _Round(self._clock())
+        current = self._round = _Round(self._now())
         _LOG.info("[sleep-inhibit] PrepareForSleep(true): locking before suspend")
         try:
             self._to_main(self._listener.sleep_started)
@@ -152,7 +153,7 @@ class SleepGuard:
         if current.done:
             return  # one answer per round trip, and an old one never ends a newer round
         current.done = True
-        elapsed_ms = (self._clock() - current.started) * 1000
+        elapsed_ms = (self._now() - current.started) * 1000
         if current is not self._round:
             _LOG.info("[lock] a late answer of an earlier round trip (elapsed=%dms)", elapsed_ms)
             return  # the inhibitor held now belongs to the newer round
@@ -166,7 +167,13 @@ class SleepGuard:
                 result.error or "unknown error",
             )
         ok = result.ok
-        self._to_main(lambda: self._listener.sleep_lock_finished(ok))
+        try:
+            self._to_main(lambda: self._listener.sleep_lock_finished(ok))
+        except Exception:  # the report is not what suspend waits for: the inhibitor goes on below
+            _LOG.exception(
+                "[sleep-inhibit] could not hand the lock result to the main loop: "
+                "the slideshow is not told"
+            )
         if not self._sleeping:  # the machine woke before this round trip ended
             self._reacquire()
 
@@ -174,7 +181,7 @@ class SleepGuard:
         self._sleeping = False
         current = self._round
         if current is not None and not current.done:
-            elapsed_ms = (self._clock() - current.started) * 1000
+            elapsed_ms = (self._now() - current.started) * 1000
             _LOG.warning(
                 "[sleep-inhibit] resume received before lock sequence completed "
                 "(elapsed=%dms, limit=InhibitDelayMaxSec); session may have resumed unlocked",
@@ -182,6 +189,15 @@ class SleepGuard:
             )
             return  # the inhibitor is still held; it is taken again when the round trip ends
         self._reacquire()
+
+    def _now(self) -> float:
+        # the clock only feeds the elapsed times in the log: a clock that raises must not keep the
+        # lock, the release of the inhibitor or the report back (the elapsed time is void then)
+        try:
+            return self._clock()
+        except Exception:
+            _LOG.exception("[sleep-inhibit] reading the clock failed")
+            return 0.0
 
     # -- the delay inhibitor ---------------------------------------------------------------
 
