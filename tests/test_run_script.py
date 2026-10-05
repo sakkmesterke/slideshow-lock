@@ -49,10 +49,11 @@ def _env(tmp_path: Path, *, path=None, wayland=DUMMY_WAYLAND) -> dict:
     return env
 
 
-def _run(args, env, script: Path = RUN_SH):
+def _run(args, env, script: Path = RUN_SH, cwd=None):
     return subprocess.run(
         [BASH, str(script), *args],
         env=env,
+        cwd=cwd,
         capture_output=True,
         text=True,
         timeout=60,
@@ -451,3 +452,34 @@ def test_a_catalog_that_does_not_compile_is_a_warning_and_the_interface_stays_en
     locale = tmp_path / "cache" / "slideshow-lock" / "locale"
     assert f"LOCALEDIR={locale}" in result.stdout
     assert not list(locale.rglob("*.mo"))
+
+
+def test_a_relative_cache_directory_that_starts_with_a_hyphen_is_a_path_not_an_option(
+    tmp_path, stub_bin
+):
+    """XDG_CACHE_HOME=-x: mktemp, find and glib-compile-schemas must not read it as an option."""
+    _need_msgfmt()
+    script = _checkout_with_catalog(tmp_path, HUNGARIAN_PO)
+    work = tmp_path / "work"
+    work.mkdir()
+    env = _env(tmp_path, path=f"{stub_bin}{os.pathsep}{os.environ['PATH']}")
+    env["XDG_CACHE_HOME"] = "-x"
+    result = _run(["preview"], env, script=script, cwd=work)
+    assert result.returncode == 0, result.stderr
+    assert "invalid option" not in result.stderr and "unknown predicate" not in result.stderr
+    assert "LOCALEDIR=./-x/slideshow-lock/locale" in result.stdout
+    assert (work / "-x" / "slideshow-lock" / "locale" / "hu" / "LC_MESSAGES" / APP_ID_MO).is_file()
+
+
+def test_the_schema_is_compiled_under_a_relative_cache_directory_that_starts_with_a_hyphen(
+    tmp_path, stub_bin
+):
+    script = _checkout_copy(tmp_path, with_schema=True)
+    work = tmp_path / "work"
+    work.mkdir()
+    env = _env(tmp_path, path=f"{stub_bin}{os.pathsep}{os.environ['PATH']}")
+    env["XDG_CACHE_HOME"] = "-x"
+    result = _run(["preview"], env, script=script, cwd=work)
+    assert result.returncode == 0, result.stderr
+    assert "SCHEMA_DIR=./-x/slideshow-lock/schemas" in result.stdout
+    assert (work / "-x" / "slideshow-lock" / "schemas" / "gschemas.compiled").is_file()
