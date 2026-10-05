@@ -16,6 +16,7 @@ from __future__ import annotations
 import os
 
 import pytest
+from gi.repository import GLib
 
 from slideshow_lock import dbus_adapters as adapters
 from slideshow_lock.session import LockResult, UnsupportedSessionInterface
@@ -102,6 +103,208 @@ def test_idle_inhibition_is_asked_with_flag_8_and_changes_are_reported_once(desk
     desktop.set_inhibited(False)
     assert wait_for(lambda: seen == [True, False])
     inhibition.close()
+
+
+# -- the idle inhibitor the service holds while its slideshow shows -------------------------------
+
+
+def _quiet(predicate, timeout=0.4):
+    """True if *predicate* stays False for *timeout* seconds while the main loop turns."""
+    return not wait_for(predicate, timeout)
+
+
+def test_the_idle_inhibitor_is_taken_with_flag_8_under_the_application_id_and_given_back(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    assert len(desktop.inhibit_requests) == 1
+    app_id, xid, reason, flags = desktop.inhibit_requests[0]
+    assert (app_id, xid, flags) == (adapters.INHIBIT_APP_ID, 0, 8)
+    assert reason
+    assert len(desktop.inhibitors_of(adapters.INHIBIT_APP_ID)) == 1
+    inhibition.release_idle_inhibit()
+    assert desktop.uninhibit_calls == [100]  # the cookie the session manager handed out
+    assert desktop.inhibitors_of(adapters.INHIBIT_APP_ID) == []
+    inhibition.close()
+
+
+def test_holding_twice_takes_one_inhibitor_and_releasing_when_not_held_does_nothing(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.release_idle_inhibit()
+    assert desktop.uninhibit_calls == []
+    inhibition.hold_idle_inhibit()
+    inhibition.hold_idle_inhibit()
+    assert len(desktop.inhibit_requests) == 1
+    inhibition.release_idle_inhibit()
+    inhibition.release_idle_inhibit()
+    assert len(desktop.uninhibit_calls) == 1
+    inhibition.close()
+
+
+def test_the_own_idle_inhibitor_is_neither_counted_nor_reported(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    seen = []
+    inhibition.on_idle_inhibit_changed(seen.append)
+    inhibition.hold_idle_inhibit()
+    assert len(desktop.inhibitors_of(adapters.INHIBIT_APP_ID)) == 1
+    assert _quiet(lambda: seen)  # the InhibitorAdded of our own is no change for the machine
+    assert inhibition.is_idle_inhibited() is False
+    inhibition.release_idle_inhibit()
+    assert _quiet(lambda: seen)
+    assert inhibition.is_idle_inhibited() is False
+    inhibition.close()
+
+
+def test_another_application_next_to_the_own_inhibitor_is_still_a_change_both_ways(desktop):
+    """The own inhibitor makes ``IsInhibited(8)`` true for good; a foreign one next to it must
+    still turn the answer to True, and its removal back to False."""
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    seen = []
+    inhibition.on_idle_inhibit_changed(seen.append)
+    inhibition.hold_idle_inhibit()
+    foreign = desktop.add_inhibitor("video.call")
+    assert wait_for(lambda: seen == [True])
+    assert inhibition.is_idle_inhibited() is True
+    desktop.remove_inhibitor(foreign)
+    assert wait_for(lambda: seen == [True, False])
+    assert inhibition.is_idle_inhibited() is False
+    assert len(desktop.inhibitors_of(adapters.INHIBIT_APP_ID)) == 1  # ours stayed all along
+    inhibition.close()
+
+
+def test_a_foreign_inhibitor_that_was_there_first_stays_true_through_hold_and_release(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    seen = []
+    inhibition.on_idle_inhibit_changed(seen.append)
+    desktop.add_inhibitor("video.call")
+    assert wait_for(lambda: seen == [True])
+    inhibition.hold_idle_inhibit()
+    inhibition.release_idle_inhibit()
+    assert _quiet(lambda: len(seen) > 1)
+    assert inhibition.is_idle_inhibited() is True
+    inhibition.close()
+
+
+@pytest.mark.parametrize("flags", [1, 2, 4])
+def test_a_foreign_inhibitor_that_does_not_inhibit_idle_is_not_counted(desktop, flags):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    desktop.add_inhibitor("editor", flags=flags)
+    assert _quiet(lambda: inhibition.is_idle_inhibited())
+    inhibition.close()
+
+
+def test_a_foreign_inhibitor_with_both_idle_and_other_flags_is_counted(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    desktop.add_inhibitor("video.call", flags=4 | 8)
+    assert inhibition.is_idle_inhibited() is True
+    inhibition.close()
+
+
+def test_an_own_inhibitor_the_service_lost_track_of_never_counts_as_foreign(desktop):
+    """If giving the inhibitor back failed once, it may still be on the bus: it must not keep the
+    next slideshow from starting."""
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    inhibition._cookie = 424242  # the cookie the session manager does not know
+    with pytest.raises(GLib.Error):
+        inhibition.release_idle_inhibit()
+    assert len(desktop.inhibitors_of(adapters.INHIBIT_APP_ID)) == 1  # still there
+    assert inhibition.is_idle_inhibited() is False
+    inhibition.close()
+
+
+def test_a_refused_release_keeps_the_cookie_so_that_the_next_call_gives_it_back(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    desktop.uninhibit_failures = 1
+    with pytest.raises(GLib.Error):
+        inhibition.release_idle_inhibit()
+    assert len(desktop.inhibitors_of(adapters.INHIBIT_APP_ID)) == 1  # still on the bus
+    inhibition.hold_idle_inhibit()  # still held: no second inhibitor
+    assert len(desktop.inhibit_requests) == 1
+    inhibition.release_idle_inhibit()
+    assert desktop.uninhibit_calls == [100, 100]  # the same cookie, twice
+    assert desktop.inhibitors_of(adapters.INHIBIT_APP_ID) == []
+    inhibition.close()
+
+
+def test_a_refused_release_of_an_inhibitor_the_session_manager_no_longer_lists_is_done(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    (path,) = desktop.inhibitors_of(adapters.INHIBIT_APP_ID)
+    desktop.remove_inhibitor(path)  # gone on its own (the session manager dropped it)
+    desktop.uninhibit_failures = 1
+    with pytest.raises(GLib.Error):
+        inhibition.release_idle_inhibit()
+    inhibition.release_idle_inhibit()  # nothing is held any more: no further call
+    assert len(desktop.uninhibit_calls) == 1
+    inhibition.close()
+
+
+def test_a_refused_release_stays_held_when_the_session_manager_cannot_be_asked_either(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    desktop.uninhibit_failures = 1
+    desktop.inhibitor_errors["GetAppId"] = "org.freedesktop.DBus.Error.Failed"
+    with pytest.raises(GLib.Error):
+        inhibition.release_idle_inhibit()
+    desktop.inhibitor_errors.clear()
+    inhibition.release_idle_inhibit()  # the cookie was kept: this one goes through
+    assert desktop.uninhibit_calls == [100, 100]
+    assert desktop.inhibitors_of(adapters.INHIBIT_APP_ID) == []
+    inhibition.close()
+
+
+def test_a_refused_release_stays_held_when_the_inhibitor_list_cannot_be_read(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    desktop.uninhibit_failures = 1
+    desktop.session_manager_errors["GetInhibitors"] = "org.freedesktop.DBus.Error.Failed"
+    with pytest.raises(GLib.Error):
+        inhibition.release_idle_inhibit()
+    desktop.session_manager_errors.clear()
+    inhibition.release_idle_inhibit()  # the cookie was kept: this one goes through
+    assert desktop.uninhibit_calls == [100, 100]
+    assert desktop.inhibitors_of(adapters.INHIBIT_APP_ID) == []
+    inhibition.close()
+
+
+def test_an_inhibitor_that_cannot_be_read_is_not_taken_for_gone(desktop):
+    """Fail closed: if the flags of a listed inhibitor cannot be read, the question is not
+    answered (the state machine then starts no slideshow), it is not answered with False."""
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    desktop.add_inhibitor("video.call")
+    desktop.inhibitor_errors["GetFlags"] = "org.freedesktop.DBus.Error.Failed"
+    with pytest.raises(GLib.Error):
+        inhibition.is_idle_inhibited()
+    desktop.inhibitor_errors["GetFlags"] = "org.freedesktop.DBus.Error.UnknownMethod"
+    with pytest.raises(GLib.Error):  # a missing method on an object that is there
+        inhibition.is_idle_inhibited()
+    inhibition.close()
+
+
+@pytest.mark.parametrize("how", ["unknown_object_error", "no_such_object_on_the_bus"])
+def test_an_inhibitor_that_went_away_between_the_list_and_the_question_is_skipped(desktop, how):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    if how == "unknown_object_error":
+        desktop.add_inhibitor("video.call")
+        desktop.inhibitor_errors["GetFlags"] = "org.freedesktop.DBus.Error.UnknownObject"
+    else:  # listed, but its object is not on the bus: GDBus's "Object does not exist at path"
+        desktop.service_loop.call(
+            lambda: desktop.inhibitors.update(
+                {"/org/gnome/SessionManager/Inhibitor9": {"app_id": "x", "flags": 8, "reason": ""}}
+            )
+        )
+    assert inhibition.is_idle_inhibited() is False
+    inhibition.close()
+
+
+def test_close_gives_the_idle_inhibitor_back(desktop):
+    inhibition = adapters.SessionManagerInhibition(desktop.session)
+    inhibition.hold_idle_inhibit()
+    inhibition.close()
+    assert desktop.inhibitors_of(adapters.INHIBIT_APP_ID) == []
 
 
 # -- locking --------------------------------------------------------------------------------------

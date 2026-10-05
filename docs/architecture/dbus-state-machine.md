@@ -53,7 +53,10 @@ a clear error, never run silently degraded).
 ### 3.2 Idle inhibition query
 
 - Interface: `org.gnome.SessionManager`, method `IsInhibited(flag)` (idle flag = 8).
-- Abstraction: `InhibitionQuery.is_idle_inhibited() -> bool`.
+- Abstraction: `InhibitionQuery.is_idle_inhibited() -> bool`. It answers for other applications
+  only: the idle inhibitor the service itself holds while its slideshow shows
+  (`hold_idle_inhibit()` / `release_idle_inhibit()`, `Inhibit` with flag 8 under the service's
+  application id) is left out, using `GetInhibitors` and `GetAppId`/`GetFlags` of each inhibitor.
 - Scope (D28, see 6.2): this query is consulted **only** on the idle-triggered path. It is
   never consulted on the sleep-triggered path.
 

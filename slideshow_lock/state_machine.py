@@ -90,6 +90,7 @@ class StateMachine:
         self._trigger: Optional[TriggerSource] = None
         self._started_at = 0.0
         self._cancel_active: Optional[Cancel] = None
+        self._holding_inhibit = False
 
         slideshow.connect_stopped(self._on_slideshow_stopped)
         lock.on_active_changed(self._on_active_changed)
@@ -136,6 +137,7 @@ class StateMachine:
             self._finish_slideshow()
         self._state = State.DISABLED
         self._trigger = None
+        self._release_idle_inhibit()  # also when no slideshow ran: nothing may outlive the machine
         self._idle.cancel_idle()
         if self._guard is not None:
             self._guard.stop()
@@ -200,6 +202,7 @@ class StateMachine:
             # input is the idle monitor's active transition (D22); a preview has none, the
             # windows' own input controllers report it through the slideshow
             self._cancel_active = self._idle.on_user_active(self._on_user_active)
+            self._hold_idle_inhibit()
         _LOG.info("[slideshow] started (trigger=%s)", trigger.value)
         return True
 
@@ -281,10 +284,45 @@ class StateMachine:
             cancel()
         self._state = State.IDLE_WATCHING
         self._trigger = None
+        self._release_idle_inhibit()
         try:
             self._slideshow.stop()
         except Exception:
             _LOG.exception("[slideshow] stopping the slideshow failed")
+
+    def _hold_idle_inhibit(self) -> None:
+        """An idle-triggered slideshow keeps the desktop's own idle delay from blanking or locking
+        the screen under it. A manual preview does not (nothing starts it from idle, and it ends
+        at the first input anyway). A refusal is logged and the slideshow goes on."""
+        try:
+            self._inhibition.hold_idle_inhibit()
+        except Exception as exc:
+            _LOG.warning(
+                "[slideshow] could not take the idle inhibitor (%s): the desktop's own idle "
+                "delay may blank or lock the screen during the slideshow",
+                exc,
+            )
+        else:
+            self._holding_inhibit = True
+
+    def _release_idle_inhibit(self) -> None:
+        """Called on every way a slideshow ends, and again by ``disable()``. It is only forgotten
+        after the session manager took it back: if giving it back fails, the next slideshow end
+        and ``disable()`` try again, and until one succeeds the desktop's own blanking and
+        automatic lock stay held back. This service still sees only the inhibitors of other
+        applications, so its own leftover does not keep an idle slideshow from starting."""
+        if not self._holding_inhibit:
+            return
+        try:
+            self._inhibition.release_idle_inhibit()
+        except Exception as exc:
+            _LOG.warning(
+                "[slideshow] could not give back the idle inhibitor (%s): the desktop's own "
+                "blanking and automatic lock stay held back until it is given back",
+                exc,
+            )
+        else:
+            self._holding_inhibit = False
 
     # -- the lock state (3.6) -----------------------------------------------------------------
 
