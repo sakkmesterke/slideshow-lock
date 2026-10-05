@@ -15,6 +15,7 @@ import threading
 import time
 
 import pytest
+from gi.repository import GLib
 
 from slideshow_lock import sleep_guard
 from slideshow_lock.image_source import ImageSource
@@ -51,7 +52,7 @@ class Rig:
     """A guard with fakes, everything delivered in line; ``main`` collects what was posted to
     the main loop and ``run_main()`` runs it."""
 
-    def __init__(self, *, enable=True):
+    def __init__(self, *, enable=True, to_main=None):
         self.sleep = FakeSleepSignal()
         self.order = []
         self.lock = FakeSessionLock(shared=self.order)
@@ -59,7 +60,7 @@ class Rig:
         self.main = []
         self.clock = FakeClock()
         self.guard = SleepGuard(
-            self.sleep, self.lock, self.listener, self.main.append, clock=self.clock
+            self.sleep, self.lock, self.listener, to_main or self.main.append, clock=self.clock
         )
         if enable:
             self.guard.setup()
@@ -209,6 +210,92 @@ def test_a_lock_call_that_raises_is_a_failed_lock_and_releases_the_inhibitor(cap
         r.sleep.fire(True)
     assert r.sleep.inhibitors[0].released
     assert any("bus gone" in m for m in caplog.messages)
+
+
+# What a failing post may raise: the guard catches ``Exception``, not one kind of it.
+_POST_ERRORS = [
+    pytest.param(RuntimeError("main loop gone"), id="RuntimeError"),
+    pytest.param(OSError("main loop gone"), id="OSError"),
+    pytest.param(TypeError("main loop gone"), id="TypeError"),
+    pytest.param(AttributeError("main loop gone"), id="AttributeError"),
+    pytest.param(GLib.Error("main loop gone"), id="GLib.Error"),
+]
+
+
+def _rig_whose_first_post_fails(error):
+    """A rig whose poster to the main loop raises *error* on its first call and queues from then
+    on."""
+    holder = {}
+    r = Rig(to_main=lambda fn: holder["post"](fn))
+    calls = []
+
+    def post(fn):
+        calls.append(fn)
+        if len(calls) == 1:
+            raise error
+        r.main.append(fn)
+
+    holder["post"] = post
+    return r
+
+
+@pytest.mark.parametrize("error", _POST_ERRORS)
+def test_a_failing_post_of_the_sleep_start_does_not_keep_the_lock_back(caplog, error):
+    """The post of "sleep started" to the main loop raising must not end ``_before_sleep`` before
+    the lock call, and a repeated signal must not be ignored."""
+    r = _rig_whose_first_post_fails(error)
+
+    with caplog.at_level(logging.ERROR):
+        r.sleep.fire(True)  # nothing escapes the signal callback
+
+    assert r.lock.lock_calls == 1
+    assert r.sleep.inhibitors[0].released  # the round trip ran its normal course
+    errors = [rec for rec in caplog.records if rec.levelno == logging.ERROR]
+    assert len(errors) == 1
+    assert errors[0].getMessage().startswith("[sleep-inhibit] could not hand the sleep start")
+    assert errors[0].exc_info is not None and errors[0].exc_info[1] is error
+    r.run_main()  # only the result reaches the main loop, the start never did
+    assert r.listener.events == [("finished", True)]
+
+
+@pytest.mark.parametrize("error", _POST_ERRORS)
+def test_after_a_failing_post_the_round_ends_normally_and_the_next_suspend_is_locked(error):
+    r = _rig_whose_first_post_fails(error)
+    r.sleep.fire(True)
+    r.sleep.fire(False)  # woke after the lock was done: no "resumed unlocked" case
+    assert r.sleep.held == 1  # the inhibitor is taken again
+    r.sleep.fire(True)
+    assert r.lock.lock_calls == 2
+
+
+@pytest.mark.parametrize("error", _POST_ERRORS)
+def test_a_failing_post_of_the_sleep_start_keeps_a_repeated_signal_from_locking_twice(error):
+    r = _rig_whose_first_post_fails(error)
+    r.lock.mode = "manual"
+    r.sleep.fire(True)
+    r.sleep.fire(True)
+    assert r.lock.lock_calls == 1
+
+
+@pytest.mark.parametrize("error", _POST_ERRORS)
+def test_after_a_failing_post_the_inhibitor_is_held_until_the_lock_answers(error):
+    """The delay inhibitor is what holds suspend back until the lock is made: the failure of the
+    post must not give it up before the answer of the lock call, only after."""
+    r = _rig_whose_first_post_fails(error)
+    r.lock.mode = "manual"
+    r.sleep.fire(True)
+    assert r.lock.lock_calls == 1
+    assert not r.sleep.inhibitors[0].released
+    assert r.sleep.held == 1
+    r.lock.complete()
+    assert r.sleep.inhibitors[0].released
+
+
+def test_only_exceptions_are_caught_around_the_post_of_the_sleep_start():
+    """Not ``BaseException``: a KeyboardInterrupt or SystemExit is not the guard's to swallow."""
+    r = _rig_whose_first_post_fails(KeyboardInterrupt())
+    with pytest.raises(KeyboardInterrupt):
+        r.sleep.fire(True)
 
 
 def test_a_repeated_prepare_for_sleep_true_makes_one_lock():

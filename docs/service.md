@@ -134,7 +134,8 @@ would sleep unlocked, with no error. So:
   (`Login1Sleep`, and its own `SessionLock`) are created on that thread, and Gio delivers their
   signals and call answers there.
 - On `PrepareForSleep(true)` the guard (1) posts "sleep started" to the main loop, which stops the
-  slideshow there, and does not wait for it; (2) starts the `Lock()` call, asynchronous so the
+  slideshow there, and does not wait for it (if the post itself fails, that is logged at ERROR
+  and the lock is made anyway); (2) starts the `Lock()` call, asynchronous so the
   thread can still see the wake signal (every time: the guard does not remember that a lock was
   made, see below); (3) when the answer is in, releases the delay inhibitor;
   (4) posts the result. The inhibitor is held until the round trip is over, not until the call
