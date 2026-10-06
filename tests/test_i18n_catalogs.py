@@ -58,6 +58,10 @@ REQUESTED = frozenset(
 #: Hebrew are here with the rule of that table; newer sources (Unicode CLDR) distinguish more forms
 #: for Irish and Hebrew, which is a decision to make when the program uses ``ngettext``, and it
 #: does not yet. Not in the table, so only checked to be evaluable: ca, fil, hi, id, mt, th, zh_*.
+_EAST_SLAVIC_3 = (
+    "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : "
+    "n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);"
+)
 REFERENCE_PLURALS = {
     "de": "nplurals=2; plural=(n != 1);",
     "es": "nplurals=2; plural=(n != 1);",
@@ -78,16 +82,22 @@ REFERENCE_PLURALS = {
     "cs": "nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;",
     "sk": "nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;",
     "pl": "nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-    "ru": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-    "uk": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-    "sr": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-    "hr": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);",
-    "lt": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2);",
+    "ru": _EAST_SLAVIC_3,
+    "uk": _EAST_SLAVIC_3,
+    "sr": _EAST_SLAVIC_3,
+    "hr": _EAST_SLAVIC_3,
+    "lt": (
+        "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : "
+        "n%10>=2 && (n%100<10 || n%100>=20) ? 1 : 2);"
+    ),
     "lv": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2);",
     "ro": "nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2;",
     "ga": "nplurals=3; plural=n==1 ? 0 : n==2 ? 1 : 2;",
     "sl": "nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n%100==4 ? 2 : 3);",
-    "ar": "nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;",
+    "ar": (
+        "nplurals=6; plural=n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : "
+        "n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5;"
+    ),
     "ja": "nplurals=1; plural=0;",
     "ko": "nplurals=1; plural=0;",
     "vi": "nplurals=1; plural=0;",
@@ -111,9 +121,9 @@ def glossary_of(lang):
 def test_the_requested_languages_are_all_shipped():
     names = shipped()
     assert len(names) == len(set(names)), "a language twice in po/LINGUAS"
-    assert set(names) == REQUESTED, (
-        "missing: %s, not requested: %s"
-        % (sorted(REQUESTED - set(names)), sorted(set(names) - REQUESTED))
+    assert set(names) == REQUESTED, "missing: %s, not requested: %s" % (
+        sorted(REQUESTED - set(names)),
+        sorted(set(names) - REQUESTED),
     )
 
 
@@ -239,7 +249,10 @@ def test_control_a_word_that_is_missing_or_a_concept_that_is_missing_is_reported
         for msgid, msgstr in pairs
     ]
     problems = glossary_violations(glossary, broken)
-    assert any(problem.startswith("folder:") and "Choose the picture folder" in problem for problem in problems)
+    assert any(
+        problem.startswith("folder:") and "Choose the picture folder" in problem
+        for problem in problems
+    )
     broken = [(m, "XXX" if m == "No pictures to show" else s) for m, s in pairs]
     assert any(
         problem.startswith("picture:") and "No pictures to show" in problem
