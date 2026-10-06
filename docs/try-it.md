@@ -58,7 +58,7 @@ line names the same path. To use another folder, point the run at it:
 ```
 
 Other options, which apply to that run only and are never stored: `--interval SECONDS`,
-`--order random|name`, `--scaling fit|fill`, `--pan`, `--debug`. All of them are described in
+`--order random|name`, `--scaling fit|fill`, `--pan`, `--transition none|crossfade|fade-black`, `--debug`. All of them are described in
 [`preview.md`](preview.md), section 6.
 
 ## 4. Open the settings window
@@ -109,8 +109,8 @@ gsettings list-recursively io.github.trensoft.slideshowlock
 gsettings reset-recursively io.github.trensoft.slideshowlock
 ```
 
-The first command prints the eight keys with their current values (defaults included): note them
-if you want to restore your own. The second sets all eight back to their defaults, including any
+The first command prints the ten keys with their current values (defaults included): note them
+if you want to restore your own. The second sets all ten back to their defaults, including any
 that you had changed before the trial. Tried with GLib's keyfile settings backend in a headless
 session (two keys changed, then reset: both back at their defaults); not tried with dconf on a
 desktop.

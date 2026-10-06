@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 03:54+0000\n"
+"POT-Creation-Date: 2026-10-06 06:38+0000\n"
 "PO-Revision-Date: 2026-10-06 03:54+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: Hungarian\n"
@@ -44,6 +44,18 @@ msgid "Fit (shows the whole picture)"
 msgstr "Illesztés (a teljes képet mutatja)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Nincs (azonnali váltás)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Áttűnés"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Elsötétítés"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Slideshow Lock beállításai"
 
@@ -74,6 +86,18 @@ msgstr "Álló képek görgetése"
 #: slideshow_lock/preferences.py
 msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
 msgstr "Az álló képek a fekvő képernyőn lassan fentről lefelé haladnak (csak Kitöltés mellett). Alapértelmezés szerint ki van kapcsolva: több akkumulátort fogyaszt."
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Átmenetek"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Képek között"
+
+#: slideshow_lock/preferences.py
+msgid "How a picture changes into the next. Without desktop animations the pictures change at once."
+msgstr "Hogyan vált át egy kép a következőre. Az asztali animációk nélkül a képek azonnal váltanak."
 
 #: slideshow_lock/preferences.py
 msgid "Start the slideshow"
@@ -229,6 +253,14 @@ msgid "This choice is not available."
 msgstr "Ez a lehetőség nem érhető el."
 
 #: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Az érték nem lett elfogadva, a régi marad."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Az értéket nem sikerült menteni."
+
+#: slideshow_lock/preferences_model.py
 msgid "This must be on or off."
 msgstr "Ennek bekapcsoltnak vagy kikapcsoltnak kell lennie."
 
@@ -247,14 +279,6 @@ msgstr "Adj meg abszolút útvonalat (/ vagy ~ jellel kezdődik)."
 #: slideshow_lock/preferences_model.py
 msgid "This path is a file, not a folder."
 msgstr "Ez az útvonal egy fájl, nem mappa."
-
-#: slideshow_lock/preferences_model.py
-msgid "The value was not accepted, the old one is kept."
-msgstr "Az érték nem lett elfogadva, a régi marad."
-
-#: slideshow_lock/preferences_model.py
-msgid "The value could not be saved."
-msgstr "Az értéket nem sikerült menteni."
 
 #: slideshow_lock/preferences_model.py
 msgid "The folder was not accepted, the old one is kept."
@@ -291,6 +315,10 @@ msgstr "illesztés vagy kitöltés a monitoron"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "az álló képek lassú görgetése (kitöltés módban)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "hogyan vált a kép a következőre, vagy none (csak erre a futtatásra)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

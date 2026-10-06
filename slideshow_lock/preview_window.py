@@ -12,6 +12,14 @@ own pixel size, on a device pixel boundary, is not filtered again. A frame talle
 the window (a panning portrait picture) is scrolled by whole pixels from a frame-clock
 tick, which only runs while there is something to scroll.
 
+A transition (``slideshow_lock.transitions``) keeps the old picture's texture next to the new one
+for its short time and draws the two as a cross fade (``Gtk.Snapshot.push_cross_fade``) from a tick
+of its own. Its end is a moment in time, not a number of frames, so a slow machine draws fewer
+frames and not a longer transition. The first frame is drawn at progress 0 with both pictures,
+which is where the new texture is uploaded, out of sight; the clock of the transition starts at
+the second tick. When it ends the tick is removed and the picture is drawn 1:1 as always, so the
+last frame is never a filtered one and nothing redraws until the next change.
+
 Input: the window's own GTK controllers (motion, click, key, scroll) call
 ``on_input``, and so does a ``close-request`` (the window was closed from outside, from the
 overview for example: without that the process would run on with no window, changing
@@ -45,6 +53,7 @@ from slideshow_lock.preview import (  # noqa: E402
     INPUT_SCROLL,
 )
 from slideshow_lock.scaling import Frame, device_size  # noqa: E402
+from slideshow_lock.transitions import BLACK, NEW, OLD, layers  # noqa: E402
 
 #: The pointer must move this far from where the window first saw it to count as input.
 MOTION_THRESHOLD_PIXELS = 2.0
@@ -79,9 +88,32 @@ class _Canvas(Gtk.Widget):
         self._pan_seconds = 0.0
         self._pan_t0: Optional[int] = None
         self._tick_id = 0
+        self._old_texture: Optional[Gdk.Texture] = (
+            None  # the picture going out, during a transition
+        )
+        self._old_offset = (0, 0)
+        self._transition: Optional[str] = None
+        self._transition_seconds = 0.0
+        self._transition_ticks = 0
+        self._transition_t0: Optional[int] = None
+        self._transition_progress = 0.0
+        self._transition_tick_id = 0
 
-    def set_frame(self, frame: Optional[Frame], pan_seconds: float) -> None:
+    def set_frame(
+        self,
+        frame: Optional[Frame],
+        pan_seconds: float,
+        transition: Optional[Tuple[str, float]] = None,
+    ) -> None:
+        """Show *frame*. With *transition* ``(name, seconds)`` and a picture already on screen, the
+        old one goes out through the transition; any call, with or without one, first ends a
+        transition that is still running."""
         self._stop_pan()
+        self._end_transition()
+        outgoing = None
+        if transition is not None and frame is not None and frame is not self._frame:
+            outgoing = self._texture
+        old_offset = self._offset
         if frame is None:
             self._frame = None
             self._texture = None
@@ -101,12 +133,56 @@ class _Canvas(Gtk.Widget):
                 self._tick_id = self.add_tick_callback(self._on_tick)
             else:  # animations are off: the middle of the picture, like the centre crop
                 self._offset = (frame.pan_range[0] // 2, frame.pan_range[1] // 2)
+        if outgoing is not None and self._texture is not None:
+            self._begin_transition(outgoing, old_offset, *transition)
         self.queue_draw()
 
     def _stop_pan(self) -> None:
         if self._tick_id:
             self.remove_tick_callback(self._tick_id)
             self._tick_id = 0
+
+    def _begin_transition(self, outgoing: Gdk.Texture, offset, name: str, seconds: float) -> None:
+        if layers(name, 0.0) is None or seconds <= 0:  # a name this version cannot draw: a cut
+            return
+        self._old_texture = outgoing
+        self._old_offset = (
+            offset  # the old picture stands where it stopped, the new one starts at 0
+        )
+        self._transition = name
+        self._transition_seconds = seconds
+        self._transition_ticks = 0
+        self._transition_t0 = None
+        self._transition_progress = 0.0
+        self._transition_tick_id = self.add_tick_callback(self._on_transition_tick)
+
+    def _end_transition(self) -> None:
+        """Forget the transition and the old texture: the next draw is the plain one."""
+        if self._transition_tick_id:
+            self.remove_tick_callback(self._transition_tick_id)
+            self._transition_tick_id = 0
+        self._transition = None
+        self._old_texture = None
+
+    def _on_transition_tick(self, _widget, clock) -> bool:
+        self._transition_ticks += 1
+        if self._transition_ticks == 1:
+            # The first frame is drawn at progress 0 with both pictures: the new texture is
+            # uploaded here, where nobody sees it, and its cost is not counted in the time.
+            self.queue_draw()
+            return GLib.SOURCE_CONTINUE
+        now = clock.get_frame_time()
+        if self._transition_t0 is None:
+            self._transition_t0 = now
+        progress = (now - self._transition_t0) / 1_000_000 / self._transition_seconds
+        if progress >= 1.0:
+            self._transition_tick_id = 0
+            self._end_transition()
+            self.queue_draw()
+            return GLib.SOURCE_REMOVE
+        self._transition_progress = max(0.0, progress)
+        self.queue_draw()
+        return GLib.SOURCE_CONTINUE
 
     def _on_tick(self, _widget, clock) -> bool:
         now = clock.get_frame_time()
@@ -126,19 +202,45 @@ class _Canvas(Gtk.Widget):
 
     def do_snapshot(self, snapshot) -> None:
         width, height = self.get_width(), self.get_height()
+        if self._transition is not None and self._old_texture is not None:
+            self._snapshot_transition(snapshot, width, height)
+            return
+        self._snapshot_layer(snapshot, width, height, self._texture, self._offset)
+
+    def _snapshot_layer(self, snapshot, width, height, texture, offset) -> None:
+        """Black, and *texture* 1:1 on top of it (just black for None)."""
         black = Gdk.RGBA()
         black.alpha = 1.0
         snapshot.append_color(black, Graphene.Rect().init(0, 0, width, height))
-        if self._texture is None:
+        if texture is None:
             return
         scale = self._scale()
         dev_w, dev_h = round(width * scale), round(height * scale)
-        tex_w, tex_h = self._texture.get_width(), self._texture.get_height()
-        x = (dev_w - tex_w) // 2 if tex_w <= dev_w else -self._offset[0]
-        y = (dev_h - tex_h) // 2 if tex_h <= dev_h else -self._offset[1]
+        tex_w, tex_h = texture.get_width(), texture.get_height()
+        x = (dev_w - tex_w) // 2 if tex_w <= dev_w else -offset[0]
+        y = (dev_h - tex_h) // 2 if tex_h <= dev_h else -offset[1]
         snapshot.append_texture(
-            self._texture, Graphene.Rect().init(x / scale, y / scale, tex_w / scale, tex_h / scale)
+            texture, Graphene.Rect().init(x / scale, y / scale, tex_w / scale, tex_h / scale)
         )
+
+    def _snapshot_transition(self, snapshot, width, height) -> None:
+        """The running transition as one cross fade between two layers, each a whole window of black
+        with at most one picture on it. The first frame is the old picture at progress 0 with the
+        new one as the other layer, so that both are drawn (and uploaded) before anything moves."""
+        if self._transition_ticks <= 1:  # first frame: the old picture, the new one drawn too
+            start, end, progress = OLD, NEW, 0.0
+        else:
+            start, end, progress = layers(self._transition, self._transition_progress)
+        by_layer = {
+            OLD: (self._old_texture, self._old_offset),
+            NEW: (self._texture, self._offset),
+            BLACK: (None, (0, 0)),
+        }
+        snapshot.push_cross_fade(progress)  # the start layer, pop, the end layer, pop
+        self._snapshot_layer(snapshot, width, height, *by_layer[start])
+        snapshot.pop()
+        self._snapshot_layer(snapshot, width, height, *by_layer[end])
+        snapshot.pop()
 
 
 class PreviewWindow:
@@ -203,9 +305,11 @@ class PreviewWindow:
             return None
         return device_size(surface.get_width(), surface.get_height(), self._scale())
 
-    def show_frame(self, frame: Frame, pan_seconds: float) -> None:
+    def show_frame(
+        self, frame: Frame, pan_seconds: float, transition: Optional[Tuple[str, float]] = None
+    ) -> None:
         self._message.set_visible(False)
-        self._canvas.set_frame(frame, pan_seconds)
+        self._canvas.set_frame(frame, pan_seconds, transition)
 
     def show_message(self, text: str) -> None:
         """Black screen with a short message; an empty string shows plain black."""

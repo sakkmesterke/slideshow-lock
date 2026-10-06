@@ -21,6 +21,8 @@ from slideshow_lock.preferences_model import (
     INTERVAL_POSITIONS,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
+    TRANSITION_CHOICES,
+    TRANSITION_ORDER_CHOICES,
     PreferencesModel,
     describe_interval,
     format_hms,
@@ -39,6 +41,8 @@ from slideshow_lock.settings import (
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_ORDER,
+    KEY_TRANSITIONS,
     Settings,
     default_picture_folder,
 )
@@ -66,8 +70,17 @@ def test_the_ranges_and_choices_are_the_ones_of_the_schema():
         assert (kind, sorted(value)) == ("enum", sorted(values)), key
 
 
+def test_the_transition_order_choices_are_the_ones_of_the_schema():
+    kind, value = _schema_key(KEY_TRANSITION_ORDER).get_range().unpack()
+    assert (kind, sorted(value)) == ("enum", sorted(TRANSITION_ORDER_CHOICES))
+
+
 def test_every_key_of_the_schema_has_a_field(model):
-    bound = set(INT_RANGES) | set(CHOICES) | {KEY_PAN_PORTRAIT_IMAGES, KEY_PICTURE_FOLDER}
+    bound = (
+        set(INT_RANGES)
+        | set(CHOICES)
+        | {KEY_PAN_PORTRAIT_IMAGES, KEY_PICTURE_FOLDER, KEY_TRANSITIONS, KEY_TRANSITION_ORDER}
+    )
     assert bound == set(_ALL_SETTINGS_KEYS)
 
 
@@ -456,6 +469,70 @@ def test_pan_is_saved_on_and_off(model):
 def test_pan_takes_only_a_real_on_or_off(model, value):
     assert not model.set_pan_portrait_images(value).ok
     assert model.get(KEY_PAN_PORTRAIT_IMAGES) is False
+
+
+# -- transitions -----------------------------------------------------------------------------------
+
+
+def test_the_transition_drop_down_offers_none_and_what_this_version_draws():
+    assert TRANSITION_CHOICES == ("none", "crossfade", "fade-black")
+
+
+def test_the_window_starts_at_the_stored_transition(model):
+    assert model.transition_choice() == "crossfade"  # the default
+    assert model.get(KEY_TRANSITIONS) == ["crossfade"]
+
+
+@pytest.mark.parametrize("value", TRANSITION_CHOICES)
+def test_every_listed_transition_is_saved_and_read_back(model, value):
+    assert model.set_transition(value).ok
+    assert model.transition_choice() == value
+
+
+def test_none_is_saved_as_the_empty_list_and_is_not_the_default_again(model):
+    assert model.set_transition("none").ok
+    assert model.get(KEY_TRANSITIONS) == []
+    assert model.transition_choice() == "none"
+
+
+def test_a_transition_choice_is_saved_as_a_list_of_one_name(model):
+    assert model.set_transition("fade-black").ok
+    assert model.get(KEY_TRANSITIONS) == ["fade-black"]
+
+
+@pytest.mark.parametrize("value", ["wipe", "Crossfade", "", None, 1, ["crossfade"]])
+def test_a_transition_that_is_not_offered_is_refused_and_the_stored_one_stays(model, value):
+    before = model.get(KEY_TRANSITIONS)
+    assert not model.set_transition(value).ok
+    assert model.get(KEY_TRANSITIONS) == before
+
+
+def test_a_stored_list_with_a_name_this_version_cannot_draw_shows_what_is_drawn(model):
+    """Reading never writes: the stored list stays as it is, the drop-down shows what the
+    preview would really do."""
+    model._settings._settings.set_strv("transitions", ["wipe", "fade-black"])
+    assert model.transition_choice() == "fade-black"
+    assert model.get(KEY_TRANSITIONS) == ["wipe", "fade-black"]
+    model._settings._settings.set_strv("transitions", ["wipe"])
+    assert model.transition_choice() == "none"
+
+
+def test_a_stored_list_with_several_names_shows_the_one_that_is_drawn(model):
+    model._settings._settings.set_strv("transitions", ["fade-black", "crossfade"])
+    assert model.transition_choice() == "crossfade"
+
+
+@pytest.mark.parametrize("value", TRANSITION_ORDER_CHOICES)
+def test_every_listed_transition_order_is_saved(model, value):
+    assert model.set_transition_order(value).ok
+    assert model.get(KEY_TRANSITION_ORDER) == value
+
+
+@pytest.mark.parametrize("value", ["shuffle", "", "Random", None, 1])
+def test_a_transition_order_that_is_not_listed_is_refused(model, value):
+    before = model.get(KEY_TRANSITION_ORDER)
+    assert not model.set_transition_order(value).ok
+    assert model.get(KEY_TRANSITION_ORDER) == before
 
 
 # -- the picture folder (D25) ---------------------------------------------------------------

@@ -38,6 +38,7 @@ from slideshow_lock.preferences_model import (  # noqa: E402
     INTERVAL_POSITIONS,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
+    TRANSITION_CHOICES,
     interval_position_for_seconds,
 )
 from slideshow_lock.settings import (  # noqa: E402
@@ -155,6 +156,11 @@ def main() -> int:
         == (120, 0, interval_position_for_seconds(5), 0, 0, False),
     )
     check(
+        "the transition drop-down starts at the cross-fade, the stored default",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("crossfade"),
+        str(window.transition_drop.get_selected()),
+    )
+    check(
         "the slide interval shows as a big HH:MM:SS and a short text above one slider",
         window.interval_total.get_label() == "00:00:05"
         and window.interval_caption.get_label() == "5 s",
@@ -212,6 +218,28 @@ def main() -> int:
     )
     window.pan_switch.set_active(True)
     check("the pan switch is saved", stored.get_pan_portrait_images() is True)
+    window.transition_drop.set_selected(TRANSITION_CHOICES.index("fade-black"))
+    check("a transition is saved as a list of one name", stored.get_transitions() == ["fade-black"])
+    window.transition_drop.set_selected(TRANSITION_CHOICES.index("none"))
+    check(
+        "none is saved as the empty list, not as the default",
+        stored.get_transitions() == [] and window.status.get_label() == "Saved.",
+        str(stored.get_transitions()),
+    )
+    stored.set_transitions(["crossfade"])
+    pump(0.3)
+    check(
+        "a transition set elsewhere shows up in the window",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("crossfade"),
+    )
+    stored._settings.set_strv("transitions", ["wipe"])  # a name another version wrote
+    pump(0.3)
+    check(
+        "a stored name this version cannot draw shows as none and stays stored",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("none")
+        and stored._settings.get_strv("transitions") == ["wipe"],
+    )
+    stored.set_transitions(["crossfade"])
     window.folder_entry.set_text(folder)
     window.folder_entry.emit("activate")
     check(
