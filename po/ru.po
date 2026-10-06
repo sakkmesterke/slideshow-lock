@@ -332,11 +332,11 @@ msgstr "Настройка слайд-шоу при бездействии и б
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Экранная заставка со слайд-шоу, блокирующая сеанс при вводе"
+msgstr "Экранная заставка со слайд-шоу при бездействии, блокирующая сеанс при вводе"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock запускает показ изображений на весь экран на каждом мониторе, когда сеанс бездействует заданное время."
+msgstr "Slideshow Lock запускает слайд-шоу из изображений на весь экран на каждом мониторе, когда сеанс бездействует заданное время."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."

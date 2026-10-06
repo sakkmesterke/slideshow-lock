@@ -1,13 +1,11 @@
-slideshow	슬라이드쇼
-lock	잠금
-screen lock	세션 잠금
-Preview	미리 보기
-Settings	설정
-idle	유휴
-inactivity	유휴
-folder	폴더
-image	사진
-picture	사진
-fullscreen	전체 화면
-monitor	모니터
-Slideshow Lock	Slideshow Lock
+# Slideshow Lock translation glossary, ko. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	슬라이드쇼	\bslideshow\b
+lock	잠금|잠그|잠기|잠깁	\block(s|ed|ing)?\b
+preview	미리 보기	\bpreview\b
+settings	설정	\bsettings?\b
+idle	유휴	\bidle\b
+folder	폴더	\bfolders?\b
+picture	사진	\bpictures?\b
+fullscreen	전체 화면	\bfull-?screen\b
+monitor	모니터	\bmonitors?\b

@@ -1,13 +1,11 @@
-slideshow	投影片放映
-lock	鎖定
-screen lock	工作階段鎖定
-Preview	預覽
-Settings	設定
-idle	閒置
-inactivity	閒置
-folder	資料夾
-image	圖片
-picture	圖片
-fullscreen	全螢幕
-monitor	顯示器
-Slideshow Lock	Slideshow Lock
+# Slideshow Lock translation glossary, zh_TW. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	投影片放映	\bslideshow\b
+lock	鎖定	\block(s|ed|ing)?\b
+preview	預覽	\bpreview\b
+settings	設定	\bsettings?\b
+idle	閒置	\bidle\b
+folder	資料夾	\bfolders?\b
+picture	圖片	\bpictures?\b
+fullscreen	全螢幕	\bfull-?screen\b
+monitor	顯示器	\bmonitors?\b

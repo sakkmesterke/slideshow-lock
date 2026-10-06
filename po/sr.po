@@ -332,11 +332,11 @@ msgstr "Подесите приказ слајдова у мировању и з
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Чувар екрана са приказом слајдова који закључава при уносу"
+msgstr "Чувар екрана са приказом слајдова у мировању који закључава при уносу"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock покреће приказ слајдова преко целог екрана на сваком монитору када је сесија одређено време у мировању."
+msgstr "Slideshow Lock покреће приказ слајдова са сликама преко целог екрана на сваком монитору када је сесија одређено време у мировању."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
