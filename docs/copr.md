@@ -93,7 +93,7 @@ RPM step of section 1 does not need it. The check is the same first build in eac
 
 One step for the owner of the Fedora account, nothing is stored in the repository:
 
-1. Project name `slideshow-lock`, owned by the maintainer's Fedora account.
+1. Project name `sakkmesterke/slideshow-lock` (the project `slideshow-lock` of the maintainer's Fedora account `sakkmesterke`).
 2. Chroots: the list of section 2.
 3. Package source type: SCM (git), clone URL `https://github.com/sakkmesterke/slideshow-lock.git`,
    committish `main`, subdirectory empty, spec file `packaging/fedora/slideshow-lock.spec`, build
