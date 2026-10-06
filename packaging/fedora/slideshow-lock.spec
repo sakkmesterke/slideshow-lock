@@ -27,12 +27,16 @@
 # build the fix was also tried in rootless Fedora 43 and CentOS Stream 10 build roots made of the
 # packages (exact versions) of the COPR logs, with rpmbuild 6.0.2 and 4.19.1.1 of those roots, no
 # scriptlets run: the build, %%check included, passed on both.
-# NOT run: mock by hand, rpmlint on the built RPM (an earlier rpmlint run, with its
-# default configuration, not Fedora's, on the spec and the source RPM, found no error that comes from
-# the file itself), an install of the RPM on a Fedora or EL machine, the test suite (--with tests), a
-# real GNOME session. No fedora-review result was produced: the COPR task of both builds has
-# fedora_review: True, but the result directories have no review.txt (HTTP 404) and the builder logs
-# show no review run.
+# [M] rpmlint 2.8.0 and fedora-review ran in the COPR build 11084605 on the three Fedora chroots (the
+# results are in the fedora-review/ directory of each: review.txt, rpmlint.txt). rpmlint ran with the
+# Fedora configuration (/etc/xdg/rpmlint/fedora.toml) on the built noarch RPM and on the source RPM,
+# and printed the same in fedora-43, fedora-44 and fedora-rawhide: 0 errors, 2 warnings
+# (no-manual-page-for-binary and empty-%%postun), 7 filtered. fedora-review (rc 0) wrote its template:
+# 36 items of review.txt are marked "[x]", 34 "[ ]" items (the manual checks) are still open. Neither
+# tool left a result on epel-10 (no files there), and none exists for the build 11084376 (no result
+# files in any chroot).
+# NOT run: mock by hand, rpmlint and fedora-review on epel-10, an install of the RPM on a Fedora or EL
+# machine, the test suite (--with tests), a real GNOME session.
 #
 # Prerequisites that are not in this file:
 #   - The tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does. A protected
