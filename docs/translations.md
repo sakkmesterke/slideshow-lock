@@ -8,9 +8,9 @@ is not an error either: the interface is English and the program writes one WARN
 
 Status: there are five catalogs: German, Spanish, French, Hungarian and Italian (`po/de.po`, `po/es.po`,
 `po/fr.po`, `po/hu.po`, `po/it.po`, all listed in `po/LINGUAS`). Each holds a translation of every string
-the source asks for (`tools/i18n.sh check` compares them with the source). A native speaker of these
-languages has not read them yet. The `usage:` and `options:` lines of `--help` come from
-Python's `argparse` and stay English (section 5).
+the source asks for (`tools/i18n.sh check` compares the template with the source; the tests compare
+each catalog with the source). A native speaker of these languages has not read them yet. The
+`usage:` and `options:` lines of `--help` come from Python's `argparse` and stay English (section 5).
 
 ## 1. How the language is chosen
 
