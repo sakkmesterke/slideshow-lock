@@ -7,6 +7,8 @@ glib-compile-schemas data/
 GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 ```
 
+`slideshow_lock.settings_app` (what `./run.sh settings` and `slideshow-lock settings` start) is the same window and also closes the shell's overview when the Preview button is pressed; see `docs/architecture/dbus-state-machine.md`, section 3.7a.
+
 ## What is in it
 
 | Field | Key | Accepts |

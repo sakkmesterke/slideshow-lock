@@ -222,7 +222,7 @@ interface follows the language of the session.
 # there is no %%license line in %%files; -l asks the macro to fail the build if it finds none.
 
 # The command. [K] pyproject.toml has no [project.scripts]; packaging/slideshow-lock is the one
-# launcher: "slideshow-lock service|settings|preview" starts slideshow_lock.service, .preferences
+# launcher: "slideshow-lock service|settings|preview" starts slideshow_lock.service, .settings_app
 # or .preview_app (the sub-commands of run.sh). The unit and the .desktop file call it.
 install -Dpm 0755 packaging/%{name} %{buildroot}%{_bindir}/%{name}
 # The short command. [K] packaging/slideshowlock is a small sh launcher: "slideshowlock" is
