@@ -182,6 +182,18 @@ OPT_OUTS = {
         "test_i18n_hu.py",
         "test_the_catalog_built_from_this_checkout_is_what_the_programs_show_in_a_hungarian_session",
     ),
+    (
+        "test_i18n_translations.py",
+        "test_msgfmt_counts_every_message_translated_none_fuzzy_none_untranslated",
+    ),
+    (
+        "test_i18n_translations.py",
+        "test_the_catalog_built_from_this_checkout_is_what_the_programs_show_in_its_language",
+    ),
+    (
+        "test_i18n_translations.py",
+        "test_a_language_that_is_not_in_linguas_is_not_built_and_the_check_fails",
+    ),
     ("test_picture_folder_xdg.py", "test_a_hungarian_system_uses_its_kepek_folder_everywhere"),
     (
         "test_picture_folder_xdg.py",
