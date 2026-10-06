@@ -3,6 +3,11 @@
 How the RPM is built in COPR, and what is decided and what is not. Nothing here has been run in
 COPR: the project does not exist yet. `[H]` marks background knowledge that was not measured.
 
+COPR builds the package itself, from the spec, on its own server (`[H]` with `mock`, one build per
+chroot). That build is the real build test: nothing here builds the package locally. What runs
+locally is `rpmlint`, `desktop-file-validate` and `appstreamcli validate`. What the COPR server
+does is not measurable from here, so what is said about it below is a claim, not a fact.
+
 ## 1. Source of the build
 
 The spec's `Source0` is the GitHub tarball of the tag `v%{version}`. The tag does not exist yet, so
@@ -54,7 +59,13 @@ and for `glib2-devel` and `gettext` at build time. That they exist under EPEL 10
 repository) comes from the package names printed by `run.sh`, which the script itself calls
 "likely". It is not measured and is not claimed. It is measured by a `mock` build of the SRPM in
 `epel-10-x86_64` (and in a Fedora chroot), which also shows whether the `%pyproject_*` macros are
-there. Until that has run, no EPEL 10 or RHEL 10 target is claimed to work.
+there. That mock build is the first COPR build in each chroot: it is not repeated locally. Until it
+has run, no EPEL 10 or RHEL 10 target is claimed to work.
+
+Translations. The `.desktop` file and the AppStream metainfo are translated with `msgfmt` at build
+time, so `gettext` must be in every chroot. The spec lists it as `BuildRequires: gettext`, and COPR
+installs the build requirements into the chroot `[H]`; the source RPM step of section 1 does not
+need it. The check is the same first build in each chroot.
 
 ## 3. Creating the project
 
@@ -81,4 +92,4 @@ These are open and are not part of this change:
 - the SHA-512 of the release tarball (which of the two tarballs of section 1 is meant, decided
   first);
 - the release date in the AppStream metainfo, when that file exists;
-- a build in each chroot (section 2) that succeeded, and `rpmlint` on the result.
+- a COPR build in each chroot (section 2) that succeeded, and `rpmlint` on the result.
