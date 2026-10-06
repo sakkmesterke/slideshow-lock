@@ -64,6 +64,15 @@ No code changes. `tools/i18n.sh build DIR` compiles the catalogs of `po/LINGUAS`
 `DIR/<lang>/LC_MESSAGES/<APP_ID>.mo`; `.mo` and `.pot` files are not in git. `build` runs the name
 and charset checks first, and a build that fails leaves no `.mo` behind.
 
+The launcher and the AppStream metadata go through the same catalogs. `data/<APP_ID>.desktop.in`
+and `data/<APP_ID>.metainfo.xml.in` are templates, and the only copies in git: `tools/i18n.sh data
+DIR` writes `DIR/<APP_ID>.desktop` and `DIR/<APP_ID>.metainfo.xml` with the translations in them
+(`msgfmt --desktop` and `msgfmt --xml`; the second needs the ITS rules that come with gettext).
+`extract` adds their strings to the template: the `Name` and `Comment` of the launcher, and the name,
+summary and description of the metadata (each paragraph is one string). Nothing else is translated
+there, the `Keywords` line included. The catalogs do not hold the five new strings yet; until they
+do, the generated files are English. `check` also builds the two files.
+
 ## 4. Rules for the source
 
 `tools/i18n.sh check` and `tests/test_i18n_source.py` enforce them:
