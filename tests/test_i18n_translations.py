@@ -130,9 +130,11 @@ AI_TRANSLATOR = "AI-assisted (Claude), not reviewed by a native speaker"
 HUMAN_TRANSLATOR = "Slideshow Lock contributors"
 
 #: Strings that are the same as the English on purpose: the name of the program and the units
-#: (``10 s``, ``%d min``, ``1 h`` are written the same in all of these languages).
+#: (``10 s``, ``%d min``, ``1 h`` are written the same in all of these languages), and a word that
+#: is the same in French (``Transitions``).
 SAME_AS_ENGLISH = {
     "Slideshow Lock",
+    "Transitions",
     "10 s",
     "1 min",
     "1 h",

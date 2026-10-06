@@ -113,5 +113,36 @@
       </description>
     </key>
 
+    <key name="transitions" type="as">
+      <default>['crossfade']</default>
+      <summary>Transitions between pictures</summary>
+      <description>
+        How one picture changes into the next, as a list of names. The names are
+        crossfade, fade-black, slide-in, push, ken-burns, zoom, wipe, circle, blur
+        and rotate; this version draws crossfade and fade-black, and a name it
+        cannot draw changes nothing. An empty list means no transition: the
+        pictures change at once. A transition takes at most a quarter of the
+        slide interval, and there is none when the desktop's animations are off.
+        A name that is not in the list above is ignored (and logged once), so a
+        value written by another version never stops the slideshow. A schema key
+        of this type cannot list its choices, so the program checks the names.
+      </description>
+    </key>
+
+    <key name="transition-order" type="s">
+      <choices>
+        <choice value="random"/>
+        <choice value="sequence"/>
+      </choices>
+      <default>'random'</default>
+      <summary>How a transition is chosen from several</summary>
+      <description>
+        With more than one name in "transitions": "random" picks one for each
+        change, "sequence" goes through them in the order of the list above.
+        This version draws one transition at a time, so the key is stored but
+        has no effect yet.
+      </description>
+    </key>
+
   </schema>
 </schemalist>

@@ -82,6 +82,8 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_ORDER,
+    KEY_TRANSITIONS,
     Settings,
 )
 
@@ -93,6 +95,8 @@ _ALL_SETTINGS_KEYS = [
     KEY_ORDER,
     KEY_SCALING,
     KEY_PAN_PORTRAIT_IMAGES,
+    KEY_TRANSITIONS,
+    KEY_TRANSITION_ORDER,
 ]
 
 

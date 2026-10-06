@@ -12,8 +12,8 @@ from types import SimpleNamespace
 import pytest
 
 from slideshow_lock import preferences
-from slideshow_lock.preferences import PreferencesWindow, _choice_labels
-from slideshow_lock.preferences_model import CHOICES
+from slideshow_lock.preferences import PreferencesWindow, _choice_labels, _transition_labels
+from slideshow_lock.preferences_model import CHOICES, TRANSITION_CHOICES
 
 
 def test_every_choice_has_a_label_in_the_same_order():
@@ -22,6 +22,12 @@ def test_every_choice_has_a_label_in_the_same_order():
     for key, values in CHOICES.items():
         assert len(labels[key]) == len(values), key  # the drop-down index is the choice's index
         assert len(set(labels[key])) == len(values), key  # two choices never look the same
+
+
+def test_every_transition_choice_has_a_label_in_the_same_order():
+    labels = _transition_labels()
+    assert len(labels) == len(TRANSITION_CHOICES)  # the drop-down index is the choice's index
+    assert len(set(labels)) == len(labels)
 
 
 def test_the_preview_button_hands_the_windows_application_to_start_preview(monkeypatch):

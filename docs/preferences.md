@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 window for the stored settings, in titled groups of rows (Pictures, Start the slideshow, Timing). Run it from a source checkout:
+A GTK 4 window for the stored settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing). Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -20,6 +20,7 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Picture order | `order` | random, name |
 | Scaling | `scaling` | fill, fit |
 | Scroll tall pictures | `pan-portrait-images` | on, off (off by default) |
+| Between pictures (drop-down, in the Transitions group) | `transitions` | none (an empty list), cross-fade (`crossfade`, the default), fade through black (`fade-black`) |
 
 "Preview" runs the CORE-2 preview (`preview_app.start_preview`) on the stored settings, in the
 same process. It never locks (D11); any key, click, scroll or mouse movement ends it, and
@@ -69,6 +70,15 @@ There is no on/off switch: that goes through the systemd user unit
   stored value stays until the user moves the slider. A stored 0 or 86400 cannot exist (GSettings
   gives the default, 5 s, for a value outside the range). The idle time (1 to 86400 seconds) and
   the grace period are still plain number fields.
+- The "Between pictures" drop-down (group Transitions) offers None, Cross-fade and Fade through
+  black. `transitions` is a list of names so that a later version can offer several at once; this
+  window stores a list of one name, and None is the empty list (a real choice, not the default). A
+  list stored by hand or by another version with several names, or with one this version cannot
+  draw, shows the one that is drawn (None when there is none); reading never writes, the list
+  stays until the user picks something. The row says that without desktop animations the pictures
+  change at once. `transition-order` (random or sequence) is in the schema, `Settings` and
+  `PreferencesModel`, and has no field yet: one transition is drawn at a time. What the
+  transitions do and when there is none: `docs/preview.md`, section 2.
 - The folder chooser (Browse) opens in the folder in use when it exists. If that folder is missing,
   or the default is in use, it opens in the system's pictures folder (`~/Pictures` when none is
   configured or it is the home directory itself), and in the home directory only when even that

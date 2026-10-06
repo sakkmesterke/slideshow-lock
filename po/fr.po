@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 04:00+0000\n"
+"POT-Creation-Date: 2026-10-06 06:38+0000\n"
 "PO-Revision-Date: 2026-10-06 04:00+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: French\n"
@@ -41,6 +41,18 @@ msgid "Fit (shows the whole picture)"
 msgstr "Ajuster (affiche l’image entière)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Aucune (changement immédiat)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Fondu enchaîné"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Fondu au noir"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Paramètres de Slideshow Lock"
 
@@ -71,6 +83,18 @@ msgstr "Faire défiler les images hautes"
 #: slideshow_lock/preferences.py
 msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
 msgstr "Les images en portrait sur un écran en paysage défilent lentement de haut en bas (uniquement avec Remplir). Désactivé par défaut : cela consomme plus de batterie."
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Transitions"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Entre les images"
+
+#: slideshow_lock/preferences.py
+msgid "How a picture changes into the next. Without desktop animations the pictures change at once."
+msgstr "Comment une image passe à la suivante. Sans les animations du bureau, les images changent instantanément."
 
 #: slideshow_lock/preferences.py
 msgid "Start the slideshow"
@@ -226,6 +250,14 @@ msgid "This choice is not available."
 msgstr "Ce choix n’est pas disponible."
 
 #: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Valeur refusée, l’ancienne est conservée."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Impossible d’enregistrer la valeur."
+
+#: slideshow_lock/preferences_model.py
 msgid "This must be on or off."
 msgstr "Doit être activé ou désactivé."
 
@@ -244,14 +276,6 @@ msgstr "Saisir un chemin absolu (commençant par / ou ~)."
 #: slideshow_lock/preferences_model.py
 msgid "This path is a file, not a folder."
 msgstr "Ce chemin désigne un fichier, pas un dossier."
-
-#: slideshow_lock/preferences_model.py
-msgid "The value was not accepted, the old one is kept."
-msgstr "Valeur refusée, l’ancienne est conservée."
-
-#: slideshow_lock/preferences_model.py
-msgid "The value could not be saved."
-msgstr "Impossible d’enregistrer la valeur."
 
 #: slideshow_lock/preferences_model.py
 msgid "The folder was not accepted, the old one is kept."
@@ -288,6 +312,10 @@ msgstr "ajuster ou remplir l’écran"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "faire défiler lentement les images en portrait (mode remplir)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "comment une image passe à la suivante, ou none (cette exécution uniquement)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

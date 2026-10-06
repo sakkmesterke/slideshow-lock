@@ -10,6 +10,7 @@ is what ``tools/wayland-smoke`` checks on a real compositor.
 from __future__ import annotations
 
 import pytest
+from gi.repository import GLib
 
 from slideshow_lock import preview_window
 from slideshow_lock.preview import (
@@ -124,6 +125,12 @@ def window_for_frames(monkeypatch):
     window._tick_id = 0
     window._pan_t0 = None
     window._offset = (0, 0)
+    window._old_texture = window._transition = None
+    window._old_offset = (0, 0)
+    window._transition_tick_id = window._transition_ticks = 0
+    window._transition_t0 = None
+    window._transition_seconds = window._transition_progress = 0.0
+    window._scale = lambda: 1.0
     calls = []
     monkeypatch.setattr(_Canvas, "add_tick_callback", lambda self, fn: calls.append("tick") or 7)
     monkeypatch.setattr(_Canvas, "remove_tick_callback", lambda self, id_: calls.append("untick"))
@@ -195,3 +202,242 @@ def test_animations_are_read_again_for_every_call_so_a_change_takes_effect_with_
 def test_animations_stay_on_when_there_is_no_default_gtk_settings_object(monkeypatch):
     monkeypatch.setattr(preview_window.Gtk.Settings, "get_default", staticmethod(lambda: None))
     assert preview_window.animations_enabled() is True
+
+
+# -- a transition: when it starts, when it ends, what is drawn -----------------------------------
+
+
+def flat_frame(name="f.png"):
+    return Frame(name, 4, 3, 12, bytes(12 * 3), "fake", (0, 0))
+
+
+class _Clock:
+    def __init__(self, seconds):
+        self.us = int(seconds * 1_000_000)
+
+    def get_frame_time(self):
+        return self.us
+
+
+def canvas_with_a_picture(monkeypatch):
+    """A canvas that shows one frame already (the old one), and records its tick calls."""
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame("old.png"), 0.0)
+    calls.clear()
+    return window, calls
+
+
+def test_a_new_frame_with_a_transition_keeps_the_old_texture_and_starts_a_tick(monkeypatch):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    old = window._texture
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    assert calls == ["tick"]
+    assert window._old_texture is old and window._texture is not old
+    assert window._transition == "crossfade" and window._transition_seconds == 1.0
+
+
+def test_a_new_frame_without_a_transition_is_a_cut_and_forgets_the_old_texture(monkeypatch):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0)
+    assert calls == [] and window._old_texture is None and window._transition is None
+
+
+def test_the_first_picture_has_nothing_to_change_from(monkeypatch):
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame(), 0.0, ("crossfade", 1.0))
+    assert calls == [] and window._old_texture is None and window._transition is None
+
+
+def test_the_same_frame_again_is_not_a_change(monkeypatch):
+    window, calls = window_for_frames(monkeypatch)
+    frame = flat_frame()
+    window.set_frame(frame, 0.0)
+    calls.clear()
+    window.set_frame(frame, 0.0, ("crossfade", 1.0))
+    assert calls == [] and window._transition is None
+
+
+@pytest.mark.parametrize("name,seconds", [("wipe", 0.8), ("sparkle", 1.0), ("crossfade", 0.0)])
+def test_a_transition_that_cannot_be_drawn_is_a_cut(monkeypatch, name, seconds):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, (name, seconds))
+    assert calls == [] and window._transition is None and window._old_texture is None
+
+
+@pytest.mark.parametrize("transition", [None, ("crossfade", 1.0)], ids=["cut", "another"])
+def test_any_call_of_set_frame_ends_a_running_transition_at_once(monkeypatch, transition):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("b.png"), 0.0, ("fade-black", 1.2))
+    calls.clear()
+    window.set_frame(flat_frame("c.png"), 0.0, transition)
+    assert calls[0] == "untick"  # the running one is stopped first
+    assert window._transition == (transition[0] if transition else None)
+
+
+def test_a_message_or_a_close_ends_a_running_transition_and_drops_both_textures(monkeypatch):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("b.png"), 0.0, ("crossfade", 1.0))
+    calls.clear()
+    window.set_frame(None, 0.0)  # what show_message and close do
+    assert calls == ["untick"]
+    assert window._transition is None and window._old_texture is None and window._texture is None
+
+
+def test_the_old_picture_stands_where_it_stopped_and_the_new_one_starts_at_the_top(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, _calls = window_for_frames(monkeypatch)
+    window.set_frame(tall_frame((0, 600)), 5.0)
+    window._offset = (0, 600)  # the pan of the old picture has run to its end
+    window.set_frame(tall_frame((0, 600)), 5.0, ("crossfade", 1.0))
+    assert window._old_offset == (0, 600) and window._offset == (0, 0)
+
+
+def run_ticks(window, times):
+    """Deliver a tick at each of *times* (seconds); the list of what each returned."""
+    return [window._on_transition_tick(None, _Clock(t)) for t in times]
+
+
+def test_the_clock_starts_at_the_second_tick_and_the_first_frame_is_at_progress_zero(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    run_ticks(window, [100.0])  # the first tick: the new texture is uploaded
+    assert window._transition_t0 is None and window._transition_progress == 0.0
+    run_ticks(window, [100.2])  # the second tick: this is where the time starts
+    assert window._transition_t0 == int(100.2 * 1_000_000)
+    assert window._transition_progress == 0.0
+
+
+def test_the_progress_follows_the_frame_clock_not_the_number_of_frames(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 2.0))
+    run_ticks(window, [10.0, 10.0])
+    assert run_ticks(window, [10.5]) == [GLib.SOURCE_CONTINUE]
+    assert window._transition_progress == pytest.approx(0.25)
+    run_ticks(window, [11.0])
+    assert window._transition_progress == pytest.approx(0.5)  # one frame later, a longer jump
+    run_ticks(window, [11.9])
+    assert window._transition_progress == pytest.approx(0.95)
+
+
+@pytest.mark.parametrize("frames", [[10.0, 10.0, 11.0], [10.0, 10.0, 10.5, 11.4]])
+def test_the_transition_ends_when_the_time_is_up_whatever_the_number_of_frames(monkeypatch, frames):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    calls.clear()
+    results = run_ticks(window, frames)
+    assert results[-1] == GLib.SOURCE_REMOVE and GLib.SOURCE_REMOVE not in results[:-1]
+    assert window._transition is None and window._old_texture is None
+    assert calls == []  # the tick returned SOURCE_REMOVE: it is not removed a second time
+
+
+def test_after_the_end_the_canvas_draws_the_one_picture_plainly(monkeypatch):
+    monkeypatch.setattr(_Canvas, "get_width", lambda self: 4)
+    monkeypatch.setattr(_Canvas, "get_height", lambda self: 3)
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    during = _Snapshot()
+    window.do_snapshot(during)
+    assert during.calls[0][0] == "push_cross_fade"  # while it runs: the cross fade
+    run_ticks(window, [5.0, 5.0, 6.5])
+    after = _Snapshot()
+    window.do_snapshot(after)
+    assert [c[0] for c in after.calls] == ["append_color", "append_texture"]
+    assert after.calls[1][1] is window._texture  # 1:1, not a filtered last frame
+
+
+class _Snapshot:
+    """Records the drawing calls ``_Canvas`` makes."""
+
+    def __init__(self):
+        self.calls = []
+
+    def append_color(self, *_args):
+        self.calls.append(("append_color",))
+
+    def append_texture(self, texture, _rect):
+        self.calls.append(("append_texture", texture))
+
+    def push_cross_fade(self, progress):
+        self.calls.append(("push_cross_fade", progress))
+
+    def pop(self):
+        self.calls.append(("pop",))
+
+
+class _Texture:
+    def get_width(self):
+        return 4
+
+    def get_height(self):
+        return 3
+
+
+def running_canvas(monkeypatch, name, ticks, progress):
+    window, _calls = window_for_frames(monkeypatch)
+    window._old_texture, window._texture = _Texture(), _Texture()
+    window._transition, window._transition_ticks = name, ticks
+    window._transition_progress = progress
+    return window
+
+
+def layers_drawn(snapshot):
+    """What each of the two layers of a cross fade holds: the texture, or None for plain black."""
+    calls = snapshot.calls
+    first_pop = calls.index(("pop",))
+    start, end = calls[1:first_pop], calls[first_pop + 1 : -1]
+    return [next((c[1] for c in part if c[0] == "append_texture"), None) for part in (start, end)]
+
+
+def test_the_cross_fade_is_one_push_with_the_old_picture_first_and_the_new_one_second(
+    monkeypatch,
+):
+    window = running_canvas(monkeypatch, "crossfade", 3, 0.4)
+    snapshot = _Snapshot()
+    window._snapshot_transition(snapshot, 4, 3)
+    assert snapshot.calls[0] == ("push_cross_fade", 0.4)
+    assert [c[0] for c in snapshot.calls].count("pop") == 2  # a cross fade is closed by two pops
+    assert snapshot.calls[-1] == ("pop",)
+    assert layers_drawn(snapshot) == [window._old_texture, window._texture]
+
+
+def test_every_layer_of_a_transition_starts_with_a_full_window_of_black(monkeypatch):
+    window = running_canvas(monkeypatch, "crossfade", 3, 0.4)
+    snapshot = _Snapshot()
+    window._snapshot_transition(snapshot, 4, 3)
+    names = [c[0] for c in snapshot.calls]
+    assert names == [
+        "push_cross_fade",
+        "append_color",
+        "append_texture",
+        "pop",
+        "append_color",
+        "append_texture",
+        "pop",
+    ]
+
+
+def test_the_fade_through_black_goes_old_to_black_and_then_black_to_new(monkeypatch):
+    window = running_canvas(monkeypatch, "fade-black", 3, 0.25)
+    snapshot = _Snapshot()
+    window._snapshot_transition(snapshot, 4, 3)
+    assert snapshot.calls[0] == ("push_cross_fade", pytest.approx(0.5))
+    assert layers_drawn(snapshot) == [window._old_texture, None]
+    window = running_canvas(monkeypatch, "fade-black", 3, 0.75)
+    snapshot = _Snapshot()
+    window._snapshot_transition(snapshot, 4, 3)
+    assert snapshot.calls[0] == ("push_cross_fade", pytest.approx(0.5))
+    assert layers_drawn(snapshot) == [None, window._texture]
+
+
+@pytest.mark.parametrize("name", ["crossfade", "fade-black"])
+@pytest.mark.parametrize("ticks", [0, 1])
+def test_the_first_frame_draws_the_old_picture_at_progress_zero_with_both_textures(
+    monkeypatch, name, ticks
+):
+    """Where the new texture is uploaded, out of sight: even the fade through black, which has
+    no new picture in its first half, draws it then."""
+    window = running_canvas(monkeypatch, name, ticks, 0.0)
+    snapshot = _Snapshot()
+    window._snapshot_transition(snapshot, 4, 3)
+    assert snapshot.calls[0] == ("push_cross_fade", 0.0)
+    assert layers_drawn(snapshot) == [window._old_texture, window._texture]
