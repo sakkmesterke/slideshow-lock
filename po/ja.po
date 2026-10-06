@@ -1,0 +1,347 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 21:00+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "ランダム"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "ファイル名順"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "画面いっぱいに表示 (画像を切り抜く)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "収まるように表示 (画像全体を表示)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Slideshow Lock の設定"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "参照…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "画像"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "画像フォルダー"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "画像の順序"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "拡大縮小"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "縦長の画像をスクロールする"
+
+#: slideshow_lock/preferences.py
+msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
+msgstr "横長の画面で縦長の画像を、上から下へゆっくり移動させます (「画面いっぱいに表示」のときのみ)。既定ではオフです。バッテリーの消費が増えます。"
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "スライドショーの開始"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "アイドル時間"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "スライドショーが始まるまでの、操作がない時間。"
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "秒"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "タイミング"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "各画像の表示時間"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "ロックの猶予時間"
+
+#: slideshow_lock/preferences.py
+msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
+msgstr "スライドショーの開始からこの時間より短い間に操作があっても、セッションはロックされません (厳密にこれより短い場合のみ。0 はすべての操作でロックされます)。"
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "プレビュー"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 秒"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 分"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 時間"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 時間"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "画像フォルダーを選択"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "選択"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "プレビューを開始できませんでした。ログを確認してください。"
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "プレビューを表示するモニターがありません。"
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "プレビュー実行中: 任意のキーを押すか、マウスを動かすと終了します。"
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "スライドショーの設定を変更します。"
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "すべての手順をログに記録する"
+
+#: slideshow_lock/preferences.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr "設定スキーマがインストールされていません。コンパイルして GSettings に指定してください:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "保存しました。"
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "最長"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d 秒"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d 分"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d 時間"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "使用中: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "使用中: %s (フォルダーはまだ存在しないため、何も表示されません)"
+
+#: slideshow_lock/preferences_model.py
+msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
+msgstr "スライダーの刻みではありません。最も近い値が表示されます。保存された値は、スライダーを動かすまで変わりません。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "秒数を整数で入力してください。"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "値は %(low)d から %(high)d の間で指定してください。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "スライダーの位置を整数で入力してください。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "この位置はスライダー上にありません。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "この選択肢は利用できません。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "オンかオフを指定してください。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "フォルダーのパスを入力してください。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "パスに使用できない文字が含まれています。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "絶対パスを入力してください (/ または ~ で始まります)。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "このパスはフォルダーではなくファイルです。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "値が受け付けられなかったため、元の値を保持します。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "値を保存できませんでした。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "フォルダーが受け付けられなかったため、元のフォルダーを保持します。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "フォルダーを保存できませんでした。"
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "表示する画像がありません"
+
+#: slideshow_lock/preview_app.py
+msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "スライドショーのプレビューを表示します。何か操作すると終了します。セッションはロックされません。"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "画像フォルダー (この実行のみ)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "1 枚あたりの秒数 (この実行のみ)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "画像の順序"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "モニターに収める、または画面いっぱいに表示"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "縦長の画像をゆっくりスクロールする (画面いっぱいモード)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "間隔は %d 秒から %d 秒の間で指定してください。"
+
+#: slideshow_lock/preview_app.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr "設定スキーマがインストールされていません。コンパイルして GSettings に指定してください:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Slideshow Lock のプレビュー"
+
+#: slideshow_lock/service.py
+msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
+msgstr "セッションがアイドル状態になるとスライドショーを開始し、猶予時間の後の最初の操作でロックし、マシンがスリープする前にもロックします。"
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "スライドショーを始めるまでのアイドル秒数"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "この秒数以内の操作ではロックしない"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "アイドル時間は 1 秒から 86400 秒の間で指定してください。"
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "猶予時間は 0 秒から 86400 秒の間で指定してください。"
+
+#: slideshow_lock/service.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr "設定スキーマがインストールされていません。コンパイルして GSettings に指定してください:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "アイドル時のスライドショーとセッションのロックを設定します"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "操作でロックするアイドル時スライドショー形式のスクリーンセーバー"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
+msgstr "Slideshow Lock は、セッションが一定時間アイドル状態になると、各モニターで全画面のスライドショーを開始します。"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
+msgstr "最初のキー入力、クリック、またはマウスの動きでスライドショーが終了します。スライドショーが猶予時間以上表示されていた場合は、セッションもロックされます。"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
+msgstr "画像は選択したフォルダーから読み込まれます。設定ウィンドウで、フォルダー、アイドル時間、猶予時間、各画像の表示時間、順序、拡大縮小を設定できます。"
