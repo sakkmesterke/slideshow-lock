@@ -1,0 +1,392 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:55+0000\n"
+"PO-Revision-Date: 2026-10-06 20:55+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Swedish\n"
+"Language: sv\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Slumpmässig"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Efter filnamn"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Fyll skärmen (beskär bilden)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Anpassa (visar hela bilden)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Inställningar för Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Bläddra…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Bilder"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Bildmapp"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Bildordning"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Skalning"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Rulla höga bilder"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Stående bilder på en liggande skärm rör sig långsamt uppifrån och ned "
+"(endast med Fyll). Av som standard: det drar mer batteri."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Starta bildspelet"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Inaktivitetstid"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Hur länge utan inmatning innan bildspelet startar."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekunder"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Tider"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Visa varje bild i"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Respittid för låsning"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Inmatning tidigare än så här efter att bildspelet startat låser inte "
+"sessionen (strikt tidigare; 0 betyder att all inmatning låser)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Förhandsgranskning"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 h"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Välj bildmappen"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Välj"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Avbryt"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Förhandsgranskningen kunde inte startas, se loggen."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Det finns ingen bildskärm att visa förhandsgranskningen på."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Förhandsgranskning pågår: tryck på valfri tangent eller flytta musen för att "
+"avsluta."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Ändra inställningarna för bildspelet."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "logga varje steg"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Inställningsschemat är inte installerat. Kompilera det och peka GSettings på "
+"det:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Sparat."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "den längsta"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d h"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Används: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Används: %s (mappen finns inte än, inget kommer att visas)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Inte ett steg på reglaget: det närmaste visas. Det sparade värdet finns kvar "
+"tills du flyttar reglaget."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Ange ett helt antal sekunder."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Värdet måste ligga mellan %(low)d och %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Ange ett heltal för reglagets position."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Den här positionen finns inte på reglaget."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Det här valet är inte tillgängligt."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Detta måste vara på eller av."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Ange en mappsökväg."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Sökvägen innehåller ett tecken som inte är tillåtet."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Ange en absolut sökväg (den börjar med / eller ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Den här sökvägen är en fil, inte en mapp."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Värdet godtogs inte, det gamla behålls."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Värdet kunde inte sparas."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Mappen godtogs inte, den gamla behålls."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Mappen kunde inte sparas."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Inga bilder att visa"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Visa förhandsgranskningen av bildspelet. All inmatning avslutar den. Den "
+"låser aldrig sessionen."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "bildmapp (endast den här körningen)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "sekunder per bild (endast den här körningen)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "bildordning"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "anpassa eller fyll bildskärmen"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "rulla stående bilder långsamt (fyllningsläge)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Intervallet måste ligga mellan %d och %d sekunder."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Inställningsschemat är inte installerat. Kompilera det och peka GSettings på "
+"det:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Förhandsgranskning av Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Starta bildspelet när sessionen är inaktiv, lås den vid första inmatningen "
+"efter respittiden och lås innan datorn går i vänteläge."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "inaktiva sekunder före bildspelet"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "ingen låsning vid inmatning inom så här många sekunder"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Tidsgränsen för inaktivitet måste ligga mellan 1 och 86400 sekunder."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Respittiden måste ligga mellan 0 och 86400 sekunder."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Inställningsschemat är inte installerat. Kompilera det och peka GSettings på "
+"det:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Ställ in bildspelet vid inaktivitet och sessionslåset"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "Bildspel som skärmsläckare vid inaktivitet, som låser vid inmatning"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock startar ett bildspel i helskärm på varje skärm när sessionen "
+"har varit inaktiv en inställd tid."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Första tangenttryckningen, klicket eller musrörelsen avslutar bildspelet. Om "
+"bildspelet har visats i minst respittiden låses sessionen också."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Bilderna kommer från en mapp som du väljer. Ett inställningsfönster ställer "
+"in mappen, inaktivitetstiden, respittiden, hur länge varje bild visas, "
+"ordningen och skalningen."
