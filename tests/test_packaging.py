@@ -27,7 +27,7 @@ EXEC_LINE = 'exec /usr/bin/python3 -P -m "$module" "$@"'
 
 MODULES = {
     "service": "slideshow_lock.service",
-    "settings": "slideshow_lock.preferences",
+    "settings": "slideshow_lock.settings_app",
     "preview": "slideshow_lock.preview_app",
 }
 

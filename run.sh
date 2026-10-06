@@ -3,7 +3,7 @@
 #
 #   ./run.sh check              look for the dependencies, install nothing
 #   ./run.sh preview [args...]  the fullscreen preview (never locks), args go to preview_app
-#   ./run.sh settings [args...] the settings window, args go to slideshow_lock.preferences
+#   ./run.sh settings [args...] the settings window, args go to slideshow_lock.settings_app
 #   ./run.sh service [args...]  the whole chain in the foreground (idle, slideshow, lock), args go
 #                               to slideshow_lock.service, e.g. --idle-timeout 20 --grace 3
 #
@@ -201,7 +201,7 @@ case "${1:-}" in
         fi
         do_check || exit 1
         prepare_env
-        exec python3 -m slideshow_lock.preferences "$@"
+        exec python3 -m slideshow_lock.settings_app "$@"
         ;;
     service)
         shift
