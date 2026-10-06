@@ -38,6 +38,14 @@ source (CORE-4) cannot see these cases, so they are handled here:
   before any pixel buffer is allocated. The loader is told to produce a 0 x 0 picture,
   which stops it at once: measured with a 30000 x 30000 PNG, that costs 0 ms and 17 MB,
   while abandoning the decode after the size was announced still cost 3.3 s.
+  This is not complete protection. Where the loader announces the size while it is fed (the
+  gdk-pixbuf 2.42.10 loaders of the CI image: PNG, TIFF), it stops at once. Where it announces
+  the size only when it is closed (webp-pixbuf-loader 0.2.1 on Debian 12, glycin on Fedora 43
+  and later: measured by the security review for PNG, TIFF, JPEG, BMP and WebP, not for GIF, and
+  not on the CI image), it has decoded the picture by then and its own allocation is already
+  made and stays: the check after ``close()`` only refuses the picture before this module
+  copies, converts and scales it (Fedora, 7072 x 7072 WebP, measured by the security review:
+  python side 466 MiB down to 32 MiB; the loader's own 340 MiB stays).
 
 Not detected: a JPEG that is damaged inside the entropy-coded data but structurally
 complete. libjpeg conceals that, and gdk-pixbuf reports no error, so the damaged picture
@@ -409,6 +417,15 @@ class ImageScaler:
                 if too_big:
                     raise too_big_error()
             loader.close()
+            # Not every loader announces the size while it is fed: some (webp-pixbuf-loader 0.2.1
+            # on Debian 12; glycin on Fedora 43 and later, for the formats named in the module
+            # doc) do it only here, in close(), after the picture is decoded. The check above
+            # never sees that. The loader is closed already when this raises: the close_quietly()
+            # below is a second close(), which gdk_pixbuf_loader_close() answers with success
+            # (measured on 2.42.10: a second close() returns True), and a GLib.Error there is
+            # swallowed anyway.
+            if too_big:
+                raise too_big_error()
         except GLib.Error as exc:
             close_quietly()
             if too_big:
