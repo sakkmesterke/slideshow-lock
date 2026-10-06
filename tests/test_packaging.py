@@ -21,9 +21,12 @@ import pytest
 
 REPO = Path(__file__).resolve().parent.parent
 LAUNCHER = REPO / "packaging" / "slideshow-lock"
+SHORT_LAUNCHER = REPO / "packaging" / "slideshowlock"
+SPEC = REPO / "packaging" / "fedora" / "slideshow-lock.spec"
 UNIT = REPO / "data" / "slideshow-lock.service"
 SH = shutil.which("sh") or "/bin/sh"
 EXEC_LINE = 'exec /usr/bin/python3 -P -m "$module" "$@"'
+SHORT_EXEC_LINE = 'exec /usr/bin/slideshow-lock settings "$@"'
 
 MODULES = {
     "service": "slideshow_lock.service",
@@ -49,6 +52,19 @@ def _unit_section(name: str) -> dict:
 
 
 @pytest.fixture
+def short_launcher(tmp_path):
+    """A copy of the short command whose slideshow-lock prints how it was called."""
+    text = SHORT_LAUNCHER.read_text()
+    assert text.count(SHORT_EXEC_LINE) == 1, "the line the test replaces has changed"
+    recorder = tmp_path / "slideshow-lock"
+    recorder.write_text('#!/bin/sh\necho "ARGC=$#"\nfor a in "$@"; do echo "ARG=$a"; done\n')
+    recorder.chmod(recorder.stat().st_mode | stat.S_IXUSR)
+    copy = tmp_path / "slideshowlock"
+    copy.write_text(text.replace("/usr/bin/slideshow-lock", str(recorder)))
+    return copy
+
+
+@pytest.fixture
 def launcher(tmp_path):
     """A copy of the launcher whose interpreter prints how it was called."""
     text = LAUNCHER.read_text()
@@ -71,6 +87,18 @@ def _run(script: Path, *args: str):
 def test_the_launcher_is_executable_in_git():
     mode = subprocess.run(
         ["git", "ls-files", "--stage", "packaging/slideshow-lock"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()[0]
+    assert mode == "100755"
+
+
+@pytest.mark.spawns_processes
+def test_the_short_command_is_executable_in_git():
+    mode = subprocess.run(
+        ["git", "ls-files", "--stage", "packaging/slideshowlock"],
         cwd=REPO,
         capture_output=True,
         text=True,
@@ -163,3 +191,61 @@ def test_the_unit_restarts_on_failure_only_and_within_a_bound():
     )
     # Status 2 (bad option, missing schema) fails the same way again, so it is not retried.
     assert service["RestartPreventExitStatus"] == ["2"]
+
+
+# -- slideshowlock: the short command that opens the settings window ----------------------------
+
+
+@pytest.mark.spawns_processes
+def test_the_short_command_opens_the_settings_window(short_launcher):
+    result = _run(short_launcher)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["ARGC=1", "ARG=settings"]
+
+
+@pytest.mark.spawns_processes
+def test_the_short_command_passes_the_arguments_on_unchanged_and_in_order(short_launcher):
+    result = _run(short_launcher, "--debug", "--folder", "/x y")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "ARGC=4",
+        "ARG=settings",
+        "ARG=--debug",
+        "ARG=--folder",
+        "ARG=/x y",
+    ]
+
+
+@pytest.mark.spawns_processes
+@pytest.mark.parametrize("flag", ["--help", "-h"])
+def test_the_short_commands_help_names_it_and_starts_nothing(short_launcher, flag):
+    result = _run(short_launcher, flag)
+    assert result.returncode == 0
+    assert result.stderr == ""
+    assert "ARGC=" not in result.stdout
+    assert "usage: slideshowlock" in result.stdout
+    assert "slideshow-lock settings" in result.stdout
+    assert "--debug" in result.stdout
+
+
+@pytest.mark.spawns_processes
+def test_help_after_another_argument_is_the_programs_own(short_launcher):
+    result = _run(short_launcher, "--debug", "--help")
+    assert result.stdout.splitlines()[-1] == "ARG=--help"
+
+
+def test_the_usage_of_slideshow_lock_names_the_short_command():
+    text = LAUNCHER.read_text()
+    assert "slideshowlock" in text.split("usage() {")[1].split("USAGE\n}")[0]
+
+
+def test_the_spec_installs_and_lists_both_commands():
+    text = SPEC.read_text()
+    assert re.search(
+        r"^install -Dpm 0755 packaging/slideshowlock %\{buildroot\}%\{_bindir\}/slideshowlock$",
+        text,
+        re.MULTILINE,
+    )
+    files = text.split("\n%files", 1)[1].split("\n%changelog", 1)[0].splitlines()
+    assert "%{_bindir}/%{name}" in files
+    assert "%{_bindir}/slideshowlock" in files
