@@ -1,0 +1,394 @@
+# Hebrew translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+# AI-assisted translation (Claude), not reviewed by a native speaker.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:49+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Hebrew\n"
+"Language: he\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.trensoft.slideshowlock.desktop.in
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "אקראי"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "לפי שם קובץ"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "מילוי המסך (התמונה נחתכת)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "התאמה (התמונה כולה מוצגת)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "הגדרות Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "עיון…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "תמונות"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "תיקיית תמונות"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "סדר התמונות"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "קנה מידה"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "גלילת תמונות גבוהות"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"תמונות לאורך על מסך לרוחב נעות לאט מלמעלה למטה (רק במילוי המסך). כבוי כברירת "
+"מחדל: צורך יותר סוללה."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "התחלת המצגת"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "זמן חוסר פעילות"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "משך הזמן ללא קלט לפני שהמצגת מתחילה."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "שניות"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "תזמון"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "הצגת כל תמונה למשך"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "תקופת חסד לנעילה"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"קלט שמתרחש מוקדם מהזמן הזה אחרי תחילת המצגת אינו נועל את הסשן (מוקדם בהחלט; "
+"0 פירושו שכל קלט נועל)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "תצוגה מקדימה"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 שנ׳"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 דק׳"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 שע׳"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 שע׳"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "בחירת תיקיית התמונות"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "בחירה"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "ביטול"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "לא ניתן היה להפעיל את התצוגה המקדימה, ראו את היומן."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "אין צג שעליו אפשר להציג את התצוגה המקדימה."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"התצוגה המקדימה פועלת: לחצו על מקש כלשהו או הזיזו את העכבר כדי לסיים אותה."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "שינוי הגדרות המצגת."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "רישום כל שלב"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"סכימת ההגדרות אינה מותקנת. יש לקמפל אותה ולכוון את GSettings אליה:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "נשמר."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "הארוך ביותר"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d שנ׳"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d דק׳"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d שע׳"
+
+# RTL: the path is wrapped in U+2066 (LRI) ... U+2069 (PDI) so that the leading '/' of an
+# absolute path and any right-to-left folder name do not reorder the sentence around it.
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "בשימוש: ⁦%s⁩"
+
+# RTL: the path is wrapped in U+2066 (LRI) ... U+2069 (PDI) so that the leading '/' of an
+# absolute path and any right-to-left folder name do not reorder the sentence around it.
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "בשימוש: ⁦%s⁩ (התיקייה עדיין לא קיימת, שום דבר לא יוצג)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"זה אינו צעד של המחוון: מוצג הצעד הקרוב ביותר. הערך השמור נשאר עד שתזיזו את "
+"המחוון."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "יש להזין מספר שלם של שניות."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "הערך חייב להיות בין %(low)d ל-%(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "יש להזין מספר שלם למיקום המחוון."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "המיקום הזה אינו על המחוון."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "הבחירה הזו אינה זמינה."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "הערך חייב להיות פועל או כבוי."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "יש להזין נתיב של תיקייה."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "הנתיב מכיל תו שאינו מותר."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "יש להזין נתיב מוחלט (מתחיל ב-/ או ב-~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "הנתיב הזה הוא קובץ, לא תיקייה."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "הערך לא התקבל, הערך הישן נשמר."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "לא ניתן היה לשמור את הערך."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "התיקייה לא התקבלה, התיקייה הישנה נשמרה."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "לא ניתן היה לשמור את התיקייה."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "אין תמונות להצגה"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"הצגת תצוגה מקדימה של המצגת. כל קלט מסיים אותה. היא אף פעם לא נועלת את הסשן."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "תיקיית תמונות (להרצה הזו בלבד)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "שניות לתמונה (להרצה הזו בלבד)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "סדר התמונות"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "התאמה או מילוי של הצג"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "גלילה איטית של תמונות לאורך (מצב מילוי)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "המרווח חייב להיות בין %d ל-%d שניות."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"סכימת ההגדרות אינה מותקנת. יש לקמפל אותה ולכוון את GSettings אליה:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "תצוגה מקדימה של Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"התחלת המצגת כשהסשן במצב חוסר פעילות, נעילת הסשן בקלט הראשון אחרי תקופת החסד, "
+"ונעילה לפני שהמחשב נכנס למצב השהיה."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "שניות של חוסר פעילות לפני המצגת"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "בלי נעילה בקלט בתוך מספר השניות הזה"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "זמן חוסר הפעילות חייב להיות בין 1 ל-86400 שניות."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "תקופת החסד חייבת להיות בין 0 ל-86400 שניות."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"סכימת ההגדרות אינה מותקנת. יש לקמפל אותה ולכוון את GSettings אליה:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.trensoft.slideshowlock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "הגדרת מצגת בחוסר פעילות ונעילת הסשן"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "שומר מסך של מצגת תמונות בחוסר פעילות, שנועל בקלט"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock מתחיל מצגת תמונות במסך מלא בכל מסך כשהסשן נמצא בחוסר פעילות "
+"פרק זמן מוגדר."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"לחיצה ראשונה על מקש, לחיצה בעכבר או תנועת עכבר מסיימות את המצגת. אם המצגת "
+"הוצגה לפחות כתקופת החסד, הסשן ננעל גם הוא."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"התמונות מגיעות מתיקייה שבוחרים. חלון ההגדרות קובע את התיקייה, זמן חוסר "
+"הפעילות, תקופת החסד, משך הצגת כל תמונה, הסדר וקנה המידה."
