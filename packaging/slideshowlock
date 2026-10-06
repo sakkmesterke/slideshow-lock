@@ -1,7 +1,9 @@
 #!/bin/sh
 # The short command of the installed package: it opens the settings window.
 # "slideshowlock [args...]" is "slideshow-lock settings [args...]"; the other programs stay with
-# slideshow-lock (service, preview). Only --help is answered here, so that it names this command.
+# slideshow-lock (service, preview). Only -h and --help are answered here, so that they name this
+# command. Anything else goes on to the settings window, so "slideshowlock help" is an argparse
+# error (exit status 2), whereas "slideshow-lock help" works.
 case "${1:-}" in
     -h | --help)
         printf '%s\n' \
