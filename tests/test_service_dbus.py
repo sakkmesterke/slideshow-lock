@@ -15,14 +15,15 @@ import threading
 
 import pytest
 
-from slideshow_lock.dbus_adapters import INHIBIT_APP_ID
+from slideshow_lock.dbus_adapters import INHIBIT_APP_ID, GnomeShellOverview
 from slideshow_lock.image_source import ImageSource
-from slideshow_lock.service import build_service
+from slideshow_lock.service import PreviewSlideshow, build_service
 from slideshow_lock.session import UnsupportedSessionInterface
 from slideshow_lock.state_machine import State
 from tests.fake_dbus import Desktop, dbus_daemon_available, wait_for
 from tests.fakes import FakeSettings, FakeSlideshow, LoopThread, wait_until
 from tests.test_image_source import make_image
+from tests.test_service_wiring import FakeController, FakeSource
 
 pytestmark = [
     pytest.mark.spawns_processes,
@@ -442,3 +443,19 @@ def test_a_manual_preview_takes_no_idle_inhibitor(run):
     assert run.machine.start_preview() is True
     assert not run.settle(lambda: _own(run.desktop), timeout=0.4)
     assert run.desktop.inhibit_requests == []
+
+
+def test_the_overview_of_the_shell_is_closed_when_the_windows_open(run):
+    """The wiring of ``main``: a ``PreviewSlideshow`` on the real overview adapter and the fake
+    shell. The controller notes what the shell said at the moment it was told to open."""
+    desktop = run.desktop
+    desktop.overview_active = True
+    desktop.overview_close_delay = 0.1
+    seen = []
+    controller = FakeController()
+    controller.start = lambda: (
+        seen.append(desktop.overview_active) or setattr(controller, "running", True)
+    )
+    slideshow = PreviewSlideshow(controller, FakeSource(), GnomeShellOverview(desktop.session))
+    assert slideshow.start() is None
+    assert seen == [False]

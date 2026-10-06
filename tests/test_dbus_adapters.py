@@ -13,7 +13,9 @@ where there is no ``dbus-daemon``.
 
 from __future__ import annotations
 
+import logging
 import os
+import time
 
 import pytest
 from gi.repository import Gio, GLib
@@ -468,3 +470,86 @@ def test_prepare_for_sleep_true_and_false_reach_the_callback(desktop):
     desktop.prepare_for_sleep(False)
     assert wait_for(lambda: seen == [True, False])
     sleep.close()
+
+
+# -- the shell's overview -------------------------------------------------------------------------
+
+
+def _warnings(caplog):
+    return [r for r in caplog.records if r.levelno >= logging.WARNING]
+
+
+def test_an_open_overview_is_set_to_false_and_waited_for_until_it_is_closed(desktop):
+    desktop.overview_active = True
+    desktop.overview_close_delay = 0.15  # the closing animation: the property stays true
+    overview = adapters.GnomeShellOverview(desktop.session)
+    started = time.monotonic()
+    overview.close_if_open()
+    elapsed = time.monotonic() - started
+    assert desktop.overview_active is False
+    assert 0.15 <= elapsed < adapters.OVERVIEW_WAIT_S
+    log = desktop.overview_log
+    assert log[0] == ("Get", True) and log[1] == ("Set", False)
+    assert log[-1] == ("Get", False)
+    assert len(log) > 3  # it read the property again while the animation ran
+
+
+def test_a_closed_overview_costs_one_read_and_no_write_and_no_wait(desktop):
+    overview = adapters.GnomeShellOverview(desktop.session)
+    started = time.monotonic()
+    overview.close_if_open()
+    assert time.monotonic() - started < 0.2
+    assert desktop.overview_log == [("Get", False)]
+
+
+def test_without_a_shell_on_the_bus_nothing_happens_and_nothing_is_warned(caplog):
+    with Desktop(shell=False) as d:
+        overview = adapters.GnomeShellOverview(d.session)
+        with caplog.at_level(logging.DEBUG, logger="slideshow_lock.dbus_adapters"):
+            overview.close_if_open()
+            overview.close_if_open()
+    assert _warnings(caplog) == []
+    assert any("no org.gnome.Shell" in m for m in caplog.messages)
+
+
+def test_a_refused_set_is_one_warning_and_no_exception_however_often_it_happens(desktop, caplog):
+    desktop.overview_active = True
+    desktop.overview_set_refused = True
+    overview = adapters.GnomeShellOverview(desktop.session)
+    with caplog.at_level(logging.DEBUG, logger="slideshow_lock.dbus_adapters"):
+        overview.close_if_open()
+        overview.close_if_open()
+    assert desktop.overview_active is True
+    [warning] = _warnings(caplog)
+    assert "[slideshow]" in warning.getMessage() and "starts anyway" in warning.getMessage()
+
+
+def test_an_overview_that_never_closes_ends_the_wait_at_half_a_second(desktop, caplog):
+    desktop.overview_active = True
+    desktop.overview_stuck = True
+    overview = adapters.GnomeShellOverview(desktop.session)
+    started = time.monotonic()
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.dbus_adapters"):
+        overview.close_if_open()
+    elapsed = time.monotonic() - started
+    assert adapters.OVERVIEW_WAIT_S <= elapsed < adapters.OVERVIEW_WAIT_S + 0.4
+    [warning] = _warnings(caplog)
+    assert "still open" in warning.getMessage()
+
+
+def test_a_shell_that_does_not_answer_holds_the_caller_for_half_a_second_at_most(desktop, caplog):
+    desktop.overview_get_delay = 1.5  # the shell is stuck: it answers long after the deadline
+    overview = adapters.GnomeShellOverview(desktop.session)
+    started = time.monotonic()
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.dbus_adapters"):
+        overview.close_if_open()
+    elapsed = time.monotonic() - started
+    assert elapsed < adapters.OVERVIEW_WAIT_S + 0.4
+    assert len(_warnings(caplog)) == 1
+
+
+def test_the_overview_adapter_does_not_raise_whatever_the_connection_is(caplog):
+    overview = adapters.GnomeShellOverview(object())  # not a bus connection at all
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.dbus_adapters"):
+        overview.close_if_open()
+    assert len(_warnings(caplog)) == 1

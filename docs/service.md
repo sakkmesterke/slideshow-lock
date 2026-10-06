@@ -92,11 +92,11 @@ forms were not tried.
 
 | File | What it is |
 |---|---|
-| `session.py` | The protocols (`IdleWatcher`, `InhibitionQuery`, `SessionLock`, `SleepSignal`, `SlideshowControl`, ...), `LockResult`, `UnsupportedSessionInterface`. No `Gio`. |
+| `session.py` | The protocols (`IdleWatcher`, `InhibitionQuery`, `SessionLock`, `SleepSignal`, `SlideshowControl`, `OverviewControl`, ...), `LockResult`, `UnsupportedSessionInterface`. No `Gio`. |
 | `state_machine.py` | The states and transitions of ARCH-1 section 4. Depends on the protocols only. |
 | `sleep_guard.py` | The lock before suspend (`SleepGuard`) and the thread it runs on (`GuardThread`). |
-| `dbus_adapters.py` | The real adapters on `Gio.DBusConnection`. |
-| `service.py` | Wiring (`build_service`), the preview as a `SlideshowControl` (`PreviewSlideshow`), the program. |
+| `dbus_adapters.py` | The real adapters on `Gio.DBusConnection` (the overview of the shell included: `GnomeShellOverview`). |
+| `service.py` | Wiring (`build_service`), the preview as a `SlideshowControl` (`PreviewSlideshow`, which closes the shell's overview before it opens the windows), the program. |
 | `loop.py` | Posting a function to a GLib main context from any thread. |
 
 The state machine holds no bus name, no `Gio`, no systemd call; `tests/fakes.py` has a fake of
@@ -119,6 +119,21 @@ every protocol, so every row of the transition table runs without a bus (`tests/
 | 3.6-1 locked: nothing happens | `LOCKED` ignores idle, input and inhibit | `test_ac_3_6_1_...` |
 | 3.7-1 no pictures: no slideshow, WARNING, the service keeps running | `PreviewSlideshow.start` returns the reason, the machine logs it | `test_ac_3_7_1_...` |
 | an idle event before the folder scan found its first picture: the refused start is remembered until the scan finds a picture (then it starts, after the same inhibitor check) or the user is active again (then it is dropped); the idle watch itself fires once per idle period, so without this the slideshow waited for the next one | `PreviewSlideshow.connect_ready` (once per start refused while scanning), `StateMachine._remember_refused_start` / `_on_slideshow_ready`; a refused manual preview is not remembered | the "idle event before the first picture" tests of `test_state_machine.py` and `test_service_wiring.py` |
+
+**The overview of the shell (after 1.0.0).** With the overview (Super) open when the idle timeout
+fires, the slideshow windows used to come out as a third window in it instead of full screen.
+`PreviewSlideshow.start` now asks the shell to close the overview, through
+`OverviewControl.close_if_open` (`GnomeShellOverview`: `OverviewActive` read, set to false, read
+again every 50 ms, half a second at most, never an exception; `docs/architecture/dbus-state-machine.md`,
+section 3.7a), after the check that there is a picture and before the controller opens the
+windows. The settings window's Preview button is not covered: the window has the focus then, and
+the preview modules may not name the bus. Tested against the fake `org.gnome.Shell` of
+`tests/fake_dbus.py` (open, closed, no shell, refused set, an overview that stays open, a shell that
+does not answer, an object that is not a connection; the order against the controller). Not
+measured: the real GNOME Shell (that the windows then come out full screen, over the other
+windows, on one and on two monitors; that the setter closes the overview on every shell version of
+the targets; what happens if the overview opens again at once), so the whole claim is "automated
+tests green, live verification pending".
 
 Not automatable, and not claimed: AC-3.1-2 (one window per monitor on a real multi-monitor
 setup), AC-3.5-4 (a real suspend and wake). The headless-mutter smoke below shows two windows on
