@@ -89,7 +89,7 @@ and charset checks first, and a build that fails leaves no `.mo` behind.
 `${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/locale` (outside the checkout, rebuilt at every
 start) and points the program there. `locale` is a link to a directory that is built apart and not
 changed afterwards, so two `run.sh` started together do not delete each other's catalogs; the
-replaced directories are deleted a minute later. While `po/LINGUAS` lists no language, nothing is built
+replaced directories are deleted a minute later. While `po/` has no `.po` file, nothing is built
 and `SLIDESHOW_LOCK_LOCALEDIR` is not set. Without `msgfmt` (package `gettext`) `run.sh` warns once
 and the interface stays English; the same for a catalog that does not compile.
 
