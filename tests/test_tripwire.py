@@ -139,6 +139,20 @@ OPT_OUTS = {
     ("test_i18n_tools.py", "test_check_passes_on_this_checkout"),
     ("test_i18n_tools.py", "test_check_passes_with_a_catalog_that_is_listed"),
     ("test_i18n_tools.py", "test_update_adds_the_strings_the_catalog_does_not_have_yet"),
+    (
+        "test_i18n_tools.py",
+        "test_data_writes_the_launcher_and_the_metadata_with_the_translations",
+    ),
+    ("test_i18n_tools.py", "test_data_without_a_catalog_writes_the_english_files"),
+    ("test_i18n_tools.py", "test_data_leaves_no_file_behind_when_a_catalog_is_refused"),
+    ("test_i18n_tools.py", "test_data_leaves_no_launcher_behind_when_the_metadata_fails"),
+    ("test_i18n_tools.py", "test_data_without_a_directory_says_so"),
+    ("test_i18n_tools.py", "test_a_missing_data_template_is_named"),
+    ("test_i18n_tools.py", "test_check_fails_for_a_metainfo_template_that_is_not_well_formed"),
+    (
+        "test_i18n_tools.py",
+        "test_only_the_name_and_the_comment_of_the_launcher_are_handed_to_the_translators",
+    ),
     ("test_i18n_tools.py", "test_a_charset_that_only_starts_with_utf8_is_refused"),
     ("test_i18n_tools.py", "test_a_utf8_line_in_a_later_entry_does_not_make_the_header_utf8"),
     (

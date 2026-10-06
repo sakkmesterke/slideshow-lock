@@ -7,8 +7,11 @@
 #   tools/i18n.sh update           extract, then merge the template into every catalog
 #   tools/i18n.sh build DIR        compile the catalogs into DIR/<lang>/LC_MESSAGES/<APP_ID>.mo
 #                                  (stops, and leaves no .mo, at a name or charset it rejects)
+#   tools/i18n.sh data DIR         write DIR/<APP_ID>.desktop and DIR/<APP_ID>.metainfo.xml from
+#                                  the templates data/*.in, with the translations of the catalogs
 #   tools/i18n.sh check            catalogs and po/LINGUAS agree, every catalog compiles, the
-#                                  template holds exactly the strings the source asks for
+#                                  template holds exactly the strings the source and the data
+#                                  templates ask for, and the data templates build
 set -euo pipefail
 # The language names come from a file: no pathname expansion on them (a name of * must not become
 # the file names of the directory).
@@ -21,9 +24,10 @@ case "$src" in
 esac
 REPO="$(cd -- "$dir/.." && pwd)"
 PO="$REPO/po"
+DATA="$REPO/data"
 
 usage() {
-    sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
+    sed -n '2,14p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2
 }
 
 die() {
@@ -80,6 +84,31 @@ charset_ok() {
     fi
 }
 
+# The strings of the two data templates (the launcher and the AppStream metadata): the Name and
+# Comment of the .desktop file, the name, summary and description of the metainfo. Nothing else is
+# handed to the translators (the Keywords line of the launcher is not: -k drops the default
+# keywords of the Desktop format).
+extract_data_to() {
+    local out=$1 join=${2:-} app flags=()
+    need xgettext
+    app="$(domain)"
+    [ -f "$DATA/$app.desktop.in" ] || die "$DATA/$app.desktop.in is missing"
+    [ -f "$DATA/$app.metainfo.xml.in" ] || die "$DATA/$app.metainfo.xml.in is missing"
+    if [ -n "$join" ]; then
+        flags=(-j)
+    else
+        rm -f -- "$out"
+    fi
+    mkdir -p -- "$(dirname -- "$out")"
+    (
+        cd -- "$REPO"
+        xgettext "${flags[@]}" --language=Desktop -k --keyword=Name --keyword=Comment \
+            --package-name=slideshow-lock --add-location=file -o "$out" "data/$app.desktop.in"
+        xgettext -j --from-code=UTF-8 \
+            --package-name=slideshow-lock --add-location=file -o "$out" "data/$app.metainfo.xml.in"
+    )
+}
+
 extract_to() {
     local out=$1
     need xgettext
@@ -90,6 +119,17 @@ extract_to() {
             | xargs xgettext --language=Python --from-code=UTF-8 --keyword=_ \
                 --package-name=slideshow-lock --add-location=file -o "$out"
     )
+    extract_data_to "$out" join
+}
+
+# Everything about the catalogs is checked before the first file is written.
+check_catalogs() {
+    local lang
+    for lang in $1; do
+        lang_ok "$lang" || exit 1
+        [ -f "$PO/$lang.po" ] || die "po/LINGUAS names $lang, but po/$lang.po does not exist"
+        charset_ok "$lang" || exit 1
+    done
 }
 
 do_build() {
@@ -97,12 +137,7 @@ do_build() {
     need msgfmt
     name="$(domain)"
     languages="$(linguas)"
-    # Everything is checked before the first file is written.
-    for lang in $languages; do
-        lang_ok "$lang" || exit 1
-        [ -f "$PO/$lang.po" ] || die "po/LINGUAS names $lang, but po/$lang.po does not exist"
-        charset_ok "$lang" || exit 1
-    done
+    check_catalogs "$languages"
     mkdir -p -- "$out"
     for lang in $languages; do
         mo="$out/$lang/LC_MESSAGES/$name.mo"
@@ -113,6 +148,25 @@ do_build() {
             exit 1
         fi
     done
+}
+
+# The launcher and the metadata with the translations in them. xgettext and msgfmt find the ITS
+# rules of the metainfo (name, summary and description are translated) by the name of the file,
+# *.metainfo.xml.in, in the data directory of the gettext installation.
+do_data() {
+    local out=$1 name
+    need msgfmt
+    name="$(domain)"
+    [ -f "$DATA/$name.desktop.in" ] || die "$DATA/$name.desktop.in is missing"
+    [ -f "$DATA/$name.metainfo.xml.in" ] || die "$DATA/$name.metainfo.xml.in is missing"
+    check_catalogs "$(linguas)"
+    mkdir -p -- "$out"
+    if ! msgfmt --desktop --template "$DATA/$name.desktop.in" -d "$PO" -o "$out/$name.desktop" \
+        || ! msgfmt --xml --template "$DATA/$name.metainfo.xml.in" -d "$PO" \
+            -o "$out/$name.metainfo.xml"; then
+        rm -f -- "$out/$name.desktop" "$out/$name.metainfo.xml" # a failed run leaves no file
+        exit 1
+    fi
 }
 
 do_check() {
@@ -138,7 +192,10 @@ do_check() {
     TMP="$(mktemp -d)"
     trap 'rm -rf -- "$TMP"' EXIT
     extract_to "$TMP/messages.pot"
-    python3 "$REPO/tools/i18n_catalog.py" compare "$TMP/messages.pot" "$REPO/slideshow_lock" || failed=1
+    extract_data_to "$TMP/data.pot"
+    python3 "$REPO/tools/i18n_catalog.py" compare "$TMP/messages.pot" "$REPO/slideshow_lock" \
+        "$TMP/data.pot" || failed=1
+    (do_data "$TMP/data") || failed=1
     return "$failed"
 }
 
@@ -157,6 +214,10 @@ case "${1:-}" in
     build)
         [ -n "${2:-}" ] || die "build needs the directory to write to"
         do_build "$2"
+        ;;
+    data)
+        [ -n "${2:-}" ] || die "data needs the directory to write to"
+        do_data "$2"
         ;;
     check)
         do_check

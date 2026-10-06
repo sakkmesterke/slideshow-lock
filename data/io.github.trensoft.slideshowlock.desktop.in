@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Slideshow Lock
+Comment=Set up the idle slideshow and the session lock
+Exec=slideshow-lock settings
+TryExec=slideshow-lock
+Icon=io.github.trensoft.slideshowlock
+Terminal=false
+StartupNotify=true
+StartupWMClass=io.github.trensoft.slideshowlock.Preferences
+Categories=GNOME;GTK;Settings;DesktopSettings;
+Keywords=screensaver;slideshow;pictures;idle;lock;

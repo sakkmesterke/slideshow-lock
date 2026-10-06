@@ -9,9 +9,11 @@ with the name of the package; the CI installs it before pytest, so there a skip 
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import pytest
@@ -43,7 +45,8 @@ def gettext_tools():
 
 @pytest.fixture
 def checkout(tmp_path):
-    """A copy of what ``tools/i18n.sh`` reads: the package, the tools, and an empty po/."""
+    """A copy of what ``tools/i18n.sh`` reads: the package, the tools, the data templates, and an
+    empty po/."""
     root = tmp_path / "checkout"
     shutil.copytree(
         REPO / "slideshow_lock",
@@ -53,6 +56,9 @@ def checkout(tmp_path):
     (root / "tools").mkdir()
     for name in ("i18n.sh", "i18n_catalog.py"):
         shutil.copy2(REPO / "tools" / name, root / "tools" / name)
+    (root / "data").mkdir()
+    for template in (REPO / "data").glob("*.in"):
+        shutil.copy2(template, root / "data" / template.name)
     (root / "po").mkdir()
     (root / "po" / "LINGUAS").write_text("# nothing yet\n")
     return root
@@ -339,3 +345,100 @@ def test_update_adds_the_strings_the_catalog_does_not_have_yet(checkout):
     assert 'msgstr "Diavetítés-zár"' in updated
     assert 'msgid "log every step"' in updated
     assert not list((checkout / "po").glob("*~"))
+
+
+TRANSLATED_DATA_PO = (
+    HUNGARIAN_PO
+    + '\nmsgid "Set up the idle slideshow and the session lock"'
+    + '\nmsgstr "A tétlen diavetítés beállítása"\n'
+    + '\nmsgid "Idle slideshow screensaver that locks on input"'
+    + '\nmsgstr "Tétlen diavetítés"\n'
+)
+
+
+def test_data_writes_the_launcher_and_the_metadata_with_the_translations(checkout, tmp_path):
+    (checkout / "po" / "LINGUAS").write_text("hu\n")
+    _catalog(checkout, "hu", TRANSLATED_DATA_PO)
+    out = tmp_path / "out"
+    result = _i18n(checkout, "data", str(out))
+    assert result.returncode == 0, result.stderr
+    assert sorted(p.name for p in out.iterdir()) == [APP_ID + ".desktop", APP_ID + ".metainfo.xml"]
+
+    desktop = (out / (APP_ID + ".desktop")).read_text(encoding="utf-8")
+    assert "Name[hu]=Diavetítés-zár\n" in desktop
+    assert "Comment[hu]=A tétlen diavetítés beállítása\n" in desktop
+    assert "Exec=slideshow-lock settings\n" in desktop
+    assert "Keywords[" not in desktop  # the keywords are not translated
+
+    xml_lang = "{http://www.w3.org/XML/1998/namespace}lang"
+    root = ET.parse(out / (APP_ID + ".metainfo.xml")).getroot()
+    assert [e.text for e in root.findall("name") if e.get(xml_lang) == "hu"] == ["Diavetítés-zár"]
+    assert [e.text for e in root.findall("summary") if e.get(xml_lang) == "hu"] == [
+        "Tétlen diavetítés"
+    ]
+    assert root.findtext("id") == APP_ID  # what is not translated is copied as it is
+    assert len(root.findall("description/p")) == 3  # untranslated paragraphs stay as they are
+
+
+def test_data_without_a_catalog_writes_the_english_files(checkout, tmp_path):
+    out = tmp_path / "out"
+    result = _i18n(checkout, "data", str(out))
+    assert result.returncode == 0, result.stderr
+    desktop = (out / (APP_ID + ".desktop")).read_text(encoding="utf-8")
+    assert "Name=Slideshow Lock\n" in desktop
+    assert not [line for line in desktop.splitlines() if re.match(r"\w+\[", line)]
+
+
+def test_data_leaves_no_file_behind_when_a_catalog_is_refused(checkout, tmp_path):
+    (checkout / "po" / "LINGUAS").write_text("hu\n")
+    _catalog(checkout, "hu", TRANSLATED_DATA_PO.replace("charset=UTF-8", "charset=ASCII"))
+    out = tmp_path / "out"
+    result = _i18n(checkout, "data", str(out))
+    assert result.returncode != 0
+    assert "po/hu.po: the header must say charset=UTF-8" in result.stderr
+    assert not out.exists() or list(out.iterdir()) == []
+
+
+def test_data_leaves_no_launcher_behind_when_the_metadata_fails(checkout, tmp_path):
+    template = checkout / "data" / (APP_ID + ".metainfo.xml.in")
+    template.write_text(template.read_text(encoding="utf-8").replace("</summary>", ""))
+    out = tmp_path / "out"
+    result = _i18n(checkout, "data", str(out))
+    assert result.returncode != 0
+    assert list(out.iterdir()) == []
+
+
+def test_data_without_a_directory_says_so(checkout):
+    result = _i18n(checkout, "data")
+    assert result.returncode != 0
+    assert "needs the directory" in result.stderr
+
+
+@pytest.mark.parametrize("template", ["desktop.in", "metainfo.xml.in"])
+@pytest.mark.parametrize("command", ["check", "extract"])
+def test_a_missing_data_template_is_named(checkout, template, command):
+    (checkout / "data" / (APP_ID + "." + template)).unlink()
+    result = _i18n(checkout, command)
+    assert result.returncode != 0
+    assert (APP_ID + "." + template + " is missing") in result.stderr
+
+
+def test_check_fails_for_a_metainfo_template_that_is_not_well_formed(checkout):
+    template = checkout / "data" / (APP_ID + ".metainfo.xml.in")
+    template.write_text(template.read_text(encoding="utf-8").replace("</summary>", ""))
+    result = _i18n(checkout, "check")
+    assert result.returncode != 0
+
+
+def test_only_the_name_and_the_comment_of_the_launcher_are_handed_to_the_translators(
+    checkout, tmp_path
+):
+    template = checkout / "data" / (APP_ID + ".desktop.in")
+    template.write_text(template.read_text(encoding="utf-8") + "GenericName=A new name\n")
+    pot = tmp_path / "messages.pot"
+    result = _i18n(checkout, "extract", str(pot))
+    assert result.returncode == 0, result.stderr
+    text = pot.read_text(encoding="utf-8")
+    assert 'msgid "Set up the idle slideshow and the session lock"' in text
+    assert "A new name" not in text
+    assert "screensaver;" not in text  # nor the keywords

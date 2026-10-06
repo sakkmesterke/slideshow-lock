@@ -22,6 +22,21 @@ catalog = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(catalog)
 
 
+#: The strings of ``data/*.in`` for the translators (the name, "Slideshow Lock", is the one of the
+#: source as well).
+DATA_MSGIDS = {
+    "Slideshow Lock",
+    "Set up the idle slideshow and the session lock",
+    "Idle slideshow screensaver that locks on input",
+    "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has "
+    "been idle for a set time.",
+    "The first key press, click or mouse movement ends the slideshow. If the slideshow has been "
+    "showing for at least the grace period, the session is locked as well.",
+    "The pictures come from a folder you choose. A settings window sets the folder, the idle "
+    "time, the grace period, how long each picture shows, the order and the scaling.",
+}
+
+
 def _source(tmp_path, text):
     (tmp_path / "module.py").write_text(text, encoding="utf-8")
     return tmp_path
@@ -133,5 +148,9 @@ def test_xgettext_finds_exactly_the_strings_the_reader_finds(tmp_path):
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert catalog.compare(pot, PACKAGE) == []
+    assert catalog.compare(pot, PACKAGE, DATA_MSGIDS) == []
     assert len(catalog.pot_msgids(pot)) > 70
+    # What the data templates hand over beyond the source, exactly: the Name and Comment of the
+    # launcher, the name, summary and description of the metadata, nothing else.
+    in_source = {call.msgid for call in catalog.gettext_calls(PACKAGE)}
+    assert catalog.pot_msgids(pot) - in_source == DATA_MSGIDS - in_source
