@@ -219,8 +219,8 @@ suspend would not wait for the lock).
 
 ## 7. Not done here
 
-- `sd_notify` readiness and the unit file (PKG-1); `UnitControl`, the unit enable and disable
-  call (UI-1). The state machine has `enable()` and `disable()`, which the toggle will call.
+- `sd_notify` readiness (the unit is `Type=simple`, section 8); `UnitControl`, the unit enable and
+  disable call (UI-1). The state machine has `enable()` and `disable()`, which the toggle will call.
 - A manual preview as a service function (`StateMachine.start_preview`): the transitions and the D11
   guarantee are there and tested; nothing calls it yet (the settings window's Preview button will).
 - Real timing: whether the lock fits into `InhibitDelayMaxSec` on the reference machine.
@@ -234,3 +234,40 @@ suspend would not wait for the lock).
   also accepts `UnknownObject`; what GNOME's session manager answers was not measured.
 - A real `InhibitorAdded` flow from GNOME's session manager (the adapter re-asks `IsInhibited(8)` on
   every add and remove, and reports only a change).
+
+## 8. The installed command and the systemd user unit
+
+- `packaging/slideshow-lock` is the command the package installs as `/usr/bin/slideshow-lock`. It
+  starts one of the programs of section 1 and passes the arguments on unchanged:
+  `slideshow-lock service` (`slideshow_lock.service`), `slideshow-lock settings`
+  (`slideshow_lock.preferences`), `slideshow-lock preview` (`slideshow_lock.preview_app`). It
+  `exec`s `/usr/bin/python3 -P -m ...`: the program is the process that gets the signals, `-P`
+  keeps the current directory out of `sys.path` (Python 3.11 or newer). From a checkout, `run.sh`
+  is still the way to try the program.
+- `data/slideshow-lock.service` is the user unit. It runs `slideshow-lock service`. The reasons for
+  each directive are the comments in the file; the ones that rest on this document: no `sd_notify`
+  (`Type=simple`); `SIGTERM` is a clean stop with status 0 (section 6), so `Restart=on-failure`
+  leaves it alone; status 2 (bad option, missing schema) is not retried, status 1 (the sleep path
+  cannot be set up) is; the start limit allows 5 starts in 5 minutes (the first start and 4
+  restarts); the log goes to stderr, so to the journal with `SyslogIdentifier=slideshow-lock`.
+- What happens when the start limit is used up: the unit stays `failed` and is not started again.
+  From then on there is no sleep guard and no slideshow, and nothing tells the user: the unit has no
+  `OnFailure=`, so nothing in it reacts to the failed state. `systemctl --user reset-failed
+  slideshow-lock.service` clears the state, and `systemctl --user start slideshow-lock.service`
+  brings the service back (the cause is in `journalctl --user -u slideshow-lock`).
+- Without PyGObject (`gi`) the command ends in a Python traceback with status 1, which the unit
+  counts as a start to retry, so it retries up to the limit with the same error. A package that
+  requires `python3-gobject` is not meant to be in that state (the `Requires` of the spec is
+  checked in the spec's own change).
+- Measured: `systemd-analyze --user verify` (systemd 252, on a copy whose `ExecStart=` names the
+  launcher in a scratch directory, because the package is not installed there) prints nothing; the
+  same call on a unit with a misspelt `Restart=` value prints the error. The launcher and the unit
+  are compared in `tests/test_packaging.py`.
+- Not measured: the unit on a real session (that the display and the session bus are in the
+  environment of the user manager when `graphical-session.target` is reached, the language
+  variables, a stop at the end of the session), `systemd-analyze` of the version on RHEL 10, any
+  sandboxing directive (none is set), and whether the log lines get the right journal priority:
+  the program writes plain lines to stderr, so every line has the default priority, not the level
+  mapping of `docs/logging-and-lifecycle.md`, section 1.
+- The unit is not enabled by the package by itself (a preset is a separate decision); the settings
+  window's toggle (UI-1) is what enables it.

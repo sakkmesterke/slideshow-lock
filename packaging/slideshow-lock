@@ -1,0 +1,42 @@
+#!/bin/sh
+# The launcher of the installed package: one command for the three programs.
+#
+#   slideshow-lock service [args...]   the service (idle, slideshow, lock): what the systemd user
+#                                      unit runs
+#   slideshow-lock settings [args...]  the settings window: what the .desktop file runs
+#   slideshow-lock preview [args...]   the fullscreen preview (never locks)
+#
+# The arguments go to the program unchanged (slideshow-lock service --help lists its options).
+# From a source checkout use ./run.sh instead: it needs no installation.
+#
+# /usr/bin/python3 is the interpreter of the system packages, the one the GTK typelibs belong to;
+# a python3 earlier on the PATH (a virtual environment, a version manager) may not see them.
+# -P keeps the current directory out of sys.path: plain "python3 -m" puts it first, so starting
+# the command inside a directory that holds a slideshow_lock/ or gi/ would run that code. -P needs
+# Python 3.11; pyproject.toml asks for 3.9 or newer, the installed package targets a system python
+# of 3.11 or newer (EL10 and current Fedora, not measured).
+
+usage() {
+    cat <<'USAGE'
+usage: slideshow-lock service [args...]   idle, slideshow and lock (the systemd user service)
+       slideshow-lock settings [args...]  the settings window
+       slideshow-lock preview [args...]   the fullscreen preview (never locks)
+USAGE
+}
+
+case "${1:-}" in
+    service) module=slideshow_lock.service ;;
+    settings) module=slideshow_lock.preferences ;;
+    preview) module=slideshow_lock.preview_app ;;
+    -h | --help | help)
+        usage
+        exit 0
+        ;;
+    *)
+        usage >&2
+        exit 2
+        ;;
+esac
+shift
+
+exec /usr/bin/python3 -P -m "$module" "$@"
