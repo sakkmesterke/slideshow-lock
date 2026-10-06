@@ -150,6 +150,16 @@ class SlideshowControl(Protocol):
         start, and not at all for another reason (an empty folder, no monitor)."""
 
 
+class OverviewControl(Protocol):
+    """The shell's overview (Super), which a slideshow window must not open under. Main thread."""
+
+    def close_if_open(self) -> None:
+        """Close the overview if it is open, and wait until it is closed. Never raises and
+        waits about half a second at most (one more call can run after the last 50 ms sleep):
+        whatever goes wrong (no shell, a refused call, an
+        overview that does not close) is logged once and the slideshow starts as it would."""
+
+
 class SleepGuardControl(Protocol):
     """The sleep guard as the state machine sees it: on or off (D4, the preferences toggle)."""
 

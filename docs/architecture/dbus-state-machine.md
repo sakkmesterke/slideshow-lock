@@ -135,6 +135,27 @@ preferences app's toggle. That toggle needs a real mechanism:
   can exercise failure paths (e.g. unit file missing, permission denied) without a real
   systemd user session.
 
+### 3.7a The shell's overview (after 1.0.0)
+
+Not one of the six starting points: the state machine does not know it. `PreviewSlideshow`, the
+`SlideshowControl` of `service.py`, closes the overview before it opens the windows.
+
+- Interface: `org.gnome.Shell` at `/org/gnome/Shell`, the property `OverviewActive` (`readwrite`),
+  through `org.freedesktop.DBus.Properties`. Abstraction: `OverviewControl.close_if_open()`;
+  adapter `GnomeShellOverview` in `dbus_adapters.py`.
+- Why: a slideshow window that opens while the overview (Super) is up comes out as a third
+  window in the overview, not as a full screen one. The lock is not affected.
+- What it does: `Get`; if true, `Set(false)`, then `Get` every 50 ms until false. The property
+  stays true until the closing animation is over (250 ms in the shell's `overview.js`, read, not
+  measured here).
+- It never raises and waits about 0.5 s in all, calls included (each call gets what is left of
+  the time as its timeout; one more call still runs after the last 50 ms sleep). No shell on the bus (not GNOME): DEBUG only. Anything else
+  (a refused call, a shell that does not answer, an overview that stays open): one WARNING with
+  the tag `[slideshow]`, and the slideshow starts as it would have.
+- Only the service path (idle start) calls it. The settings window's Preview button does not:
+  that window has the focus, so the overview is presumably not open then (an inference, not
+  measured), and the preview modules may not name the bus (`tests/test_preview.py`).
+
 ### 3.8 Unit readiness and `Type=` (answers OPS-1's open question)
 
 `docs/logging-and-lifecycle.md` (OPS-1, section 4) left the unit's `Type=` undecided
@@ -267,6 +288,7 @@ wake.
 | `ScreenSaver` and `login1.Session.Lock` both absent | Idle-triggered slideshow disabled entirely (would otherwise show without ever locking). |
 | `login1.PrepareForSleep` | Fatal at startup: requirement 3.5 has no fallback. |
 | `login1.Manager.Inhibit("sleep", ...)` | Fatal at startup: without the delay inhibitor D1/D32 cannot be met, and starting anyway would silently violate 3.5 under fast suspend. |
+| `org.gnome.Shell` (the overview) | Nothing is closed, the slideshow starts as before; DEBUG when the shell is not on the bus, one WARNING for any other failure (3.7a). |
 | `systemd1` user manager | Preferences toggle fails with a reported error (D4's `UnitControlResult`); the service itself can still run if already started. |
 
 In every case the failure is detected once, at startup or at first use, by a capability
