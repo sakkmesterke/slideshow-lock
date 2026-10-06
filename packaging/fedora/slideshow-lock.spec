@@ -21,8 +21,9 @@
 #     or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release has to
 #     be cut after po/*.po (the catalogs are in the repository now) and after the files listed next.
 #   - The files this spec installs come from other changes and must be on main before this one is
-#     merged: data/io.github.trensoft.slideshowlock.desktop,
-#     data/io.github.trensoft.slideshowlock.metainfo.xml and the two icons under
+#     merged: data/io.github.trensoft.slideshowlock.desktop.in,
+#     data/io.github.trensoft.slideshowlock.metainfo.xml.in (the only copies in git: the installed
+#     files are generated from them in %%install) and the two icons under
 #     data/icons/hicolor/. packaging/slideshow-lock and data/slideshow-lock.service are the launcher
 #     and the user unit.
 # Decisions of the maintainer, taken outside this repository (not read from it):
@@ -90,7 +91,10 @@ BuildRequires:  python3-devel
 # [H] python3-devel brings in the %%pyproject_* macros; setuptools comes from
 # %%pyproject_buildrequires, which reads [build-system] of pyproject.toml ([K]: setuptools>=68)
 BuildRequires:  gettext
-# [K] tools/i18n.sh build needs msgfmt (package: gettext, as the tool itself says)
+# [K] tools/i18n.sh build and data need msgfmt (package: gettext, as the tool itself says)
+# [H] msgfmt --xml finds the ITS rules of the metainfo in the data directory of the gettext
+# installation (tools/i18n.sh says so); whether the Fedora and EL 10 gettext package has them is not
+# measured: the build on those systems has to show it.
 BuildRequires:  glib2-devel
 # [K] run.sh names glib2-devel for glib-compile-schemas; used in %%check only
 BuildRequires:  systemd-rpm-macros
@@ -179,8 +183,15 @@ install -Dpm 0644 data/%{name}.service %{buildroot}%{_userunitdir}/%{name}.servi
 # meson.build of systemd v256 (read): /usr/lib/systemd/user; [H] the same value on the target distributions
 
 # The desktop entry, the AppStream metainfo and the icons. [K] the app id names all four files.
-install -Dpm 0644 data/%{app_id}.desktop %{buildroot}%{_datadir}/applications/%{app_id}.desktop
-install -Dpm 0644 data/%{app_id}.metainfo.xml %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xml
+# [K] the .desktop file and the metainfo are generated from data/<app id>.desktop.in and
+# data/<app id>.metainfo.xml.in with the translations of the catalogs: "tools/i18n.sh data DIR" writes
+# DIR/<app id>.desktop and DIR/<app id>.metainfo.xml (msgfmt --desktop and msgfmt --xml). The directory is
+# relative to the source tree, which is the current directory in %%install.
+bash tools/i18n.sh data generated-data
+install -Dpm 0644 generated-data/%{app_id}.desktop \
+    %{buildroot}%{_datadir}/applications/%{app_id}.desktop
+install -Dpm 0644 generated-data/%{app_id}.metainfo.xml \
+    %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xml
 install -Dpm 0644 data/icons/hicolor/scalable/apps/%{app_id}.svg \
     %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/%{app_id}.svg
 install -Dpm 0644 data/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg \
