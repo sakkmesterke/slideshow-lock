@@ -260,6 +260,15 @@ suspend would not wait for the lock).
   `exec`s `/usr/bin/python3 -P -m ...`: the program is the process that gets the signals, `-P`
   keeps the current directory out of `sys.path` (Python 3.11 or newer). From a checkout, `run.sh`
   is still the way to try the program.
+- `packaging/slideshowlock` is the second command, `/usr/bin/slideshowlock`: it opens the settings
+  window. It is a separate sh file, not a symlink, and has no sub-commands: it `exec`s
+  `/usr/bin/slideshow-lock settings "$@"`, so every argument (`--debug`) goes on unchanged. Only
+  `-h` and `--help` as the first argument are answered by the short command itself (a usage text
+  that names it); `slideshowlock --debug --help` is the settings window's own help. The package
+  lists both commands in the metainfo (`<provides>`) and in `%files`. 0 hits for
+  `/usr/bin/slideshowlock` in three repositories (Fedora 43 release, Fedora 43 updates, EPEL 10),
+  measured by the QA review of this change; Rocky, AlmaLinux and CentOS Stream 10 were not
+  measured.
 - `data/slideshow-lock.service` is the user unit. It runs `slideshow-lock service`. The reasons for
   each directive are the comments in the file; the ones that rest on this document: no `sd_notify`
   (`Type=simple`); `SIGTERM` is a clean stop with status 0 (section 6), so `Restart=on-failure`
