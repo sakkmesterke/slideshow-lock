@@ -120,9 +120,7 @@ DEBUG_MSGID = "log every step"
 
 #: Every catalog these tests look at: the four written out above, and the other shipped languages
 #: but Hungarian (its own test file).
-ALL_LANGUAGES = sorted(
-    set(LANGUAGES) | {lang for lang in shipped() if lang != "hu"}
-)
+ALL_LANGUAGES = sorted(set(LANGUAGES) | {lang for lang in shipped() if lang != "hu"})
 
 #: The languages of the negative control (it copies the checkout and runs ``tools/i18n.sh``, so
 #: not every language: the mechanism is the same for all of them).

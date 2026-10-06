@@ -259,7 +259,9 @@ def same_plural_rule(value: str, reference: str, limit: int = 1000) -> bool:
     """True when both headers say the same: the same nplurals and the same form for n=0..*limit*."""
     nplurals, evaluate = parse_plural_forms(value)
     ref_nplurals, ref_evaluate = parse_plural_forms(reference)
-    return nplurals == ref_nplurals and all(evaluate(n) == ref_evaluate(n) for n in range(limit + 1))
+    return nplurals == ref_nplurals and all(
+        evaluate(n) == ref_evaluate(n) for n in range(limit + 1)
+    )
 
 
 # -- the glossary --------------------------------------------------------------------------------
@@ -344,7 +346,9 @@ def glossary_violations(
     for msgid, msgstr in pairs:
         if not msgid:
             continue
-        shown = "\n".join(line for line in msgstr.split("\n") if not line.startswith("  ")).casefold()
+        shown = "\n".join(
+            line for line in msgstr.split("\n") if not line.startswith("  ")
+        ).casefold()
         for concept, (translations, pattern) in glossary.items():
             pattern = CONCEPTS.get(concept, pattern)
             if pattern is None or not _about(msgid, concept, pattern):
