@@ -249,3 +249,61 @@ def test_the_spec_installs_and_lists_both_commands():
     files = text.split("\n%files", 1)[1].split("\n%changelog", 1)[0].splitlines()
     assert "%{_bindir}/%{name}" in files
     assert "%{_bindir}/slideshowlock" in files
+
+
+# -- the loaders for the picture formats (docs/image-source.md, "Picture formats") ---------------
+
+
+def _conditions_of(prefix: str) -> list:
+    """The spec lines that start with *prefix*, each with the %if conditions open at that line.
+
+    A line outside every conditional gets ``[]``; a line in ``%if 0%{?rhel}`` gets
+    ``["0%{?rhel}"]``. Only the dependency block of the spec is read: lines in comments never
+    start with a tag, so they are not counted.
+    """
+    found, open_ifs = [], []
+    for line in SPEC.read_text().splitlines():
+        word = line.split(None, 1)[0] if line.strip() else ""
+        if word in ("%if", "%ifarch", "%ifnarch"):
+            open_ifs.append(line.split(None, 1)[1].strip())
+        elif word == "%endif":
+            open_ifs.pop()
+        elif line.startswith(prefix):
+            found.append((line.split(":", 1)[1].strip(), list(open_ifs)))
+    return found
+
+
+@pytest.mark.parametrize(
+    "tag,package",
+    [
+        ("Requires:", "gdk-pixbuf2-modules"),
+        ("Recommends:", "webp-pixbuf-loader"),
+        ("Recommends:", "gdk-pixbuf2-modules-extra"),
+    ],
+)
+def test_the_spec_asks_for_the_picture_loaders_on_rhel_only(tag, package):
+    assert (package, ["0%{?rhel}"]) in _conditions_of(tag)
+    assert [c for p, c in _conditions_of(tag) if p == package] == [["0%{?rhel}"]]  # once
+
+
+def test_the_epel_loaders_are_weak_dependencies_and_never_required():
+    """The package must not need EPEL: the two packages only EPEL 10 has are Recommends."""
+    required = {p for p, _ in _conditions_of("Requires:")}
+    assert "gdk-pixbuf2-modules" in required
+    assert not required & {"webp-pixbuf-loader", "gdk-pixbuf2-modules-extra"}
+
+
+def test_the_conditions_helper_sees_an_unconditional_line_and_a_nested_one(tmp_path, monkeypatch):
+    """Negative control of the two tests above: the reader tells a bare line from a guarded one."""
+    fake = tmp_path / "x.spec"
+    fake.write_text(
+        "Requires:       bare\n%if 0%{?rhel}\nRequires:       guarded\n%if %{with tests}\n"
+        "Requires:       nested\n%endif\n%endif\nRequires:       after\n"
+    )
+    monkeypatch.setattr("tests.test_packaging.SPEC", fake)
+    assert _conditions_of("Requires:") == [
+        ("bare", []),
+        ("guarded", ["0%{?rhel}"]),
+        ("nested", ["0%{?rhel}", "%{with tests}"]),
+        ("after", []),
+    ]

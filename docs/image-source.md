@@ -112,6 +112,36 @@ becomes empty (`None`). It does not fire for `advance()`.
   A missing folder is the empty state plus one `[slideshow-dir]` WARNING, and the
   source keeps watching for it to appear.
 
+## Picture formats
+
+The extensions that count are `.jpg`, `.jpeg`, `.png`, `.gif`, `.bmp`, `.tif`, `.tiff` and
+`.webp`. Whether a file of one of them can be shown depends on the gdk-pixbuf loaders the machine
+has; the program has no decoder of its own. The table is read from the package file lists of the
+repositories (see the spec comment); no picture of these formats was loaded on those systems for it.
+
+| Format (has a loader from) | RHEL 10, Rocky, AlmaLinux, base repositories only | The same with EPEL 10 | Fedora 43 and later |
+|---|---|---|---|
+| JPEG, PNG | built into gdk-pixbuf | built into gdk-pixbuf | not measured |
+| TIFF, GIF | `gdk-pixbuf2-modules`, which the package requires | the same | not measured |
+| BMP | **no loader** | `gdk-pixbuf2-modules-extra` | not measured |
+| WebP | **no loader** | `webp-pixbuf-loader` | not measured |
+
+- **EPEL is not needed, and not installed for you.** The package requires `gdk-pixbuf2-modules`
+  on RHEL and its rebuilds, and only *recommends* the two EPEL packages. Without EPEL enabled a
+  BMP or WebP file is not shown.
+- **What a file without a loader costs.** One WARNING in the journal (`no installed gdk-pixbuf
+  loader`; the lines are rate-limited, with a summary after a burst), and the file stays out of
+  the picture queue. The other pictures play on.
+- **JPEG 2000 (`.jp2`) is left out on purpose.** No repository that was looked at (Fedora 43, 44
+  and rawhide, EPEL 10, Rocky 10, CentOS Stream 10) has a gdk-pixbuf loader for it, and gdk-pixbuf
+  itself has none, so a `.jp2` extension would only produce files that never load. A `.jp2` file is
+  not in the queue, and `probe_image` does not know its header.
+- **Fedora 43 and later: not measured.** There gdk-pixbuf hands the formats to glycin; what that
+  does with a cut-off file or a very large picture was not measured for this program, and the
+  package asks for nothing extra there.
+- **Not measured at all:** `rpmbuild` and `dnf install` of the package on EL10 with and without
+  EPEL, and whether a RHEL 10 Workstation has `gdk-pixbuf2-modules` installed from the start.
+
 ## Manual trial: inotify watch exhaustion
 
 Automated on GitHub Actions only (`test_gio_watch_exhaustion_is_reported_once_and_the_walk_still_completes`
@@ -140,3 +170,7 @@ The format name `probe_image` returns for each of the six headers (`jpeg`, `png`
 signatures, `bmp`, `tiff` for both byte orders, `webp`) is pinned on the bytes alone, without a
 loader, together with headers that only look like a known one (a RIFF file that is not WebP, the
 WebP tag without RIFF, `GIF88a`, a TIFF with a wrong magic number).
+
+`tests/test_image_source.py` also pins that a `.jp2` file is not in the queue, even with a JPEG 2000
+header, and that `probe_image` rejects that header. `tests/test_packaging.py` pins the conditional
+`Requires` and `Recommends` lines of the spec for the formats above.
