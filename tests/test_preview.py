@@ -1308,6 +1308,7 @@ def _package_file(module: str) -> str:
 LOCK_SIDE_MODULES = {
     "dbus_adapters.py",
     "service.py",
+    "settings_app.py",
     "session.py",
     "sleep_guard.py",
     "state_machine.py",

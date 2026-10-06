@@ -266,14 +266,14 @@ def test_settings_starts_the_window_module(tmp_path, stub_bin):
     path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
     result = _run(["settings"], _env(tmp_path, path=path))
     assert result.returncode == 0, result.stderr
-    assert "STUB -m slideshow_lock.preferences" in result.stdout
+    assert "STUB -m slideshow_lock.settings_app" in result.stdout
 
 
 def test_settings_passes_the_arguments_on_to_the_window_module(tmp_path, stub_bin):
     path = f"{stub_bin}{os.pathsep}{os.environ['PATH']}"
     result = _run(["settings", "--debug", "/x y"], _env(tmp_path, path=path))
     assert result.returncode == 0, result.stderr
-    assert "STUB -m slideshow_lock.preferences --debug /x y" in result.stdout
+    assert "STUB -m slideshow_lock.settings_app --debug /x y" in result.stdout
     assert "ARGC=4" in result.stdout, "an argument was split or merged on the way"
 
 
