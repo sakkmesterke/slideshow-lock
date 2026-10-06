@@ -31,12 +31,20 @@
 # results are in the fedora-review/ directory of each: review.txt, rpmlint.txt). rpmlint ran with the
 # Fedora configuration (/etc/xdg/rpmlint/fedora.toml) on the built noarch RPM and on the source RPM,
 # and printed the same in fedora-43, fedora-44 and fedora-rawhide: 0 errors, 2 warnings
-# (no-manual-page-for-binary and empty-%%postun), 7 filtered. fedora-review (rc 0) wrote its template:
-# 36 items of review.txt are marked "[x]", 34 "[ ]" items (the manual checks) are still open. Neither
-# tool left a result on epel-10 (no files there), and none exists for the build 11084376 (no result
-# files in any chroot).
+# (no-manual-page-for-binary and empty-%%postun), 7 filtered. fedora-review (rc 0) wrote its template;
+# the review.txt of the three chroots lists 70 items (counted with the pattern "^\[.\]:" so that the two
+# legend lines are not counted): 35 marked "[x]", 2 marked "[!]" (the download of Source0, which fails
+# because the tag v1.0.0 does not exist yet, and the reminder to test the build in mock) and 33 marked
+# "[ ]" (manual review needed, still open); it has 1 entry under "Issues:" (the systemd user unit
+# scriptlets, which the %%post and %%preun of this spec provide). There is no fedora-review/ directory
+# and no rpmlint output on epel-10, and none for the build 11084376 (no such directory in any of its
+# chroots).
 # NOT run: mock by hand, rpmlint and fedora-review on epel-10, an install of the RPM on a Fedora or EL
-# machine, the test suite (--with tests), a real GNOME session.
+# machine, the test suite (--with tests), a real GNOME session. The review.txt says "[x]: Package
+# installs properly" because fedora-review installed the built package in a mock root of COPR (the log
+# says "Installing built package(s)", with the mock configuration of the build); that is not an
+# install on a Fedora or EL machine, and whether the root held the BuildRequires is not read from
+# the log.
 #
 # Prerequisites that are not in this file:
 #   - The tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does. A protected
