@@ -6,11 +6,12 @@
 #        no rpmbuild, rpmlint, mock or fedora-review has run on this file
 #
 # Prerequisite: the tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does.
-# Open items, not code (they need a decision or a later step):
-#   - %%changelog carries TrenSoft's name and e-mail address. The repository is public, so after the
-#     merge they stay in the history. His decision is needed, in writing, or a neutral identity
-#     replaces them (review verdicts: MAJOR / I2).
-#   - "GPL-3.0-or-later": the "or later" is not written anywhere in the repository (see License: below).
+# Decisions recorded outside this repository (not read from it):
+#   - %%changelog carries TrenSoft's name and e-mail address. The repository is public, so they stay
+#     public in the history of main. Decision: TrenSoft, 2026-10-05 22:11.
+#   - License GPL-3.0-or-later. Decision: TrenSoft, 2026-10-05 22:18. The
+#     repository itself has no SPDX or "or later" text yet.
+# Open items, not code (they need a later step):
 #   - Source0: the v1.0.0 tag does not exist; a protected or signed tag and a SHA-512 of the tarball
 #     are to be fixed at release time, not in this file.
 #   - A second spec (an EL one) would be ignored again by the "*.spec" line of .gitignore; the file
@@ -31,10 +32,9 @@ Release:        1%{?dist}
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
 License:        GPL-3.0-or-later
-# [K] LICENSE is the plain GPLv3 text, pyproject.toml says license = { file = "LICENSE" } and the
-# source files carry no SPDX header. [H] "or later" is therefore NOT recorded in this repository: it is
-# a decision taken outside it, listed under the open items above. [H] an SPDX expression in License:
-# is what the guidelines ask for.
+# Decision (TrenSoft, 2026-10-05 22:18), not read from the repository: LICENSE is the plain GPLv3
+# text, pyproject.toml says license = { file = "LICENSE" } and the source files carry no SPDX header
+# yet. [H] an SPDX expression in License: is what the guidelines ask for.
 URL:            https://github.com/trensoft/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
