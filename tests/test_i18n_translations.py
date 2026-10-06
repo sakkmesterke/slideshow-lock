@@ -1,4 +1,4 @@
-"""The German, Italian, French and Spanish catalogs that ship in ``po/``: each is registered,
+"""The catalogs that ship in ``po/`` but Hungarian (``test_i18n_hu.py``): each is registered,
 complete, and shown by the programs in a session of that language.
 
 The other i18n tests write their own catalogs; these read the real ones. The first group needs no
@@ -7,8 +7,14 @@ skips without it, with the name of the package (the CI installs it, so there a s
 The tests that start ``msgfmt`` / ``tools/i18n.sh`` are listed in ``OPT_OUTS`` of
 ``test_tripwire.py``.
 
+German, Italian, French and Spanish are written out below (``LANGUAGES``: what a session in the
+language shows is typed here, so a wrong catalog cannot vouch for itself). The other languages are
+read from their own catalog (``expected_strings``): for those the tests check that the catalog is
+whole, consistent and wired in, which is all they can check. ``test_i18n_catalogs.py`` has the
+checks that are the same for every language (header, plural rule, glossary).
+
 Nobody who speaks these languages natively has read the translations yet; the tests check that they
-are there, whole and wired in, not that they are good German, Italian, French or Spanish.
+are there, whole and wired in, not that they are good German, Italian, French, Spanish, Dutch ...
 """
 
 from __future__ import annotations
@@ -28,6 +34,14 @@ import pytest
 gi.require_version("Gtk", "4.0")
 
 from slideshow_lock import APP_ID, _, i18n, preferences, preview_app, service  # noqa: E402
+from tests.i18n_catalogs import (  # noqa: E402
+    FIRST_FIVE,
+    WITHOUT_DATA_STRINGS,
+    data_msgids,
+    header_fields,
+    parse_po,
+    shipped,
+)
 
 REPO = Path(__file__).resolve().parent.parent
 PACKAGE = REPO / "slideshow_lock"
@@ -91,6 +105,32 @@ LANGUAGES = {
     },
 }
 
+#: What the tests read from a catalog that is not written out in ``LANGUAGES``: the strings of the
+#: window and the three ``--help`` descriptions (preview_app, service, preferences), as msgids.
+HELP_MSGIDS = (
+    (preview_app, "Show the slideshow preview. Any input ends it. It never locks the session."),
+    (
+        service,
+        "Start the slideshow when the session is idle, lock it on the first input after the grace "
+        "period, and lock before the machine suspends.",
+    ),
+    (preferences, "Change the slideshow settings."),
+)
+DEBUG_MSGID = "log every step"
+
+#: Every catalog these tests look at: the four written out above, and the other shipped languages
+#: but Hungarian (its own test file).
+ALL_LANGUAGES = sorted(
+    set(LANGUAGES) | {lang for lang in shipped() if lang != "hu"}
+)
+
+#: The languages of the negative control (it copies the checkout and runs ``tools/i18n.sh``, so
+#: not every language: the mechanism is the same for all of them).
+CONTROL_LANGUAGES = sorted(set(LANGUAGES) | ({"ja", "pt_BR"} & set(ALL_LANGUAGES)))
+
+AI_TRANSLATOR = "AI-assisted (Claude), not reviewed by a native speaker"
+HUMAN_TRANSLATOR = "Slideshow Lock contributors"
+
 #: Strings that are the same as the English on purpose: the name of the program and the units
 #: (``10 s``, ``%d min``, ``1 h`` are written the same in all of these languages).
 SAME_AS_ENGLISH = {
@@ -108,6 +148,30 @@ PLACEHOLDER = re.compile(r"%(?:\([A-Za-z_]+\))?[sdif]|%%")
 
 def source_msgids():
     return {call.msgid for call in catalog.gettext_calls(PACKAGE)}
+
+
+def expected_msgids(lang):
+    """What the catalog of *lang* holds: the strings of the source and, for every catalog but the
+    first five (``WITHOUT_DATA_STRINGS``), the five of the launcher and the metadata."""
+    if lang in WITHOUT_DATA_STRINGS:
+        return source_msgids()
+    return source_msgids() | data_msgids()
+
+
+def expected_strings(lang):
+    """What a session in *lang* shows: written out in ``LANGUAGES``, or the catalog's own text for
+    the same msgids (the session is the language name: ``pt_BR.UTF-8``, ``nl.UTF-8``)."""
+    if lang in LANGUAGES:
+        return LANGUAGES[lang]
+    texts = dict(entries(lang)[0])
+    return {
+        "session": lang + ".UTF-8",
+        "Cancel": texts["Cancel"],
+        "Preview": texts["Preview"],
+        "In use: %s": texts["In use: %s"],
+        "help": tuple((module, texts[msgid]) for module, msgid in HELP_MSGIDS),
+        "debug": texts[DEBUG_MSGID],
+    }
 
 
 def po_path(lang):
@@ -134,32 +198,32 @@ def entries(lang):
     return [(msgid, msgstr) for msgid, msgstr in pairs if msgid], lines
 
 
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
+@pytest.mark.parametrize("lang", ALL_LANGUAGES)
 def test_the_language_is_in_linguas_and_has_its_catalog(lang):
     assert lang in linguas((PO / "LINGUAS").read_text(encoding="utf-8"))
     assert po_path(lang).is_file()
 
 
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
+@pytest.mark.parametrize("lang", ALL_LANGUAGES)
 def test_the_catalog_holds_exactly_the_strings_of_the_source_and_every_one_is_translated(lang):
     pairs, _lines = entries(lang)
     msgids = [msgid for msgid, _msgstr in pairs]
     assert len(msgids) == len(set(msgids)), "an entry twice"
-    assert set(msgids) == source_msgids()
+    assert set(msgids) == expected_msgids(lang)
     assert [msgid for msgid, msgstr in pairs if msgstr == ""] == []
     english = {msgid for msgid, msgstr in pairs if msgstr == msgid}
     assert english <= SAME_AS_ENGLISH, sorted(english - SAME_AS_ENGLISH)
     assert "Slideshow Lock" in english
 
 
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
+@pytest.mark.parametrize("lang", ALL_LANGUAGES)
 def test_no_entry_is_fuzzy_or_obsolete(lang):
     _pairs, lines = entries(lang)
     assert [line for line in lines if line.startswith("#,") and "fuzzy" in line] == []
     assert [line for line in lines if line.startswith("#~")] == []
 
 
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
+@pytest.mark.parametrize("lang", ALL_LANGUAGES)
 def test_the_placeholders_and_the_commands_are_unchanged(lang):
     pairs, _lines = entries(lang)
     for msgid, msgstr in pairs:
@@ -171,15 +235,16 @@ def test_the_placeholders_and_the_commands_are_unchanged(lang):
         assert msgstr.count("\n") == msgid.count("\n"), msgid
 
 
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
-def test_the_file_has_unix_line_ends_and_a_header_that_names_no_person_or_agent(lang):
+@pytest.mark.parametrize("lang", ALL_LANGUAGES)
+def test_the_file_has_unix_line_ends_and_a_header_that_names_no_person(lang):
     raw = po_path(lang).read_bytes()
     assert b"\r" not in raw
     assert raw.endswith(b"\n")
     text = raw.decode("utf-8")
     assert '"Content-Type: text/plain; charset=UTF-8\\n"\n' in text
     assert '"Language: %s\\n"\n' % lang in text
-    assert '"Last-Translator: Slideshow Lock contributors\\n"\n' in text
+    translator = HUMAN_TRANSLATOR if lang in FIRST_FIVE else AI_TRANSLATOR
+    assert header_fields(parse_po(text)[0])["Last-Translator"] == translator
     assert "@" not in text.split("\n\n", 1)[0]
 
 
@@ -213,7 +278,7 @@ def build(checkout, target):
 
 
 @pytest.mark.spawns_processes
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
+@pytest.mark.parametrize("lang", ALL_LANGUAGES)
 def test_msgfmt_counts_every_message_translated_none_fuzzy_none_untranslated(gettext_tools, lang):
     result = subprocess.run(
         ["msgfmt", "--statistics", "-c", "--check-format", "-o", "/dev/null", str(po_path(lang))],
@@ -223,23 +288,32 @@ def test_msgfmt_counts_every_message_translated_none_fuzzy_none_untranslated(get
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert result.stderr.strip() == "%d translated messages." % len(source_msgids())
+    assert result.stderr.strip() == "%d translated messages." % len(expected_msgids(lang))
+
+
+@pytest.fixture(scope="module")
+def built_locale(tmp_path_factory):
+    """Every catalog of ``po/LINGUAS`` compiled once by ``tools/i18n.sh build``, for the module."""
+    if shutil.which("msgfmt") is None:
+        pytest.skip("msgfmt is not on PATH (package gettext); the CI installs it")
+    target = tmp_path_factory.mktemp("locale")
+    built = build(REPO, target)
+    assert built.returncode == 0, built.stderr
+    return target
 
 
 @pytest.mark.spawns_processes
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
+@pytest.mark.parametrize("lang", ALL_LANGUAGES)
 def test_the_catalog_built_from_this_checkout_is_what_the_programs_show_in_its_language(
-    gettext_tools, restore_gettext_state, tmp_path, monkeypatch, capsys, lang
+    gettext_tools, restore_gettext_state, built_locale, monkeypatch, capsys, lang
 ):
-    expected = LANGUAGES[lang]
-    built = build(REPO, tmp_path / "locale")
-    assert built.returncode == 0, built.stderr
-    assert (tmp_path / "locale" / lang / "LC_MESSAGES" / (APP_ID + ".mo")).is_file()
+    expected = expected_strings(lang)
+    assert (built_locale / lang / "LC_MESSAGES" / (APP_ID + ".mo")).is_file()
 
     for name in i18n.LANGUAGE_ENV_VARS:
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("LANG", expected["session"])
-    monkeypatch.setenv(i18n.LOCALEDIR_ENV, str(tmp_path / "locale"))
+    monkeypatch.setenv(i18n.LOCALEDIR_ENV, str(built_locale))
     monkeypatch.setenv("COLUMNS", "300")  # argparse must not wrap a text it is compared with
     i18n.setup()
     assert _("Cancel") == expected["Cancel"]
@@ -256,7 +330,7 @@ def test_the_catalog_built_from_this_checkout_is_what_the_programs_show_in_its_l
 
 
 @pytest.mark.spawns_processes
-@pytest.mark.parametrize("lang", sorted(LANGUAGES))
+@pytest.mark.parametrize("lang", CONTROL_LANGUAGES)
 def test_a_language_that_is_not_in_linguas_is_not_built_and_the_check_fails(
     gettext_tools, tmp_path, lang
 ):
