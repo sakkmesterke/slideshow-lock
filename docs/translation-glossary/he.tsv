@@ -1,14 +1,12 @@
-term	translation	note
-Slideshow Lock	Slideshow Lock	product name, kept in Latin script inside the right-to-left sentence
-slideshow	מצגת	"מצגת" everywhere; a picture slideshow: מצגת תמונות
-lock (verb and noun)	נעילה	verb forms: נועל, ננעל; session lock: נעילת הסשן
-Preview	תצוגה מקדימה	window title and button
-Settings	הגדרות	"הגדרות Slideshow Lock"
-idle / inactivity	חוסר פעילות	"זמן חוסר פעילות"
-folder	תיקייה	"תיקיית תמונות"
-image / picture	תמונה	plural תמונות
-fullscreen	מסך מלא	"Fill" (scaling mode) is מילוי המסך
-monitor	צג	the display device; "screen" is מסך
-input	קלט	keyboard or mouse input
-grace period	תקופת חסד	"Lock grace period": תקופת חסד לנעילה
-session	סשן	loanword, chosen so that "הפעלה" is not read as "start"
+# Slideshow Lock translation glossary, he. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	מצגת|slideshow_lock	\bslideshow\b
+lock	נעילה|נעילת|נועל|ננעל|slideshow_lock	\block(s|ed|ing)?\b
+preview	תצוגה מקדימה|התצוגה המקדימה|preview_app	\bpreview\b
+settings	הגדרות	\bsettings?\b
+idle	חוסר פעילות|חוסר הפעילות|לא פעיל	\bidle\b
+folder	תיקיי	\bfolders?\b
+picture	תמונ	\bpictures?\b
+fullscreen	מסך מלא	\bfull-?screen\b
+monitor	צג	\bmonitors?\b
+grace period	חסד	\bgrace period\b
