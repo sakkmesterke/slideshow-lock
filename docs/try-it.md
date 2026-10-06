@@ -123,6 +123,8 @@ desktop.
 - `settings` stores the changed settings (see above). `preview` and `service` store nothing.
 - Nothing is installed. `preview` and `settings` never lock the session; `service` does, as in
   step 5.
+- `run.sh` is for a checkout. The installed package has the commands `slideshow-lock service|settings|preview` and
+  `slideshowlock`, which opens the settings window (`docs/service.md`, section 8).
 
 ## What this does not prove
 

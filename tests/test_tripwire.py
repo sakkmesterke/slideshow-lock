@@ -121,6 +121,17 @@ OPT_OUTS = {
         "test_packaging.py",
         "test_the_unit_runs_the_launcher_with_the_service_command",
     ),
+    ("test_packaging.py", "test_the_short_command_is_executable_in_git"),
+    ("test_packaging.py", "test_the_short_command_opens_the_settings_window"),
+    (
+        "test_packaging.py",
+        "test_the_short_command_passes_the_arguments_on_unchanged_and_in_order",
+    ),
+    (
+        "test_packaging.py",
+        "test_the_short_commands_help_names_it_and_starts_nothing",
+    ),
+    ("test_packaging.py", "test_help_after_another_argument_is_the_programs_own"),
     ("test_i18n_source.py", "test_xgettext_finds_exactly_the_strings_the_reader_finds"),
     (
         "test_run_script.py",

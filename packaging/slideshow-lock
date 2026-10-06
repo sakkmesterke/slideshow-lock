@@ -6,6 +6,8 @@
 #   slideshow-lock settings [args...]  the settings window: what the .desktop file runs
 #   slideshow-lock preview [args...]   the fullscreen preview (never locks)
 #
+# "slideshowlock" (packaging/slideshowlock) is the short way to the settings window.
+#
 # The arguments go to the program unchanged (slideshow-lock service --help lists its options).
 # From a source checkout use ./run.sh instead: it needs no installation.
 #
@@ -21,6 +23,7 @@ usage() {
 usage: slideshow-lock service [args...]   idle, slideshow and lock (the systemd user service)
        slideshow-lock settings [args...]  the settings window
        slideshow-lock preview [args...]   the fullscreen preview (never locks)
+The command slideshowlock opens the settings window (the same as slideshow-lock settings).
 USAGE
 }
 
