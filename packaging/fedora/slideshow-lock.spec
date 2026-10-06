@@ -101,7 +101,7 @@ Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
 Version:        1.0.0
 # [K] pyproject.toml says version = "1.0.0"
-Release:        2%{?dist}
+Release:        1%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
@@ -305,8 +305,5 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 %{_datadir}/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg
 
 %changelog
-* Tue Oct 06 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.0-2
-- Release 2, so that this release is newer than the trial builds 1.0.0-1 of the COPR project
-
 * Tue Oct 06 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.0-1
 - Initial package
