@@ -1,0 +1,334 @@
+# Hungarian translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 03:54+0000\n"
+"PO-Revision-Date: 2026-10-06 03:54+0000\n"
+"Last-Translator: Slideshow Lock contributors\n"
+"Language-Team: Hungarian\n"
+"Language: hu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: slideshow_lock/__init__.py
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Véletlenszerű"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Fájlnév szerint"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Kitöltés (levágja a kép egy részét)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Illesztés (a teljes képet mutatja)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Slideshow Lock beállításai"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Tallózás…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Képek"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Képek mappája"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Képek sorrendje"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Méretezés"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Álló képek görgetése"
+
+#: slideshow_lock/preferences.py
+msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
+msgstr "Az álló képek a fekvő képernyőn lassan fentről lefelé haladnak (csak Kitöltés mellett). Alapértelmezés szerint ki van kapcsolva: több akkumulátort fogyaszt."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "A diavetítés indítása"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Tétlenségi idő"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Ennyi bevitel nélküli idő után indul a diavetítés."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "másodperc"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Időzítés"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Egy kép megjelenítési ideje"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Zárolási türelmi idő"
+
+#: slideshow_lock/preferences.py
+msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
+msgstr "Ha a diavetítés indulása után ennél hamarabb érkezik bevitel, az nem zárolja a munkamenetet (szigorúan hamarabb; a 0 azt jelenti, hogy minden bevitel zárol)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Előnézet"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 mp"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 perc"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 óra"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 óra"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Válaszd ki a képek mappáját"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Kiválasztás"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Mégse"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Az előnézetet nem sikerült elindítani, a részletek a naplóban vannak."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Nincs monitor az előnézet megjelenítéséhez."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "Az előnézet fut: nyomj meg egy billentyűt vagy mozdítsd meg az egeret a befejezéséhez."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "A diavetítés beállításainak módosítása."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "minden lépés naplózása"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"A beállítási séma nincs telepítve. Fordítsd le, és add meg a GSettingsnek:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Mentve."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "a leghosszabb"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d mp"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d perc"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d óra"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Használatban: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Használatban: %s (a mappa még nem létezik, nem jelenik meg semmi)"
+
+#: slideshow_lock/preferences_model.py
+msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
+msgstr "Nem a csúszka egyik állása: a legközelebbit mutatja. A mentett érték addig marad, amíg el nem mozdítod a csúszkát."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Adj meg egész számú másodpercet."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Az érték %(low)d és %(high)d között lehet."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Adj meg egész számot a csúszka állásához."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Ez az állás nincs a csúszkán."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Ez a lehetőség nem érhető el."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Ennek bekapcsoltnak vagy kikapcsoltnak kell lennie."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Adj meg egy mappaútvonalat."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Az útvonal meg nem engedett karaktert tartalmaz."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Adj meg abszolút útvonalat (/ vagy ~ jellel kezdődik)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Ez az útvonal egy fájl, nem mappa."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Az érték nem lett elfogadva, a régi marad."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Az értéket nem sikerült menteni."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "A mappa nem lett elfogadva, a régi marad."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "A mappát nem sikerült menteni."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Nincs megjeleníthető kép"
+
+#: slideshow_lock/preview_app.py
+msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "A diavetítés előnézetének megjelenítése. Bármilyen bevitel befejezi. Soha nem zárolja a munkamenetet."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "képek mappája (csak erre a futtatásra)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "másodperc képenként (csak erre a futtatásra)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "képek sorrendje"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "illesztés vagy kitöltés a monitoron"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "az álló képek lassú görgetése (kitöltés módban)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Az időköznek %d és %d másodperc között kell lennie."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"A beállítási séma nincs telepítve. Fordítsd le, és add meg a GSettingsnek:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Slideshow Lock előnézet"
+
+#: slideshow_lock/service.py
+msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
+msgstr "Elindítja a diavetítést, ha a munkamenet tétlen; a türelmi idő utáni első bevitelnél zárol, és zárol a gép felfüggesztése előtt."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "tétlen másodpercek a diavetítés előtt"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "az ennyi másodpercen belüli bevitel nem zárol"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "A tétlenségi időnek 1 és 86400 másodperc között kell lennie."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "A türelmi időnek 0 és 86400 másodperc között kell lennie."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"A beállítási séma nincs telepítve. Fordítsd le, és add meg a GSettingsnek:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
