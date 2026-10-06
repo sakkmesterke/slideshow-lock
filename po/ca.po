@@ -332,7 +332,7 @@ msgstr "Configura la presentació en inactivitat i el bloqueig de la sessió"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Salvapantalles de presentació d'imatges que bloqueja en detectar una entrada"
+msgstr "Salvapantalles de presentació d'imatges en inactivitat que bloqueja en detectar una entrada"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."

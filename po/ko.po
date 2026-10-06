@@ -336,7 +336,7 @@ msgstr "입력 시 잠기는 유휴 슬라이드쇼 화면 보호기"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock은 세션이 일정 시간 유휴 상태가 되면 각 모니터에서 전체 화면 슬라이드쇼를 시작합니다."
+msgstr "Slideshow Lock은 세션이 일정 시간 유휴 상태가 되면 각 모니터에서 전체 화면 사진 슬라이드쇼를 시작합니다."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
