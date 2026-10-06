@@ -6,9 +6,11 @@ the interface is exactly that English text. A missing catalog is never an error.
 be used (not a catalog, a charset Python does not know, bytes that are not in the charset it declares)
 is not an error either: the interface is English and the program writes one WARNING line (section 1).
 
-Status: the machinery is there, **there is no translation yet** (`po/` holds only `LINGUAS`, and that
-is empty). The first catalogs come in a later change. Nobody has checked a translation with a native
-speaker of that language.
+Status: there are five catalogs: German, Spanish, French, Hungarian and Italian (`po/de.po`, `po/es.po`,
+`po/fr.po`, `po/hu.po`, `po/it.po`, all listed in `po/LINGUAS`). Each holds a translation of every string
+the source asks for (`tools/i18n.sh check` compares them with the source). A native speaker of these
+languages has not read them yet. The `usage:` and `options:` lines of `--help` come from
+Python's `argparse` and stay English (section 5).
 
 ## 1. How the language is chosen
 
@@ -87,6 +89,9 @@ and charset checks first, and a build that fails leaves no `.mo` behind.
 `${XDG_CACHE_HOME:-$HOME/.cache}/slideshow-lock/locale` (outside the checkout, rebuilt at every
 start) and points the program there. `locale` is a link to a directory that is built apart and not
 changed afterwards, so two `run.sh` started together do not delete each other's catalogs; the
-replaced directories are deleted a minute later. While `po/` has no catalog, nothing is built and
-`SLIDESHOW_LOCK_LOCALEDIR` is not set. Without `msgfmt` (package `gettext`) `run.sh` warns once
+replaced directories are deleted a minute later. While `po/LINGUAS` lists no language, nothing is built
+and `SLIDESHOW_LOCK_LOCALEDIR` is not set. Without `msgfmt` (package `gettext`) `run.sh` warns once
 and the interface stays English; the same for a catalog that does not compile.
+
+To see a translated interface from a checkout, start it in a session language of that language, for
+example `LANG=hu_HU.UTF-8 ./run.sh settings` (or `de_DE`, `es_ES`, `fr_FR`, `it_IT`).

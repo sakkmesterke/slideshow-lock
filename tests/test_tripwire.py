@@ -175,6 +175,14 @@ OPT_OUTS = {
     ("test_run_script.py", "test_without_a_po_directory_the_locale_directory_is_not_set"),
     ("test_run_script.py", "test_without_msgfmt_run_sh_warns_once_and_goes_on_in_english"),
     (
+        "test_i18n_hu.py",
+        "test_msgfmt_counts_every_message_translated_none_fuzzy_none_untranslated",
+    ),
+    (
+        "test_i18n_hu.py",
+        "test_the_catalog_built_from_this_checkout_is_what_the_programs_show_in_a_hungarian_session",
+    ),
+    (
         "test_i18n_translations.py",
         "test_msgfmt_counts_every_message_translated_none_fuzzy_none_untranslated",
     ),
