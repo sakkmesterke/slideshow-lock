@@ -249,10 +249,9 @@ suspend would not wait for the lock).
   `/usr/bin/slideshow-lock settings "$@"`, so every argument (`--debug`) goes on unchanged. Only
   `-h` and `--help` as the first argument are answered by the short command itself (a usage text
   that names it); `slideshowlock --debug --help` is the settings window's own help. The package
-  lists both commands in the metainfo (`<provides>`) and in `%files`. No package of three
-  repositories ships `/usr/bin/slideshowlock`: Fedora 43 release, Fedora 43 updates and EPEL 10 (0
-  hits, measured by the QA review of this change and reported on 2026-10-06, from the repository
-  metadata, which lists `/usr/bin` files). Rocky, AlmaLinux and CentOS Stream 10 were not
+  lists both commands in the metainfo (`<provides>`) and in `%files`. 0 hits for
+  `/usr/bin/slideshowlock` in three repositories (Fedora 43 release, Fedora 43 updates, EPEL 10),
+  measured by the QA review of this change; Rocky, AlmaLinux and CentOS Stream 10 were not
   measured.
 - `data/slideshow-lock.service` is the user unit. It runs `slideshow-lock service`. The reasons for
   each directive are the comments in the file; the ones that rest on this document: no `sd_notify`
