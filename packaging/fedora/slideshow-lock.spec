@@ -225,6 +225,9 @@ interface follows the language of the session.
 # launcher: "slideshow-lock service|settings|preview" starts slideshow_lock.service, .preferences
 # or .preview_app (the sub-commands of run.sh). The unit and the .desktop file call it.
 install -Dpm 0755 packaging/%{name} %{buildroot}%{_bindir}/%{name}
+# The short command. [K] packaging/slideshowlock is a six-line sh launcher: "slideshowlock" is
+# "slideshow-lock settings" (the settings window); a separate file, no symlink, no argv0 test.
+install -Dpm 0755 packaging/slideshowlock %{buildroot}%{_bindir}/slideshowlock
 
 # The settings schema. [K] data/%%{app_id}.gschema.xml, run.sh compiles the same file into a cache
 install -Dpm 0644 data/%{app_id}.gschema.xml \
@@ -297,6 +300,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 %files -f %{pyproject_files} -f %{app_id}.lang
 %doc README.md
 %{_bindir}/%{name}
+%{_bindir}/slideshowlock
 %{_datadir}/glib-2.0/schemas/%{app_id}.gschema.xml
 %{_userunitdir}/%{name}.service
 %{_datadir}/applications/%{app_id}.desktop

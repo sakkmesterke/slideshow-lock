@@ -1,0 +1,16 @@
+#!/bin/sh
+# The short command of the installed package: it opens the settings window.
+# "slideshowlock [args...]" is "slideshow-lock settings [args...]"; the other programs stay with
+# slideshow-lock (service, preview). Only --help is answered here, so that it names this command.
+case "${1:-}" in
+    -h | --help)
+        printf '%s\n' \
+            'usage: slideshowlock [--debug]' \
+            '' \
+            'Opens the Slideshow Lock settings window. The same as: slideshow-lock settings' \
+            '--debug logs every step. The service and the preview are started with' \
+            'slideshow-lock service and slideshow-lock preview (slideshow-lock --help).'
+        exit 0
+        ;;
+esac
+exec /usr/bin/slideshow-lock settings "$@"

@@ -29,6 +29,7 @@ COLOR_ICON = ICONS / "scalable" / "apps" / f"{APP_ID}.svg"
 SYMBOLIC_ICON = ICONS / "symbolic" / "apps" / f"{APP_ID}-symbolic.svg"
 PREFERENCES_PY = REPO / "slideshow_lock" / "preferences.py"
 COMMAND = "slideshow-lock"
+SHORT_COMMAND = "slideshowlock"  # opens the settings window, packaging/slideshowlock
 
 
 def desktop_entry(text: str) -> configparser.SectionProxy:
@@ -71,8 +72,8 @@ def metainfo_problems(text: str) -> list[str]:
         problems.append("launchable is not the desktop file")
     if root.findtext("project_license") != "GPL-3.0-or-later":
         problems.append("project_license is not GPL-3.0-or-later")
-    if [binary.text for binary in root.findall("provides/binary")] != [COMMAND]:
-        problems.append("provides is not the command")
+    if [binary.text for binary in root.findall("provides/binary")] != [COMMAND, SHORT_COMMAND]:
+        problems.append("provides is not the two commands")
     for release in root.iterfind("releases/release"):
         # The date is fixed when the release is made; an undated <release> is a validation error
         # of appstreamcli, so the element stays out until then.
@@ -161,8 +162,15 @@ def test_a_wrong_metainfo_id_and_launchable_are_reported():
 
 def test_a_provided_binary_that_is_not_the_command_is_reported():
     meta = METAINFO_IN.read_text(encoding="utf-8")
-    assert "provides is not the command" in metainfo_problems(
+    assert "provides is not the two commands" in metainfo_problems(
         meta.replace("<binary>slideshow-lock</binary>", "<binary>slideshow-lock-daemon</binary>")
+    )
+
+
+def test_a_missing_short_command_in_provides_is_reported():
+    meta = METAINFO_IN.read_text(encoding="utf-8")
+    assert "provides is not the two commands" in metainfo_problems(
+        meta.replace("    <binary>slideshowlock</binary>\n", "")
     )
 
 
