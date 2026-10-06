@@ -69,7 +69,7 @@ def test_hungarian_is_in_linguas_and_has_its_catalog():
         for line in (PO / "LINGUAS").read_text(encoding="utf-8").splitlines()
         for name in line.split("#")[0].split()
     ]
-    assert listed == ["hu"]
+    assert "hu" in listed
     assert HU_PO.is_file()
 
 
