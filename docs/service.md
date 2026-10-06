@@ -219,8 +219,8 @@ suspend would not wait for the lock).
 
 ## 7. Not done here
 
-- `sd_notify` readiness and the unit file (PKG-1); `UnitControl`, the unit enable and disable
-  call (UI-1). The state machine has `enable()` and `disable()`, which the toggle will call.
+- `sd_notify` readiness (the unit is `Type=simple`, section 8); `UnitControl`, the unit enable and
+  disable call (UI-1). The state machine has `enable()` and `disable()`, which the toggle will call.
 - A manual preview as a service function (`StateMachine.start_preview`): the transitions and the D11
   guarantee are there and tested; nothing calls it yet (the settings window's Preview button will).
 - Real timing: whether the lock fits into `InhibitDelayMaxSec` on the reference machine.
@@ -234,3 +234,31 @@ suspend would not wait for the lock).
   also accepts `UnknownObject`; what GNOME's session manager answers was not measured.
 - A real `InhibitorAdded` flow from GNOME's session manager (the adapter re-asks `IsInhibited(8)` on
   every add and remove, and reports only a change).
+
+## 8. The installed command and the systemd user unit
+
+- `packaging/slideshow-lock` is the command the package installs as `/usr/bin/slideshow-lock`. It
+  starts one of the programs of section 1 and passes the arguments on unchanged:
+  `slideshow-lock service` (`slideshow_lock.service`), `slideshow-lock settings`
+  (`slideshow_lock.preferences`), `slideshow-lock preview` (`slideshow_lock.preview_app`). It
+  `exec`s `/usr/bin/python3 -P -m ...`: the program is the process that gets the signals, `-P`
+  keeps the current directory out of `sys.path` (Python 3.11 or newer). From a checkout, `run.sh`
+  is still the way to try the program.
+- `data/slideshow-lock.service` is the user unit. It runs `slideshow-lock service`. The reasons for
+  each directive are the comments in the file; the ones that rest on this document: no `sd_notify`
+  (`Type=simple`); `SIGTERM` is a clean stop with status 0 (section 6), so `Restart=on-failure`
+  leaves it alone; status 2 (bad option, missing schema) is not retried, status 1 (the sleep path
+  cannot be set up) is, at most 5 times in 5 minutes; the log goes to stderr, so to the journal
+  with `SyslogIdentifier=slideshow-lock`.
+- Measured: `systemd-analyze --user verify` (systemd 252, on a copy whose `ExecStart=` names the
+  launcher in a scratch directory, because the package is not installed there) prints nothing; the
+  same call on a unit with a misspelt `Restart=` value prints the error. The launcher and the unit
+  are compared in `tests/test_packaging.py`.
+- Not measured: the unit on a real session (that the display and the session bus are in the
+  environment of the user manager when `graphical-session.target` is reached, the language
+  variables, a stop at the end of the session), `systemd-analyze` of the version on RHEL 10, any
+  sandboxing directive (none is set), and whether the log lines get the right journal priority:
+  the program writes plain lines to stderr, so every line has the default priority, not the level
+  mapping of `docs/logging-and-lifecycle.md`, section 1.
+- The unit is not enabled by the package by itself (a preset is a separate decision); the settings
+  window's toggle (UI-1) is what enables it.

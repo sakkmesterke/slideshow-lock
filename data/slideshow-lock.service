@@ -1,0 +1,48 @@
+# The slideshow-lock service, as a systemd user unit.
+#
+# Every directive below is taken from how the program behaves (docs/service.md,
+# docs/logging-and-lifecycle.md, slideshow_lock/service.py); what could only be shown on a real
+# session is marked "not measured".
+[Unit]
+Description=Slideshow screensaver that locks the session on input
+Documentation=https://github.com/trensoft/slideshow-lock
+# systemd.special(7) (read in systemd 252): graphical-session.target "is active whenever any graphical
+# session is running" and is there "to stop user services which only apply to a graphical session
+# when the session is terminated. Such services should have PartOf=graphical-session.target"; the
+# session target (gnome-session.target) starts it, and what it starts is a matter of Wants=, for
+# services that can be enabled on their own a .wants/ symlink, which [Install] WantedBy= makes.
+# So: PartOf= stops (or restarts) the service with the session, WantedBy= is how "enable" starts it
+# with the session. After= is not in that page: it holds the start back until the target is
+# active, because the service needs WAYLAND_DISPLAY and the session bus in the environment of the
+# user manager (not measured on a real session).
+After=graphical-session.target
+PartOf=graphical-session.target
+# Bounded restarts: after 5 failed starts within 5 minutes the unit stays failed, so a crash loop
+# cannot go on for ever. (Restart=on-failure with RestartSec=10 makes the 5 starts last 40 s or more.)
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+# simple, not notify: the program does not call sd_notify (docs/service.md, section 7).
+Type=simple
+# The launcher execs the program, so the process systemd starts is the Gtk.Application itself and
+# it gets SIGTERM directly. SIGTERM ends it with status 0 after closing the sleep guard and the
+# idle inhibitor (docs/service.md, sections 1 and 6; headless smoke only, not measured on a session).
+ExecStart=/usr/bin/slideshow-lock service
+# Restart on a non-zero exit, not on a clean stop. A status of 0 is also what SIGTERM gives, so
+# the end of the session and "systemctl --user stop" do not restart it.
+Restart=on-failure
+RestartSec=10
+# Status 2 is a bad option or a missing settings schema (docs/service.md, section 1): the same
+# start fails the same way, so it is not retried. Status 1 (the sleep path cannot be set up, e.g.
+# the system bus is not there yet) is retried.
+RestartPreventExitStatus=2
+# docs/logging-and-lifecycle.md, section 1: SYSLOG_IDENTIFIER=slideshow-lock.
+SyslogIdentifier=slideshow-lock
+
+# Not set, because not measured on a real session (a wrong sandbox directive would stop the lock
+# from working, silently): the ProtectSystem=, ProtectHome=, PrivateTmp=, NoNewPrivileges= family,
+# TimeoutStopSec= (the default of 90 s is kept) and ConditionEnvironment=WAYLAND_DISPLAY.
+
+[Install]
+WantedBy=graphical-session.target

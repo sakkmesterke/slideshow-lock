@@ -102,6 +102,25 @@ OPT_OUTS = {
         "test_run_script.py",
         "test_service_without_the_dependencies_stops_with_the_report_and_no_traceback",
     ),
+    ("test_packaging.py", "test_the_launcher_is_executable_in_git"),
+    (
+        "test_packaging.py",
+        "test_each_command_starts_its_module_isolated_from_the_current_directory",
+    ),
+    ("test_packaging.py", "test_the_arguments_go_on_unchanged_and_in_order"),
+    ("test_packaging.py", "test_help_after_a_command_is_the_programs_own"),
+    (
+        "test_packaging.py",
+        "test_no_command_or_an_unknown_one_prints_the_usage_and_fails",
+    ),
+    (
+        "test_packaging.py",
+        "test_help_prints_the_usage_and_succeeds_without_starting_anything",
+    ),
+    (
+        "test_packaging.py",
+        "test_the_unit_runs_the_launcher_with_the_service_command",
+    ),
     ("test_i18n_source.py", "test_xgettext_finds_exactly_the_strings_the_reader_finds"),
     (
         "test_run_script.py",
