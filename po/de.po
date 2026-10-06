@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 04:00+0000\n"
+"POT-Creation-Date: 2026-10-06 06:38+0000\n"
 "PO-Revision-Date: 2026-10-06 04:00+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: German\n"
@@ -41,6 +41,18 @@ msgid "Fit (shows the whole picture)"
 msgstr "Einpassen (ganzes Bild sichtbar)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Keiner (sofortiger Wechsel)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Überblendung"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Schwarzblende"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Einstellungen für Slideshow Lock"
 
@@ -71,6 +83,18 @@ msgstr "Hochformatbilder scrollen"
 #: slideshow_lock/preferences.py
 msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
 msgstr "Hochformatbilder auf einem Querformat-Bildschirm bewegen sich langsam von oben nach unten (nur bei „Bildschirm füllen“). Standardmäßig aus: Es verbraucht mehr Akku."
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Übergänge"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Zwischen den Bildern"
+
+#: slideshow_lock/preferences.py
+msgid "How a picture changes into the next. Without desktop animations the pictures change at once."
+msgstr "Wie ein Bild ins nächste übergeht. Ohne Desktop-Animationen wechseln die Bilder sofort."
 
 #: slideshow_lock/preferences.py
 msgid "Start the slideshow"
@@ -226,6 +250,14 @@ msgid "This choice is not available."
 msgstr "Diese Auswahl ist nicht verfügbar."
 
 #: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Der Wert wurde nicht akzeptiert, der alte bleibt erhalten."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Der Wert konnte nicht gespeichert werden."
+
+#: slideshow_lock/preferences_model.py
 msgid "This must be on or off."
 msgstr "Hier ist nur „an“ oder „aus“ zulässig."
 
@@ -244,14 +276,6 @@ msgstr "Einen absoluten Pfad eingeben (er beginnt mit / oder ~)."
 #: slideshow_lock/preferences_model.py
 msgid "This path is a file, not a folder."
 msgstr "Dieser Pfad ist eine Datei, kein Ordner."
-
-#: slideshow_lock/preferences_model.py
-msgid "The value was not accepted, the old one is kept."
-msgstr "Der Wert wurde nicht akzeptiert, der alte bleibt erhalten."
-
-#: slideshow_lock/preferences_model.py
-msgid "The value could not be saved."
-msgstr "Der Wert konnte nicht gespeichert werden."
 
 #: slideshow_lock/preferences_model.py
 msgid "The folder was not accepted, the old one is kept."
@@ -288,6 +312,10 @@ msgstr "Bild einpassen oder den Monitor füllen"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "Hochformatbilder langsam scrollen (Füllmodus)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "wie ein Bild ins nächste übergeht, oder none (nur für diesen Lauf)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

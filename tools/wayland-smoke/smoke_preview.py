@@ -120,9 +120,9 @@ class RecordingWindow:
     def device_size(self):
         return self.inner.device_size()
 
-    def show_frame(self, frame, pan_seconds):
+    def show_frame(self, frame, pan_seconds, transition=None):
         self.shown.append((self.index, frame, time.monotonic(), self.paints))
-        self.inner.show_frame(frame, pan_seconds)
+        self.inner.show_frame(frame, pan_seconds, transition)
 
     def show_message(self, text):
         self.inner.show_message(text)

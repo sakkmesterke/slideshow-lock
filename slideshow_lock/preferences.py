@@ -52,6 +52,7 @@ from slideshow_lock.preferences_model import (  # noqa: E402
     INT_RANGES,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
+    TRANSITION_CHOICES,
     PreferencesModel,
     format_hms,
     interval_position_for_seconds,
@@ -106,6 +107,12 @@ def _choice_labels():
     }
 
 
+def _transition_labels():
+    """What the transition drop-down lists, in the order of ``TRANSITION_CHOICES``: none,
+    cross-fade, fade through black."""
+    return (_("None (change at once)"), _("Cross-fade"), _("Fade through black"))
+
+
 class PreferencesWindow(Gtk.Window):
     """The settings window. *settings* is a ``Settings``; the window reads and writes only through
     ``PreferencesModel``."""
@@ -156,6 +163,8 @@ class PreferencesWindow(Gtk.Window):
         self.scaling_drop.connect("notify::selected", lambda *_a: self._on_choice(KEY_SCALING))
         self.pan_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         self.pan_switch.connect("notify::active", lambda *_a: self._on_pan())
+        self.transition_drop = Gtk.DropDown.new_from_strings(list(_transition_labels()))
+        self.transition_drop.connect("notify::selected", lambda *_a: self._on_transition())
 
         page.append(
             self._group(
@@ -172,6 +181,23 @@ class PreferencesWindow(Gtk.Window):
                         ),
                         control=self.pan_switch,
                     ),
+                ],
+            )
+        )
+
+        # -- transitions: how one picture changes into the next ---------------------------------
+        page.append(
+            self._group(
+                _("Transitions"),
+                [
+                    self._row(
+                        _("Between pictures"),
+                        _(
+                            "How a picture changes into the next. Without desktop animations "
+                            "the pictures change at once."
+                        ),
+                        control=self.transition_drop,
+                    )
                 ],
             )
         )
@@ -365,6 +391,9 @@ class PreferencesWindow(Gtk.Window):
             self.scaling_drop.set_selected(CHOICES[KEY_SCALING].index(self._model.get(KEY_SCALING)))
             # set_property, not set_active: the D11 scan flags that name (a screensaver call too)
             self.pan_switch.set_property("active", self._model.get(KEY_PAN_PORTRAIT_IMAGES))
+            self.transition_drop.set_selected(
+                TRANSITION_CHOICES.index(self._model.transition_choice())
+            )
         finally:
             self._updating = False
 
@@ -457,6 +486,13 @@ class PreferencesWindow(Gtk.Window):
         index = drop.get_selected()
         if 0 <= index < len(CHOICES[key]):
             self._report(self._model.set_choice(key, CHOICES[key][index]))
+
+    def _on_transition(self) -> None:
+        if self._updating:
+            return
+        index = self.transition_drop.get_selected()
+        if 0 <= index < len(TRANSITION_CHOICES):
+            self._report(self._model.set_transition(TRANSITION_CHOICES[index]))
 
     def _on_pan(self) -> None:
         if not self._updating:

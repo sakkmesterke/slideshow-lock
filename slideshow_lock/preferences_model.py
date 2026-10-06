@@ -27,8 +27,11 @@ from slideshow_lock.settings import (
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_ORDER,
+    KEY_TRANSITIONS,
     default_picture_folder,
 )
+from slideshow_lock.transitions import DRAWABLE, ORDERS, choose
 
 #: The slide interval runs from 00:00:01 to 23:59:59, in seconds (the schema's range). Zero is no
 #: interval at all. The end of the slider is "24 hours" to the eye but 86399 s (23:59:59) to the
@@ -89,6 +92,16 @@ CHOICES = {
     KEY_SCALING: ("fill", "fit"),
 }
 
+#: What the transition drop-down offers, in order: "none" (the cut, stored as an empty list) and
+#: the transitions this version can draw. The ``transitions`` setting is a list so that a later
+#: version can offer several at once; the window of this version picks one.
+TRANSITION_CHOICES = ("none", *DRAWABLE)
+
+#: The values of ``transition-order``, the schema's choices. The window of this version has no field
+#: for it yet (one transition is drawn at a time), so it is not in ``CHOICES``, which is what the
+#: window's drop-downs are made from.
+TRANSITION_ORDER_CHOICES = ORDERS
+
 _GETTERS = {
     KEY_IDLE_TIMEOUT_SECONDS: "get_idle_timeout_seconds",
     KEY_LOCK_GRACE_PERIOD_SECONDS: "get_lock_grace_period_seconds",
@@ -97,6 +110,8 @@ _GETTERS = {
     KEY_SCALING: "get_scaling",
     KEY_PAN_PORTRAIT_IMAGES: "get_pan_portrait_images",
     KEY_PICTURE_FOLDER: "get_picture_folder",
+    KEY_TRANSITIONS: "get_transitions",
+    KEY_TRANSITION_ORDER: "get_transition_order",
 }
 
 _SETTERS = {key: name.replace("get_", "set_", 1) for key, name in _GETTERS.items()}
@@ -274,6 +289,28 @@ class PreferencesModel:
         if value not in CHOICES[key]:
             return SaveResult(False, _("This choice is not available."))
         return self._store(key, value)
+
+    def transition_choice(self) -> str:
+        """The drop-down entry for the stored list: the transition that is drawn, or "none". A list
+        with a name this version cannot draw shows what is really drawn, not what is stored, and
+        reading never changes the stored list."""
+        return choose(self._settings.get_transitions()) or "none"
+
+    def set_transition(self, value) -> SaveResult:
+        """Save one of ``TRANSITION_CHOICES``: "none" stores the empty list (no transition)."""
+        if not isinstance(value, str) or value not in TRANSITION_CHOICES:
+            return SaveResult(False, _("This choice is not available."))
+        names = [] if value == "none" else [value]
+        if not self._settings.set_transitions(names):
+            return SaveResult(False, _("The value was not accepted, the old one is kept."))
+        if self._settings.get_transitions() != names:  # saved is saved only if it reads back
+            return SaveResult(False, _("The value could not be saved."))
+        return _saved()
+
+    def set_transition_order(self, value) -> SaveResult:
+        if not isinstance(value, str) or value not in TRANSITION_ORDER_CHOICES:
+            return SaveResult(False, _("This choice is not available."))
+        return self._store(KEY_TRANSITION_ORDER, value)
 
     def set_pan_portrait_images(self, value) -> SaveResult:
         if not isinstance(value, bool):

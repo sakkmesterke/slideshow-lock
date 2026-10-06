@@ -24,8 +24,10 @@ theirs) also asks the desktop not to blank the screen under it: `IdleHold` calls
 preview code still names no bus and no session; it is an idle request, not a lock call. Lifetime
 and limits: section 2.1.
 
-Not in this card: locking, the state machine, D-Bus, systemd (CORE-1); cross-fades (a later
-round); the settings window (UI-1); changing the default of the pan switch.
+Not in this card: locking, the state machine, D-Bus, systemd (CORE-1); the settings window
+(UI-1); changing the default of the pan switch. Since 1.0.1 a picture can come in with a
+transition (the cross-fade and the fade through black; the other eight of the plan are a later
+round): section 2, "Transitions".
 
 ## 2. Behaviour
 
@@ -134,8 +136,34 @@ round); the settings window (UI-1); changing the default of the pan switch.
   that had moved 1 px), so the baseline of the first event is not reliable there; it was not
   measured on a real GNOME session. The smoke test therefore resets the baseline by hand before it
   checks the threshold (section 8).
+- **Transitions** (`transitions`, default the cross-fade; `slideshow_lock/transitions.py`): when
+  the interval ends, the next picture comes in with a transition instead of a cut. This version
+  draws two: `crossfade` (the old picture mixes into the new one, 1.0 s) and `fade-black` (the old
+  picture goes to black and the new one comes out of it, 1.2 s). An empty list, or a list with no
+  name this version draws, is the cut. A transition never takes more than a quarter of the
+  interval (a 2 s interval cross-fades for 0.5 s) and under 0.2 s it is a cut. **No transition**
+  for: the first picture, a redo after a settings or window size change, the same picture shown
+  again (a folder of one), and when the desktop's animations are off (`gtk-enable-animations`,
+  asked for every change of picture like the pan; whether the GNOME setting reaches it was not
+  measured). A window that had no picture before shows the new one without a transition. Any later
+  `show_frame`, message or close ends a running transition at once. The names are the contract of
+  the setting: ten are valid (`crossfade`, `fade-black`, `slide-in`, `push`, `ken-burns`, `zoom`,
+  `wipe`, `circle`, `blur`, `rotate`), a name this version cannot draw is kept in the setting and
+  draws nothing, an unknown one is left out by the getter and logged once. `transition-order`
+  (`random` or `sequence`) is stored for the version that draws several; this one picks the
+  first drawable name of the list, so it has no effect yet.
+  How it is drawn: `_Canvas` keeps the old texture and draws the two pictures as one
+  `Gtk.Snapshot.push_cross_fade` between two layers, each a full window of black with at most one
+  picture on it (the fade through black is old-to-black, then black-to-new, the same call). It has
+  a frame-clock tick of its own, and its end is a point in time, not a number of frames, so a slow
+  machine draws fewer frames and not a longer transition. The first frame is at progress 0 with
+  both textures (the new one is uploaded there), the clock starts at the second tick, and at the
+  end the tick is removed and the picture is drawn 1:1 as always (no filtered last frame, no
+  redraw until the next change). A panning old picture stays where it stopped; the new one starts
+  at the top. `--transition NAME|none` of `preview_app` replaces the setting for one run.
 - **Live settings.** The interval re-arms the running timer. `scaling` and `pan-portrait-images`
-  redo the picture on screen and the prepared one. The folder and the order are applied by
+  redo the picture on screen and the prepared one. `transitions` is read at every change of
+  picture and redoes nothing. The folder and the order are applied by
   `source_from_settings`; after an order change the picture that is already prepared is still
   shown next, then the new order.
 
@@ -357,7 +385,7 @@ the system's pictures folder itself (the `XDG_PICTURES_DIR` of
 `~/Pictures` if the system has none configured, or if it is the home directory itself. If that folder holds no picture, the
 preview shows "No pictures to show" with the path it looked at on the next line, and logs the same path.
 
-Options (`--interval`, `--order`, `--scaling`, `--pan`, `--debug`) apply to that run only and are
+Options (`--interval`, `--order`, `--scaling`, `--pan`, `--transition`, `--debug`) apply to that run only and are
 never written to the settings. Any key, click, scroll or mouse movement ends it, and so does
 the time limit of two minutes (section 2.1).
 `start_preview(settings, source, application=None)` in the same module is what the settings window
@@ -416,6 +444,18 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   whether GTK also takes a Wayland idle inhibitor for the window next to the D-Bus one (it was not
   looked at); what a real session manager does with the inhibitor when the process is killed
   (the fake does not watch bus names).
+- **Transitions** (headless mutter 1280 x 720, software GL, the stack above; the machine was
+  loaded, so frame counts say nothing about a real screen). A real preview with three pictures at
+  a 3 or 4 s interval, each transition run twice or three times: no GTK or Python warning on
+  stderr; every change of picture drew the transition and then stopped: the tick ended once, and
+  the only draw after it was the one plain 1:1 draw, nothing until the next change (11 to 50 draws
+  during a 0.75 or 1.0 s transition; the cut with `none` drew once per change). The pixels, with a
+  red old picture (220, 30, 30) and a green new one (30, 200, 60) and a 6 s transition, taken as GTK
+  renders the window: cross-fade at progress 0.15, 0.48, 0.80: (191, 56, 35), (129, 112, 44),
+  (67, 167, 54), the straight mix; fade through black at 0.13, 0.46, 0.63, 0.96: (164, 22, 22),
+  (18, 3, 3), (8, 51, 15), (27, 183, 55); after the end exactly (30, 200, 60). **Not measured:**
+  a real GPU, GTK 4.16 (`push_cross_fade` ran on GTK 4.8.3 only), how it looks, the battery cost,
+  the stutter of the first frame on hardware, more than one monitor.
 - The tests also ran on a second stack, the CI runner image: GStreamer 1.24.2, gdk-pixbuf 2.42.10,
   PyGObject 3.58, Python 3.12 (the result of the latest run is in the pull request).
 
@@ -436,6 +476,14 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   frames of a prepared picture that is deleted are not shown under its follower's name (the
   reset in the source-changed handler; the two resets of the prepared frames in `_prefetch` and
   `_swap` cover each other, so each alone can be taken out unseen, both together cannot).
+- Transitions: `tests/test_transitions.py` (no GTK: the ten names, the lengths and the quarter-of-the-
+  interval cap, what is visible at progress 0 and 1, that the new picture only gains and the old one
+  only loses, no jump in the middle of the fade through black), the rules of when a picture comes in
+  with one in `tests/test_preview.py` (first picture, redo, the same frame, animations off, a
+  window with nothing on screen, live setting), and the canvas in `tests/test_preview_window_logic.py`
+  (start, an end by time and not by frame count, any later `set_frame` ends it, the order of the drawing
+  calls against a recording snapshot). That the result looks right is not tested in CI: the pixel
+  check of section 7 is a manual run in headless mutter.
 - The "never locks" proof has three parts, and each has a limit. (1) A method spy: every call the
   controller makes on the objects handed to it is on a list of picture and timing methods; it sees
   nothing the controller does on its own (a call in `stop()` that goes to a subprocess is invisible

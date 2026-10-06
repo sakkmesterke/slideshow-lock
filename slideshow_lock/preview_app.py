@@ -5,8 +5,8 @@
 
 One fullscreen window per monitor, the pictures of the folder, any key press, mouse
 movement, click or scroll ends it. It never locks the session (D11) and does not touch
-the stored settings: ``--interval``, ``--order``, ``--scaling`` and ``--pan`` only apply
-to this run. Without ``--folder`` and the other options the stored settings are used; the
+the stored settings: ``--interval``, ``--order``, ``--scaling``, ``--pan`` and ``--transition``
+only apply to this run. Without ``--folder`` and the other options the stored settings are used; the
 stored folder, if none was chosen, is the system's pictures folder itself, read
 recursively (``~/Képek`` on a Hungarian system; ``~/Pictures`` if none is configured or it is
 the home directory itself).
@@ -60,8 +60,10 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITIONS,
     Settings,
 )
+from slideshow_lock.transitions import DRAWABLE, NONE  # noqa: E402
 
 _LOG = logging.getLogger(__name__)
 
@@ -146,6 +148,9 @@ class SessionSettings:
     def get_pan_portrait_images(self) -> bool:
         return self._get(KEY_PAN_PORTRAIT_IMAGES, self._settings.get_pan_portrait_images)
 
+    def get_transitions(self) -> List[str]:
+        return self._get(KEY_TRANSITIONS, self._settings.get_transitions)
+
 
 def build_source(settings) -> ImageSource:
     """The image source for a preview: not started, and with the loader probe in place, so a
@@ -215,6 +220,11 @@ def _parse(argv: Optional[List[str]]) -> argparse.Namespace:
     parser.add_argument(
         "--pan", action="store_true", help=_("scroll portrait pictures slowly (fill mode)")
     )
+    parser.add_argument(
+        "--transition",
+        choices=(NONE, *DRAWABLE),
+        help=_("how a picture changes into the next, or none (this run only)"),
+    )
     parser.add_argument("--debug", action="store_true", help=_("log every step"))
     return parser.parse_args(argv)
 
@@ -238,6 +248,9 @@ def overrides_from_args(args: argparse.Namespace) -> dict:
         overrides[KEY_SCALING] = args.scaling
     if args.pan:
         overrides[KEY_PAN_PORTRAIT_IMAGES] = True
+    transition = getattr(args, "transition", None)  # the service's command line has no such option
+    if transition is not None:
+        overrides[KEY_TRANSITIONS] = [] if transition == NONE else [transition]
     return overrides
 
 
