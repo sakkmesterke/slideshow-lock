@@ -269,5 +269,7 @@ suspend would not wait for the lock).
   sandboxing directive (none is set), and whether the log lines get the right journal priority:
   the program writes plain lines to stderr, so every line has the default priority, not the level
   mapping of `docs/logging-and-lifecycle.md`, section 1.
-- The unit is not enabled by the package by itself (a preset is a separate decision); the settings
-  window's toggle (UI-1) is what enables it.
+- The unit is not enabled by the package by itself (a preset is a separate decision). The user
+  switches the service with `systemctl --user enable --now slideshow-lock` and
+  `systemctl --user disable --now slideshow-lock`, as the README says. The settings window has no
+  on/off switch in 1.0.0; the toggle of UI-1 is planned and is not there.
