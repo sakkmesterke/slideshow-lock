@@ -24,7 +24,7 @@ COPR cannot download it. Options:
 Decision: (a) now. The Makefile makes `slideshow-lock-<version>.tar.gz` (name and version are read
 from the spec, the top directory is `slideshow-lock-<version>/`, which is what `%autosetup`
 expects) and hands it to `rpmbuild` as the source directory, so the spec is not edited and nothing
-is downloaded. It needs git, gzip and rpmbuild only and uses no secret.
+is downloaded. It needs git, gzip, rpmbuild, sed, grep and head only and uses no secret.
 
 Limits of (a):
 
@@ -34,12 +34,25 @@ Limits of (a):
   bytes. A checksum recorded for the release belongs to one of the two (section 5).
 - `rpmbuild -bs` reads the whole spec in a chroot where the build dependencies are not installed:
   an unknown macro stays as plain text. `[H]` this is how COPR source builds usually work.
+- The `tools` target runs first, before the tarball and so before the source RPM. `[H]` COPR starts
+  the source build in a bare chroot, where these commands may not be installed, so it checks that
+  `git`, `gzip`, `rpmbuild`, `sed`, `grep` and `head` are there. If all are, it does nothing and runs
+  nothing. If some are missing and the user is root and `dnf` exists, it runs `dnf -y install
+  git-core rpm-build gzip` and checks again. Otherwise it stops with an error that lists what is
+  missing and the `dnf install` command. It never uses `sudo`. `sed`, `grep` and `head` are only
+  checked, not installed: they are part of any base image `[H]`. The target is a prerequisite of
+  `tarball`, so `rpmbuild` is required for the tarball alone, too. It can be run by itself:
+  `make -f .copr/Makefile tools`.
 - The Makefile passes `safe.directory` to git on the command line, because the checkout may belong
   to another user than the one running the build. `[H]` It also passes `tar.tar.gz.command=gzip -cn`:
   without it, a `tar.tar.gz.command` set in the checkout's own `.git/config` would be run by
   `git archive` (measured below), and `[H]` `safe.directory='*'` is what lets git trust the config
   of a checkout of another owner. The command line takes precedence, so the tarball is always
-  compressed by `gzip -cn`.
+  compressed by `gzip -cn`. The Makefile does not run `git config --global --add safe.directory
+  "$(CURDIR)"` instead: that writes to the global git config of whoever runs the build, outside the
+  checkout, and `--add` appends one more line each time it runs (measured: three runs, three
+  identical lines). The `-c` form changes no file (measured: a run with an empty `HOME` left it
+  empty).
 - A relative `spec` is taken from the root of the checkout, not from the directory `make` was
   started in: from `packaging/fedora`, `spec=slideshow-lock.spec` is not found, and
   `spec=packaging/fedora/slideshow-lock.spec` is.
@@ -61,6 +74,15 @@ with a space or a quote, and a `Version:` or `Name:` with a quote or a macro (a 
 closes the quote and runs a command made no marker file). A `tar.tar.gz.command` in the checkout's
 `.git/config` was not run. Not measured: the `rpmbuild -bs` step, a checkout of another owner (only
 the setting in the checkout's own config was tried), and the way COPR itself calls the Makefile.
+
+The `tools` target was measured with a private `PATH` of only the commands under test, a stub
+`rpmbuild` and a stub `dnf` that records its calls, and with `id -u` stubbed for the root case. With
+all commands present it exits 0 and the `dnf` stub is not called, as root too. With `rpmbuild`
+missing, as root with `dnf`: the `dnf` stub is called once with `-y install git-core rpm-build gzip`
+and the build goes on; if the stub installs nothing, or fails, the build stops with an error. With
+`rpmbuild` missing and not root, or with no `dnf`: the build stops with an error, `dnf` is not
+called and no tarball is written (also under `make -j8`). Not measured: a real `dnf` install, a
+real `rpmbuild`, and a bare Fedora 43 container: that run is the real test of this target.
 
 ## 2. Targets
 
