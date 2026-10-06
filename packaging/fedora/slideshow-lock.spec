@@ -6,16 +6,21 @@
 #        no rpmbuild, rpmlint, mock or fedora-review has run on this file
 #
 # Prerequisite: the tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does.
-# Decisions recorded outside this repository (not read from it):
-#   - %%changelog carries TrenSoft's name and e-mail address. The repository is public, so they stay
-#     public in the history of main. Decision: TrenSoft, 2026-10-05 22:11.
-#   - License GPL-3.0-or-later. Decision: TrenSoft, 2026-10-05 22:18. The
-#     repository itself has no SPDX or "or later" text yet.
+# Decisions of the maintainer, taken outside this repository (not read from it):
+#   - The name and e-mail address in %%changelog are the maintainer's choice (2026-10-05). The
+#     repository is public, so they stay in the history of main.
+#   - License GPL-3.0-or-later is the maintainer's decision (2026-10-05). The repository itself
+#     has no SPDX or "or later" text yet.
 # Open items, not code (they need a later step):
 #   - Source0: the v1.0.0 tag does not exist; a protected or signed tag and a SHA-512 of the tarball
 #     are to be fixed at release time, not in this file.
 #   - A second spec (an EL one) would be ignored again by the "*.spec" line of .gitignore; the file
 #     here is tracked, so it is not affected.
+# Open questions, NOT measured (background knowledge only, do not read them as verified):
+#   - [H] license = { file = "LICENSE" } in pyproject.toml may be deprecated from setuptools 77 on,
+#     while [build-system] asks for setuptools>=68; it could make %%pyproject_wheel fail.
+#   - [H] PyGObject>=3.42 in the dependencies makes the generated Requires ask for
+#     python3dist(pygobject); whether the python3-gobject package provides it is not known.
 #
 # Not in this spec yet (a later change adds them): the systemd user unit, the .desktop file, the
 # AppStream metainfo and the icon.
@@ -32,7 +37,7 @@ Release:        1%{?dist}
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
 License:        GPL-3.0-or-later
-# Decision (TrenSoft, 2026-10-05 22:18), not read from the repository: LICENSE is the plain GPLv3
+# The maintainer's decision (2026-10-05), not read from the repository: LICENSE is the plain GPLv3
 # text, pyproject.toml says license = { file = "LICENSE" } and the source files carry no SPDX header
 # yet. [H] an SPDX expression in License: is what the guidelines ask for.
 URL:            https://github.com/trensoft/slideshow-lock
