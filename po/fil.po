@@ -1,0 +1,401 @@
+# Filipino translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+# AI-assisted translation (Claude), not reviewed by a native speaker.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:50+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Filipino\n"
+"Language: fil\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1 && n != 2 && n != 3 && (n%10 == 4 "
+"|| n%10 == 6 || n%10 == 9));\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.trensoft.slideshowlock.desktop.in
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Sapalaran"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Ayon sa pangalan ng file"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Punan ang screen (pinuputol ang larawan)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "I-fit (ipinapakita ang buong larawan)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Mga setting ng Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Mag-browse…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Mga Larawan"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Folder ng mga larawan"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Pagkakasunud-sunod ng mga larawan"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Pag-scale"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "I-scroll ang mga matatangkad na larawan"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Ang mga portrait na larawan sa landscape na screen ay dahan-dahang gumagalaw "
+"mula itaas pababa (kapag Punan lang). Naka-off bilang default: mas maraming "
+"baterya ang nagagamit."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Simulan ang slideshow"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Oras ng pagiging idle"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Gaano katagal na walang input bago magsimula ang slideshow."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "segundo"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Oras"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Ipakita ang bawat larawan nang"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Palugit sa pag-lock"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Ang input na mas maaga kaysa rito pagkatapos magsimula ang slideshow ay "
+"hindi nagla-lock ng session (mas maaga talaga; ang 0 ay nangangahulugang "
+"nagla-lock ang bawat input)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Paunang tingin"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 segundo"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 minuto"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 oras"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 oras"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Piliin ang folder ng mga larawan"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Piliin"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Kanselahin"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Hindi masimulan ang paunang tingin, tingnan ang log."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Walang monitor na mapagpapakitaan ng paunang tingin."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Tumatakbo ang paunang tingin: pindutin ang anumang key o igalaw ang mouse "
+"para tapusin ito."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Baguhin ang mga setting ng slideshow."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "i-log ang bawat hakbang"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Hindi naka-install ang schema ng mga setting. I-compile ito at ituro ang "
+"GSettings dito:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Nai-save na."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "pinakamatagal"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d segundo"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d minuto"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d oras"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Ginagamit: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Ginagamit: %s (wala pa ang folder, walang ipapakita)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Hindi ito hakbang ng slider: ipinapakita ang pinakamalapit. Mananatili ang "
+"na-save na halaga hangga't hindi mo ginagalaw ang slider."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Maglagay ng buong bilang ng segundo."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Ang halaga ay dapat nasa pagitan ng %(low)d at %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Maglagay ng buong bilang para sa posisyon ng slider."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Wala sa slider ang posisyong ito."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Hindi available ang pagpipiliang ito."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Dapat naka-on o naka-off ito."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Maglagay ng path ng folder."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "May character ang path na hindi pinapayagan."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Maglagay ng absolute path (nagsisimula sa / o ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "File ang path na ito, hindi folder."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Hindi tinanggap ang halaga, pinananatili ang dati."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Hindi ma-save ang halaga."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Hindi tinanggap ang folder, pinananatili ang dati."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Hindi ma-save ang folder."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Walang larawang ipapakita"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Ipakita ang paunang tingin sa slideshow. Tinatapos ito ng anumang input. "
+"Hindi nito kailanman nila-lock ang session."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "folder ng mga larawan (para lang sa takbong ito)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "segundo bawat larawan (para lang sa takbong ito)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "pagkakasunud-sunod ng mga larawan"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "i-fit o punan ang monitor"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "dahan-dahang i-scroll ang mga portrait na larawan (mode ng pagpuno)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Ang agwat ay dapat nasa pagitan ng %d at %d segundo."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Hindi naka-install ang schema ng mga setting. I-compile ito at ituro ang "
+"GSettings dito:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Paunang tingin sa Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Simulan ang slideshow kapag idle ang session, i-lock ito sa unang input "
+"pagkatapos ng palugit, at i-lock bago mag-suspend ang makina."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "mga segundo ng pagiging idle bago ang slideshow"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "walang lock para sa input sa loob ng ganitong karaming segundo"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Ang oras ng pagiging idle ay dapat nasa pagitan ng 1 at 86400 segundo."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Ang palugit ay dapat nasa pagitan ng 0 at 86400 segundo."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Hindi naka-install ang schema ng mga setting. I-compile ito at ituro ang "
+"GSettings dito:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.trensoft.slideshowlock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "I-set up ang slideshow kapag idle at ang pag-lock ng session"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "Screensaver na slideshow kapag idle na nagla-lock kapag may input"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Nagsisimula ang Slideshow Lock ng slideshow ng mga larawan sa buong screen "
+"sa bawat monitor kapag idle ang session sa itinakdang oras."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Tinatapos ng unang pindot ng key, click o galaw ng mouse ang slideshow. Kung "
+"ang slideshow ay naipakita nang hindi bababa sa palugit, nila-lock din ang "
+"session."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Ang mga larawan ay mula sa folder na pipiliin mo. Itinatakda ng window ng "
+"mga setting ang folder, ang oras ng pagiging idle, ang palugit, kung gaano "
+"katagal ipinapakita ang bawat larawan, ang pagkakasunud-sunod at ang pag-"
+"scale."
