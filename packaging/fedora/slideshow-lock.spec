@@ -15,9 +15,11 @@
 #   epel-10-x86_64, fedora-43-x86_64, fedora-44-x86_64, fedora-rawhide-x86_64 (the last one made fc46
 #                       packages): all four SUCCEEDED; %%check ran to the end in each of them (the
 #                       import check of 16 modules, glib-compile-schemas --strict --dry-run,
-#                       desktop-file-validate, appstreamcli validate --no-net: no error) and the
+#                       desktop-file-validate, appstreamcli validate --no-net: no error; the last
+#                       one prints "developer-info-missing" as its one info and says "infos: 1,
+#                       pedantic: 2", the two pedantic tags are not named in the log) and the
 #                       noarch RPM was written
-# Build 11084376 (before the fix, started by hand) SUCCEEDED on epel-10-x86_64; on fedora-43, fedora-44
+# Build 11084376 (before the fix) SUCCEEDED on epel-10-x86_64; on fedora-43, fedora-44
 # and fedora-rawhide (x86_64) it FAILED in %%check, all three with the same error:
 # %%pyproject_check_import, "Typelib file for namespace 'cairo', version '1.0' not found", for
 # slideshow_lock.preferences, .preview_app, .preview_window and .service. The cause, and the
@@ -25,10 +27,12 @@
 # build the fix was also tried in rootless Fedora 43 and CentOS Stream 10 build roots made of the
 # packages (exact versions) of the COPR logs, with rpmbuild 6.0.2 and 4.19.1.1 of those roots, no
 # scriptlets run: the build, %%check included, passed on both.
-# NOT run: mock by hand, fedora-review, rpmlint on the built RPM (an earlier rpmlint run, with its
+# NOT run: mock by hand, rpmlint on the built RPM (an earlier rpmlint run, with its
 # default configuration, not Fedora's, on the spec and the source RPM, found no error that comes from
 # the file itself), an install of the RPM on a Fedora or EL machine, the test suite (--with tests), a
-# real GNOME session.
+# real GNOME session. No fedora-review result was produced: the COPR task of both builds has
+# fedora_review: True, but the result directories have no review.txt (HTTP 404) and the builder logs
+# show no review run.
 #
 # Prerequisites that are not in this file:
 #   - The tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does. A protected
@@ -107,8 +111,10 @@ BuildRequires:  python3-devel
 BuildRequires:  gettext
 # [K] tools/i18n.sh build and data need msgfmt (package: gettext, as the tool itself says)
 # [H] msgfmt --xml finds the ITS rules of the metainfo in the data directory of the gettext
-# installation (tools/i18n.sh says so); whether the Fedora and EL 10 gettext package has them is not
-# measured: the build on those systems has to show it.
+# installation (tools/i18n.sh says so). [M] in the COPR build 11084605 "bash tools/i18n.sh data
+# generated-data" (it runs msgfmt --desktop and msgfmt --xml, [K] tools/i18n.sh) ended without error
+# in %%install in all four chroots, and appstreamcli validate accepted the metainfo it wrote, so the
+# gettext of those four build roots has what it needs.
 BuildRequires:  glib2-devel
 # [K] run.sh names glib2-devel for glib-compile-schemas; used in %%check only
 BuildRequires:  systemd-rpm-macros
@@ -138,8 +144,8 @@ BuildRequires:  gobject-introspection
 # root of COPR (build 11084376) had no cairo typelib and the import check of %%check failed there. In
 # the Fedora 43 release repository the python3-gobject-base 3.54.3-1.fc43 still requires it
 # (gobject-introspection(x86-64)); its gtk4 4.20.2-1.fc43 does not. python3-gobject-base 3.46.0-7.el10
-# requires it as well (read in the COPR log of the build 11084605), which is why the epel-10 chroot
-# passed.
+# requires it as well (read in the primary metadata of the CentOS Stream 10 BaseOS repository), which is
+# why the epel-10 chroot passed.
 %if %{with tests}
 # [K] the test run (.github/workflows/ci.yml) needs pytest, the GStreamer typelib and dbus-daemon
 # next to the above; [H] the package names
@@ -155,8 +161,10 @@ BuildRequires:  dbus-daemon
 # again here] rpmlint printed python-leftover-require for python3-gobject (the generated
 # python3dist(pygobject) requirement covers it, see the open question above) and
 # explicit-lib-dependency for glib2. [H] glib2 arrives through gtk4 and gdk-pixbuf2, which link its
-# shared libraries, and it is what python3-gobject needs as well; the Fedora 43 and EPEL 10 builds of
-# this spec have to show that nothing is missing. The one typelib package that is listed by name,
+# shared libraries, and it is what python3-gobject needs as well. [M] the COPR build 11084605 passed
+# on all four chroots, but its build roots have python3-gobject and glib2 installed (BuildRequires), so
+# it does not show that nothing is missing at run time; only an install of the RPM on a minimal Fedora
+# or EL machine can (NOT run, see STATUS). The one typelib package that is listed by name,
 # gobject-introspection, is explained at its own line.
 Requires:       gtk4
 Requires:       graphene
@@ -164,7 +172,7 @@ Requires:       gdk-pixbuf2
 # [M] the cairo typelib is needed at run time as well: in a Fedora 43 root made of the requirements of
 # this package, with the dependencies resolved by hand inside the package set of the COPR build,
 # gtk4 and python3-gobject-base do not bring gobject-introspection, and "from gi.repository import
-# Gtk" fails with the missing cairo typelib; with this line the import of Gtk and of
+# Gtk" fails with the missing cairo typelib; with the line below the import of Gtk and of
 # slideshow_lock.preferences, .service, .preview_app and .preview_window works. EL10 gets the package
 # through python3-gobject-base already; the line is for Fedora.
 Requires:       gobject-introspection
