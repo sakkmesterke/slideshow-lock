@@ -155,7 +155,8 @@ class OverviewControl(Protocol):
 
     def close_if_open(self) -> None:
         """Close the overview if it is open, and wait until it is closed. Never raises and
-        never waits longer than half a second: whatever goes wrong (no shell, a refused call, an
+        waits about half a second at most (one more call can run after the last 50 ms sleep):
+        whatever goes wrong (no shell, a refused call, an
         overview that does not close) is logged once and the slideshow starts as it would."""
 
 

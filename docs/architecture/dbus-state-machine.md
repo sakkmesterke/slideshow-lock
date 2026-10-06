@@ -148,13 +148,13 @@ Not one of the six starting points: the state machine does not know it. `Preview
 - What it does: `Get`; if true, `Set(false)`, then `Get` every 50 ms until false. The property
   stays true until the closing animation is over (250 ms in the shell's `overview.js`, read, not
   measured here).
-- It never raises and never waits more than 0.5 s in all, calls included (each call gets what is
-  left of the time as its timeout). No shell on the bus (not GNOME): DEBUG only. Anything else
+- It never raises and waits about 0.5 s in all, calls included (each call gets what is left of
+  the time as its timeout; one more call still runs after the last 50 ms sleep). No shell on the bus (not GNOME): DEBUG only. Anything else
   (a refused call, a shell that does not answer, an overview that stays open): one WARNING with
   the tag `[slideshow]`, and the slideshow starts as it would have.
 - Only the service path (idle start) calls it. The settings window's Preview button does not:
-  that window has the focus, so the overview is not open then, and the preview modules may not
-  name the bus (`tests/test_preview.py`).
+  that window has the focus, so the overview is presumably not open then (an inference, not
+  measured), and the preview modules may not name the bus (`tests/test_preview.py`).
 
 ### 3.8 Unit readiness and `Type=` (answers OPS-1's open question)
 

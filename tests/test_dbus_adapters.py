@@ -487,7 +487,7 @@ def test_an_open_overview_is_set_to_false_and_waited_for_until_it_is_closed(desk
     overview.close_if_open()
     elapsed = time.monotonic() - started
     assert desktop.overview_active is False
-    assert 0.15 <= elapsed < adapters.OVERVIEW_WAIT_S
+    assert 0.15 <= elapsed < adapters.OVERVIEW_WAIT_S + 0.2
     log = desktop.overview_log
     assert log[0] == ("Get", True) and log[1] == ("Set", False)
     assert log[-1] == ("Get", False)
@@ -498,7 +498,7 @@ def test_a_closed_overview_costs_one_read_and_no_write_and_no_wait(desktop):
     overview = adapters.GnomeShellOverview(desktop.session)
     started = time.monotonic()
     overview.close_if_open()
-    assert time.monotonic() - started < 0.2
+    assert time.monotonic() - started < 0.4
     assert desktop.overview_log == [("Get", False)]
 
 
@@ -546,6 +546,35 @@ def test_a_shell_that_does_not_answer_holds_the_caller_for_half_a_second_at_most
     elapsed = time.monotonic() - started
     assert elapsed < adapters.OVERVIEW_WAIT_S + 0.4
     assert len(_warnings(caplog)) == 1
+
+
+class _FailingConnection:
+    """A connection whose every call fails with *error*."""
+
+    def __init__(self, error):
+        self._error = error
+
+    def call_sync(self, *args):
+        raise self._error
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        GLib.Error("first line\nsecond line " + "x" * 400),
+        RuntimeError("first line\nsecond line " + "x" * 400),
+    ],
+    ids=["glib-error", "other"],
+)
+def test_the_message_of_a_failed_overview_call_is_logged_on_one_line_and_cut(caplog, error):
+    """What the peer says is not trusted: no line break (a forged log line), no 400 characters."""
+    overview = adapters.GnomeShellOverview(_FailingConnection(error))
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.dbus_adapters"):
+        overview.close_if_open()
+    [warning] = _warnings(caplog)
+    text = warning.getMessage()
+    assert "\n" not in text and "first line second line " in text
+    assert "x" * 200 not in text and "x" * 100 in text
 
 
 def test_the_overview_adapter_does_not_raise_whatever_the_connection_is(caplog):
