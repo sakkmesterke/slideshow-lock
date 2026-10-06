@@ -41,7 +41,8 @@ jobs:
             gstreamer1.0-plugins-base \
             gir1.2-gtk-4.0 \
             dbus-daemon \
-            gettext
+            gettext \
+            webp-pixbuf-loader
           pip install PyGObject
 
       - name: Verify GI stack is actually usable (anti-silent-skip gate)
@@ -78,6 +79,10 @@ jobs:
           xgettext --version | head -1
           msgmerge --version | head -1
           python3 -c "import slideshow_lock.service; print('service module imports OK')"
+          # Picture formats: the WebP tests (tests/test_scaling_gdk.py, BOMB_FORMATS) leave the format
+          # out, they do not skip, when gdk-pixbuf has no WebP loader. A missing webp-pixbuf-loader
+          # would so lose that coverage without a skip for the no-skip gate to see: named here instead.
+          python3 -c "import gi; gi.require_version('GdkPixbuf', '2.0'); from gi.repository import GdkPixbuf; names = {f.get_name() for f in GdkPixbuf.Pixbuf.get_formats()}; assert 'webp' in names, sorted(names); print('WebP loader OK')"
 
       - name: Install project (editable) with dev dependencies
         run: |

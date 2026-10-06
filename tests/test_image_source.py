@@ -21,6 +21,7 @@ from types import SimpleNamespace
 import pytest
 
 from slideshow_lock.image_source import (
+    IMAGE_EXTENSIONS,
     LOG_FIRST_N,
     FsEvent,
     ImageSource,
@@ -1353,3 +1354,40 @@ def test_probe_names_the_format_the_way_gdk_pixbuf_does(tmp_path, name, head):
 def test_probe_rejects_a_header_that_only_looks_like_a_known_one(tmp_path, head):
     with pytest.raises(ValueError, match="not a recognised image header"):
         probe_image(make_image(tmp_path / "x.img", head))
+
+
+# -- JPEG 2000 is left out on purpose (docs/image-source.md, "Picture formats") --------------------
+
+#: The two ways a JPEG 2000 file starts: the JP2 box signature, and a bare codestream.
+JP2_HEADERS = {
+    "jp2": b"\x00\x00\x00\x0cjP  \r\n\x87\n" + bytes(12),
+    "codestream": b"\xff\x4f\xff\x51" + bytes(12),
+}
+JP2_EXTENSIONS = [".jp2", ".j2k", ".j2c", ".jpc", ".jpf", ".jpx", ".jpm", ".mj2"]
+
+
+def test_the_extension_list_is_these_eight_formats_and_no_jpeg_2000():
+    assert IMAGE_EXTENSIONS == frozenset(
+        {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".webp"}
+    )
+    assert not IMAGE_EXTENSIONS & set(JP2_EXTENSIONS)
+
+
+@pytest.mark.parametrize("ext", JP2_EXTENSIONS)
+@pytest.mark.parametrize("kind", sorted(JP2_HEADERS))
+def test_a_jpeg_2000_file_does_not_enter_the_picture_queue(tmp_path, backends, ext, kind):
+    make_image(tmp_path / f"a{ext}", JP2_HEADERS[kind])
+    make_image(tmp_path / f"png-inside{ext}", PNG)  # the extension alone keeps it out
+    make_image(tmp_path / "b.png")  # negative control: a picture beside them is queued
+    src = started(tmp_path, backends)
+    assert names(src, tmp_path) == ["b.png"]
+
+
+@pytest.mark.parametrize("kind", sorted(JP2_HEADERS))
+def test_probe_does_not_know_a_jpeg_2000_header_under_a_known_extension(tmp_path, backends, kind):
+    path = make_image(tmp_path / "renamed.jpg", JP2_HEADERS[kind])
+    with pytest.raises(ValueError, match="not a recognised image header"):
+        probe_image(path)
+    make_image(tmp_path / "ok.jpg", b"\xff\xd8\xff\xe0" + bytes(12))  # negative control
+    src = started(tmp_path, backends)
+    assert names(src, tmp_path) == ["ok.jpg"]
