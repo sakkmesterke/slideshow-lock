@@ -12,15 +12,22 @@ sudo dnf copr enable trensoft/slideshow-lock
 sudo dnf install slideshow-lock
 ```
 
-### RHEL 10, AlmaLinux 10, Rocky Linux 10
+### AlmaLinux 10, Rocky Linux 10
 
-These need EPEL: in a test with the `almalinux:10` image, the Python dependency of the package was resolved from EPEL. Enable EPEL for your distribution first, then run the same two commands as for Fedora:
+These need EPEL and the CRB repository. The order below was measured on AlmaLinux 10 (a container with the `almalinux:10` image; the package was installed with `dnf`, exit code 0, and its Python dependency was resolved from EPEL). `[H]` Rocky Linux 10 is expected to be the same; it was not measured.
 
 ```
+sudo dnf install epel-release
+sudo dnf config-manager --set-enabled crb
+sudo dnf install dnf-plugins-core
 sudo dnf copr enable trensoft/slideshow-lock
 sudo dnf install slideshow-lock
 ```
 
-`[H]` The `dnf copr` command needs the `dnf-plugins-core` package (background knowledge, not measured here).
+The `dnf copr` subcommand needs the `dnf-plugins-core` package; in the AlmaLinux container it had to be installed separately.
 
-`[H]` That a RHEL rebuild takes the `epel-10-x86_64` build of COPR is background knowledge, not measured. A test with the `almalinux:10` image and EPEL installed the package with `dnf` (exit code 0), but that test did not use a COPR build.
+That test did not use a COPR build: the state it measured is `main` at `1111a7c` plus the changes #46, #47 and #48.
+
+### RHEL 10
+
+The commands above were not measured on RHEL 10, and the first two steps are not the same there. `[H]` On RHEL the CRB repository is enabled with `subscription-manager`, and the EPEL package is installed from a URL, not with `dnf install epel-release` (background knowledge, not measured, no link checked). After EPEL and CRB are enabled, the last three commands are the same `[H]`.
