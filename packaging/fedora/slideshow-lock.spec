@@ -45,7 +45,9 @@
 #     dbus-daemon and the GTK 4 typelibs, and no build root has been tried with it.
 # Open questions, NOT measured (background knowledge only, do not read them as verified):
 #   - [H] PyGObject>=3.42 in the dependencies makes the generated Requires ask for
-#     python3dist(pygobject); whether the python3-gobject package provides it is not known.
+#     python3dist(pygobject); [M] a Fedora 43 rpmlint run of the earlier spec says the requirement is
+#     generated (python-leftover-require), not measured by me; whether python3-gobject provides it on
+#     EL10 is not known.
 #   - [H] %%{_metainfodir} is not defined by rpm itself [M: not in macros.in of rpm 4.18.2, 4.19.1
 #     and 4.20.0, read]; the line below defines it when nothing else does.
 #   - [H] the package names of the build requirements and of the typelibs on RHEL 10, AlmaLinux 10,
@@ -117,13 +119,17 @@ BuildRequires:  gstreamer1-plugins-base
 BuildRequires:  dbus-daemon
 %endif
 
-Requires:       python3-gobject
 Requires:       gtk4
 Requires:       graphene
 Requires:       gdk-pixbuf2
-Requires:       glib2
 # [K] the program loads these typelibs through gi.require_version (slideshow_lock/*.py);
 # [H] a typelib dependency may also be written as typelib(Gtk) = 4.0, package names are used here
+# There is no "Requires: python3-gobject" and no "Requires: glib2" on purpose. [M: by the maintainer's
+# team in a Fedora 43 container, with the earlier spec, which had both lines; not measured by me]
+# rpmlint printed python-leftover-require for python3-gobject (the generated python3dist(pygobject)
+# requirement covers it, see the open question above) and explicit-lib-dependency for glib2. [H] glib2
+# arrives through gtk4 and gdk-pixbuf2, which link its shared libraries, and it is what python3-gobject
+# needs as well; the Fedora 43 and EPEL 10 builds of this spec have to show that nothing is missing.
 Requires:       hicolor-icon-theme
 # [H] the package that owns the hicolor directories the icons go into
 Recommends:     gstreamer1-plugins-base
@@ -131,7 +137,7 @@ Recommends:     gstreamer1-plugins-base
 # (run.sh: "optional"). [H] gstreamer1-plugins-base is the package run.sh names for it.
 
 %description
-slideshow-lock starts a fullscreen picture slideshow on the screens of a
+slideshow-lock starts a full-screen picture slideshow on the screens of a
 GNOME session on Wayland when the session has been idle, and locks the
 session when the user touches the keyboard or the mouse. The pictures come
 from a folder, the settings have a GTK 4 window of their own, and the
