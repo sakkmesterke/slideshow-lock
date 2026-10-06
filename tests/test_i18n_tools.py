@@ -367,7 +367,7 @@ def test_data_writes_the_launcher_and_the_metadata_with_the_translations(checkou
     desktop = (out / (APP_ID + ".desktop")).read_text(encoding="utf-8")
     assert "Name[hu]=Diavetítés-zár\n" in desktop
     assert "Comment[hu]=A tétlen diavetítés beállítása\n" in desktop
-    assert "Exec=slideshow-lock settings\n" in desktop
+    assert "Exec=slideshowlock\n" in desktop
     assert "Keywords[" not in desktop  # the keywords are not translated
 
     xml_lang = "{http://www.w3.org/XML/1998/namespace}lang"
