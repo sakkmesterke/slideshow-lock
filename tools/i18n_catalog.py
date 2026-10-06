@@ -3,7 +3,10 @@
 stdlib only. ``tools/i18n.sh check`` and ``tests/test_i18n_source.py`` use it, so that the two
 read the source the same way.
 
-    python3 tools/i18n_catalog.py compare TEMPLATE.pot SOURCE_DIR
+    python3 tools/i18n_catalog.py compare TEMPLATE.pot SOURCE_DIR [DATA.pot]
+
+DATA.pot holds the strings of the data templates (the launcher and the AppStream metadata); the
+template must hold those as well, besides the strings of the source.
 """
 
 from __future__ import annotations
@@ -11,7 +14,7 @@ from __future__ import annotations
 import ast
 import sys
 from pathlib import Path
-from typing import Dict, List, NamedTuple, Optional, Set
+from typing import Dict, Iterable, List, NamedTuple, Optional, Set
 
 
 class Call(NamedTuple):
@@ -76,9 +79,9 @@ def pot_msgids(pot: Path) -> Set[str]:
     return {msgid for msgid in msgids if msgid}
 
 
-def compare(pot: Path, source_dir: Path) -> List[str]:
+def compare(pot: Path, source_dir: Path, extra: Iterable[str] = ()) -> List[str]:
     """The problems, empty when every call is a plain literal that runs inside a function and
-    the template holds exactly those strings."""
+    the template holds exactly those strings, and the ``extra`` ones (the data templates')."""
     problems = []
     calls = gettext_calls(source_dir)
     for call in calls:
@@ -87,24 +90,26 @@ def compare(pot: Path, source_dir: Path) -> List[str]:
             problems.append("%s: _() takes one plain string literal" % where)
         if call.at_import:
             problems.append("%s: _() runs at import, before the language is selected" % where)
-    wanted = {call.msgid for call in calls if call.msgid}
+    in_source = {call.msgid for call in calls if call.msgid}
+    wanted = in_source | set(extra)
     found = pot_msgids(pot)
     for msgid in sorted(wanted - found):
         problems.append("missing from the template: %r" % msgid)
     for msgid in sorted(found - wanted):
         problems.append("in the template but not in the source: %r" % msgid)
     print(
-        "%d _() calls, %d distinct strings in the source, %d in the template"
-        % (len(calls), len(wanted), len(found))
+        "%d _() calls, %d distinct strings in the source, %d more in the data templates, "
+        "%d in the template" % (len(calls), len(in_source), len(wanted - in_source), len(found))
     )
     return problems
 
 
 def main(argv: List[str]) -> int:
-    if len(argv) != 4 or argv[1] != "compare":
+    if len(argv) not in (4, 5) or argv[1] != "compare":
         print(__doc__, file=sys.stderr)
         return 2
-    problems = compare(Path(argv[2]), Path(argv[3]))
+    extra = pot_msgids(Path(argv[4])) if len(argv) == 5 else ()
+    problems = compare(Path(argv[2]), Path(argv[3]), extra)
     for problem in problems:
         print("i18n: %s" % problem, file=sys.stderr)
     return 1 if problems else 0
