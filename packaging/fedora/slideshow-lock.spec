@@ -2,26 +2,34 @@
 #
 # Legend for the comments in this file:
 #   [K]  known: read from this repository (the file is named) or from a source named in the comment
-#   [M]  measured: a tool was run in a scratch container, the tool and its version are named in the
-#        comment (the commands and the results are in the pull request)
+#   [M]  measured: a tool was run (in a scratch root or in COPR), the tool and its version, or the
+#        COPR build, are named in the comment
 #   [H]  background knowledge about RPM, systemd and the Fedora packaging guidelines, NOT verified
 #
-# STATUS: NOT BUILT. rpmbuild -bb, mock and fedora-review have never run on this file, and no Fedora
-# or EL machine has seen it. What was run (rpm 4.18.0 from a Debian package, with the macro files of
-# Fedora's python-rpm-macros and pyproject-rpm-macros and of systemd v256 put next to it): rpmspec
-# --parse, rpmspec -q, rpmbuild -bs on a scratch source archive, the %%install lines on a scratch tree
-# with empty stand-ins for the files of the other changes, and rpmlint 2.10.0 with its DEFAULT
-# configuration (not Fedora's) on the spec and the source RPM: no error that comes from the file
-# itself; what it still prints (no-signature, no-packager-tag, no-group-tag, no-buildroot-tag,
-# invalid-license for GPL-3.0-or-later) belongs to that configuration [H], not measured with
-# Fedora's. "It parses and lints" is not "it builds".
+# STATUS (2026-10-06): built in COPR; the Fedora chroots needed one fix, which is in this file.
+# COPR build 11084376 of main 0ac5c23 (project trensoft/slideshow-lock, started by hand, rpmbuild
+# in one mock build root per chroot) before the fix:
+#   epel-10-x86_64      SUCCEEDED; %%check ran to the end (the import check, glib-compile-schemas
+#                       --dry-run, desktop-file-validate, appstreamcli validate: no error)
+#   fedora-43, fedora-44, fedora-rawhide (x86_64)
+#                       FAILED in %%check, all three with the same error: %%pyproject_check_import,
+#                       "Typelib file for namespace 'cairo', version '1.0' not found", for
+#                       slideshow_lock.preferences, .preview_app, .preview_window and .service
+# The cause, and the BuildRequires and Requires that fix it, are named at those two lines below.
+# After the fix, in rootless Fedora 43 and CentOS Stream 10 build roots made of the packages (exact
+# versions) of the COPR logs, with rpmbuild 6.0.2 and 4.19.1.1 of those roots, no scriptlets run: the
+# build, %%check included, passes on both, and the RPM is made. NOT run: mock, a COPR build of the fixed
+# file, fedora-review, rpmlint on the built RPM (an earlier rpmlint run, with its default
+# configuration, not Fedora's, on the spec and the source RPM, found no error that comes from the file
+# itself), the fix in the Fedora 44 and rawhide build roots, an install of the RPM on a Fedora or EL
+# machine, the test suite (--with tests), a real GNOME session.
 #
 # Prerequisites that are not in this file:
 #   - The tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does. A protected
 #     or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release has to
-#     be cut after po/*.po (the catalogs are in the repository now) and after the files listed next.
-#   - The files this spec installs come from other changes and must be on main before this one is
-#     merged: data/io.github.trensoft.slideshowlock.desktop.in,
+#     be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
+#   - The files this spec installs are in the repository and must stay there:
+#     data/io.github.trensoft.slideshowlock.desktop.in,
 #     data/io.github.trensoft.slideshowlock.metainfo.xml.in (the only copies in git: the installed
 #     files are generated from them in %%install) and the two icons under
 #     data/icons/hicolor/. packaging/slideshow-lock and data/slideshow-lock.service are the launcher
@@ -47,7 +55,7 @@
 # Open questions, NOT measured (background knowledge only, do not read them as verified):
 #   - [H] PyGObject>=3.42 in the dependencies makes the generated Requires ask for
 #     python3dist(pygobject); [M] a Fedora 43 rpmlint run of the earlier spec says the requirement is
-#     generated (python-leftover-require), not measured by me; whether python3-gobject provides it on
+#     generated (python-leftover-require), not measured again here; whether python3-gobject provides it on
 #     EL10 is not known.
 #   - [H] %%{_metainfodir} is not defined by rpm itself [M: not in macros.in of rpm 4.18.2, 4.19.1
 #     and 4.20.0, read]; the line below defines it when nothing else does.
@@ -115,6 +123,13 @@ BuildRequires:  gtk4
 BuildRequires:  graphene
 BuildRequires:  gdk-pixbuf2
 BuildRequires:  glib2
+BuildRequires:  gobject-introspection
+# [M] cairo-1.0.typelib is a file of the package gobject-introspection (the rpm of Fedora 43, 44 and
+# rawhide and the filelists of the Fedora 43 and CentOS Stream 10 repositories, read). No module of
+# this package imports cairo: the typelibs of Gtk 4.0 and Gdk 4.0 depend on cairo 1.0, and loading
+# them loads it. gtk4 and python3-gobject(-base) of Fedora do not require gobject-introspection, so the
+# minimal Fedora build root of COPR (build 11084376) had no cairo typelib and the import check of %%check
+# failed there; python3-gobject-base of EL10 requires it, which is why the epel-10 chroot passed.
 %if %{with tests}
 # [K] the test run (.github/workflows/ci.yml) needs pytest, the GStreamer typelib and dbus-daemon
 # next to the above; [H] the package names
@@ -128,12 +143,19 @@ Requires:       graphene
 Requires:       gdk-pixbuf2
 # [K] the program loads these typelibs through gi.require_version (slideshow_lock/*.py);
 # [H] a typelib dependency may also be written as typelib(Gtk) = 4.0, package names are used here
-# There is no "Requires: python3-gobject" and no "Requires: glib2" on purpose. [M: by the maintainer's
-# team in a Fedora 43 container, with the earlier spec, which had both lines; not measured by me]
+# There is no "Requires: python3-gobject" and no "Requires: glib2" on purpose. [M: in a Fedora 43
+# container, with the earlier spec, which had both lines; not measured again here]
 # rpmlint printed python-leftover-require for python3-gobject (the generated python3dist(pygobject)
 # requirement covers it, see the open question above) and explicit-lib-dependency for glib2. [H] glib2
 # arrives through gtk4 and gdk-pixbuf2, which link its shared libraries, and it is what python3-gobject
 # needs as well; the Fedora 43 and EPEL 10 builds of this spec have to show that nothing is missing.
+Requires:       gobject-introspection
+# [M] the cairo typelib is needed at run time as well: in a Fedora 43 root made of the requirements of
+# this package, with the dependencies resolved by hand inside the package set of the COPR build,
+# gtk4 and python3-gobject-base do not bring gobject-introspection, and "from gi.repository import
+# Gtk" fails with the missing cairo typelib; with this line the import of Gtk and of
+# slideshow_lock.preferences, .service, .preview_app and .preview_window works. EL10 gets the package
+# through python3-gobject-base already; the line is for Fedora.
 Requires:       hicolor-icon-theme
 # [H] the package that owns the hicolor directories the icons go into
 Recommends:     gstreamer1-plugins-base
@@ -223,11 +245,13 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # [K] pyproject.toml: testpaths = ["tests"]; [H] the suite needs no display (CI runs it headless)
 %endif
 
-# [M] from the systemd v256 macros and systemd-update-helper (read): %%systemd_user_post runs
-# "systemctl --no-reload preset --global <unit>" on the first install only;
-# %%systemd_user_preun, on removal (not on upgrade), runs "systemctl --user -M <uid>@ disable --now"
-# for every logged-in user; %%systemd_user_postun is empty. [H] the macros of the systemd-rpm-macros
-# package on the target distributions are those of the systemd of that distribution.
+# [M] from the systemd v256 macros and systemd-update-helper (read), and the macros and the helper of
+# systemd 258.11 of Fedora 43 (read): %%systemd_user_post runs "systemctl --no-reload preset --global
+# <unit>" on the first install only; %%systemd_user_preun, on removal (not on upgrade), runs
+# "systemctl --global disable --no-warn <unit>" and, only when /run/systemd/system exists (systemd is
+# the running init), also "systemctl --user -M <uid>@ disable --now --no-warn <unit>" for every
+# logged-in user; %%systemd_user_postun is empty. [H] the macros of the systemd-rpm-macros package on
+# the target distributions are those of the systemd of that distribution.
 
 %post
 %systemd_user_post %{name}.service
