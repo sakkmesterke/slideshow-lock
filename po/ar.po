@@ -1,0 +1,393 @@
+# Arabic translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+# AI-assisted translation (Claude), not reviewed by a native speaker.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:49+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Arabic\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 "
+"&& n%100<=10 ? 3 : n%100>=11 ? 4 : 5);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "عشوائي"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "حسب اسم الملف"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "ملء الشاشة (تُقصّ الصورة)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "ملاءمة (تُعرض الصورة كاملة)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "إعدادات Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "استعراض…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "الصور"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "مجلد الصور"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "ترتيب الصور"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "التحجيم"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "تمرير الصور الطولية"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"تتحرك الصور الطولية على شاشة عرضية ببطء من الأعلى إلى الأسفل (عند ملء الشاشة "
+"فقط). معطّل افتراضيًا: يستهلك مزيدًا من البطارية."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "بدء عرض الشرائح"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "مدة الخمول"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "المدة بلا إدخال قبل أن يبدأ عرض الشرائح."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "ثوانٍ"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "التوقيت"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "عرض كل صورة لمدة"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "فترة السماح للقفل"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"أي إدخال يحدث قبل انقضاء هذه المدة منذ بدء عرض الشرائح لا يقفل الجلسة (قبلها "
+"تمامًا؛ القيمة 0 تعني أن كل إدخال يقفل الجلسة)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "معاينة"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 ث"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 د"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 س"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 س"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "اختيار مجلد الصور"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "اختيار"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "إلغاء"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "تعذّر بدء المعاينة، راجع السجل."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "لا توجد شاشة لعرض المعاينة عليها."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "المعاينة قيد التشغيل: اضغط أي مفتاح أو حرّك الفأرة لإنهائها."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "تغيير إعدادات عرض الشرائح."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "تسجيل كل خطوة"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"مخطط الإعدادات غير مثبّت. قم بتصريفه ووجّه GSettings إليه:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "تم الحفظ."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "الأطول"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d ث"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d د"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d س"
+
+# RTL: the path is wrapped in U+2066 (LRI) ... U+2069 (PDI) so that the leading '/' of an
+# absolute path and any right-to-left folder name do not reorder the sentence around it.
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "قيد الاستخدام: ⁦%s⁩"
+
+# RTL: the path is wrapped in U+2066 (LRI) ... U+2069 (PDI) so that the leading '/' of an
+# absolute path and any right-to-left folder name do not reorder the sentence around it.
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "قيد الاستخدام: ⁦%s⁩ (المجلد غير موجود بعد، ولن يُعرض شيء)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"ليست إحدى خطوات شريط التمرير: تُعرض أقرب خطوة. تبقى القيمة المحفوظة كما هي "
+"إلى أن تحرّك الشريط."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "أدخل عددًا صحيحًا من الثواني."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "يجب أن تكون القيمة بين %(low)d و%(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "أدخل عددًا صحيحًا لموضع شريط التمرير."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "هذا الموضع ليس على شريط التمرير."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "هذا الخيار غير متاح."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "يجب أن تكون القيمة تشغيلًا أو إيقافًا."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "أدخل مسار مجلد."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "يحتوي المسار على حرف غير مسموح به."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "أدخل مسارًا مطلقًا (يبدأ بـ / أو ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "هذا المسار ملف وليس مجلدًا."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "لم تُقبل القيمة، وبقيت القيمة القديمة."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "تعذّر حفظ القيمة."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "لم يُقبل المجلد، وبقي المجلد القديم."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "تعذّر حفظ المجلد."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "لا توجد صور للعرض"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "عرض معاينة عرض الشرائح. أي إدخال ينهيها. لا تقفل الجلسة أبدًا."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "مجلد الصور (لهذا التشغيل فقط)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "ثوانٍ لكل صورة (لهذا التشغيل فقط)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "ترتيب الصور"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "ملاءمة الشاشة أو ملؤها"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "تمرير الصور الطولية ببطء (وضع الملء)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "يجب أن تكون المدة بين %d و%d ثانية."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"مخطط الإعدادات غير مثبّت. قم بتصريفه ووجّه GSettings إليه:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "معاينة Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"بدء عرض الشرائح عندما تكون الجلسة خاملة، وقفل الجلسة عند أول إدخال بعد فترة "
+"السماح، وقفلها قبل أن يدخل الجهاز في وضع السكون."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "ثوانٍ من الخمول قبل عرض الشرائح"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "عدم القفل عند الإدخال خلال هذا العدد من الثواني"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "يجب أن تكون مدة الخمول بين 1 و86400 ثانية."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "يجب أن تكون فترة السماح بين 0 و86400 ثانية."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"مخطط الإعدادات غير مثبّت. قم بتصريفه ووجّه GSettings إليه:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "إعداد عرض الشرائح عند الخمول وقفل الجلسة"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "عارض شرائح لحفظ الشاشة عند الخمول يقفل الجلسة عند أي إدخال"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"يبدأ Slideshow Lock عرض صور بملء الشاشة على كل شاشة عندما تبقى الجلسة خاملة "
+"لمدة محددة."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"أول ضغطة مفتاح أو نقرة أو حركة للفأرة تنهي عرض الشرائح. وإذا استمر العرض مدة "
+"لا تقل عن فترة السماح، تُقفل الجلسة أيضًا."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"تأتي الصور من مجلد تختاره. تضبط نافذة الإعدادات المجلد ومدة الخمول وفترة "
+"السماح ومدة عرض كل صورة والترتيب والتحجيم."

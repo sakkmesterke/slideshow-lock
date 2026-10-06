@@ -1,0 +1,393 @@
+# Vietnamese translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+# AI-assisted translation (Claude), not reviewed by a native speaker.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:49+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Vietnamese\n"
+"Language: vi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Ngẫu nhiên"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Theo tên tệp"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Lấp đầy màn hình (cắt bớt ảnh)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Vừa khít (hiển thị toàn bộ ảnh)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Cài đặt Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Duyệt…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Ảnh"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Thư mục ảnh"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Thứ tự ảnh"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Tỉ lệ"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Cuộn ảnh dọc"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Ảnh dọc trên màn hình ngang sẽ cuộn chậm từ trên xuống dưới (chỉ khi lấp đầy "
+"màn hình). Mặc định tắt: tốn nhiều pin hơn."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Bắt đầu trình chiếu"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Thời gian không hoạt động"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Khoảng thời gian không có thao tác nhập trước khi trình chiếu bắt đầu."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "giây"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Thời gian"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Hiển thị mỗi ảnh trong"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Thời gian ân hạn khóa"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Thao tác nhập diễn ra sớm hơn mức này sau khi trình chiếu bắt đầu thì không "
+"khóa phiên (sớm hơn hẳn; 0 nghĩa là mọi thao tác nhập đều khóa)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Xem trước"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 giây"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 phút"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 giờ"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 giờ"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Chọn thư mục ảnh"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Chọn"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Hủy"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Không thể bắt đầu xem trước, hãy xem nhật ký."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Không có màn hình nào để hiển thị bản xem trước."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "Đang xem trước: nhấn phím bất kỳ hoặc di chuyển chuột để kết thúc."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Thay đổi cài đặt trình chiếu."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "ghi nhật ký mọi bước"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Lược đồ cài đặt chưa được cài. Hãy biên dịch nó và trỏ GSettings tới nó:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Đã lưu."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "dài nhất"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d giây"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d phút"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d giờ"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Đang dùng: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Đang dùng: %s (thư mục chưa tồn tại, sẽ không hiển thị gì)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Không phải một bước của thanh trượt: hiển thị bước gần nhất. Giá trị đã lưu "
+"được giữ nguyên cho đến khi bạn di chuyển thanh trượt."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Nhập một số giây nguyên."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Giá trị phải nằm trong khoảng từ %(low)d đến %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Nhập một số nguyên cho vị trí thanh trượt."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Vị trí này không nằm trên thanh trượt."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Lựa chọn này không khả dụng."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Giá trị này phải là bật hoặc tắt."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Nhập đường dẫn thư mục."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Đường dẫn chứa ký tự không được phép."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Nhập đường dẫn tuyệt đối (bắt đầu bằng / hoặc ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Đường dẫn này là một tệp, không phải thư mục."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Giá trị không được chấp nhận, giá trị cũ được giữ lại."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Không thể lưu giá trị."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Thư mục không được chấp nhận, thư mục cũ được giữ lại."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Không thể lưu thư mục."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Không có ảnh để hiển thị"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Hiển thị bản xem trước của trình chiếu. Mọi thao tác nhập đều kết thúc nó. "
+"Nó không bao giờ khóa phiên."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "thư mục ảnh (chỉ lần chạy này)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "số giây mỗi ảnh (chỉ lần chạy này)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "thứ tự ảnh"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "vừa khít hoặc lấp đầy màn hình"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "cuộn chậm ảnh dọc (chế độ lấp đầy)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Khoảng thời gian phải nằm trong khoảng từ %d đến %d giây."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Lược đồ cài đặt chưa được cài. Hãy biên dịch nó và trỏ GSettings tới nó:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Xem trước Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Bắt đầu trình chiếu khi phiên không hoạt động, khóa phiên ở thao tác nhập "
+"đầu tiên sau thời gian ân hạn, và khóa trước khi máy chuyển sang chế độ ngủ."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "số giây không hoạt động trước khi trình chiếu"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "không khóa nếu có thao tác nhập trong khoảng giây này"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Thời gian không hoạt động phải nằm trong khoảng từ 1 đến 86400 giây."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Thời gian ân hạn phải nằm trong khoảng từ 0 đến 86400 giây."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Lược đồ cài đặt chưa được cài. Hãy biên dịch nó và trỏ GSettings tới nó:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Thiết lập trình chiếu khi không hoạt động và khóa phiên"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr ""
+"Trình bảo vệ màn hình dạng trình chiếu khi không hoạt động, khóa khi có thao "
+"tác nhập"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock bắt đầu trình chiếu ảnh toàn màn hình trên mọi màn hình khi "
+"phiên không hoạt động trong một khoảng thời gian đã đặt."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Lần nhấn phím, nhấp chuột hoặc di chuyển chuột đầu tiên sẽ kết thúc trình "
+"chiếu. Nếu trình chiếu đã hiển thị ít nhất bằng thời gian ân hạn, phiên cũng "
+"bị khóa."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Ảnh lấy từ thư mục bạn chọn. Cửa sổ cài đặt đặt thư mục, thời gian không "
+"hoạt động, thời gian ân hạn, thời lượng hiển thị mỗi ảnh, thứ tự và tỉ lệ."

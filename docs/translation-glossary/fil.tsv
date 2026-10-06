@@ -1,0 +1,14 @@
+term	translation	note
+Slideshow Lock	Slideshow Lock	product name, kept as is
+slideshow	slideshow	English loanword, as used in Filipino interfaces
+lock (verb and noun)	lock	forms with affixes: i-lock, nila-lock, nagla-lock, pag-lock
+Preview	paunang tingin	window title and button
+Settings	setting	"Mga setting ng Slideshow Lock"
+idle / inactivity	idle	"oras ng pagiging idle"
+folder	folder	"folder ng mga larawan"
+image / picture	larawan	plural: mga larawan
+fullscreen	buong screen	"Fill" (scaling mode) is Punan ang screen
+monitor	monitor	the display device; "screen" stays screen
+input	input	keyboard or mouse input
+grace period	palugit	"Lock grace period": palugit sa pag-lock
+session	session	the login session
