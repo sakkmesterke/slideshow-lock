@@ -19,6 +19,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Elindítja a diavetítés háttérszolgáltatását, és megnyitja a beállítások ablakát."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "bejelentkezéskor: elindítja a szolgáltatást, az ablakot csak első alkalommal nyitja meg"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Véletlenszerű"
@@ -147,8 +155,8 @@ msgstr "Az előnézet fut: nyomj meg egy billentyűt vagy mozdítsd meg az egere
 msgid "Change the slideshow settings."
 msgstr "A diavetítés beállításainak módosítása."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "log every step"
 msgstr "minden lépés naplózása"
 
