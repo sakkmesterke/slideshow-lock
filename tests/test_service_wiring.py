@@ -83,12 +83,55 @@ class FakeController:
             callback(reason)
 
 
-def make_slideshow(source=None, controller=None):
+class FakeOverview:
+    """The shell's overview as ``PreviewSlideshow`` asks it: it records when it was asked, in
+    the same list the controller writes its start into."""
+
+    def __init__(self, events):
+        self._events = events
+
+    def close_if_open(self):
+        self._events.append("overview closed")
+
+
+def make_slideshow(source=None, controller=None, overview=None):
     controller = controller or FakeController()
-    slideshow = PreviewSlideshow(controller, source or FakeSource())
+    slideshow = PreviewSlideshow(controller, source or FakeSource(), overview)
     heard = []
     slideshow.connect_stopped(heard.append)
     return slideshow, controller, heard
+
+
+# -- the overview is closed before the windows open -----------------------------------------------
+
+
+def test_the_overview_is_closed_before_the_controller_opens_the_windows():
+    events = []
+    controller = FakeController()
+    controller.start = lambda: (
+        events.append("windows opened") or setattr(controller, "running", True)
+    )
+    slideshow, _, _ = make_slideshow(controller=controller, overview=FakeOverview(events))
+    assert slideshow.start() is None
+    assert events == ["overview closed", "windows opened"]
+
+
+def test_a_start_that_is_refused_for_want_of_a_picture_leaves_the_overview_alone():
+    events = []
+    slideshow, controller, _ = make_slideshow(
+        FakeSource(current=None), overview=FakeOverview(events)
+    )
+    assert slideshow.start() is not None
+    assert events == [] and controller.starts == 0
+
+
+def test_a_start_without_a_monitor_still_closed_the_overview_and_says_so():
+    events = []
+    slideshow, controller, _ = make_slideshow(
+        controller=FakeController(monitors=0), overview=FakeOverview(events)
+    )
+    assert slideshow.start() == "no monitor found"
+    assert events == ["overview closed"]
 
 
 # -- start: the two reasons for refusing (3.7) ----------------------------------------------------
