@@ -6,6 +6,16 @@
 #        no rpmbuild, rpmlint, mock or fedora-review has run on this file
 #
 # Prerequisite: the tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does.
+# Open items, not code (they need a decision or a later step):
+#   - %%changelog carries Attila's name and e-mail address. The repository is public, so after the
+#     merge they stay in the history. His decision is needed, in writing, or a neutral identity
+#     replaces them (review verdicts: MAJOR / I2).
+#   - "GPL-3.0-or-later": the "or later" is not written anywhere in the repository (see License: below).
+#   - Source0: the v1.0.0 tag does not exist; a protected or signed tag and a SHA-512 of the tarball
+#     are to be fixed at release time, not in this file.
+#   - A second spec (an EL one) would be ignored again by the "*.spec" line of .gitignore; the file
+#     here is tracked, so it is not affected.
+#
 # Not in this spec yet (a later change adds them): the systemd user unit, the .desktop file, the
 # AppStream metainfo and the icon.
 
@@ -21,8 +31,10 @@ Release:        1%{?dist}
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
 License:        GPL-3.0-or-later
-# [K] the decision is made; the source files carry no SPDX header yet and LICENSE is the plain GPLv3
-# text. [H] an SPDX expression in License: is what the guidelines ask for.
+# [K] LICENSE is the plain GPLv3 text, pyproject.toml says license = { file = "LICENSE" } and the
+# source files carry no SPDX header. [H] "or later" is therefore NOT recorded in this repository: it is
+# a decision taken outside it, listed under the open items above. [H] an SPDX expression in License:
+# is what the guidelines ask for.
 URL:            https://github.com/sakkmesterke/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
@@ -90,12 +102,16 @@ install -Dpm 0644 data/%{app_id}.gschema.xml \
 # The commands. [K] pyproject.toml has no [project.scripts] and the package has no __main__.py:
 # run.sh starts the three programs as python3 -m slideshow_lock.<module>, and the same line is
 # written into three small commands. The names slideshow-lock-<what> are new in this spec.
+# [H] -P keeps the current directory out of sys.path: plain "python3 -m" puts it first, so a user who
+# starts a command inside a directory with a hostile slideshow_lock/ or gi/ would run that code.
+# Measured on Python 3.11.2: the hostile package loads without -P and is not found with it. -P exists
+# from Python 3.11 on; [H] EL10 and current Fedora ship 3.12 or newer (not measured here).
 install -d %{buildroot}%{_bindir}
-printf '#!/bin/sh\nexec %%s -m slideshow_lock.service "$@"\n' '%{python3}' \
+printf '#!/bin/sh\nexec %%s -P -m slideshow_lock.service "$@"\n' '%{python3}' \
     > %{buildroot}%{_bindir}/%{name}-service
-printf '#!/bin/sh\nexec %%s -m slideshow_lock.preferences "$@"\n' '%{python3}' \
+printf '#!/bin/sh\nexec %%s -P -m slideshow_lock.preferences "$@"\n' '%{python3}' \
     > %{buildroot}%{_bindir}/%{name}-settings
-printf '#!/bin/sh\nexec %%s -m slideshow_lock.preview_app "$@"\n' '%{python3}' \
+printf '#!/bin/sh\nexec %%s -P -m slideshow_lock.preview_app "$@"\n' '%{python3}' \
     > %{buildroot}%{_bindir}/%{name}-preview
 chmod 0755 %{buildroot}%{_bindir}/%{name}-service \
     %{buildroot}%{_bindir}/%{name}-settings \
@@ -117,6 +133,7 @@ glib-compile-schemas --strict --dry-run %{buildroot}%{_datadir}/glib-2.0/schemas
 
 %files -f %{pyproject_files} -f %{app_id}.lang
 %license LICENSE
+# [H] %%pyproject_save_files may list the dist-info license file as well; harmless if so, not verified
 %doc README.md
 %{_bindir}/%{name}-service
 %{_bindir}/%{name}-settings
