@@ -35,7 +35,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import gi
 
@@ -110,9 +110,15 @@ class PreferencesWindow(Gtk.Window):
     """The settings window. *settings* is a ``Settings``; the window reads and writes only through
     ``PreferencesModel``."""
 
-    def __init__(self, settings: Settings, application: Optional[Gtk.Application] = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        application: Optional[Gtk.Application] = None,
+        before_preview: Optional[Callable[[], None]] = None,
+    ) -> None:
         super().__init__(title=_("Slideshow Lock settings"), application=application)
         self._settings = settings
+        self._before_preview = before_preview  # run by the Preview button, given by the caller
         self._model = PreferencesModel(settings)
         self._updating = False  # True while the fields are being set from the stored values
         self._preview = None  # (controller, source, settings) while the preview runs
@@ -498,6 +504,11 @@ class PreferencesWindow(Gtk.Window):
         if self._preview is not None:
             return
         self._commit_folder()
+        if self._before_preview is not None:
+            try:
+                self._before_preview()
+            except Exception:  # whatever it was, the preview starts anyway
+                _LOG.exception("[slideshow] the step before the preview failed")
         settings = source = None  # what a failed start has to take down again
         try:
             # Its own Settings object: the source keeps a change listener on the one it is given,
@@ -561,7 +572,11 @@ def _parse(argv: Optional[List[str]]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(
+    argv: Optional[List[str]] = None, before_preview: Optional[Callable[[], None]] = None
+) -> int:
+    """Run the settings window. *before_preview* is called each time the Preview button is
+    pressed, before the preview starts (the lock-side entry point, ``settings_app``, gives it)."""
     language = i18n.setup()  # before the command line is parsed: --help is translated too
     args = _parse(argv)
     logging.basicConfig(
@@ -584,7 +599,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     app = Gtk.Application(application_id=APP_ID + ".Preferences")
 
     def on_activate(application: Gtk.Application) -> None:
-        window = PreferencesWindow(Settings(), application)
+        window = PreferencesWindow(Settings(), application, before_preview)
         window.present()
 
     app.connect("activate", on_activate)

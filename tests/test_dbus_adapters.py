@@ -548,6 +548,21 @@ def test_a_shell_that_does_not_answer_holds_the_caller_for_half_a_second_at_most
     assert len(_warnings(caplog)) == 1
 
 
+def test_the_overview_step_of_the_settings_window_closes_the_overview_of_the_fake_shell(
+    desktop, monkeypatch
+):
+    """``settings_app.close_overview`` end to end on the fake session bus: the step the Preview
+    button of the settings window runs. (Not a real GNOME Shell.)"""
+    from slideshow_lock import settings_app
+
+    monkeypatch.setattr(settings_app.dbus_adapters, "session_bus", lambda: desktop.session)
+    desktop.overview_active = True
+    desktop.overview_close_delay = 0.1
+    settings_app.close_overview()
+    assert desktop.overview_active is False
+    assert desktop.overview_log[:2] == [("Get", True), ("Set", False)]
+
+
 class _FailingConnection:
     """A connection whose every call fails with *error*."""
 

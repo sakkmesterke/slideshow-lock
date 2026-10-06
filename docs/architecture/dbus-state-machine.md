@@ -152,9 +152,19 @@ Not one of the six starting points: the state machine does not know it. `Preview
   the time as its timeout; one more call still runs after the last 50 ms sleep). No shell on the bus (not GNOME): DEBUG only. Anything else
   (a refused call, a shell that does not answer, an overview that stays open): one WARNING with
   the tag `[slideshow]`, and the slideshow starts as it would have.
-- Only the service path (idle start) calls it. The settings window's Preview button does not:
-  that window has the focus, so the overview is presumably not open then (an inference, not
-  measured), and the preview modules may not name the bus (`tests/test_preview.py`).
+- Two callers. The service path (idle start): `PreviewSlideshow`. The settings window's Preview
+  button: `PreferencesWindow` calls a callback it is given (`before_preview`) before it starts the
+  preview, and `settings_app.py`, the entry point of `slideshow-lock settings`, gives it
+  `close_overview`, which makes this adapter on the session bus of the settings process. The window
+  and the preview modules may not name the bus (D11, `tests/test_preview.py`), so the window only
+  holds a callback; `settings_app.py` is the sixth module of `LOCK_SIDE_MODULES`. A failing
+  callback is logged and the preview starts anyway. `python3 -m slideshow_lock.preferences`, the
+  window without the entry point, closes nothing.
+- Measured (automated, fake shell): the callback runs before `start_preview` and a failing one does
+  not stop it; `main` hands it to the window; `close_overview` closes the overview of the fake
+  `org.gnome.Shell` on the fake session bus; no bus gives one WARNING. Not measured: the real GNOME
+  Shell, and that an overview is open at all when the Preview button is pressed (with the settings
+  window in the overview the press may not be possible; an inference, not measured).
 
 ### 3.8 Unit readiness and `Type=` (answers OPS-1's open question)
 

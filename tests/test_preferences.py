@@ -38,6 +38,7 @@ def test_the_preview_button_hands_the_windows_application_to_start_preview(monke
 
     stand_in = SimpleNamespace(
         _preview=None,
+        _before_preview=None,
         _commit_folder=lambda: None,
         get_application=lambda: application,
         status=SimpleNamespace(set_label=lambda _text: None),
@@ -94,6 +95,7 @@ def _window_stand_in():
     labels = []
     stand_in = SimpleNamespace(
         _preview=None,
+        _before_preview=None,
         _closed=False,
         _commit_folder=lambda: None,
         get_application=lambda: None,
@@ -266,3 +268,85 @@ def test_a_preview_with_no_monitor_drops_its_listeners(monkeypatch):
     assert source_stops == ["stop"]
     assert stand_in._preview is None
     assert stand_in.labels == ["There is no monitor to show the preview on."]
+
+
+def _preview_ready(monkeypatch, order):
+    """``start_preview`` and its inputs replaced by stand-ins that note their turn in *order*."""
+
+    class Controller:
+        running = True
+
+        def connect_stopped(self, _callback):
+            pass
+
+    def fake_start_preview(_settings, _source, _app=None):
+        order.append("start_preview")
+        return Controller()
+
+    monkeypatch.setattr(preferences, "Settings", lambda: object())
+    monkeypatch.setattr(
+        preferences, "build_source", lambda _settings: SimpleNamespace(start=lambda: None)
+    )
+    monkeypatch.setattr(preferences, "start_preview", fake_start_preview)
+
+
+def test_the_preview_button_runs_the_callback_of_its_caller_before_the_preview_starts(monkeypatch):
+    order = []
+    _preview_ready(monkeypatch, order)
+    stand_in = _window_stand_in()
+    stand_in._before_preview = lambda: order.append("before_preview")
+    PreferencesWindow._start_preview(stand_in)
+    assert order == ["before_preview", "start_preview"]
+    assert stand_in._preview is not None
+
+
+def test_a_failing_callback_does_not_stop_the_preview(monkeypatch, caplog):
+    order = []
+    _preview_ready(monkeypatch, order)
+    stand_in = _window_stand_in()
+
+    def broken():
+        raise RuntimeError("the bus is gone")
+
+    stand_in._before_preview = broken
+    PreferencesWindow._start_preview(stand_in)
+    assert order == ["start_preview"]
+    assert stand_in._preview is not None
+    assert any("the step before the preview failed" in m for m in caplog.messages)
+
+
+def test_the_window_keeps_the_callback_it_is_given_and_main_hands_it_on(monkeypatch):
+    """Both links of the chain: ``main`` to the window, the window's ``_start_preview`` (above)."""
+    given = []
+
+    class FakeWindow:
+        def __init__(self, settings, application=None, before_preview=None):
+            given.append(before_preview)
+
+        def present(self):
+            pass
+
+    class FakeApplication:
+        def __init__(self, **_kwargs):
+            self._on_activate = None
+
+        def connect(self, _signal, callback):
+            self._on_activate = callback
+
+        def run(self, _argv):
+            self._on_activate(self)
+            return 0
+
+    class FakeSchemas:
+        @staticmethod
+        def get_default():
+            return SimpleNamespace(lookup=lambda _id, _recursive: object())
+
+    monkeypatch.setattr(preferences, "PreferencesWindow", FakeWindow)
+    monkeypatch.setattr(preferences, "Settings", lambda: object())
+    monkeypatch.setattr(preferences.Gtk, "Application", FakeApplication)
+    monkeypatch.setattr(preferences.Gio, "SettingsSchemaSource", FakeSchemas)
+    callback = object()
+    assert preferences.main([], before_preview=callback) == 0
+    assert preferences.main([]) == 0
+    assert given == [callback, None]
