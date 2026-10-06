@@ -364,14 +364,14 @@ msgstr "إعداد عرض الشرائح عند الخمول وقفل الجلس
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "عارض شرائح لحفظ الشاشة عند الخمول يقفل الجلسة عند أي إدخال"
+msgstr "شاشة توقف بعرض الشرائح عند الخمول تقفل الجلسة عند أي إدخال"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid ""
 "Slideshow Lock starts a fullscreen picture slideshow on every screen when "
 "the session has been idle for a set time."
 msgstr ""
-"يبدأ Slideshow Lock عرض صور بملء الشاشة على كل شاشة عندما تبقى الجلسة خاملة "
+"يبدأ Slideshow Lock عرض الشرائح بالصور بملء الشاشة على كل شاشة عندما تبقى الجلسة خاملة "
 "لمدة محددة."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in

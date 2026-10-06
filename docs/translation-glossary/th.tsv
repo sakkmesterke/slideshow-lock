@@ -1,14 +1,12 @@
-term	translation	note
-Slideshow Lock	Slideshow Lock	product name, kept in Latin script
-slideshow	สไลด์โชว์	transliterated
-lock (verb and noun)	ล็อก	"ล็อกเซสชัน"
-Preview	ตัวอย่าง	window title and button
-Settings	การตั้งค่า	"การตั้งค่า Slideshow Lock"
-idle / inactivity	ไม่ได้ใช้งาน	"เวลาที่ไม่ได้ใช้งาน"
-folder	โฟลเดอร์	"โฟลเดอร์รูปภาพ"
-image / picture	รูปภาพ	no plural form
-fullscreen	เต็มหน้าจอ	"Fill" (scaling mode) is also เต็มหน้าจอ
-monitor	จอภาพ	the display device
-input	การป้อนข้อมูล	keyboard or mouse input
-grace period	ช่วงผ่อนผัน	"Lock grace period": ช่วงผ่อนผันการล็อก
-session	เซสชัน	the login session
+# Slideshow Lock translation glossary, th. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	สไลด์โชว์|slideshow_lock	\bslideshow\b
+lock	ล็อก|slideshow_lock	\block(s|ed|ing)?\b
+preview	ตัวอย่าง|preview_app	\bpreview\b
+settings	การตั้งค่า	\bsettings?\b
+idle	ไม่ได้ใช้งาน	\bidle\b
+folder	โฟลเดอร์	\bfolders?\b
+picture	รูปภาพ	\bpictures?\b
+fullscreen	เต็มหน้าจอ	\bfull-?screen\b
+monitor	จอภาพ	\bmonitors?\b
+grace period	ช่วงผ่อนผัน	\bgrace period\b

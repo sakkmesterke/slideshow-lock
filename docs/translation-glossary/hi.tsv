@@ -1,14 +1,12 @@
-term	translation	note
-Slideshow Lock	Slideshow Lock	product name, kept in Latin script
-slideshow	स्लाइडशो	transliterated, as in the GNOME interface
-lock (verb and noun)	लॉक	"सत्र लॉक", verb: लॉक करना
-Preview	पूर्वावलोकन	window title and button
-Settings	सेटिंग्स	"Slideshow Lock की सेटिंग्स"
-idle / inactivity	निष्क्रिय	noun form: निष्क्रियता
-folder	फ़ोल्डर	"चित्र फ़ोल्डर"
-image / picture	चित्र	plural form is the same word: चित्र / चित्रों
-fullscreen	पूर्ण-स्क्रीन	"Fill" (scaling mode) is स्क्रीन भरें
-monitor	मॉनिटर	the display device; "screen" is स्क्रीन
-input	इनपुट	keyboard or mouse input
-grace period	छूट अवधि	"Lock grace period": लॉक की छूट अवधि
-session	सत्र	the login session
+# Slideshow Lock translation glossary, hi. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	स्लाइडशो|slideshow_lock	\bslideshow\b
+lock	लॉक|slideshow_lock	\block(s|ed|ing)?\b
+preview	पूर्वावलोकन|preview_app	\bpreview\b
+settings	सेटिंग	\bsettings?\b
+idle	निष्क्रिय|निष्क्रियता	\bidle\b
+folder	फ़ोल्डर	\bfolders?\b
+picture	चित्र	\bpictures?\b
+fullscreen	पूर्ण-स्क्रीन|पूर्ण स्क्रीन	\bfull-?screen\b
+monitor	मॉनिटर	\bmonitors?\b
+grace period	छूट अवधि	\bgrace period\b
