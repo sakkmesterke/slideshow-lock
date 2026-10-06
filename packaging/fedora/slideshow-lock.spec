@@ -6,23 +6,29 @@
 #        COPR build, are named in the comment
 #   [H]  background knowledge about RPM, systemd and the Fedora packaging guidelines, NOT verified
 #
-# STATUS (2026-10-06): built in COPR; the Fedora chroots needed one fix, which is in this file.
-# COPR build 11084376 of main 0ac5c23 (project sakkmesterke/slideshow-lock, started by hand, rpmbuild
-# in one mock build root per chroot) before the fix:
-#   epel-10-x86_64      SUCCEEDED; %%check ran to the end (the import check, glib-compile-schemas
-#                       --dry-run, desktop-file-validate, appstreamcli validate: no error)
-#   fedora-43, fedora-44, fedora-rawhide (x86_64)
-#                       FAILED in %%check, all three with the same error: %%pyproject_check_import,
-#                       "Typelib file for namespace 'cairo', version '1.0' not found", for
-#                       slideshow_lock.preferences, .preview_app, .preview_window and .service
-# The cause, and the BuildRequires and Requires that fix it, are named at those two lines below.
-# After the fix, in rootless Fedora 43 and CentOS Stream 10 build roots made of the packages (exact
-# versions) of the COPR logs, with rpmbuild 6.0.2 and 4.19.1.1 of those roots, no scriptlets run: the
-# build, %%check included, passes on both, and the RPM is made. NOT run: mock, a COPR build of the fixed
-# file, fedora-review, rpmlint on the built RPM (an earlier rpmlint run, with its default
-# configuration, not Fedora's, on the spec and the source RPM, found no error that comes from the file
-# itself), the fix in the Fedora 44 and rawhide build roots, an install of the RPM on a Fedora or EL
-# machine, the test suite (--with tests), a real GNOME session.
+# STATUS (2026-10-06): built in COPR (project sakkmesterke/slideshow-lock) in all four chroots, in two
+# builds: 11084376 of main 0ac5c23 before the fix of the cairo typelib, which failed on the three Fedora
+# chroots, and 11084605 of main 2f45728 (the committish in the log of the SRPM build) after the fix,
+# which succeeded on all four. COPR runs rpmbuild in one mock build root per chroot. [M] read from the
+# COPR API (api_3) and the builder logs of the build 11084605, which started at 2026-10-06 12:05 UTC
+# and whose last chroot finished at 12:10 UTC:
+#   epel-10-x86_64, fedora-43-x86_64, fedora-44-x86_64, fedora-rawhide-x86_64 (the last one made fc46
+#                       packages): all four SUCCEEDED; %%check ran to the end in each of them (the
+#                       import check of 16 modules, glib-compile-schemas --strict --dry-run,
+#                       desktop-file-validate, appstreamcli validate --no-net: no error) and the
+#                       noarch RPM was written
+# Build 11084376 (before the fix, started by hand) SUCCEEDED on epel-10-x86_64; on fedora-43, fedora-44
+# and fedora-rawhide (x86_64) it FAILED in %%check, all three with the same error:
+# %%pyproject_check_import, "Typelib file for namespace 'cairo', version '1.0' not found", for
+# slideshow_lock.preferences, .preview_app, .preview_window and .service. The cause, and the
+# BuildRequires and Requires that fix it, are named at those two lines below. Before the second COPR
+# build the fix was also tried in rootless Fedora 43 and CentOS Stream 10 build roots made of the
+# packages (exact versions) of the COPR logs, with rpmbuild 6.0.2 and 4.19.1.1 of those roots, no
+# scriptlets run: the build, %%check included, passed on both.
+# NOT run: mock by hand, fedora-review, rpmlint on the built RPM (an earlier rpmlint run, with its
+# default configuration, not Fedora's, on the spec and the source RPM, found no error that comes from
+# the file itself), an install of the RPM on a Fedora or EL machine, the test suite (--with tests), a
+# real GNOME session.
 #
 # Prerequisites that are not in this file:
 #   - The tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does. A protected
@@ -127,9 +133,13 @@ BuildRequires:  gobject-introspection
 # [M] cairo-1.0.typelib is a file of the package gobject-introspection (the rpm of Fedora 43, 44 and
 # rawhide and the filelists of the Fedora 43 and CentOS Stream 10 repositories, read). No module of
 # this package imports cairo: the typelibs of Gtk 4.0 and Gdk 4.0 depend on cairo 1.0, and loading
-# them loads it. gtk4 and python3-gobject(-base) of Fedora do not require gobject-introspection, so the
-# minimal Fedora build root of COPR (build 11084376) had no cairo typelib and the import check of %%check
-# failed there; python3-gobject-base of EL10 requires it, which is why the epel-10 chroot passed.
+# them loads it. [M] In the Fedora 43 updates repository (primary metadata read) gtk4 4.20.4-1.fc43 and
+# python3-gobject-base 3.54.5-4.fc43 do not require gobject-introspection, so the minimal Fedora build
+# root of COPR (build 11084376) had no cairo typelib and the import check of %%check failed there. In
+# the Fedora 43 release repository the python3-gobject-base 3.54.3-1.fc43 still requires it
+# (gobject-introspection(x86-64)); its gtk4 4.20.2-1.fc43 does not. python3-gobject-base 3.46.0-7.el10
+# requires it as well (read in the COPR log of the build 11084605), which is why the epel-10 chroot
+# passed.
 %if %{with tests}
 # [K] the test run (.github/workflows/ci.yml) needs pytest, the GStreamer typelib and dbus-daemon
 # next to the above; [H] the package names
@@ -138,24 +148,26 @@ BuildRequires:  gstreamer1-plugins-base
 BuildRequires:  dbus-daemon
 %endif
 
+# [K] the program loads these typelibs through gi.require_version (slideshow_lock/*.py);
+# [H] a typelib dependency may also be written as typelib(Gtk) = 4.0, package names are used here
+# Not listed on purpose: python3-gobject and glib2 (no "Requires: python3-gobject", no "Requires:
+# glib2"). [M: in a Fedora 43 container, with the earlier spec, which had both lines; not measured
+# again here] rpmlint printed python-leftover-require for python3-gobject (the generated
+# python3dist(pygobject) requirement covers it, see the open question above) and
+# explicit-lib-dependency for glib2. [H] glib2 arrives through gtk4 and gdk-pixbuf2, which link its
+# shared libraries, and it is what python3-gobject needs as well; the Fedora 43 and EPEL 10 builds of
+# this spec have to show that nothing is missing. The one typelib package that is listed by name,
+# gobject-introspection, is explained at its own line.
 Requires:       gtk4
 Requires:       graphene
 Requires:       gdk-pixbuf2
-# [K] the program loads these typelibs through gi.require_version (slideshow_lock/*.py);
-# [H] a typelib dependency may also be written as typelib(Gtk) = 4.0, package names are used here
-# There is no "Requires: python3-gobject" and no "Requires: glib2" on purpose. [M: in a Fedora 43
-# container, with the earlier spec, which had both lines; not measured again here]
-# rpmlint printed python-leftover-require for python3-gobject (the generated python3dist(pygobject)
-# requirement covers it, see the open question above) and explicit-lib-dependency for glib2. [H] glib2
-# arrives through gtk4 and gdk-pixbuf2, which link its shared libraries, and it is what python3-gobject
-# needs as well; the Fedora 43 and EPEL 10 builds of this spec have to show that nothing is missing.
-Requires:       gobject-introspection
 # [M] the cairo typelib is needed at run time as well: in a Fedora 43 root made of the requirements of
 # this package, with the dependencies resolved by hand inside the package set of the COPR build,
 # gtk4 and python3-gobject-base do not bring gobject-introspection, and "from gi.repository import
 # Gtk" fails with the missing cairo typelib; with this line the import of Gtk and of
 # slideshow_lock.preferences, .service, .preview_app and .preview_window works. EL10 gets the package
 # through python3-gobject-base already; the line is for Fedora.
+Requires:       gobject-introspection
 Requires:       hicolor-icon-theme
 # [H] the package that owns the hicolor directories the icons go into
 Recommends:     gstreamer1-plugins-base
