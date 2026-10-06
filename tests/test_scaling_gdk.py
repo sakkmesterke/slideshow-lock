@@ -763,6 +763,95 @@ def test_ac5_a_picture_over_the_pixel_limit_is_refused_by_the_size_the_header_an
     assert frame.width > 0
 
 
+# -- the pixel limit where the loader announces the size late -------------------------------------
+
+
+def _can_save(fmt):
+    return fmt in {f.get_name() for f in GdkPixbuf.Pixbuf.get_formats() if f.is_writable()}
+
+
+#: The formats of the regression tests below. WebP is there only where this machine has a WebP
+#: loader (the CI image has none): a missing format is left out, not skipped (the no-skip gate).
+BOMB_FORMATS = ["png", "tiff"] + (["webp"] if _can_save("webp") else [])
+
+BOMB_SIDE = 3000  # 9 MP, over the 4 MP limit the tests set
+
+
+class LateSizeLoader:
+    """A ``PixbufLoader`` that announces ``size-prepared`` only from ``close()``.
+
+    That is how webp-pixbuf-loader 0.2.1 (Debian 12) and glycin (Fedora 43 and later) behave, as
+    measured by the security review. The real loader of this machine decodes the data while it
+    is fed, as the ``size-prepared`` handler wants, so this wraps it with the handler held back
+    until the picture is complete. ``set_size`` does nothing then, as for a loader that has
+    decoded everything already.
+    """
+
+    real_class = GdkPixbuf.PixbufLoader  # taken at import, before a test replaces it
+
+    def __init__(self):
+        self._real = self.real_class()
+        self._handlers = []
+
+    def connect(self, signal, handler):
+        assert signal == "size-prepared"
+        self._handlers.append(handler)
+
+    def write(self, data):
+        return self._real.write(data)
+
+    def close(self):
+        self._real.close()
+        pixbuf = self._real.get_pixbuf()
+        for handler in self._handlers:
+            handler(self, pixbuf.get_width(), pixbuf.get_height())
+
+    def set_size(self, width, height):
+        pass
+
+    def get_pixbuf(self):
+        return self._real.get_pixbuf()
+
+
+@pytest.fixture
+def late_size_loader(monkeypatch):
+    monkeypatch.setattr(GdkPixbuf, "PixbufLoader", LateSizeLoader)
+    return LateSizeLoader
+
+
+@pytest.fixture
+def small_limit(monkeypatch):
+    monkeypatch.setattr(scaling, "MAX_PIXELS", 4_000_000)
+
+
+@pytest.mark.parametrize("fmt", BOMB_FORMATS)
+def test_a_big_picture_is_refused_where_this_loader_announces_the_size_while_it_is_fed(
+    tmp_path, scaler, small_limit, fmt
+):
+    # The loader of this machine's CI: green with and without the check after close(). This
+    # is not the regression test (that is the next one), it pins the behaviour that already works.
+    path = save(tmp_path, f"bomb.{fmt}", solid(BOMB_SIDE, BOMB_SIDE, RED), fmt)
+    with pytest.raises(ImageSkipped, match="pixel limit"):
+        scaler.prepare(path, [(100, 100)], "fit")
+
+
+@pytest.mark.parametrize("fmt", BOMB_FORMATS)
+def test_a_big_picture_is_refused_where_the_loader_announces_the_size_only_in_close(
+    tmp_path, scaler, small_limit, late_size_loader, fmt
+):
+    path = save(tmp_path, f"bomb.{fmt}", solid(BOMB_SIDE, BOMB_SIDE, RED), fmt)
+    with pytest.raises(ImageSkipped, match="3000x3000 pixels is more than the 4000000 pixel limit"):
+        scaler.prepare(path, [(100, 100)], "fit")
+
+
+def test_a_picture_within_the_limit_passes_where_the_loader_announces_the_size_only_in_close(
+    tmp_path, scaler, small_limit, late_size_loader
+):
+    path = save(tmp_path, "ok.png", solid(1000, 1000, RED), "png")  # 1 MP, under the 4 MP limit
+    (frame,) = scaler.prepare(path, [(100, 100)], "fit")
+    assert (frame.width, frame.height) == (100, 100)
+
+
 # -- orientation and transparency ----------------------------------------------------------------
 
 
