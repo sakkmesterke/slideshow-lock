@@ -54,6 +54,7 @@ from slideshow_lock.scaling import ImageScaler  # noqa: E402
 from slideshow_lock.session import (  # noqa: E402
     Cancel,
     LockResult,
+    OverviewControl,
     UnsupportedSessionInterface,
 )
 from slideshow_lock.settings import (  # noqa: E402
@@ -85,11 +86,18 @@ class PreviewSlideshow:
     ``start`` refuses, with the reason, when there is no picture to show or no monitor (3.7); the
     controller itself would open empty windows. When it refuses because the folder is still being
     read, ``connect_ready`` callbacks hear about the first picture the scan finds. A stop the state
-    machine asked for is not reported back as input."""
+    machine asked for is not reported back as input.
 
-    def __init__(self, controller: PreviewController, source) -> None:
+    With an *overview* (``OverviewControl``) ``start`` closes the shell's overview first, once it
+    knows it will open the windows: a slideshow that opens under an open overview is a third
+    window in it, not a full screen one."""
+
+    def __init__(
+        self, controller: PreviewController, source, overview: Optional[OverviewControl] = None
+    ) -> None:
         self._controller = controller
         self._source = source
+        self._overview = overview
         self._listeners: List[Callable[[str], None]] = []
         self._ready_listeners: List[Callable[[], None]] = []
         self._waiting_for_scan = False
@@ -106,6 +114,8 @@ class PreviewSlideshow:
                 f"no picture to show: the folder '{self._source.folder}' is missing or has no "
                 f"valid image{scanning}"
             )
+        if self._overview is not None:
+            self._overview.close_if_open()
         self._controller.start()
         if not self._controller.running:
             return "no monitor found"
@@ -390,7 +400,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         state["source"], state["worker"] = source, worker
         try:
             state["service"] = build_service(
-                session, system, settings, PreviewSlideshow(controller, source)
+                session,
+                system,
+                settings,
+                PreviewSlideshow(controller, source, dbus_adapters.GnomeShellOverview(session)),
             )
         except Exception as exc:
             # Any failure, not a list of known ones: a GLib.Error from a bus call that is not an

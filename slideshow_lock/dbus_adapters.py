@@ -17,6 +17,8 @@ protocol                  bus          interface
                                        ``org.freedesktop.login1.Session.Lock`` and ``LockedHint``
 ``SleepSignal``           system       ``org.freedesktop.login1.Manager`` (``PrepareForSleep``,
                                        ``Inhibit("sleep", ..., "delay")``, ``InhibitDelayMaxUSec``)
+``OverviewControl``       session      ``org.gnome.Shell`` (the property ``OverviewActive``, read
+                                       and written through ``org.freedesktop.DBus.Properties``)
 ========================  ===========  ==========================================================
 
 Each constructor probes its interface once, with a cheap read-only call, and raises
@@ -38,6 +40,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Callable, List, Optional
 
 import gi
@@ -81,6 +84,8 @@ LOGIN1 = ("org.freedesktop.login1", "/org/freedesktop/login1")
 LOGIN1_MANAGER_IFACE = "org.freedesktop.login1.Manager"
 LOGIN1_SESSION_IFACE = "org.freedesktop.login1.Session"
 PROPERTIES_IFACE = "org.freedesktop.DBus.Properties"
+SHELL = ("org.gnome.Shell", "/org/gnome/Shell")
+SHELL_IFACE = "org.gnome.Shell"
 
 
 def session_bus() -> "Gio.DBusConnection":
@@ -98,6 +103,7 @@ def _call_sync(
     method: str,
     args: Optional["GLib.Variant"] = None,
     reply: Optional[str] = None,
+    timeout_ms: int = CALL_TIMEOUT_MS,
 ):
     name, path = target
     return conn.call_sync(
@@ -108,7 +114,7 @@ def _call_sync(
         args,
         GLib.VariantType(reply) if reply else None,
         Gio.DBusCallFlags.NONE,
-        CALL_TIMEOUT_MS,
+        timeout_ms,
         None,
     )
 
@@ -537,6 +543,107 @@ def make_session_lock(session: "Gio.DBusConnection", system: "Gio.DBusConnection
         return Login1SessionLock(system)
     except UnsupportedSessionInterface as second:
         raise UnsupportedSessionInterface("ScreenSaver+login1.Session", second.detail) from second
+
+
+# -- overview -------------------------------------------------------------------------------------
+
+#: The most the overview adapter waits in all: the calls and the polling together. The closing
+#: animation of the shell takes 250 ms (``ANIMATION_TIME`` in its ``overview.js``).
+OVERVIEW_WAIT_S = 0.5
+OVERVIEW_POLL_S = 0.05
+
+#: D-Bus errors that say the shell is not on this session (not GNOME): not a problem to report.
+_NO_SHELL_ERRORS = (
+    "org.freedesktop.DBus.Error.ServiceUnknown",
+    "org.freedesktop.DBus.Error.NameHasNoOwner",
+)
+
+
+class GnomeShellOverview:
+    """``OverviewControl`` on the ``OverviewActive`` property of ``org.gnome.Shell``.
+
+    A slideshow window that opens while the overview is up comes out as a third window in it
+    instead of full screen. The property is true until the closing animation is over, so after
+    setting it to false the adapter reads it again until it is false.
+
+    It does not raise and it does not wait longer than ``OVERVIEW_WAIT_S`` in all (each call gets
+    what is left of that time as its timeout). Without a shell on the bus it does nothing and
+    says nothing above DEBUG; any other failure is a WARNING, once, then DEBUG. It does not probe
+    anything when it is made: the shell may come up later than this service."""
+
+    def __init__(
+        self,
+        conn: "Gio.DBusConnection",
+        *,
+        clock: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self._conn = conn
+        self._clock = clock
+        self._sleep = sleep
+        self._warned = False
+
+    def close_if_open(self) -> None:
+        try:
+            self._close_if_open()
+        except GLib.Error as exc:
+            remote = (
+                Gio.DBusError.get_remote_error(exc) if Gio.DBusError.is_remote_error(exc) else ""
+            )
+            if remote in _NO_SHELL_ERRORS:
+                _LOG.debug("[slideshow] no org.gnome.Shell on this session: the overview stays")
+            else:
+                self._warn("the overview cannot be closed (%s)", exc.message)
+        except Exception as exc:  # the adapter must not stop a slideshow, whatever it was
+            self._warn("the overview cannot be closed (%s)", exc)
+
+    def _warn(self, message: str, *args) -> None:
+        if self._warned:
+            _LOG.debug("[slideshow] " + message, *args)
+            return
+        self._warned = True
+        _LOG.warning("[slideshow] " + message + ": the slideshow starts anyway", *args)
+
+    def _is_active(self, deadline: float) -> bool:
+        result = _call_sync(
+            self._conn,
+            SHELL,
+            PROPERTIES_IFACE,
+            "Get",
+            GLib.Variant("(ss)", (SHELL_IFACE, "OverviewActive")),
+            "(v)",
+            timeout_ms=self._left_ms(deadline),
+        )
+        return bool(result.unpack()[0])
+
+    def _left_ms(self, deadline: float) -> int:
+        return max(1, int((deadline - self._clock()) * 1000))
+
+    def _close_if_open(self) -> None:
+        deadline = self._clock() + OVERVIEW_WAIT_S
+        if not self._is_active(deadline):
+            return
+        _LOG.info("[slideshow] the overview is open: closing it before the slideshow starts")
+        _call_sync(
+            self._conn,
+            SHELL,
+            PROPERTIES_IFACE,
+            "Set",
+            GLib.Variant("(ssv)", (SHELL_IFACE, "OverviewActive", GLib.Variant("b", False))),
+            "()",
+            timeout_ms=self._left_ms(deadline),
+        )
+        while self._clock() < deadline:
+            self._sleep(OVERVIEW_POLL_S)
+            try:
+                if not self._is_active(deadline):
+                    return
+            except GLib.Error as exc:
+                # the last read gets what is left of the half second, which may be a millisecond
+                if not exc.matches(Gio.io_error_quark(), Gio.IOErrorEnum.TIMED_OUT):
+                    raise
+                break
+        self._warn("the overview is still open after %.1f s", OVERVIEW_WAIT_S)
 
 
 # -- sleep ----------------------------------------------------------------------------------------

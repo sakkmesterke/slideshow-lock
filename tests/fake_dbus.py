@@ -72,6 +72,9 @@ LOGIN1_MANAGER_XML = """<node><interface name="org.freedesktop.login1.Manager">
 LOGIN1_SESSION_XML = """<node><interface name="org.freedesktop.login1.Session">
 <method name="Lock"/><property name="LockedHint" type="b" access="read"/></interface></node>"""
 
+SHELL_XML = """<node><interface name="org.gnome.Shell">
+<property name="OverviewActive" type="b" access="readwrite"/></interface></node>"""
+
 SESSION_PATH = "/org/freedesktop/login1/session/_1"
 
 
@@ -130,6 +133,7 @@ class Desktop:
         *,
         screensaver: bool = True,
         idle_monitor: bool = True,
+        shell: bool = True,
         session_address: Optional[str] = None,
     ) -> None:
         """*session_address*: serve on an existing session bus (a compositor's, in the smoke
@@ -138,6 +142,7 @@ class Desktop:
         self._session_address = session_address
         self._with_screensaver = screensaver
         self._with_idle_monitor = idle_monitor
+        self._with_shell = shell
         self.watches: Dict[int, str] = {}  # id -> "idle" | "active"
         self.idle_timeouts: List[int] = []  # ms, of every AddIdleWatch
         self.removed: List[int] = []
@@ -169,6 +174,14 @@ class Desktop:
         self.inhibit_calls: List[tuple] = []
         self._pipes: List[tuple] = []  # (write_fd) per inhibitor handed out
         self.locked_hint = False
+        # org.gnome.Shell: the property OverviewActive. A ``Set`` of false makes it false after
+        # ``overview_close_delay`` seconds (the closing animation), unless ``overview_stuck``.
+        self.overview_active = False
+        self.overview_close_delay = 0.0
+        self.overview_stuck = False
+        self.overview_get_delay = 0.0  # seconds a ``Get`` takes to answer
+        self.overview_set_refused = False  # a ``Set`` is answered with an error
+        self.overview_log: List[tuple] = []  # ("Get" | "Set", value) in the order they came
         self._next_watch = 1
         self.delay_max_usec = 5_000_000
         self.last_lock_reply_at = 0.0
@@ -232,6 +245,16 @@ class Desktop:
                 self._screensaver_call,
             )
             _own(self._svc_session, "org.gnome.ScreenSaver")
+        if self._with_shell:
+            self._register(
+                self._svc_session,
+                "/org/gnome/Shell",
+                SHELL_XML,
+                self._shell_call,
+                self._shell_property,
+                self._shell_set_property,
+            )
+            _own(self._svc_session, "org.gnome.Shell")
         self._register(
             self._svc_system,
             "/org/freedesktop/login1",
@@ -249,9 +272,9 @@ class Desktop:
         _own(self._svc_system, "org.freedesktop.login1")
 
     @staticmethod
-    def _register(conn, path, xml, on_call, on_property=None) -> int:
+    def _register(conn, path, xml, on_call, on_property=None, on_set_property=None) -> int:
         info = Gio.DBusNodeInfo.new_for_xml(xml).interfaces[0]
-        return conn.register_object(path, info, on_call, on_property, None)
+        return conn.register_object(path, info, on_call, on_property, on_set_property)
 
     # -- the services ------------------------------------------------------------------------------
 
@@ -381,6 +404,36 @@ class Desktop:
                 "ActiveChanged",
                 GLib.Variant("(b)", (value,)),
             )
+
+    def _shell_call(self, conn, sender, path, iface, method, params, invocation) -> None:
+        invocation.return_dbus_error("org.freedesktop.DBus.Error.UnknownMethod", method)
+
+    def _shell_property(self, conn, sender, path, iface, name):
+        self.overview_log.append(("Get", self.overview_active))
+        if self.overview_get_delay:
+            time.sleep(self.overview_get_delay)
+        return GLib.Variant("b", self.overview_active)
+
+    def _shell_set_property(self, conn, sender, path, iface, name, value) -> bool:
+        wanted = value.get_boolean()
+        self.overview_log.append(("Set", wanted))
+        if self.overview_set_refused:
+            return False
+        if wanted:
+            self.overview_active = True
+        elif not self.overview_stuck:
+            if self.overview_close_delay:
+                # on the service loop's own context: the test thread is blocked in the adapter
+                source = GLib.timeout_source_new(int(self.overview_close_delay * 1000))
+                source.set_callback(lambda *_a: self._overview_closed())
+                source.attach(self.service_loop._context)
+            else:
+                self.overview_active = False
+        return True
+
+    def _overview_closed(self) -> bool:
+        self.overview_active = False
+        return GLib.SOURCE_REMOVE
 
     def _login1_call(self, conn, sender, path, iface, method, params, invocation) -> None:
         if method == "GetSessionByPID":

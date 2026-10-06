@@ -53,7 +53,9 @@ def program(monkeypatch):
     monkeypatch.setattr(service.dbus_adapters, "system_bus", lambda: object())
     monkeypatch.setattr(service, "build_source", lambda settings: prog.source)
     monkeypatch.setattr(service, "PreviewController", lambda *args, **kwargs: object())
-    monkeypatch.setattr(service, "PreviewSlideshow", lambda controller, source: object())
+    monkeypatch.setattr(
+        service, "PreviewSlideshow", lambda controller, source, overview=None: object()
+    )
 
     def application(application_id):
         # NON_UNIQUE: the test must not claim the application id on a session bus that may exist
