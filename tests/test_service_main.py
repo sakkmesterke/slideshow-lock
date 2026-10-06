@@ -43,6 +43,7 @@ class _Program:
         self.source = _Source()
         self.hung = False
         self.watchdogs = []
+        self.slideshows = []  # (controller, source, overview) of every PreviewSlideshow made
 
 
 @pytest.fixture
@@ -53,9 +54,12 @@ def program(monkeypatch):
     monkeypatch.setattr(service.dbus_adapters, "system_bus", lambda: object())
     monkeypatch.setattr(service, "build_source", lambda settings: prog.source)
     monkeypatch.setattr(service, "PreviewController", lambda *args, **kwargs: object())
-    monkeypatch.setattr(
-        service, "PreviewSlideshow", lambda controller, source, overview=None: object()
-    )
+
+    def slideshow(controller, source, overview=None):
+        prog.slideshows.append((controller, source, overview))
+        return object()
+
+    monkeypatch.setattr(service, "PreviewSlideshow", slideshow)
 
     def application(application_id):
         # NON_UNIQUE: the test must not claim the application id on a session bus that may exist
@@ -120,3 +124,20 @@ def test_a_working_set_up_keeps_the_program_running_until_it_is_asked_to_stop(pr
     assert status == 0
     assert closed == [True]
     assert program.source.stopped
+
+
+def test_main_gives_the_slideshow_the_overview_adapter_of_the_shell(program, monkeypatch):
+    """The wiring of ``main`` for the overview: the ``PreviewSlideshow`` it builds gets a
+    ``GnomeShellOverview`` (without one the slideshow would never close the overview and every
+    other test, which builds the slideshow by hand, would stay green)."""
+
+    class Stub:
+        def close(self):
+            pass
+
+    monkeypatch.setattr(service, "build_service", lambda *args, **kwargs: Stub())
+    GLib.timeout_add(300, lambda: service.signal.raise_signal(service.signal.SIGTERM) or False)
+    assert service.main(["--folder", "/nonexistent"]) == 0
+    [(_controller, source, overview)] = program.slideshows
+    assert source is program.source
+    assert isinstance(overview, service.dbus_adapters.GnomeShellOverview)

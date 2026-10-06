@@ -124,10 +124,11 @@ every protocol, so every row of the transition table runs without a bus (`tests/
 fires, the slideshow windows used to come out as a third window in it instead of full screen.
 `PreviewSlideshow.start` now asks the shell to close the overview, through
 `OverviewControl.close_if_open` (`GnomeShellOverview`: `OverviewActive` read, set to false, read
-again every 50 ms, half a second at most, never an exception; `docs/architecture/dbus-state-machine.md`,
+again every 50 ms, about half a second (one more call runs after the last sleep), never an exception; `docs/architecture/dbus-state-machine.md`,
 section 3.7a), after the check that there is a picture and before the controller opens the
-windows. The settings window's Preview button is not covered: the window has the focus then, and
-the preview modules may not name the bus. Tested against the fake `org.gnome.Shell` of
+windows. The settings window's Preview button is not covered: the window has the focus then (so
+the overview is presumably not open: an inference, not measured), and the preview modules may not
+name the bus. Tested against the fake `org.gnome.Shell` of
 `tests/fake_dbus.py` (open, closed, no shell, refused set, an overview that stays open, a shell that
 does not answer, an object that is not a connection; the order against the controller). Not
 measured: the real GNOME Shell (that the windows then come out full screen, over the other

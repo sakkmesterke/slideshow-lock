@@ -559,6 +559,11 @@ _NO_SHELL_ERRORS = (
 )
 
 
+def _one_line(text: str) -> str:
+    """A message that came from the peer, on one line and at most 200 characters, for the log."""
+    return text.replace("\n", " ")[:200]
+
+
 class GnomeShellOverview:
     """``OverviewControl`` on the ``OverviewActive`` property of ``org.gnome.Shell``.
 
@@ -566,10 +571,11 @@ class GnomeShellOverview:
     instead of full screen. The property is true until the closing animation is over, so after
     setting it to false the adapter reads it again until it is false.
 
-    It does not raise and it does not wait longer than ``OVERVIEW_WAIT_S`` in all (each call gets
-    what is left of that time as its timeout). Without a shell on the bus it does nothing and
-    says nothing above DEBUG; any other failure is a WARNING, once, then DEBUG. It does not probe
-    anything when it is made: the shell may come up later than this service."""
+    It does not raise and it waits about ``OVERVIEW_WAIT_S`` in all (each call gets what is left
+    of that time as its timeout; one more call still runs after the last 50 ms sleep). Without a
+    shell on the bus it does nothing and says nothing above DEBUG; any other failure is a WARNING,
+    once, then DEBUG. It does not probe anything when it is made: the shell may come up later than
+    this service."""
 
     def __init__(
         self,
@@ -593,9 +599,9 @@ class GnomeShellOverview:
             if remote in _NO_SHELL_ERRORS:
                 _LOG.debug("[slideshow] no org.gnome.Shell on this session: the overview stays")
             else:
-                self._warn("the overview cannot be closed (%s)", exc.message)
+                self._warn("the overview cannot be closed (%s)", _one_line(exc.message))
         except Exception as exc:  # the adapter must not stop a slideshow, whatever it was
-            self._warn("the overview cannot be closed (%s)", exc)
+            self._warn("the overview cannot be closed (%s)", _one_line(str(exc)))
 
     def _warn(self, message: str, *args) -> None:
         if self._warned:

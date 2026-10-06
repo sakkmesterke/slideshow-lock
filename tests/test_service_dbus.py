@@ -446,8 +446,9 @@ def test_a_manual_preview_takes_no_idle_inhibitor(run):
 
 
 def test_the_overview_of_the_shell_is_closed_when_the_windows_open(run):
-    """The wiring of ``main``: a ``PreviewSlideshow`` on the real overview adapter and the fake
-    shell. The controller notes what the shell said at the moment it was told to open."""
+    """A ``PreviewSlideshow`` built by hand on the real overview adapter and the fake shell (that
+    ``main`` builds it with the adapter is ``test_service_main.py``). The controller notes what
+    the shell said at the moment it was told to open."""
     desktop = run.desktop
     desktop.overview_active = True
     desktop.overview_close_delay = 0.1
