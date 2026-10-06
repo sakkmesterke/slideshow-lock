@@ -4,6 +4,9 @@ screen is checked with ``tools/wayland-smoke/smoke_preferences.py``; its logic i
 
 from __future__ import annotations
 
+import ast
+import inspect
+import textwrap
 from types import SimpleNamespace
 
 import pytest
@@ -350,3 +353,54 @@ def test_the_window_keeps_the_callback_it_is_given_and_main_hands_it_on(monkeypa
     assert preferences.main([], before_preview=callback) == 0
     assert preferences.main([]) == 0
     assert given == [callback, None]
+
+
+def _stores_before_preview(source):
+    """True if the constructor *source* has, as a statement of its own body, ``self._before_preview
+    = before_preview`` and ``before_preview`` is one of its parameters."""
+    function = ast.parse(textwrap.dedent(source)).body[0]
+    parameters = {a.arg for a in function.args.args + function.args.kwonlyargs}
+    return "before_preview" in parameters and any(
+        isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "before_preview"
+        and any(
+            isinstance(t, ast.Attribute)
+            and isinstance(t.value, ast.Name)
+            and t.value.id == "self"
+            and t.attr == "_before_preview"
+            for t in node.targets
+        )
+        for node in function.body
+    )
+
+
+def test_the_constructor_stores_the_callback_it_is_given():
+    """The constructor itself cannot run here (it builds a real Gtk window, which needs a display),
+    so the one line that keeps the callback is read from its source: without it the Preview button
+    silently stops closing the overview. This shows the line is there, not that the button calls
+    the callback (only a real window does)."""
+    assert _stores_before_preview(inspect.getsource(PreferencesWindow.__init__))
+
+
+_CONSTRUCTOR = """
+def __init__(self, settings, application=None, before_preview=None):
+    super().__init__()
+    {line}
+"""
+
+
+@pytest.mark.parametrize(
+    "line, keeps",
+    [
+        ("self._before_preview = before_preview", True),
+        ("self._before_preview = None", False),
+        ("self._callback = before_preview", False),
+        ("pass", False),
+        ("if False:\n        self._before_preview = before_preview", False),
+    ],
+)
+def test_the_constructor_check_tells_a_constructor_that_drops_the_callback_apart(line, keeps):
+    """Negative control of the check above, on constructors written out here (so it does not
+    depend on the real one): only the first one keeps the callback."""
+    assert _stores_before_preview(_CONSTRUCTOR.format(line=line)) is keeps

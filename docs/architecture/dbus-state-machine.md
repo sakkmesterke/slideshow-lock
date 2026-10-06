@@ -158,11 +158,12 @@ Not one of the six starting points: the state machine does not know it. `Preview
   `close_overview`, which makes this adapter on the session bus of the settings process. The window
   and the preview modules may not name the bus (D11, `tests/test_preview.py`), so the window only
   holds a callback; `settings_app.py` is the sixth module of `LOCK_SIDE_MODULES`. A failing
-  callback is logged and the preview starts anyway. `python3 -m slideshow_lock.preferences`, the
+  callback is logged and the preview starts anyway. `close_overview` makes a new adapter at each
+  press, so a failure gives one WARNING per press of the button, not one per process. `python3 -m slideshow_lock.preferences`, the
   window without the entry point, closes nothing.
 - Measured (automated, fake shell): the callback runs before `start_preview` and a failing one does
   not stop it; `main` hands it to the window; `close_overview` closes the overview of the fake
-  `org.gnome.Shell` on the fake session bus; no bus gives one WARNING. Not measured: the real GNOME
+  `org.gnome.Shell` on the fake session bus; no bus gives one WARNING for that press. Not measured: the real GNOME
   Shell, and that an overview is open at all when the Preview button is pressed (with the settings
   window in the overview the press may not be possible; an inference, not measured).
 

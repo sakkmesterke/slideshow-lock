@@ -24,7 +24,8 @@ _LOG = logging.getLogger(__name__)
 
 def close_overview() -> None:
     """Close the shell's overview if it is open. Never raises: whatever fails is logged and the
-    preview starts as it would have (``GnomeShellOverview`` does not raise, the bus is the rest)."""
+    preview starts as it would have (``GnomeShellOverview`` does not raise, the bus is the rest).
+    A new adapter is made at each press: a failure logs one warning per press, not per process."""
     try:
         overview = dbus_adapters.GnomeShellOverview(dbus_adapters.session_bus())
     except Exception as exc:

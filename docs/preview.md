@@ -440,8 +440,8 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   controller makes on the objects handed to it is on a list of picture and timing methods; it sees
   nothing the controller does on its own (a call in `stop()` that goes to a subprocess is invisible
   to it). (2) A code scan of every module of the package that is not on the list of lock-side modules (the
-  six of the service and the settings entry point, `LOCK_SIDE_MODULES` in `tests/test_preview.py`, the only ones that name the
-  lock, the session and the bus on purpose; a module goes on that list only by a decision made
+  six in `LOCK_SIDE_MODULES` in `tests/test_preview.py`, the five of the service plus the settings
+  entry point, the only ones that name the lock, the session and the bus on purpose; a module goes on that list only by a decision made
   there), `__init__.py` included, plus a check that no scanned module imports one of the six (a
   list of
   the preview's own modules once let a literal `os.system("true")` in `__init__.py` through both
