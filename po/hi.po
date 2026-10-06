@@ -1,0 +1,390 @@
+# Hindi translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+# AI-assisted translation (Claude), not reviewed by a native speaker.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:49+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Hindi\n"
+"Language: hi\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "यादृच्छिक"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "फ़ाइल नाम के अनुसार"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "स्क्रीन भरें (चित्र कट जाता है)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "फ़िट करें (पूरा चित्र दिखता है)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Slideshow Lock की सेटिंग्स"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "ब्राउज़ करें…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "चित्र"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "चित्र फ़ोल्डर"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "चित्रों का क्रम"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "स्केलिंग"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "लंबे चित्र स्क्रॉल करें"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"लैंडस्केप स्क्रीन पर पोर्ट्रेट चित्र ऊपर से नीचे धीरे-धीरे खिसकते हैं (केवल स्क्रीन भरने पर)। "
+"डिफ़ॉल्ट रूप से बंद: इसमें अधिक बैटरी लगती है।"
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "स्लाइडशो शुरू करें"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "निष्क्रियता का समय"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "स्लाइडशो शुरू होने से पहले बिना इनपुट के कितनी देर।"
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "सेकंड"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "समय-निर्धारण"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "हर चित्र दिखाएँ"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "लॉक की छूट अवधि"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"स्लाइडशो शुरू होने के बाद इस समय से पहले हुआ इनपुट सत्र को लॉक नहीं करता (पूरी तरह पहले; "
+"0 का अर्थ है कि हर इनपुट लॉक करता है)।"
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "पूर्वावलोकन"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 से."
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 मि."
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 घं."
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 घं."
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "चित्र फ़ोल्डर चुनें"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "चुनें"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "रद्द करें"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "पूर्वावलोकन शुरू नहीं हो सका, लॉग देखें।"
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "पूर्वावलोकन दिखाने के लिए कोई मॉनिटर नहीं है।"
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "पूर्वावलोकन चल रहा है: इसे समाप्त करने के लिए कोई भी कुंजी दबाएँ या माउस हिलाएँ।"
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "स्लाइडशो की सेटिंग्स बदलें।"
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "हर चरण का लॉग रखें"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"सेटिंग्स स्कीमा स्थापित नहीं है। इसे कंपाइल करें और GSettings को इसकी ओर इंगित करें:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "सहेजा गया।"
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "सबसे लंबा"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d से."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d मि."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d घं."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "उपयोग में: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "उपयोग में: %s (फ़ोल्डर अभी मौजूद नहीं है, कुछ नहीं दिखेगा)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"यह स्लाइडर का कोई चरण नहीं है: यह सबसे नज़दीकी चरण दिखाता है। स्लाइडर हिलाने तक सहेजा "
+"गया मान वैसा ही रहता है।"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "सेकंड की पूर्ण संख्या दर्ज करें।"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "मान %(low)d और %(high)d के बीच होना चाहिए।"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "स्लाइडर की स्थिति के लिए पूर्ण संख्या दर्ज करें।"
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "यह स्थिति स्लाइडर पर नहीं है।"
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "यह विकल्प उपलब्ध नहीं है।"
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "यह चालू या बंद होना चाहिए।"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "फ़ोल्डर का पथ दर्ज करें।"
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "पथ में एक अमान्य वर्ण है।"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "निरपेक्ष पथ दर्ज करें (यह / या ~ से शुरू होता है)।"
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "यह पथ एक फ़ाइल है, फ़ोल्डर नहीं।"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "मान स्वीकार नहीं किया गया, पुराना मान रखा गया है।"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "मान सहेजा नहीं जा सका।"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "फ़ोल्डर स्वीकार नहीं किया गया, पुराना फ़ोल्डर रखा गया है।"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "फ़ोल्डर सहेजा नहीं जा सका।"
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "दिखाने के लिए कोई चित्र नहीं"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"स्लाइडशो का पूर्वावलोकन दिखाएँ। कोई भी इनपुट इसे समाप्त करता है। यह सत्र को कभी लॉक "
+"नहीं करता।"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "चित्र फ़ोल्डर (केवल इस बार के लिए)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "प्रति चित्र सेकंड (केवल इस बार के लिए)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "चित्रों का क्रम"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "मॉनिटर पर फ़िट करें या भरें"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "पोर्ट्रेट चित्रों को धीरे-धीरे स्क्रॉल करें (भरने की विधि)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "अंतराल %d और %d सेकंड के बीच होना चाहिए।"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"सेटिंग्स स्कीमा स्थापित नहीं है। इसे कंपाइल करें और GSettings को इसकी ओर इंगित करें:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Slideshow Lock पूर्वावलोकन"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"सत्र के निष्क्रिय होने पर स्लाइडशो शुरू करें, छूट अवधि के बाद पहले इनपुट पर सत्र को लॉक करें, "
+"और मशीन के सस्पेंड होने से पहले लॉक करें।"
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "स्लाइडशो से पहले निष्क्रिय सेकंड"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "इतने सेकंड के भीतर इनपुट पर लॉक नहीं"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "निष्क्रियता का समय 1 से 86400 सेकंड के बीच होना चाहिए।"
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "छूट अवधि 0 से 86400 सेकंड के बीच होनी चाहिए।"
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"सेटिंग्स स्कीमा स्थापित नहीं है। इसे कंपाइल करें और GSettings को इसकी ओर इंगित करें:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "निष्क्रिय सत्र के लिए स्लाइडशो और सत्र लॉक सेट करें"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "निष्क्रिय स्थिति में चलने वाला स्लाइडशो स्क्रीनसेवर, जो इनपुट पर लॉक कर देता है"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock तय समय तक सत्र निष्क्रिय रहने पर हर स्क्रीन पर पूर्ण-स्क्रीन चित्र "
+"स्लाइडशो शुरू करता है।"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"पहली कुंजी दबाने, क्लिक या माउस हिलाने से स्लाइडशो समाप्त हो जाता है। यदि स्लाइडशो कम "
+"से कम छूट अवधि तक चल चुका हो, तो सत्र भी लॉक हो जाता है।"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"चित्र आपके चुने हुए फ़ोल्डर से आते हैं। सेटिंग्स विंडो फ़ोल्डर, निष्क्रियता का समय, छूट अवधि, हर "
+"चित्र के दिखने की अवधि, क्रम और स्केलिंग तय करती है।"

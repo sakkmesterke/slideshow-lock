@@ -1,0 +1,386 @@
+# Thai translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+# AI-assisted translation (Claude), not reviewed by a native speaker.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:49+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Thai\n"
+"Language: th\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "สุ่ม"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "ตามชื่อไฟล์"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "เต็มหน้าจอ (ตัดบางส่วนของรูปภาพ)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "พอดี (แสดงรูปภาพทั้งภาพ)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "การตั้งค่า Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "เรียกดู…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "รูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "โฟลเดอร์รูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "ลำดับรูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "การปรับขนาด"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "เลื่อนรูปภาพแนวตั้ง"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"รูปภาพแนวตั้งบนหน้าจอแนวนอนจะเลื่อนช้า ๆ จากบนลงล่าง (เมื่อใช้เต็มหน้าจอเท่านั้น) "
+"ปิดไว้เป็นค่าเริ่มต้น: ใช้แบตเตอรี่มากขึ้น"
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "เริ่มสไลด์โชว์"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "เวลาที่ไม่ได้ใช้งาน"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "ระยะเวลาที่ไม่มีการป้อนข้อมูลก่อนที่สไลด์โชว์จะเริ่ม"
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "วินาที"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "การกำหนดเวลา"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "แสดงรูปภาพแต่ละภาพเป็นเวลา"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "ช่วงผ่อนผันการล็อก"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"การป้อนข้อมูลที่เกิดขึ้นก่อนช่วงเวลานี้หลังสไลด์โชว์เริ่มจะไม่ล็อกเซสชัน (ก่อนอย่างเคร่งครัด; 0 "
+"หมายความว่าการป้อนข้อมูลทุกครั้งจะล็อก)"
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "ตัวอย่าง"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 วิ"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 นาที"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 ชม."
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 ชม."
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "เลือกโฟลเดอร์รูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "เลือก"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "ยกเลิก"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "ไม่สามารถเริ่มตัวอย่างได้ ดูบันทึกการทำงาน"
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "ไม่มีจอภาพสำหรับแสดงตัวอย่าง"
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "ตัวอย่างกำลังทำงาน: กดปุ่มใดก็ได้หรือขยับเมาส์เพื่อสิ้นสุด"
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "เปลี่ยนการตั้งค่าสไลด์โชว์"
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "บันทึกทุกขั้นตอน"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"ยังไม่ได้ติดตั้งสคีมาการตั้งค่า ให้คอมไพล์สคีมาแล้วชี้ GSettings ไปที่สคีมานั้น:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "บันทึกแล้ว"
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "นานที่สุด"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d วิ"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d นาที"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d ชม."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "ใช้งานอยู่: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "ใช้งานอยู่: %s (ยังไม่มีโฟลเดอร์นี้ จะไม่แสดงอะไร)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr "ค่านี้ไม่ใช่ขั้นของแถบเลื่อน: แสดงขั้นที่ใกล้ที่สุด ค่าที่บันทึกไว้จะคงเดิมจนกว่าจะเลื่อนแถบ"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "ป้อนจำนวนเต็มของวินาที"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "ค่าต้องอยู่ระหว่าง %(low)d ถึง %(high)d"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "ป้อนจำนวนเต็มสำหรับตำแหน่งของแถบเลื่อน"
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "ตำแหน่งนี้ไม่อยู่บนแถบเลื่อน"
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "ตัวเลือกนี้ไม่พร้อมใช้งาน"
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "ต้องเป็นเปิดหรือปิด"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "ป้อนพาธของโฟลเดอร์"
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "พาธมีอักขระที่ไม่อนุญาต"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "ป้อนพาธแบบสมบูรณ์ (ขึ้นต้นด้วย / หรือ ~)"
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "พาธนี้เป็นไฟล์ ไม่ใช่โฟลเดอร์"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "ไม่ยอมรับค่านี้ ใช้ค่าเดิมต่อไป"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "ไม่สามารถบันทึกค่าได้"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "ไม่ยอมรับโฟลเดอร์นี้ ใช้โฟลเดอร์เดิมต่อไป"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "ไม่สามารถบันทึกโฟลเดอร์ได้"
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "ไม่มีรูปภาพให้แสดง"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "แสดงตัวอย่างสไลด์โชว์ การป้อนข้อมูลใด ๆ จะสิ้นสุดตัวอย่าง และจะไม่ล็อกเซสชันเลย"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "โฟลเดอร์รูปภาพ (เฉพาะการรันครั้งนี้)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "วินาทีต่อรูปภาพ (เฉพาะการรันครั้งนี้)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "ลำดับรูปภาพ"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "ปรับให้พอดีหรือเต็มจอภาพ"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "เลื่อนรูปภาพแนวตั้งช้า ๆ (โหมดเต็มหน้าจอ)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "ช่วงเวลาต้องอยู่ระหว่าง %d ถึง %d วินาที"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"ยังไม่ได้ติดตั้งสคีมาการตั้งค่า ให้คอมไพล์สคีมาแล้วชี้ GSettings ไปที่สคีมานั้น:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "ตัวอย่าง Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"เริ่มสไลด์โชว์เมื่อเซสชันไม่ได้ใช้งาน ล็อกเซสชันเมื่อมีการป้อนข้อมูลครั้งแรกหลังช่วงผ่อนผัน "
+"และล็อกก่อนที่เครื่องจะเข้าสู่โหมดพักเครื่อง"
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "วินาทีที่ไม่ได้ใช้งานก่อนสไลด์โชว์"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "ไม่ล็อกเมื่อมีการป้อนข้อมูลภายในกี่วินาทีนี้"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "เวลาที่ไม่ได้ใช้งานต้องอยู่ระหว่าง 1 ถึง 86400 วินาที"
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "ช่วงผ่อนผันต้องอยู่ระหว่าง 0 ถึง 86400 วินาที"
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"ยังไม่ได้ติดตั้งสคีมาการตั้งค่า ให้คอมไพล์สคีมาแล้วชี้ GSettings ไปที่สคีมานั้น:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "ตั้งค่าสไลด์โชว์เมื่อไม่ได้ใช้งานและการล็อกเซสชัน"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "สกรีนเซฟเวอร์สไลด์โชว์เมื่อไม่ได้ใช้งาน ที่ล็อกเมื่อมีการป้อนข้อมูล"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock "
+"เริ่มสไลด์โชว์รูปภาพแบบเต็มหน้าจอบนทุกจอภาพเมื่อเซสชันไม่ได้ใช้งานตามเวลาที่กำหนด"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"การกดปุ่ม คลิก หรือขยับเมาส์ครั้งแรกจะสิ้นสุดสไลด์โชว์ "
+"หากสไลด์โชว์แสดงมาอย่างน้อยเท่ากับช่วงผ่อนผัน เซสชันจะถูกล็อกด้วย"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"รูปภาพมาจากโฟลเดอร์ที่คุณเลือก หน้าต่างการตั้งค่ากำหนดโฟลเดอร์ เวลาที่ไม่ได้ใช้งาน ช่วงผ่อนผัน "
+"ระยะเวลาแสดงรูปภาพแต่ละภาพ ลำดับ และการปรับขนาด"

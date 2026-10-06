@@ -1,0 +1,399 @@
+# Indonesian translation of slideshow-lock.
+# This file is distributed under the same license as the slideshow-lock package.
+# AI-assisted translation (Claude), not reviewed by a native speaker.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:49+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Indonesian\n"
+"Language: id\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Acak"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Menurut nama berkas"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Isi layar (gambar dipotong)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Sesuaikan (menampilkan seluruh gambar)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Pengaturan Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Telusuri…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Gambar"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Folder gambar"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Urutan gambar"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Penskalaan"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Gulir gambar potret"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Gambar potret pada layar lanskap bergerak perlahan dari atas ke bawah (hanya "
+"dengan Isi layar). Mati secara bawaan: menggunakan lebih banyak baterai."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Mulai tayangan slide"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Waktu tidak aktif"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Berapa lama tanpa input sebelum tayangan slide dimulai."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "detik"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Waktu"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Tampilkan setiap gambar selama"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Masa tenggang penguncian"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Input yang terjadi lebih awal dari waktu ini setelah tayangan slide dimulai "
+"tidak mengunci sesi (benar-benar lebih awal; 0 berarti setiap input "
+"mengunci)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Pratinjau"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 dtk"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 mnt"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 jam"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 jam"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Pilih folder gambar"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Pilih"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Batal"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Pratinjau tidak dapat dimulai, lihat log."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Tidak ada monitor untuk menampilkan pratinjau."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Pratinjau berjalan: tekan tombol apa saja atau gerakkan mouse untuk "
+"mengakhirinya."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Ubah pengaturan tayangan slide."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "catat setiap langkah"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Skema pengaturan belum terpasang. Kompilasi skema itu dan arahkan GSettings "
+"ke sana:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Tersimpan."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "terlama"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d dtk"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d mnt"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d jam"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Digunakan: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Digunakan: %s (folder belum ada, tidak ada yang akan ditampilkan)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Bukan langkah dari penggeser: yang terdekat ditampilkan. Nilai tersimpan "
+"tetap sampai Anda menggeser penggeser."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Masukkan bilangan bulat untuk jumlah detik."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Nilai harus antara %(low)d dan %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Masukkan bilangan bulat untuk posisi penggeser."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Posisi ini tidak ada pada penggeser."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Pilihan ini tidak tersedia."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Harus aktif atau nonaktif."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Masukkan jalur folder."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Jalur berisi karakter yang tidak diizinkan."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Masukkan jalur absolut (diawali dengan / atau ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Jalur ini adalah berkas, bukan folder."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Nilai tidak diterima, nilai lama dipertahankan."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Nilai tidak dapat disimpan."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Folder tidak diterima, folder lama dipertahankan."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Folder tidak dapat disimpan."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Tidak ada gambar untuk ditampilkan"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Tampilkan pratinjau tayangan slide. Input apa pun mengakhirinya. Pratinjau "
+"tidak pernah mengunci sesi."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "folder gambar (hanya untuk sekali jalan ini)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "detik per gambar (hanya untuk sekali jalan ini)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "urutan gambar"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "sesuaikan atau isi monitor"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "gulir gambar potret perlahan (mode isi)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Interval harus antara %d dan %d detik."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Skema pengaturan belum terpasang. Kompilasi skema itu dan arahkan GSettings "
+"ke sana:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Pratinjau Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Mulai tayangan slide saat sesi tidak aktif, kunci sesi pada input pertama "
+"setelah masa tenggang, dan kunci sebelum mesin ditangguhkan."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "detik tidak aktif sebelum tayangan slide"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "tidak mengunci untuk input dalam sekian detik ini"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Waktu tidak aktif harus antara 1 dan 86400 detik."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Masa tenggang harus antara 0 dan 86400 detik."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Skema pengaturan belum terpasang. Kompilasi skema itu dan arahkan GSettings "
+"ke sana:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Atur tayangan slide saat tidak aktif dan penguncian sesi"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr ""
+"Penghemat layar tayangan slide saat tidak aktif yang mengunci saat ada input"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock memulai tayangan slide gambar layar penuh di setiap monitor "
+"ketika sesi tidak aktif selama waktu yang ditentukan."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Penekanan tombol, klik, atau gerakan mouse pertama mengakhiri tayangan "
+"slide. Jika tayangan slide telah tampil setidaknya selama masa tenggang, "
+"sesi juga dikunci."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Gambar berasal dari folder yang Anda pilih. Jendela pengaturan menentukan "
+"folder, waktu tidak aktif, masa tenggang, berapa lama setiap gambar "
+"ditampilkan, urutan, dan penskalaan."
