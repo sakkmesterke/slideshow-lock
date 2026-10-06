@@ -1,11 +1,11 @@
-english	fi
-slideshow	diaesitys
-lock / screen lock	lukitus / lukita (istunto)
-Preview	Esikatselu
-Settings	Asetukset
-idle / inactivity	toimettomuus
-folder	kansio
-picture / image	kuva
-fullscreen	koko näyttö
-monitor	näyttö
-Slideshow Lock	Slideshow Lock
+# concept<TAB>translation stems/forms ('|' separated)
+slideshow	diaesit
+lock	luki
+preview	esikatsel
+settings	asetuk|asetus
+idle	toimet
+folder	kansio|kansion
+picture	kuva|kuvi
+fullscreen	koko näytön
+monitor	näyttö|näytö
+product	Slideshow Lock

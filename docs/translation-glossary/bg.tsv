@@ -1,11 +1,11 @@
-english	bg
+# concept<TAB>translation stems/forms ('|' separated)
 slideshow	слайдшоу
-lock / screen lock	заключване (на сесията)
-Preview	Предварителен преглед
-Settings	Настройки
-idle / inactivity	бездействие
-folder	папка
-picture / image	изображение
+lock	заключ
+preview	преглед
+settings	настройк
+idle	бездействи
+folder	папк
+picture	изображени
 fullscreen	цял екран
 monitor	монитор
-Slideshow Lock	Slideshow Lock
+product	Slideshow Lock

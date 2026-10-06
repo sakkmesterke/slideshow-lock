@@ -1,11 +1,11 @@
-english	hr
-slideshow	prezentacija slika
-lock / screen lock	zaključavanje (sesije)
-Preview	Pretpregled
-Settings	Postavke
-idle / inactivity	neaktivnost
-folder	mapa
-picture / image	slika
-fullscreen	cijeli zaslon
+# concept<TAB>translation stems/forms ('|' separated)
+slideshow	prezentacij
+lock	zaključ
+preview	pretpregled
+settings	postavk
+idle	neaktiv
+folder	map
+picture	slik|slic
+fullscreen	cijelog zaslona
 monitor	monitor
-Slideshow Lock	Slideshow Lock
+product	Slideshow Lock

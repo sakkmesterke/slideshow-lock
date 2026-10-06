@@ -1,11 +1,11 @@
-english	da
+# concept<TAB>translation stems/forms ('|' separated)
 slideshow	diasshow
-lock / screen lock	lås / låsning (af sessionen)
-Preview	Forhåndsvisning
-Settings	Indstillinger
-idle / inactivity	inaktivitet
-folder	mappe
-picture / image	billede
+lock	lås
+preview	forhåndsvis
+settings	indstilling
+idle	inaktiv
+folder	mapp
+picture	billed
 fullscreen	fuld skærm
 monitor	skærm
-Slideshow Lock	Slideshow Lock
+product	Slideshow Lock
