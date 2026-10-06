@@ -1,11 +1,11 @@
-english	ga
-slideshow	taispeántas sleamhnán
-lock / screen lock	glasáil (an tseisiúin)
-Preview	Réamhamharc
-Settings	Socruithe
-idle / inactivity	díomhaoin
-folder	fillteán
-picture / image	pictiúr
-fullscreen	lánscáileán
-monitor	monatóir
-Slideshow Lock	Slideshow Lock
+# concept<TAB>translation stems/forms ('|' separated)
+slideshow	taispeánt|sleamhnán
+lock	glas|ghlas
+preview	réamhamharc
+settings	socru
+idle	díomhaoin
+folder	fillteáin|fillteán
+picture	pictiúir|pictiúr|phictiúir|phictiúr
+fullscreen	lánscáileáin
+monitor	monatóir|mhonatóir
+product	Slideshow Lock

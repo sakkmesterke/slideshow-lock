@@ -1,11 +1,11 @@
-english	et
-slideshow	slaidiesitlus
-lock / screen lock	lukustamine (seansi)
-Preview	Eelvaade
-Settings	Seaded
-idle / inactivity	tegevusetus
+# concept<TAB>translation stems/forms ('|' separated)
+slideshow	slaidiesit
+lock	lukust
+preview	eelvaa
+settings	seade|seaded
+idle	tegevusetu
 folder	kaust
-picture / image	pilt
+picture	pild|pilt
 fullscreen	täisekraan
 monitor	monitor
-Slideshow Lock	Slideshow Lock
+product	Slideshow Lock

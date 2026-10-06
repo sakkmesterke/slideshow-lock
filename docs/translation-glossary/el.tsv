@@ -1,11 +1,11 @@
-english	el
-slideshow	προβολή διαφανειών
-lock / screen lock	κλείδωμα (της συνεδρίας)
-Preview	Προεπισκόπηση
-Settings	Ρυθμίσεις
-idle / inactivity	αδράνεια
-folder	φάκελος
-picture / image	εικόνα
-fullscreen	πλήρης οθόνη
-monitor	οθόνη
-Slideshow Lock	Slideshow Lock
+# concept<TAB>translation stems/forms ('|' separated)
+slideshow	προβολ
+lock	κλειδ|κλείδ
+preview	προεπισκόπ
+settings	ρυθμίσ
+idle	αδράν|αδραν
+folder	φάκελ|φακέλ
+picture	εικόν
+fullscreen	πλήρη οθόνη
+monitor	οθόν
+product	Slideshow Lock

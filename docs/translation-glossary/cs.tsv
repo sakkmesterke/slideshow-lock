@@ -1,11 +1,11 @@
-english	cs
-slideshow	prezentace
-lock / screen lock	zamknout / zamknutí (relace)
-Preview	Náhled
-Settings	Nastavení
-idle / inactivity	nečinnost
-folder	složka
-picture / image	obrázek
-fullscreen	celá obrazovka
+# concept<TAB>translation stems/forms ('|' separated)
+slideshow	prezentac
+lock	zamk|zamč
+preview	náhled
+settings	nastaven
+idle	nečinn
+folder	složk|složc
+picture	obráz
+fullscreen	celou obrazovku
 monitor	monitor
-Slideshow Lock	Slideshow Lock
+product	Slideshow Lock
