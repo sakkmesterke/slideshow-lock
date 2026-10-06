@@ -267,7 +267,7 @@ msgstr "画像フォルダー (この実行のみ)"
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "seconds per picture (this run only)"
-msgstr "1 枚あたりの秒数 (この実行のみ)"
+msgstr "画像 1 枚あたりの秒数 (この実行のみ)"
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture order"
@@ -336,7 +336,7 @@ msgstr "操作でロックするアイドル時スライドショー形式のス
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock は、セッションが一定時間アイドル状態になると、各モニターで全画面のスライドショーを開始します。"
+msgstr "Slideshow Lock は、セッションが一定時間アイドル状態になると、各モニターで画像の全画面スライドショーを開始します。"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."

@@ -332,11 +332,11 @@ msgstr "Налаштування показу слайдів у разі без�
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Заставка у вигляді показу слайдів, що блокує сеанс при введенні"
+msgstr "Заставка у вигляді показу слайдів у разі бездіяльності, що блокує сеанс при введенні"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock запускає показ зображень на весь екран на кожному моніторі, коли сеанс певний час бездіяльний."
+msgstr "Slideshow Lock запускає показ слайдів із зображень на весь екран на кожному моніторі, коли сеанс певний час бездіяльний."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
