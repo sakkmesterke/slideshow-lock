@@ -19,6 +19,8 @@ protocol                  bus          interface
                                        ``Inhibit("sleep", ..., "delay")``, ``InhibitDelayMaxUSec``)
 ``OverviewControl``       session      ``org.gnome.Shell`` (the property ``OverviewActive``, read
                                        and written through ``org.freedesktop.DBus.Properties``)
+(unit start)              session      ``org.freedesktop.systemd1.Manager`` of the user's systemd
+                                       (``ResetFailedUnit``, ``StartUnit``)
 ========================  ===========  ==========================================================
 
 Each constructor probes its interface once, with a cheap read-only call, and raises
@@ -86,6 +88,8 @@ LOGIN1_SESSION_IFACE = "org.freedesktop.login1.Session"
 PROPERTIES_IFACE = "org.freedesktop.DBus.Properties"
 SHELL = ("org.gnome.Shell", "/org/gnome/Shell")
 SHELL_IFACE = "org.gnome.Shell"
+SYSTEMD = ("org.freedesktop.systemd1", "/org/freedesktop/systemd1")
+SYSTEMD_MANAGER_IFACE = "org.freedesktop.systemd1.Manager"
 
 
 def session_bus() -> "Gio.DBusConnection":
@@ -650,6 +654,45 @@ class GnomeShellOverview:
                     raise
                 break
         self._warn("the overview is still open after %.1f s", OVERVIEW_WAIT_S)
+
+
+# -- the user's systemd ------------------------------------------------------------------------
+
+
+class SystemdUserManager:
+    """Two calls on the ``org.freedesktop.systemd1.Manager`` of the user's systemd, which is on the
+    session bus: what ``slideshowlock`` needs to start the service unit. Unlike the adapters above
+    it raises ``GLib.Error`` as it is; the caller (``control``) decides what a failure means.
+    Nothing is probed when it is made."""
+
+    def __init__(self, conn: "Gio.DBusConnection") -> None:
+        self._conn = conn
+
+    def reset_failed(self, unit: str) -> None:
+        """``ResetFailedUnit``: clears the ``failed`` state, which a unit that ran out of its
+        start limit stays in and that makes ``StartUnit`` refuse it. Not an error for a unit that
+        has not failed."""
+        _call_sync(
+            self._conn,
+            SYSTEMD,
+            SYSTEMD_MANAGER_IFACE,
+            "ResetFailedUnit",
+            GLib.Variant("(s)", (unit,)),
+            "()",
+        )
+
+    def start(self, unit: str) -> str:
+        """``StartUnit(unit, "replace")``: queues the start job and returns its object path
+        without waiting for the unit to be up. A unit that is already running is left running."""
+        result = _call_sync(
+            self._conn,
+            SYSTEMD,
+            SYSTEMD_MANAGER_IFACE,
+            "StartUnit",
+            GLib.Variant("(ss)", (unit, "replace")),
+            "(o)",
+        )
+        return result.unpack()[0]
 
 
 # -- sleep ----------------------------------------------------------------------------------------

@@ -97,6 +97,7 @@ forms were not tried.
 | `sleep_guard.py` | The lock before suspend (`SleepGuard`) and the thread it runs on (`GuardThread`). |
 | `dbus_adapters.py` | The real adapters on `Gio.DBusConnection` (the overview of the shell included: `GnomeShellOverview`). |
 | `service.py` | Wiring (`build_service`), the preview as a `SlideshowControl` (`PreviewSlideshow`, which closes the shell's overview before it opens the windows), the program. |
+| `control.py` | The entry point of `slideshowlock`: starts the service unit through the user's systemd (`SystemdUserManager`), then the settings window; the login start opens the window once. |
 | `loop.py` | Posting a function to a GLib main context from any thread. |
 
 The state machine holds no bus name, no `Gio`, no systemd call; `tests/fakes.py` has a fake of
@@ -256,19 +257,34 @@ suspend would not wait for the lock).
 - `packaging/slideshow-lock` is the command the package installs as `/usr/bin/slideshow-lock`. It
   starts one of the programs of section 1 and passes the arguments on unchanged:
   `slideshow-lock service` (`slideshow_lock.service`), `slideshow-lock settings`
-  (`slideshow_lock.preferences`), `slideshow-lock preview` (`slideshow_lock.preview_app`). It
+  (`slideshow_lock.settings_app`, the window alone), `slideshow-lock control`
+  (`slideshow_lock.control`, the service start and then the window), `slideshow-lock preview`
+  (`slideshow_lock.preview_app`). It
   `exec`s `/usr/bin/python3 -P -m ...`: the program is the process that gets the signals, `-P`
   keeps the current directory out of `sys.path` (Python 3.11 or newer). From a checkout, `run.sh`
   is still the way to try the program.
-- `packaging/slideshowlock` is the second command, `/usr/bin/slideshowlock`: it opens the settings
-  window. It is a separate sh file, not a symlink, and has no sub-commands: it `exec`s
-  `/usr/bin/slideshow-lock settings "$@"`, so every argument (`--debug`) goes on unchanged. Only
-  `-h` and `--help` as the first argument are answered by the short command itself (a usage text
-  that names it); `slideshowlock --debug --help` is the settings window's own help. The package
+- `packaging/slideshowlock` is the second command, `/usr/bin/slideshowlock`: it starts the service
+  unit and opens the settings window (`docs/architecture/dbus-state-machine.md`, section 3.7b). It
+  is a separate sh file, not a symlink, and has no sub-commands of its own: it `exec`s
+  `/usr/bin/slideshow-lock control "$@"`, so every argument (`autostart`, `--debug`) goes on
+  unchanged, and the module runs as `/usr/bin/python3 -P -m slideshow_lock.control` like the
+  others. Only `-h` and `--help` as the first argument are answered by the short command itself (a
+  usage text that names it); `slideshowlock --debug --help` is the help of `control`. The package
   lists both commands in the metainfo (`<provides>`) and in `%files`. 0 hits for
   `/usr/bin/slideshowlock` in three repositories (Fedora 43 release, Fedora 43 updates, EPEL 10),
   measured by the QA review of this change; Rocky, AlmaLinux and CentOS Stream 10 were not
   measured.
+- The service starts at login through an XDG autostart entry, not through `enable`: the package
+  installs `/etc/xdg/autostart/io.github.trensoft.slideshowlock.desktop` (from
+  `data/io.github.trensoft.slideshowlock.autostart.desktop`; `%config(noreplace)`, GNOME only,
+  `NoDisplay=true`), which runs `/usr/bin/slideshowlock autostart`. That command asks the user's
+  systemd to start the unit and opens the settings window the first time, while no picture folder
+  has been chosen. The package still ships no preset and enables nothing. The unit stays the one
+  supervised process (`Restart=on-failure`, its own log identifier), so the entry does not run the
+  service directly. `systemctl --user disable --now slideshow-lock` does not keep it from starting
+  at the next login; an entry of the same name under `~/.config/autostart` that says `Hidden=true`
+  does (the XDG autostart rule; not measured on GNOME here, and the settings window has no switch
+  for it yet). The login time on gnome-session 46 and 49 and later is not measured either.
 - `data/slideshow-lock.service` is the user unit. It runs `slideshow-lock service`. The reasons for
   each directive are the comments in the file; the ones that rest on this document: no `sd_notify`
   (`Type=simple`); `SIGTERM` is a clean stop with status 0 (section 6), so `Restart=on-failure`

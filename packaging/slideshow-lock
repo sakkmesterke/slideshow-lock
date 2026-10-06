@@ -1,12 +1,15 @@
 #!/bin/sh
-# The launcher of the installed package: one command for the three programs.
+# The launcher of the installed package: one command for the programs.
 #
 #   slideshow-lock service [args...]   the service (idle, slideshow, lock): what the systemd user
 #                                      unit runs
-#   slideshow-lock settings [args...]  the settings window: what the .desktop file runs
+#   slideshow-lock settings [args...]  the settings window alone
+#   slideshow-lock control [args...]   start the service, then the settings window (or, with
+#                                      "autostart", the window only the first time)
 #   slideshow-lock preview [args...]   the fullscreen preview (never locks)
 #
-# "slideshowlock" (packaging/slideshowlock) is the short way to the settings window.
+# "slideshowlock" (packaging/slideshowlock) is the short way to "control": what the menu entry
+# and the autostart entry run.
 #
 # The arguments go to the program unchanged (slideshow-lock service --help lists its options).
 # From a source checkout use ./run.sh instead: it needs no installation.
@@ -21,15 +24,17 @@
 usage() {
     cat <<'USAGE'
 usage: slideshow-lock service [args...]   idle, slideshow and lock (the systemd user service)
-       slideshow-lock settings [args...]  the settings window
+       slideshow-lock settings [args...]  the settings window alone
+       slideshow-lock control [args...]   start the service, then open the settings window
        slideshow-lock preview [args...]   the fullscreen preview (never locks)
-The command slideshowlock opens the settings window (the same as slideshow-lock settings).
+The command slideshowlock is the same as slideshow-lock control.
 USAGE
 }
 
 case "${1:-}" in
     service) module=slideshow_lock.service ;;
     settings) module=slideshow_lock.settings_app ;;
+    control) module=slideshow_lock.control ;;
     preview) module=slideshow_lock.preview_app ;;
     -h | --help | help)
         usage
