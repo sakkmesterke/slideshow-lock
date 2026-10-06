@@ -248,8 +248,17 @@ suspend would not wait for the lock).
   each directive are the comments in the file; the ones that rest on this document: no `sd_notify`
   (`Type=simple`); `SIGTERM` is a clean stop with status 0 (section 6), so `Restart=on-failure`
   leaves it alone; status 2 (bad option, missing schema) is not retried, status 1 (the sleep path
-  cannot be set up) is, at most 5 times in 5 minutes; the log goes to stderr, so to the journal
-  with `SyslogIdentifier=slideshow-lock`.
+  cannot be set up) is; the start limit allows 5 starts in 5 minutes (the first start and 4
+  restarts); the log goes to stderr, so to the journal with `SyslogIdentifier=slideshow-lock`.
+- What happens when the start limit is used up: the unit stays `failed` and is not started again.
+  From then on there is no sleep guard and no slideshow, and nothing tells the user: the unit has no
+  `OnFailure=`, so nothing in it reacts to the failed state. `systemctl --user reset-failed
+  slideshow-lock.service` clears the state, and `systemctl --user start slideshow-lock.service`
+  brings the service back (the cause is in `journalctl --user -u slideshow-lock`).
+- Without PyGObject (`gi`) the command ends in a Python traceback with status 1, which the unit
+  counts as a start to retry, so it retries up to the limit with the same error. A package that
+  requires `python3-gobject` is not meant to be in that state (the `Requires` of the spec is
+  checked in the spec's own change).
 - Measured: `systemd-analyze --user verify` (systemd 252, on a copy whose `ExecStart=` names the
   launcher in a scratch directory, because the package is not installed there) prints nothing; the
   same call on a unit with a misspelt `Restart=` value prints the error. The launcher and the unit

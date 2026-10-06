@@ -153,6 +153,9 @@ def test_the_unit_belongs_to_the_graphical_session():
 def test_the_unit_restarts_on_failure_only_and_within_a_bound():
     service, unit = _unit_section("Service"), _unit_section("Unit")
     assert service["Restart"] == ["on-failure"]
+    # The program does not call sd_notify (docs/service.md, section 7): notify would never be ready.
+    assert service["Type"] == ["simple"]
+    assert service["SyslogIdentifier"] == ["slideshow-lock"]
     assert re.fullmatch(r"\d+", service["RestartSec"][0]) and int(service["RestartSec"][0]) >= 1
     # The start limit stops a crash loop: the interval holds more starts than the burst allows.
     assert int(unit["StartLimitBurst"][0]) * int(service["RestartSec"][0]) < int(
