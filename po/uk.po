@@ -1,0 +1,347 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 21:00+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Ukrainian\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.trensoft.slideshowlock.desktop.in
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Випадково"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "За назвою файлу"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Заповнити екран (зображення обрізається)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Вмістити (показується все зображення)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Налаштування Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Огляд…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Зображення"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Тека із зображеннями"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Порядок зображень"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Масштабування"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Прокручувати високі зображення"
+
+#: slideshow_lock/preferences.py
+msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
+msgstr "Портретні зображення на горизонтальному екрані повільно рухаються зверху вниз (лише з режимом «Заповнити»). Типово вимкнено: витрачається більше заряду батареї."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Запуск показу слайдів"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Час бездіяльності"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Як довго немає введення, перш ніж почнеться показ слайдів."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "секунд"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Часові параметри"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Показувати кожне зображення протягом"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Пільговий період блокування"
+
+#: slideshow_lock/preferences.py
+msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
+msgstr "Введення раніше за цей час після початку показу слайдів не блокує сеанс (строго раніше; 0 означає, що блокує кожне введення)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Попередній перегляд"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 с"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 хв"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 год"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 год"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Виберіть теку із зображеннями"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Вибрати"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Скасувати"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Не вдалося запустити попередній перегляд, див. журнал."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Немає монітора, на якому можна показати попередній перегляд."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "Попередній перегляд запущено: натисніть будь-яку клавішу або порухайте мишею, щоб завершити його."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Змінити налаштування показу слайдів."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "записувати кожен крок"
+
+#: slideshow_lock/preferences.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr "Схему налаштувань не встановлено. Скомпілюйте її та вкажіть її GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Збережено."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "найдовший"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d с"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d хв"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d год"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Використовується: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Використовується: %s (теки ще не існує, нічого не буде показано)"
+
+#: slideshow_lock/preferences_model.py
+msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
+msgstr "Це не крок повзунка: показано найближчий. Збережене значення залишається, доки ви не пересунете повзунок."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Введіть ціле число секунд."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Значення має бути від %(low)d до %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Введіть ціле число для положення повзунка."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Цього положення немає на повзунку."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Цей вибір недоступний."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Має бути ввімкнено або вимкнено."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Введіть шлях до теки."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Шлях містить недозволений символ."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Введіть абсолютний шлях (він починається з / або ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Цей шлях є файлом, а не текою."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Значення не прийнято, збережено старе."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Не вдалося зберегти значення."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Теку не прийнято, збережено стару."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Не вдалося зберегти теку."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Немає зображень для показу"
+
+#: slideshow_lock/preview_app.py
+msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "Показати попередній перегляд показу слайдів. Будь-яке введення завершує його. Він ніколи не блокує сеанс."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "тека із зображеннями (лише для цього запуску)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "секунд на зображення (лише для цього запуску)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "порядок зображень"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "вмістити або заповнити монітор"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "повільно прокручувати портретні зображення (режим заповнення)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Інтервал має бути від %d до %d секунд."
+
+#: slideshow_lock/preview_app.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr "Схему налаштувань не встановлено. Скомпілюйте її та вкажіть її GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Попередній перегляд Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
+msgstr "Запускати показ слайдів, коли сеанс бездіяльний, блокувати його при першому введенні після пільгового періоду та блокувати перед переходом комп'ютера в режим сну."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "секунд бездіяльності перед показом слайдів"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "без блокування при введенні протягом цих секунд"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Час бездіяльності має бути від 1 до 86400 секунд."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Пільговий період має бути від 0 до 86400 секунд."
+
+#: slideshow_lock/service.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr "Схему налаштувань не встановлено. Скомпілюйте її та вкажіть її GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.trensoft.slideshowlock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Налаштування показу слайдів у разі бездіяльності та блокування сеансу"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "Заставка у вигляді показу слайдів, що блокує сеанс при введенні"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
+msgstr "Slideshow Lock запускає показ зображень на весь екран на кожному моніторі, коли сеанс певний час бездіяльний."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
+msgstr "Перше натискання клавіші, клацання або рух миші завершує показ слайдів. Якщо показ тривав принаймні стільки, скільки пільговий період, сеанс також блокується."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
+msgstr "Зображення беруться з теки, яку ви виберете. Вікно налаштувань задає теку, час бездіяльності, пільговий період, як довго показується кожне зображення, порядок і масштабування."

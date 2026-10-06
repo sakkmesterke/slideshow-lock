@@ -1,0 +1,347 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 21:00+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Catalan\n"
+"Language: ca\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.trensoft.slideshowlock.desktop.in
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Aleatori"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Per nom de fitxer"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Omple la pantalla (retalla la imatge)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Ajusta (mostra la imatge sencera)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Configuració de Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Navega…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Imatges"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Carpeta d'imatges"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Ordre de les imatges"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Escalat"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Desplaça les imatges altes"
+
+#: slideshow_lock/preferences.py
+msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
+msgstr "Les imatges verticals en una pantalla horitzontal es desplacen lentament de dalt a baix (només amb Omple). Desactivat per defecte: gasta més bateria."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Inici de la presentació"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Temps d'inactivitat"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Quant de temps sense cap entrada abans que s'iniciï la presentació."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "segons"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Temporització"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Mostra cada imatge durant"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Període de gràcia del bloqueig"
+
+#: slideshow_lock/preferences.py
+msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
+msgstr "Una entrada anterior a aquest temps després d'iniciar-se la presentació no bloqueja la sessió (estrictament anterior; 0 vol dir que cada entrada bloqueja)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Vista prèvia"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 h"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Trieu la carpeta d'imatges"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Selecciona"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Cancel·la"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "No s'ha pogut iniciar la vista prèvia, consulteu el registre."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "No hi ha cap monitor on mostrar la vista prèvia."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "Vista prèvia en execució: premeu qualsevol tecla o moveu el ratolí per acabar-la."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Canvia la configuració de la presentació."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "registra cada pas"
+
+#: slideshow_lock/preferences.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr "L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "S'ha desat."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "el més llarg"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d h"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "En ús: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "En ús: %s (la carpeta encara no existeix, no es mostrarà res)"
+
+#: slideshow_lock/preferences_model.py
+msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
+msgstr "No és un pas del control lliscant: es mostra el més proper. El valor desat es manté fins que moveu el control lliscant."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Introduïu un nombre enter de segons."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "El valor ha d'estar entre %(low)d i %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Introduïu un nombre enter per a la posició del control lliscant."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Aquesta posició no és al control lliscant."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Aquesta opció no està disponible."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Ha d'estar activat o desactivat."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Introduïu el camí d'una carpeta."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "El camí conté un caràcter que no està permès."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Introduïu un camí absolut (comença amb / o ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Aquest camí és un fitxer, no una carpeta."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "No s'ha acceptat el valor, es manté l'anterior."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "No s'ha pogut desar el valor."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "No s'ha acceptat la carpeta, es manté l'anterior."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "No s'ha pogut desar la carpeta."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "No hi ha imatges per mostrar"
+
+#: slideshow_lock/preview_app.py
+msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "Mostra la vista prèvia de la presentació. Qualsevol entrada l'acaba. Mai bloqueja la sessió."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "carpeta d'imatges (només en aquesta execució)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "segons per imatge (només en aquesta execució)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "ordre de les imatges"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "ajusta o omple el monitor"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "desplaça lentament les imatges verticals (mode d'emplenament)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "L'interval ha d'estar entre %d i %d segons."
+
+#: slideshow_lock/preview_app.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr "L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Vista prèvia de Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
+msgstr "Inicia la presentació quan la sessió està inactiva, bloqueja-la a la primera entrada després del període de gràcia i bloqueja-la abans que la màquina se suspengui."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "segons d'inactivitat abans de la presentació"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "sense bloqueig per a entrades dins d'aquests segons"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "El temps d'inactivitat ha d'estar entre 1 i 86400 segons."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "El període de gràcia ha d'estar entre 0 i 86400 segons."
+
+#: slideshow_lock/service.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr "L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.trensoft.slideshowlock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Configura la presentació en inactivitat i el bloqueig de la sessió"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "Salvapantalles de presentació d'imatges que bloqueja en detectar una entrada"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
+msgstr "Slideshow Lock inicia una presentació d'imatges a pantalla completa a cada monitor quan la sessió ha estat inactiva durant un temps determinat."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
+msgstr "La primera pulsació de tecla, clic o moviment del ratolí acaba la presentació. Si la presentació s'ha mostrat almenys durant el període de gràcia, la sessió també es bloqueja."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
+msgstr "Les imatges provenen d'una carpeta que trieu. Una finestra de configuració en defineix la carpeta, el temps d'inactivitat, el període de gràcia, durant quant de temps es mostra cada imatge, l'ordre i l'escalat."
