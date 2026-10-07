@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with a Save button in the header bar. Run it from a source checkout:
+A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Save button next to the Preview button at the bottom. Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -47,10 +47,11 @@ There is no on/off switch: that goes through the systemd user unit
 ## How it behaves
 
 - **Save.** An edit is checked when it is made and kept in a draft (`preferences_model.Draft`); the
-  service keeps running on what is stored. It reaches the settings when the user presses "Save" in
-  the header bar and when the window is closed, without a question (the close writes what Save
-  would). The Save button is on only while something would change: an edit that brings a field back
-  to the stored value is dropped. Only the edited keys are written, so a stored value the window
+  service keeps running on what is stored. It reaches the settings when the user presses "Save"
+  (the button sits right after "Preview" at the bottom of the window) and when the window is
+  closed, without a question (the close writes what Save would). The Save button is on only while
+  something would change: it is grey when the window opens and after a save, and an edit that
+  brings a field back to the stored value is dropped, which greys it again. Only the edited keys are written, so a stored value the window
   cannot show as it is (a slide interval that is not a step, a list of several transitions) is not
   rewritten by saving something else. If a value cannot be stored (the settings refuse it, or it does
   not read back), "Save" says so in the status line and keeps the edit; the close logs it and closes
