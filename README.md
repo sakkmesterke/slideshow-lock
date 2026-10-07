@@ -24,6 +24,10 @@ X-GNOME-Autostart-enabled=false
 
 `systemctl --user disable --now slideshow-lock` alone does not do this: the autostart entry starts the service again at the next login (and every time `slideshowlock` is run). `systemctl --user enable slideshow-lock` is not needed.
 
+## Updating
+
+The packages come from the COPR project `trensoft/slideshow-lock`. To update, run `sudo dnf upgrade --refresh`. A plain `dnf upgrade` can miss a new version for up to 48 hours, because dnf keeps the repository metadata in a cache; this was seen when updating 1.0.0 to 1.0.1.
+
 ## Translations
 
 The interface is available in 40 languages besides English. The 35 languages added in 1.0.1 were translated with AI assistance and have not been reviewed by a native speaker (the header of each catalog says so). Corrections are welcome: open an issue, or a pull request on `po/<lang>.po`; see `docs/translations.md`.
