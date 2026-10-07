@@ -73,9 +73,6 @@
 #     shipped here; the on/off toggle that the settings window is meant to get (docs/service.md,
 #     section 7) would enable it. The service is started at login by the XDG autostart entry below
 #     ("slideshowlock autostart" starts the unit through the user's systemd), not by an enable.
-#   - %%systemd_user_postun is empty in systemd v256 [M: macros.systemd.in, read]; the upgrade does not
-#     restart the running service (%%systemd_user_postun_with_restart would). Whether it should is a
-#     decision, not taken here.
 #   - %%check runs the whole test suite only with "--with tests" (off by default): it needs a private
 #     dbus-daemon and the GTK 4 typelibs, and no build root has been tried with it.
 # Open questions, NOT measured (background knowledge only, do not read them as verified):
@@ -342,13 +339,31 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # [K] pyproject.toml: testpaths = ["tests"]; [H] the suite needs no display (CI runs it headless)
 %endif
 
-# [M] from the systemd v256 macros and systemd-update-helper (read), and the macros and the helper of
-# systemd 258.11 of Fedora 43 (read): %%systemd_user_post runs "systemctl --no-reload preset --global
-# <unit>" on the first install only; %%systemd_user_preun, on removal (not on upgrade), runs
-# "systemctl --global disable --no-warn <unit>" and, only when /run/systemd/system exists (systemd is
-# the running init), also "systemctl --user -M <uid>@ disable --now --no-warn <unit>" for every
-# logged-in user; %%systemd_user_postun is empty. [H] the macros of the systemd-rpm-macros package on
-# the target distributions are those of the systemd of that distribution.
+# [M] from the macros.systemd of systemd-rpm-macros (the same file, byte for byte, in EL10 257-34,
+# Fedora 43 258-1 and 258.11, Fedora 44 259.5 and 259.9 and rawhide 262-3) and the
+# systemd-update-helper of the systemd package of those releases (read): %%systemd_user_post runs
+# "systemctl --no-reload preset --global <unit>" on the first install only; %%systemd_user_preun, on
+# removal (not on upgrade), runs "systemctl --global disable --no-warn <unit>" and, only when
+# /run/systemd/system exists (systemd is the running init), also "systemctl --user -M <uid>@ disable
+# --now --no-warn <unit>" for every logged-in user.
+#
+# The running service is restarted after an upgrade by %%systemd_user_posttrans_with_restart: when
+# /run/systemd/system exists and the package is upgraded (not installed or removed), it marks the
+# unit "needs-restart" in the user manager of every logged-in user ("systemctl --user -M <uid>@
+# set-property <unit> Markers=+needs-restart"); it restarts nothing itself. The restart follows at the
+# end of the transaction from a file trigger of the systemd package for /usr/lib/systemd/user
+# ("systemd-update-helper user-restart": "reload-or-restart --marked" in each user manager; the
+# helper of rawhide 262-3 says "enqueue-marked"), so nobody has to run "systemctl --user restart"
+# after "dnf upgrade". Every failure in these scriptlets is ignored ("|| :"): none stops the upgrade.
+# It is %%posttrans and not %%postun on purpose: on an upgrade the %%postun that runs is the one of
+# the OLD package, so a %%postun_with_restart in this spec would act only from the second upgrade on
+# and not on the first one from a version that has none (1.0.1 and before had an empty
+# %%systemd_user_postun). The %%posttrans of the NEW package runs on every upgrade.
+# [M] on the EL10 build root (rpm 4.19.1.1) with the real systemd 257-34 file triggers and a logging
+# "systemctl": an upgrade from a build with the empty %%postun to one with %%postun_with_restart
+# marked nothing; to one with this %%posttrans it marked the unit and then ran "reload-or-restart
+# --marked" for the logged-in user. NOT measured: a real "dnf upgrade" with a logged-in GNOME session (a stub
+# "systemctl" stood in for systemd), and Fedora 43/44/rawhide transactions (only the packages were read).
 
 %post
 %systemd_user_post %{name}.service
@@ -356,8 +371,8 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 %preun
 %systemd_user_preun %{name}.service
 
-%postun
-%systemd_user_postun %{name}.service
+%posttrans
+%systemd_user_posttrans_with_restart %{name}.service
 
 %files -f %{pyproject_files} -f %{app_id}.lang
 %doc README.md
