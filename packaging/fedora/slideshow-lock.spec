@@ -396,6 +396,14 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - Add a usage section to the README
 - Ship seven sample pictures (CC BY-SA 4.0) that are copied into Pictures/sakkmesterke at the first
   login, and add their licence to the License tag
+- Rebuild the settings window on libadwaita, with a Save button: a change is kept until Save, and is
+  also saved when the window is closed; add the dependency on libadwaita
+- Add ten transitions between pictures, a "Random mix" of eight of them and a slider for the length of a
+  transition
+- Make Ken Burns the default transition; a transition the user has chosen is kept
+- Show a picture for 10 seconds by default (it was 5)
+- Leave screenshots out of the slideshow by default, judged by the name of the folder or the file; a
+  switch in the settings window shows them again
 
 * Tue Oct 06 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.0-1
 - Initial package
