@@ -28,11 +28,11 @@ The maintainer's rule, set on 2026-10-07.
    `1.0.2-1`, and never the `Release` of the release. The lower `Release` is set only in the build
    that is tested, not on `main`: `main` has the `Release` of the release. Measured twice,
    by two people, on 2026-10-07 in the same local, rootless CentOS Stream 10 build root (`rpm`
-   4.19.1.1), not in the COPR project and not as a COPR build:
+   4.19.1.1), with the strings of 1.0.1, not in the COPR project and not as a COPR build:
 
    ```
-   rpm --eval '%{lua:print(rpm.vercmp("1.0.2-0.1.test","1.0.2-1"))}'
-   rpm --eval '%{lua:print(rpm.vercmp("1.0.2-0.1.test.el10","1.0.2-1.el10"))}'
+   rpm --eval '%{lua:print(rpm.vercmp("1.0.1-0.1.test","1.0.1-1"))}'
+   rpm --eval '%{lua:print(rpm.vercmp("1.0.1-0.1.test.el10","1.0.1-1.el10"))}'
    ```
 
    Both give -1, so the release updates the test build. Not measured: a Fedora root.
