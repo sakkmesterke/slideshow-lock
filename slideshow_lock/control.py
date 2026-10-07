@@ -211,7 +211,11 @@ def main(argv: Optional[List[str]] = None) -> int:
     started = start_service()
     window = args.mode != AUTOSTART or first_run_window_wanted()  # decided before the copy starts
     stop = threading.Event()
-    copying = ensure_sample_pictures(stop)
+    try:
+        copying = ensure_sample_pictures(stop)
+    except Exception as exc:  # the copy never changes the exit status or the window
+        _LOG.warning("[samples] the sample pictures were not copied (%s)", type(exc).__name__)
+        copying = None
     if not window:
         _wait_for_copy(copying, stop)
         return 0 if started else 1
