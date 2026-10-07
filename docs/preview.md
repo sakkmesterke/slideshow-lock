@@ -141,8 +141,10 @@ transitions (section 2, "Transitions").
   are drawn, each over black, the new picture over the old one: `crossfade`, `fade-black`
   (the old picture to black, black to the new one), `slide-in` (the new picture slides in
   from the right over the still old one), `push` (the new picture pushes the old one out to
-  the left), `ken-burns` (a cross-fade, then the new picture grows by 8 % and drifts
-  left by 2 % of the window width for as long as it is shown), `zoom` (the old picture grows by 15 %
+  the left), `ken-burns` (a cross-fade into the new picture enlarged by 8 % and shifted
+  left by 2 % of the window width, which over the run shrinks and drifts back to its own size
+  and place: the last frame is the plain picture, so nothing jumps when the run ends; the run
+  lasts 90 % of the picture time), `zoom` (the old picture grows by 15 %
   and fades while the new one comes in from 85 %), `wipe` (the new picture is uncovered from
   the left), `circle` (from the centre in a growing circle that ends past the corners),
   `blur` (the old picture blurs, at the middle the new one takes over and sharpens) and
@@ -184,7 +186,7 @@ transitions (section 2, "Transitions").
   pixel and almost no opacity (the new texture is uploaded there, out of sight), the clock starts
   at the second tick, and at the end the tick is removed and the picture is drawn 1:1 as always
   (no filtered last frame, no redraw until the next change). Ken Burns is the one that keeps
-  drawing for as long as the picture is shown (a redraw per frame, like the pan). A panning old
+  drawing for 90 % of the time the picture is shown (a redraw per frame, like the pan). A panning old
   picture stays where it stopped; the new one starts at the top. `--transition
   NAME|random|none` of `preview_app` replaces the setting for one run.
 - **Live settings.** The interval re-arms the running timer. `scaling` and `pan-portrait-images`

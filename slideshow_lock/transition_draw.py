@@ -37,8 +37,10 @@ from slideshow_lock.transitions import (
     clean,
 )
 
-#: The Ken Burns picture grows to this much of its size over the whole time it is on screen, and
-#: drifts to the left by ``KEN_BURNS_DRIFT`` of the window's width.
+#: The Ken Burns picture comes in enlarged by this much and over the whole run shrinks to its own
+#: size, and starts shifted to the left by ``KEN_BURNS_DRIFT`` of the window's width and drifts back
+#: to the middle: the last frame of the run is the picture as the plain drawing shows it, so
+#: nothing jumps when the run ends.
 KEN_BURNS_ZOOM = 0.08
 KEN_BURNS_DRIFT = 0.02
 
@@ -90,8 +92,9 @@ def compose(
     """The pictures to paint for transition *name* at *progress* (0 to 1, clamped) in a window of
     *width* x *height* pixels, bottom first. An empty list for a name that is not one of the ten.
 
-    ``fade_share`` only matters for Ken Burns, whose slow move lasts as long as the picture is
-    shown while the cross fade into it takes this share of that time (0 to 1)."""
+    ``fade_share`` only matters for Ken Burns, whose slow move lasts for the whole run (its last
+    frame is the picture as it is) while the cross fade into it takes this share of that time
+    (0 to 1)."""
     p = min(1.0, max(0.0, float(progress)))
     e = ease(p)
     w, h = float(width), float(height)
@@ -113,13 +116,14 @@ def compose(
     if name == KEN_BURNS:
         share = min(1.0, max(1e-6, float(fade_share)))
         fade = ease(min(1.0, p / share))
+        left = 1.0 - p  # the part of the slow move still to go: 1 at the start, 0 at the end
         return [
             Draw(OLD),
             Draw(
                 NEW,
                 opacity=fade,
-                scale=1.0 + KEN_BURNS_ZOOM * p,
-                dx=-w * KEN_BURNS_DRIFT * p,
+                scale=1.0 + KEN_BURNS_ZOOM * left,
+                dx=-w * KEN_BURNS_DRIFT * left,
             ),
         ]
     if name == ZOOM:
