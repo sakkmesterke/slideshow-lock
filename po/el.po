@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:52+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Greek\n"
@@ -20,11 +20,19 @@ msgstr "Slideshow Lock"
 
 #: slideshow_lock/control.py
 msgid "Start the slideshow service and open the settings window."
-msgstr "Έναρξη της υπηρεσίας προβολής διαφανειών και άνοιγμα του παραθύρου ρυθμίσεων."
+msgstr ""
+"Έναρξη της υπηρεσίας προβολής διαφανειών και άνοιγμα του παραθύρου ρυθμίσεων."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "κατά τη σύνδεση: έναρξη της υπηρεσίας, άνοιγμα του παραθύρου μόνο την πρώτη φορά"
+msgstr ""
+"κατά τη σύνδεση: έναρξη της υπηρεσίας, άνοιγμα του παραθύρου μόνο την πρώτη "
+"φορά"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "καταγραφή κάθε βήματος"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -43,20 +51,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Προσαρμογή (εμφανίζεται ολόκληρη η εικόνα)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Καμία (άμεση αλλαγή)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Σταδιακή εναλλαγή"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Σβήσιμο μέσω μαύρου"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Ολίσθηση"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Ώθηση"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Ζουμ"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Σκούπισμα"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Κυκλική αποκάλυψη"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Θόλωση"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Περιστροφή"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Τυχαίος συνδυασμός"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Ρυθμίσεις του Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Αναζήτηση…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Εικόνες"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Φάκελος εικόνων"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Αναζήτηση…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +123,51 @@ msgid "Scroll tall pictures"
 msgstr "Κύλιση ψηλών εικόνων"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Οι κάθετες εικόνες σε οριζόντια οθόνη κινούνται αργά από πάνω προς τα κάτω (μόνο με «Γέμισμα»). Απενεργοποιημένο από προεπιλογή: καταναλώνει περισσότερη μπαταρία."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Οι κάθετες εικόνες σε οριζόντια οθόνη κινούνται αργά από πάνω προς τα κάτω "
+"(μόνο με «Γέμισμα»). Απενεργοποιημένο από προεπιλογή: καταναλώνει "
+"περισσότερη μπαταρία."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Έναρξη της προβολής διαφανειών"
+msgid "Pictures"
+msgstr "Εικόνες"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Ανάμεσα στις εικόνες"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Πώς μια εικόνα αλλάζει στην επόμενη. Το «Τυχαίος συνδυασμός» επιλέγει ένα "
+"από τα οκτώ σε κάθε αλλαγή (όχι Θόλωση και Ken Burns). Χωρίς κινούμενα εφέ "
+"της επιφάνειας εργασίας οι εικόνες αλλάζουν αμέσως."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Διάρκεια μετάβασης"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Πόση ώρα διαρκεί μία αλλαγή, ίδια για κάθε μετάβαση. Δεν είναι ποτέ "
+"μεγαλύτερη από το μισό του χρόνου που εμφανίζεται μια εικόνα."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "δευτερόλεπτα"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Μεταβάσεις"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +178,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Πόση ώρα χωρίς είσοδο πριν ξεκινήσει η προβολή διαφανειών."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "δευτερόλεπτα"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Χρονισμός"
+msgid "Start the slideshow"
+msgstr "Έναρξη της προβολής διαφανειών"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +190,21 @@ msgid "Lock grace period"
 msgstr "Περίοδος χάριτος κλειδώματος"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Είσοδος νωρίτερα από αυτό το διάστημα μετά την έναρξη της προβολής διαφανειών δεν κλειδώνει τη συνεδρία (αυστηρά νωρίτερα· το 0 σημαίνει ότι κάθε είσοδος κλειδώνει)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Είσοδος νωρίτερα από αυτό το διάστημα μετά την έναρξη της προβολής "
+"διαφανειών δεν κλειδώνει τη συνεδρία (αυστηρά νωρίτερα· το 0 σημαίνει ότι "
+"κάθε είσοδος κλειδώνει)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Χρονισμός"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Αποθήκευση"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -140,7 +240,8 @@ msgstr "Ακύρωση"
 
 #: slideshow_lock/preferences.py
 msgid "The preview could not be started, see the log."
-msgstr "Δεν ήταν δυνατή η έναρξη της προεπισκόπησης, δείτε το αρχείο καταγραφής."
+msgstr ""
+"Δεν ήταν δυνατή η έναρξη της προεπισκόπησης, δείτε το αρχείο καταγραφής."
 
 #: slideshow_lock/preferences.py
 msgid "There is no monitor to show the preview on."
@@ -148,20 +249,24 @@ msgstr "Δεν υπάρχει οθόνη για την εμφάνιση της �
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Η προεπισκόπηση εκτελείται: πατήστε οποιοδήποτε πλήκτρο ή κινήστε το ποντίκι για να τη σταματήσετε."
+msgstr ""
+"Η προεπισκόπηση εκτελείται: πατήστε οποιοδήποτε πλήκτρο ή κινήστε το ποντίκι "
+"για να τη σταματήσετε."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Αλλαγή των ρυθμίσεων της προβολής διαφανειών."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "καταγραφή κάθε βήματος"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "Το σχήμα ρυθμίσεων δεν είναι εγκατεστημένο. Μεταγλωττίστε το και στρέψτε το GSettings σε αυτό:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Το σχήμα ρυθμίσεων δεν είναι εγκατεστημένο. Μεταγλωττίστε το και στρέψτε το "
+"GSettings σε αυτό:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
 #: slideshow_lock/preferences_model.py
 msgid "Saved."
@@ -197,8 +302,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "Σε χρήση: %s (ο φάκελος δεν υπάρχει ακόμη, δεν θα εμφανιστεί τίποτα)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Δεν είναι βήμα του ολισθητή: εμφανίζεται το πλησιέστερο. Η αποθηκευμένη τιμή παραμένει μέχρι να μετακινήσετε τον ολισθητή."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Δεν είναι βήμα του ολισθητή: εμφανίζεται το πλησιέστερο. Η αποθηκευμένη τιμή "
+"παραμένει μέχρι να μετακινήσετε τον ολισθητή."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -262,8 +371,11 @@ msgid "No pictures to show"
 msgstr "Δεν υπάρχουν εικόνες για εμφάνιση"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Εμφάνιση της προεπισκόπησης της προβολής διαφανειών. Οποιαδήποτε είσοδος την τερματίζει. Δεν κλειδώνει ποτέ τη συνεδρία."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Εμφάνιση της προεπισκόπησης της προβολής διαφανειών. Οποιαδήποτε είσοδος την "
+"τερματίζει. Δεν κλειδώνει ποτέ τη συνεδρία."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -286,21 +398,38 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "αργή κύλιση των κάθετων εικόνων (λειτουργία γεμίσματος)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"πώς μια εικόνα αλλάζει στην επόμενη, ή καμία (μόνο γι' αυτή την εκτέλεση)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Το διάστημα πρέπει να είναι μεταξύ %d και %d δευτερολέπτων."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "Το σχήμα ρυθμίσεων δεν είναι εγκατεστημένο. Μεταγλωττίστε το και στρέψτε το GSettings σε αυτό:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Το σχήμα ρυθμίσεων δεν είναι εγκατεστημένο. Μεταγλωττίστε το και στρέψτε το "
+"GSettings σε αυτό:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
 #: slideshow_lock/preview_window.py
 msgid "Slideshow Lock preview"
 msgstr "Προεπισκόπηση του Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Έναρξη της προβολής διαφανειών όταν η συνεδρία είναι αδρανής, κλείδωμα στην πρώτη είσοδο μετά την περίοδο χάριτος και κλείδωμα πριν τεθεί ο υπολογιστής σε αναστολή λειτουργίας."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Έναρξη της προβολής διαφανειών όταν η συνεδρία είναι αδρανής, κλείδωμα στην "
+"πρώτη είσοδο μετά την περίοδο χάριτος και κλείδωμα πριν τεθεί ο υπολογιστής "
+"σε αναστολή λειτουργίας."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -319,25 +448,52 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "Η περίοδος χάριτος πρέπει να είναι μεταξύ 0 και 86400 δευτερολέπτων."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "Το σχήμα ρυθμίσεων δεν είναι εγκατεστημένο. Μεταγλωττίστε το και στρέψτε το GSettings σε αυτό:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Το σχήμα ρυθμίσεων δεν είναι εγκατεστημένο. Μεταγλωττίστε το και στρέψτε το "
+"GSettings σε αυτό:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
 #: data/io.github.sakkmesterke.SlideshowLock.desktop.in
 msgid "Set up the idle slideshow and the session lock"
-msgstr "Ρύθμιση της προβολής διαφανειών κατά την αδράνεια και του κλειδώματος της συνεδρίας"
+msgstr ""
+"Ρύθμιση της προβολής διαφανειών κατά την αδράνεια και του κλειδώματος της "
+"συνεδρίας"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Προφύλαξη οθόνης με προβολή διαφανειών κατά την αδράνεια, που κλειδώνει με την είσοδο"
+msgstr ""
+"Προφύλαξη οθόνης με προβολή διαφανειών κατά την αδράνεια, που κλειδώνει με "
+"την είσοδο"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Το Slideshow Lock ξεκινά μια προβολή διαφανειών με εικόνες σε πλήρη οθόνη σε κάθε οθόνη όταν η συνεδρία παραμένει αδρανής για ορισμένο χρόνο."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Το Slideshow Lock ξεκινά μια προβολή διαφανειών με εικόνες σε πλήρη οθόνη σε "
+"κάθε οθόνη όταν η συνεδρία παραμένει αδρανής για ορισμένο χρόνο."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "Το πρώτο πάτημα πλήκτρου, κλικ ή κίνηση του ποντικιού τερματίζει την προβολή διαφανειών. Αν η προβολή διαφανειών εμφανιζόταν τουλάχιστον για την περίοδο χάριτος, η συνεδρία κλειδώνεται επίσης."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Το πρώτο πάτημα πλήκτρου, κλικ ή κίνηση του ποντικιού τερματίζει την προβολή "
+"διαφανειών. Αν η προβολή διαφανειών εμφανιζόταν τουλάχιστον για την περίοδο "
+"χάριτος, η συνεδρία κλειδώνεται επίσης."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Οι εικόνες προέρχονται από φάκελο της επιλογής σας. Ένα παράθυρο ρυθμίσεων ορίζει τον φάκελο, τον χρόνο αδράνειας, την περίοδο χάριτος, πόση ώρα εμφανίζεται κάθε εικόνα, τη σειρά και την κλιμάκωση."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Οι εικόνες προέρχονται από φάκελο της επιλογής σας. Ένα παράθυρο ρυθμίσεων "
+"ορίζει τον φάκελο, τον χρόνο αδράνειας, την περίοδο χάριτος, πόση ώρα "
+"εμφανίζεται κάθε εικόνα, τη σειρά και την κλιμάκωση."

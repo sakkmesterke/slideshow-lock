@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 21:00+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Russian\n"
@@ -10,7 +10,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: slideshow_lock/__init__.py
 #: data/io.github.sakkmesterke.SlideshowLock.desktop.in
@@ -24,7 +25,13 @@ msgstr "Запустить службу слайд-шоу и открыть ок
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "при входе в систему: запускать службу, открывать окно только в первый раз"
+msgstr ""
+"при входе в систему: запускать службу, открывать окно только в первый раз"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "записывать каждый шаг"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -43,20 +50,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Вписать (показывается всё изображение)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Нет (мгновенная смена)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Наплыв"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Затемнение через чёрный"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Выдвижение"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Выталкивание"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Масштаб"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Шторка"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Круговое раскрытие"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Размытие"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Поворот"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Случайная смесь"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Настройки Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Обзор…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Изображения"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Папка с изображениями"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Обзор…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +122,51 @@ msgid "Scroll tall pictures"
 msgstr "Прокручивать высокие изображения"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Портретные изображения на горизонтальном экране медленно движутся сверху вниз (только в режиме «Заполнить»). По умолчанию выключено: расходуется больше заряда батареи."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Портретные изображения на горизонтальном экране медленно движутся сверху "
+"вниз (только в режиме «Заполнить»). По умолчанию выключено: расходуется "
+"больше заряда батареи."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Запуск слайд-шоу"
+msgid "Pictures"
+msgstr "Изображения"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Между изображениями"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Как одно изображение сменяется следующим. «Случайная смесь» при каждой смене "
+"выбирает один из восьми вариантов (кроме размытия и Ken Burns). Без анимации "
+"рабочего стола изображения сменяются мгновенно."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Длительность перехода"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Сколько длится одна смена, одинаково для каждого перехода. Она никогда не "
+"превышает половины времени показа изображения."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "секунд"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Переходы"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +177,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Сколько времени нет ввода, прежде чем начнётся слайд-шоу."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "секунд"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Временные параметры"
+msgid "Start the slideshow"
+msgstr "Запуск слайд-шоу"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +189,20 @@ msgid "Lock grace period"
 msgstr "Льготный период блокировки"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Ввод раньше этого времени после начала слайд-шоу не блокирует сеанс (строго раньше; 0 означает, что блокирует любой ввод)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Ввод раньше этого времени после начала слайд-шоу не блокирует сеанс (строго "
+"раньше; 0 означает, что блокирует любой ввод)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Временные параметры"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Сохранить"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -148,22 +246,21 @@ msgstr "Нет монитора, на котором можно показать
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Предпросмотр запущен: нажмите любую клавишу или подвигайте мышью, чтобы завершить его."
+msgstr ""
+"Предпросмотр запущен: нажмите любую клавишу или подвигайте мышью, чтобы "
+"завершить его."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Изменить настройки слайд-шоу."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "записывать каждый шаг"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "Схема настроек не установлена. Скомпилируйте её и укажите её GSettings:\n"
+msgstr ""
+"Схема настроек не установлена. Скомпилируйте её и укажите её GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
@@ -201,8 +298,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "Используется: %s (папки пока нет, ничего не будет показано)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Это не шаг ползунка: показано ближайшее значение. Сохранённое значение остаётся, пока вы не сдвинете ползунок."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Это не шаг ползунка: показано ближайшее значение. Сохранённое значение "
+"остаётся, пока вы не сдвинете ползунок."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -266,8 +367,11 @@ msgid "No pictures to show"
 msgstr "Нет изображений для показа"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Показать предпросмотр слайд-шоу. Любой ввод завершает его. Он никогда не блокирует сеанс."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Показать предпросмотр слайд-шоу. Любой ввод завершает его. Он никогда не "
+"блокирует сеанс."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -290,15 +394,23 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "медленно прокручивать портретные изображения (режим заполнения)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"как одно изображение сменяется следующим, или без перехода (только для этого "
+"запуска)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Интервал должен быть от %d до %d секунд."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "Схема настроек не установлена. Скомпилируйте её и укажите её GSettings:\n"
+msgstr ""
+"Схема настроек не установлена. Скомпилируйте её и укажите её GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
@@ -307,8 +419,13 @@ msgid "Slideshow Lock preview"
 msgstr "Предпросмотр Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Запускать слайд-шоу, когда сеанс бездействует, блокировать сеанс при первом вводе после льготного периода и блокировать его перед переходом компьютера в спящий режим."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Запускать слайд-шоу, когда сеанс бездействует, блокировать сеанс при первом "
+"вводе после льготного периода и блокировать его перед переходом компьютера в "
+"спящий режим."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -327,10 +444,12 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "Льготный период должен быть от 0 до 86400 секунд."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "Схема настроек не установлена. Скомпилируйте её и укажите её GSettings:\n"
+msgstr ""
+"Схема настроек не установлена. Скомпилируйте её и укажите её GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
@@ -340,16 +459,32 @@ msgstr "Настройка слайд-шоу при бездействии и б
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Экранная заставка со слайд-шоу при бездействии, блокирующая сеанс при вводе"
+msgstr ""
+"Экранная заставка со слайд-шоу при бездействии, блокирующая сеанс при вводе"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock запускает слайд-шоу из изображений на весь экран на каждом мониторе, когда сеанс бездействует заданное время."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock запускает слайд-шоу из изображений на весь экран на каждом "
+"мониторе, когда сеанс бездействует заданное время."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "Первое нажатие клавиши, щелчок или движение мыши завершает слайд-шоу. Если слайд-шоу показывалось не меньше льготного периода, сеанс также блокируется."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Первое нажатие клавиши, щелчок или движение мыши завершает слайд-шоу. Если "
+"слайд-шоу показывалось не меньше льготного периода, сеанс также блокируется."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Изображения берутся из выбранной вами папки. В окне настроек задаются папка, время бездействия, льготный период, время показа каждого изображения, порядок и масштабирование."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Изображения берутся из выбранной вами папки. В окне настроек задаются папка, "
+"время бездействия, льготный период, время показа каждого изображения, "
+"порядок и масштабирование."

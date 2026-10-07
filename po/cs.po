@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Czech\n"
@@ -26,6 +26,11 @@ msgstr "Spustit službu prezentace a otevřít okno nastavení."
 msgid "at login: start the service, open the window only the first time"
 msgstr "při přihlášení: spustit službu, okno otevřít jen poprvé"
 
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "zaznamenat každý krok"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Náhodně"
@@ -43,20 +48,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Přizpůsobit (zobrazí se celý obrázek)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Žádný (okamžitá změna)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Prolínání"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Zatmívání přes černou"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Vsunutí"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Vytlačení"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Přiblížení"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Stírání"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Kruhové odkrytí"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Rozostření"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Otočení"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Náhodný mix"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Nastavení aplikace Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Procházet…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Obrázky"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Složka s obrázky"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Procházet…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +120,51 @@ msgid "Scroll tall pictures"
 msgstr "Posouvat vysoké obrázky"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Obrázky na výšku se na obrazovce na šířku pomalu posouvají shora dolů (pouze při volbě „Vyplnit“). Ve výchozím stavu je vypnuto: spotřebovává více baterie."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Obrázky na výšku se na obrazovce na šířku pomalu posouvají shora dolů (pouze "
+"při volbě „Vyplnit“). Ve výchozím stavu je vypnuto: spotřebovává více "
+"baterie."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Spuštění prezentace"
+msgid "Pictures"
+msgstr "Obrázky"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Mezi obrázky"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Jak se jeden obrázek mění v další. „Náhodný mix“ při každé změně vybere "
+"jeden z osmi přechodů (ne Rozostření a Ken Burns). Bez animací pracovního "
+"prostředí se obrázky mění okamžitě."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Délka přechodu"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Jak dlouho trvá jedna změna, stejně pro každý přechod. Nikdy není delší než "
+"polovina doby, po kterou se obrázek zobrazuje."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekund"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Přechody"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +175,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Jak dlouho bez vstupu, než se prezentace spustí."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekund"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Časování"
+msgid "Start the slideshow"
+msgstr "Spuštění prezentace"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +187,20 @@ msgid "Lock grace period"
 msgstr "Odklad zamknutí"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Vstup dříve než za tuto dobu po spuštění prezentace relaci nezamkne (přesně dříve; 0 znamená, že každý vstup zamkne)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Vstup dříve než za tuto dobu po spuštění prezentace relaci nezamkne (přesně "
+"dříve; 0 znamená, že každý vstup zamkne)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Časování"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Uložit"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -154,14 +250,16 @@ msgstr "Náhled běží: stiskem libovolné klávesy nebo pohybem myši jej ukon
 msgid "Change the slideshow settings."
 msgstr "Změna nastavení prezentace."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "zaznamenat každý krok"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "Schéma nastavení není nainstalováno. Zkompilujte je a nasměrujte na ně GSettings:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Schéma nastavení není nainstalováno. Zkompilujte je a nasměrujte na ně "
+"GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
 #: slideshow_lock/preferences_model.py
 msgid "Saved."
@@ -197,8 +295,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "Používá se: %s (složka zatím neexistuje, nic se nezobrazí)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Není to krok posuvníku: zobrazí se nejbližší. Uložená hodnota zůstane, dokud posuvník nepřesunete."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Není to krok posuvníku: zobrazí se nejbližší. Uložená hodnota zůstane, dokud "
+"posuvník nepřesunete."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -262,8 +364,10 @@ msgid "No pictures to show"
 msgstr "Žádné obrázky k zobrazení"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Zobrazí náhled prezentace. Ukončí ho jakýkoli vstup. Relaci nikdy nezamkne."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Zobrazí náhled prezentace. Ukončí ho jakýkoli vstup. Relaci nikdy nezamkne."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -286,21 +390,36 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "pomalu posouvat obrázky na výšku (režim vyplnění)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "jak se jeden obrázek mění v další, nebo žádný (pouze tento běh)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Interval musí být mezi %d a %d sekundami."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "Schéma nastavení není nainstalováno. Zkompilujte je a nasměrujte na ně GSettings:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Schéma nastavení není nainstalováno. Zkompilujte je a nasměrujte na ně "
+"GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
 #: slideshow_lock/preview_window.py
 msgid "Slideshow Lock preview"
 msgstr "Náhled aplikace Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Spustí prezentaci, když je relace nečinná, při prvním vstupu po odkladu relaci zamkne a zamkne ji i před uspáním počítače."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Spustí prezentaci, když je relace nečinná, při prvním vstupu po odkladu "
+"relaci zamkne a zamkne ji i před uspáním počítače."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -319,8 +438,15 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "Odklad musí být mezi 0 a 86400 sekundami."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "Schéma nastavení není nainstalováno. Zkompilujte je a nasměrujte na ně GSettings:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Schéma nastavení není nainstalováno. Zkompilujte je a nasměrujte na ně "
+"GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
 #: data/io.github.sakkmesterke.SlideshowLock.desktop.in
 msgid "Set up the idle slideshow and the session lock"
@@ -328,16 +454,32 @@ msgstr "Nastavení prezentace při nečinnosti a zamknutí relace"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Spořič obrazovky s prezentací při nečinnosti, který při vstupu zamkne relaci"
+msgstr ""
+"Spořič obrazovky s prezentací při nečinnosti, který při vstupu zamkne relaci"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock spustí prezentaci obrázků na celou obrazovku na každé obrazovce, když byla relace po nastavenou dobu nečinná."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock spustí prezentaci obrázků na celou obrazovku na každé "
+"obrazovce, když byla relace po nastavenou dobu nečinná."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "První stisk klávesy, kliknutí nebo pohyb myši prezentaci ukončí. Pokud se prezentace zobrazovala alespoň po dobu odkladu, relace se také zamkne."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"První stisk klávesy, kliknutí nebo pohyb myši prezentaci ukončí. Pokud se "
+"prezentace zobrazovala alespoň po dobu odkladu, relace se také zamkne."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Obrázky pocházejí ze složky, kterou si zvolíte. Okno nastavení určuje složku, dobu nečinnosti, odklad, jak dlouho se každý obrázek zobrazí, pořadí a změnu velikosti."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Obrázky pocházejí ze složky, kterou si zvolíte. Okno nastavení určuje "
+"složku, dobu nečinnosti, odklad, jak dlouho se každý obrázek zobrazí, pořadí "
+"a změnu velikosti."

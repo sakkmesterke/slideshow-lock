@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:50+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Estonian\n"
@@ -26,6 +26,11 @@ msgstr "Käivita slaidiesitluse teenus ja ava seadete aken."
 msgid "at login: start the service, open the window only the first time"
 msgstr "sisselogimisel: käivita teenus, ava aken ainult esimesel korral"
 
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "logi iga samm"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Juhuslik"
@@ -43,20 +48,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Sobita (kogu pilt on nähtav)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Puudub (kohene vahetus)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Ristlahendus"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Hajumine läbi musta"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Libisemine sisse"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Tõuge"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Suum"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Pühkimine"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Ringpaljastus"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Hägustamine"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Pööramine"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Juhuslik segu"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Slideshow Locki seaded"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Sirvi…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Pildid"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Piltide kaust"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Sirvi…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +120,51 @@ msgid "Scroll tall pictures"
 msgstr "Kõrgete piltide kerimine"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Püstformaadis pildid horisontaalsel ekraanil liiguvad aeglaselt ülalt alla (ainult režiimis „Täida“). Vaikimisi välja lülitatud: see kasutab rohkem akut."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Püstformaadis pildid horisontaalsel ekraanil liiguvad aeglaselt ülalt alla "
+"(ainult režiimis „Täida“). Vaikimisi välja lülitatud: see kasutab rohkem "
+"akut."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Slaidiesitluse käivitamine"
+msgid "Pictures"
+msgstr "Pildid"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Piltide vahel"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Kuidas üks pilt muutub järgmiseks. „Juhuslik segu“ valib iga vahetuse juures "
+"ühe kaheksast (v.a Hägustamine ja Ken Burns). Ilma töölauaanimatsioonideta "
+"vahetuvad pildid kohe."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Ülemineku pikkus"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Kui kaua üks vahetus kestab, kõigi üleminekute puhul sama. See ei ole kunagi "
+"pikem kui pool ajast, mille jooksul pilti kuvatakse."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundit"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Üleminekud"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +175,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Kui kaua ei ole sisendit, enne kui slaidiesitlus algab."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekundit"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Ajastus"
+msgid "Start the slideshow"
+msgstr "Slaidiesitluse käivitamine"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +187,20 @@ msgid "Lock grace period"
 msgstr "Lukustamise armuaeg"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Sisend varem kui selle aja jooksul pärast slaidiesitluse algust ei lukusta seanssi (rangelt varem; 0 tähendab, et iga sisend lukustab)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Sisend varem kui selle aja jooksul pärast slaidiesitluse algust ei lukusta "
+"seanssi (rangelt varem; 0 tähendab, et iga sisend lukustab)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Ajastus"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Salvesta"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -148,20 +244,23 @@ msgstr "Eelvaate kuvamiseks pole monitori."
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Eelvaade töötab: selle lõpetamiseks vajuta suvalist klahvi või liiguta hiirt."
+msgstr ""
+"Eelvaade töötab: selle lõpetamiseks vajuta suvalist klahvi või liiguta hiirt."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Muuda slaidiesitluse seadeid."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "logi iga samm"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle peale:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle "
+"peale:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
 #: slideshow_lock/preferences_model.py
 msgid "Saved."
@@ -197,8 +296,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "Kasutusel: %s (kausta pole veel olemas, midagi ei kuvata)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "See pole liuguri samm: kuvatakse lähim. Salvestatud väärtus jääb kehtima, kuni liigutad liugurit."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"See pole liuguri samm: kuvatakse lähim. Salvestatud väärtus jääb kehtima, "
+"kuni liigutad liugurit."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -262,8 +365,11 @@ msgid "No pictures to show"
 msgstr "Pole pilte, mida näidata"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Näita slaidiesitluse eelvaadet. Iga sisend lõpetab selle. See ei lukusta kunagi seanssi."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Näita slaidiesitluse eelvaadet. Iga sisend lõpetab selle. See ei lukusta "
+"kunagi seanssi."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -286,21 +392,37 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "kerib püstformaadis pilte aeglaselt (täitmisrežiim)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"kuidas üks pilt muutub järgmiseks, või puudub (ainult selle käivituse jaoks)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Intervall peab olema vahemikus %d kuni %d sekundit."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle peale:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle "
+"peale:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
 #: slideshow_lock/preview_window.py
 msgid "Slideshow Lock preview"
 msgstr "Slideshow Locki eelvaade"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Käivita slaidiesitlus, kui seanss on tegevusetu, lukusta see esimese sisendi peale pärast armuaega ja lukusta enne, kui arvuti läheb ooterežiimi."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Käivita slaidiesitlus, kui seanss on tegevusetu, lukusta see esimese sisendi "
+"peale pärast armuaega ja lukusta enne, kui arvuti läheb ooterežiimi."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -319,8 +441,15 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "Armuaeg peab olema vahemikus 0 kuni 86400 sekundit."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle peale:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle "
+"peale:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
 #: data/io.github.sakkmesterke.SlideshowLock.desktop.in
 msgid "Set up the idle slideshow and the session lock"
@@ -328,16 +457,33 @@ msgstr "Seadista tegevusetuse slaidiesitlus ja seansi lukustamine"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Tegevusetuse slaidiesitlusega ekraanisäästja, mis sisendi peale lukustab"
+msgstr ""
+"Tegevusetuse slaidiesitlusega ekraanisäästja, mis sisendi peale lukustab"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock käivitab täisekraanil piltide slaidiesitluse igal ekraanil, kui seanss on olnud määratud aja tegevusetu."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock käivitab täisekraanil piltide slaidiesitluse igal ekraanil, "
+"kui seanss on olnud määratud aja tegevusetu."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "Esimene klahvivajutus, klõps või hiireliigutus lõpetab slaidiesitluse. Kui slaidiesitlus on olnud nähtaval vähemalt armuaja jooksul, lukustatakse ka seanss."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Esimene klahvivajutus, klõps või hiireliigutus lõpetab slaidiesitluse. Kui "
+"slaidiesitlus on olnud nähtaval vähemalt armuaja jooksul, lukustatakse ka "
+"seanss."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Pildid pärinevad sinu valitud kaustast. Seadete aken määrab kausta, tegevusetuse aja, armuaja, kui kaua iga pilt on nähtaval, järjekorra ja skaleerimise."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Pildid pärinevad sinu valitud kaustast. Seadete aken määrab kausta, "
+"tegevusetuse aja, armuaja, kui kaua iga pilt on nähtaval, järjekorra ja "
+"skaleerimise."

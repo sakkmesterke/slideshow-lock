@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Swedish\n"
@@ -48,20 +48,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Anpassa (visar hela bilden)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Ingen (byt direkt)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Övertoning"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Tona via svart"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Glid in"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Skjut"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoom"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Svep"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Cirkelavslöjande"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Oskärpa"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Rotera"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Slumpmix"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Inställningar för Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Bläddra…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Bilder"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Bildmapp"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Bläddra…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -84,8 +128,42 @@ msgstr ""
 "(endast med Fyll). Av som standard: det drar mer batteri."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Starta bildspelet"
+msgid "Pictures"
+msgstr "Bilder"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Mellan bilder"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Hur en bild övergår i nästa. \"Slumpmix\" väljer en av åtta vid varje byte "
+"(inte Oskärpa och Ken Burns). Utan skrivbordsanimationer byts bilderna "
+"direkt."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Övergångens längd"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Hur lång tid ett byte tar, lika för alla övergångar. Det är aldrig längre än "
+"halva den tid en bild visas."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekunder"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Övergångar"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -96,12 +174,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Hur länge utan inmatning innan bildspelet startar."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekunder"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Tider"
+msgid "Start the slideshow"
+msgstr "Starta bildspelet"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -118,6 +192,14 @@ msgid ""
 msgstr ""
 "Inmatning tidigare än så här efter att bildspelet startat låser inte "
 "sessionen (strikt tidigare; 0 betyder att all inmatning låser)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Tider"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Spara"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -308,6 +390,10 @@ msgstr "anpassa eller fyll bildskärmen"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "rulla stående bilder långsamt (fyllningsläge)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "hur en bild övergår i nästa, eller ingen (bara denna körning)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

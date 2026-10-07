@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:11+0000\n"
 "PO-Revision-Date: 2026-10-06 20:50+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Filipino\n"
@@ -29,7 +29,9 @@ msgstr "Simulan ang serbisyo ng slideshow at buksan ang window ng mga setting."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "sa pag-login: simulan ang serbisyo, buksan ang window sa unang pagkakataon lang"
+msgstr ""
+"sa pag-login: simulan ang serbisyo, buksan ang window sa unang pagkakataon "
+"lang"
 
 #: slideshow_lock/control.py slideshow_lock/preferences.py
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
@@ -53,20 +55,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "I-fit (ipinapakita ang buong larawan)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Wala (agad magpalit)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Magkasabay na paglaho"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Fade sa itim"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Pagdulas papasok"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Pagtulak"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoom"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Pagpunas"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Pabilog na paglitaw"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Paglabo"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Paikutin"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Sapalarang halo"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Mga setting ng Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Mag-browse…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Mga Larawan"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Folder ng mga larawan"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Mag-browse…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -90,8 +136,43 @@ msgstr ""
 "baterya ang nagagamit."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Simulan ang slideshow"
+msgid "Pictures"
+msgstr "Mga Larawan"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Sa pagitan ng mga larawan"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Kung paano napapalitan ang isang larawan ng susunod. Pumipili ang "
+"\"Sapalarang halo\" ng isa sa walo sa bawat pagpapalit (hindi kasama ang "
+"Paglabo at Ken Burns). Kapag walang desktop animation, agad na nagpapalit "
+"ang mga larawan."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Haba ng transition"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Gaano katagal ang isang pagpapalit, pareho para sa bawat transition. Hindi "
+"ito kailanman lalampas sa kalahati ng oras na ipinapakita ang isang larawan."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "segundo"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Mga transition"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -102,12 +183,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Gaano katagal na walang input bago magsimula ang slideshow."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "segundo"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Oras"
+msgid "Start the slideshow"
+msgstr "Simulan ang slideshow"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -125,6 +202,14 @@ msgstr ""
 "Ang input na mas maaga kaysa rito pagkatapos magsimula ang slideshow ay "
 "hindi nagla-lock ng session (mas maaga talaga; ang 0 ay nangangahulugang "
 "nagla-lock ang bawat input)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Oras"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "I-save"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -315,6 +400,12 @@ msgstr "i-fit o punan ang monitor"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "dahan-dahang i-scroll ang mga portrait na larawan (mode ng pagpuno)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"kung paano napapalitan ang isang larawan ng susunod, o wala (para lang sa "
+"takbong ito)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

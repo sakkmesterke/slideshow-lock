@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Indonesian\n"
@@ -52,20 +52,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Sesuaikan (menampilkan seluruh gambar)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Tidak ada (ganti seketika)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Pudar silang"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Pudar lewat hitam"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Geser masuk"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Dorong"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoom"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Sapu"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Pengungkapan lingkaran"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Buram"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Putar"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Campuran acak"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Pengaturan Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Telusuri…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Gambar"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Folder gambar"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Telusuri…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -88,8 +132,42 @@ msgstr ""
 "dengan Isi layar). Mati secara bawaan: menggunakan lebih banyak baterai."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Mulai tayangan slide"
+msgid "Pictures"
+msgstr "Gambar"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Antar gambar"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Cara satu gambar berganti ke gambar berikutnya. \"Campuran acak\" memilih "
+"satu dari delapan pada setiap pergantian (bukan Buram dan Ken Burns). Tanpa "
+"animasi desktop, gambar berganti seketika."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Durasi transisi"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Berapa lama satu pergantian berlangsung, sama untuk setiap transisi. Tidak "
+"pernah lebih lama dari setengah waktu satu gambar ditampilkan."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "detik"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Transisi"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -100,12 +178,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Berapa lama tanpa input sebelum tayangan slide dimulai."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "detik"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Waktu"
+msgid "Start the slideshow"
+msgstr "Mulai tayangan slide"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -123,6 +197,14 @@ msgstr ""
 "Input yang terjadi lebih awal dari waktu ini setelah tayangan slide dimulai "
 "tidak mengunci sesi (benar-benar lebih awal; 0 berarti setiap input "
 "mengunci)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Waktu"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Simpan"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -313,6 +395,12 @@ msgstr "sesuaikan atau isi monitor"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "gulir gambar potret perlahan (mode isi)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"cara satu gambar berganti ke gambar berikutnya, atau tidak ada (hanya untuk "
+"sekali jalan ini)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

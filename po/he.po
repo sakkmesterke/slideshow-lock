@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Hebrew\n"
@@ -52,20 +52,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "התאמה (התמונה כולה מוצגת)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "ללא (החלפה מיידית)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "מעבר מיזוג"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "דעיכה דרך שחור"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "החלקה פנימה"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "דחיפה"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "זום"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "ניגוב"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "חשיפה עגולה"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "טשטוש"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "סיבוב"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "תערובת אקראית"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "הגדרות Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "עיון…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "תמונות"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "תיקיית תמונות"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "עיון…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -88,8 +132,41 @@ msgstr ""
 "מחדל: צורך יותר סוללה."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "התחלת המצגת"
+msgid "Pictures"
+msgstr "תמונות"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "בין תמונות"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"איך תמונה מתחלפת בבאה אחריה. \"תערובת אקראית\" בוחרת אחת משמונה בכל החלפה "
+"(לא טשטוש ו-Ken Burns). בלי הנפשות שולחן עבודה התמונות מתחלפות מיד."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "משך המעבר"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"כמה זמן נמשכת החלפה אחת, זהה בכל המעברים. היא אף פעם אינה ארוכה ממחצית הזמן "
+"שבו מוצגת תמונה."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "שניות"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "מעברים"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -100,12 +177,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "משך הזמן ללא קלט לפני שהמצגת מתחילה."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "שניות"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "תזמון"
+msgid "Start the slideshow"
+msgstr "התחלת המצגת"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -122,6 +195,14 @@ msgid ""
 msgstr ""
 "קלט שמתרחש מוקדם מהזמן הזה אחרי תחילת המצגת אינו נועל את הסשן (מוקדם בהחלט; "
 "0 פירושו שכל קלט נועל)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "תזמון"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "שמירה"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -313,6 +394,10 @@ msgstr "התאמה או מילוי של הצג"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "גלילה איטית של תמונות לאורך (מצב מילוי)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "איך תמונה מתחלפת בבאה אחריה, או בלי מעבר (להרצה הזו בלבד)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

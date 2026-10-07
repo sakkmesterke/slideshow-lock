@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 21:00+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Chinese (traditional)\n"
@@ -26,6 +26,11 @@ msgstr "啟動投影片放映服務並開啟設定視窗。"
 msgid "at login: start the service, open the window only the first time"
 msgstr "登入時：啟動服務，僅在第一次開啟視窗"
 
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "記錄每個步驟"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "隨機"
@@ -43,20 +48,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "符合螢幕（顯示完整圖片）"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "無（立即切換）"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "交叉淡化"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "經黑畫面淡化"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "滑入"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "推入"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "縮放"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "擦除"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "圓形展開"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "模糊"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "旋轉"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "隨機混合"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Slideshow Lock 設定"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "瀏覽…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "圖片"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "圖片資料夾"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "瀏覽…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +120,47 @@ msgid "Scroll tall pictures"
 msgstr "捲動較高的圖片"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "在橫向螢幕上，直式圖片會由上而下緩慢移動（僅限「填滿」模式）。預設為關閉：會消耗較多電力。"
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"在橫向螢幕上，直式圖片會由上而下緩慢移動（僅限「填滿」模式）。預設為關閉：會"
+"消耗較多電力。"
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "啟動投影片放映"
+msgid "Pictures"
+msgstr "圖片"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "圖片之間"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"圖片如何切換到下一張。「隨機混合」每次切換時從八種效果中任選一種（不含「模"
+"糊」和 Ken Burns）。沒有桌面動畫時，圖片會立即切換。"
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "轉場時長"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr "一次切換所需的時間，所有轉場皆相同。不會超過圖片顯示時間的一半。"
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "秒"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "轉場"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +171,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "在投影片放映開始之前，多久沒有任何輸入。"
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "秒"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "時間設定"
+msgid "Start the slideshow"
+msgstr "啟動投影片放映"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +183,20 @@ msgid "Lock grace period"
 msgstr "鎖定寬限期"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "投影片放映開始後，早於此時間的輸入不會鎖定工作階段（嚴格早於；0 表示任何輸入都會鎖定）。"
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"投影片放映開始後，早於此時間的輸入不會鎖定工作階段（嚴格早於；0 表示任何輸入"
+"都會鎖定）。"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "時間設定"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "儲存"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -154,16 +246,13 @@ msgstr "預覽執行中：按下任意鍵或移動滑鼠即可結束。"
 msgid "Change the slideshow settings."
 msgstr "變更投影片放映設定。"
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "記錄每個步驟"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
+msgstr ""
+"未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
@@ -201,8 +290,11 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "使用中：%s（此資料夾尚不存在，不會顯示任何內容）"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "不是滑桿的刻度：顯示的是最接近的刻度。已儲存的值會保留，直到您移動滑桿。"
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"不是滑桿的刻度：顯示的是最接近的刻度。已儲存的值會保留，直到您移動滑桿。"
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -266,7 +358,8 @@ msgid "No pictures to show"
 msgstr "沒有可顯示的圖片"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
 msgstr "顯示投影片放映預覽。任何輸入都會結束預覽。它絕不會鎖定工作階段。"
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
@@ -290,15 +383,21 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "緩慢捲動直式圖片（填滿模式）"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "圖片如何切換到下一張，或不使用（僅本次執行）"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "間隔必須介於 %d 與 %d 秒之間。"
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
+msgstr ""
+"未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
@@ -307,8 +406,12 @@ msgid "Slideshow Lock preview"
 msgstr "Slideshow Lock 預覽"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "工作階段閒置時開始投影片放映，在寬限期之後的第一次輸入時鎖定工作階段，並在電腦進入暫停狀態前鎖定。"
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"工作階段閒置時開始投影片放映，在寬限期之後的第一次輸入時鎖定工作階段，並在電"
+"腦進入暫停狀態前鎖定。"
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -327,10 +430,12 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "寬限期必須介於 0 與 86400 秒之間。"
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
+msgstr ""
+"未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
@@ -343,13 +448,27 @@ msgid "Idle slideshow screensaver that locks on input"
 msgstr "在有輸入時鎖定的閒置投影片放映螢幕保護程式"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "當工作階段閒置達設定時間後，Slideshow Lock 會在每個顯示器上啟動全螢幕圖片投影片放映。"
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"當工作階段閒置達設定時間後，Slideshow Lock 會在每個顯示器上啟動全螢幕圖片投影"
+"片放映。"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "第一次按鍵、點擊或移動滑鼠會結束投影片放映。若投影片放映已顯示至少一個寬限期，也會同時鎖定工作階段。"
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"第一次按鍵、點擊或移動滑鼠會結束投影片放映。若投影片放映已顯示至少一個寬限"
+"期，也會同時鎖定工作階段。"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "圖片來自您選擇的資料夾。設定視窗可設定資料夾、閒置時間、寬限期、每張圖片的顯示時間、順序與縮放。"
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"圖片來自您選擇的資料夾。設定視窗可設定資料夾、閒置時間、寬限期、每張圖片的顯"
+"示時間、順序與縮放。"

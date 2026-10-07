@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Vietnamese\n"
@@ -52,20 +52,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Vừa khít (hiển thị toàn bộ ảnh)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Không (đổi ngay)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Mờ chéo"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Mờ qua màu đen"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Trượt vào"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Đẩy"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Thu phóng"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Quét"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Mở rộng hình tròn"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Làm mờ"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Xoay"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Trộn ngẫu nhiên"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Cài đặt Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Duyệt…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Ảnh"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Thư mục ảnh"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Duyệt…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -88,8 +132,42 @@ msgstr ""
 "màn hình). Mặc định tắt: tốn nhiều pin hơn."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Bắt đầu trình chiếu"
+msgid "Pictures"
+msgstr "Ảnh"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Giữa các ảnh"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Cách một ảnh chuyển sang ảnh kế tiếp. \"Trộn ngẫu nhiên\" chọn một trong tám "
+"kiểu ở mỗi lần chuyển (không gồm Làm mờ và Ken Burns). Khi không có hiệu ứng "
+"động của màn hình nền, ảnh đổi ngay."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Thời lượng hiệu ứng chuyển"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Một lần chuyển mất bao lâu, giống nhau cho mọi hiệu ứng chuyển. Không bao "
+"giờ dài hơn một nửa thời gian hiển thị một ảnh."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "giây"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Hiệu ứng chuyển"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -100,12 +178,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Khoảng thời gian không có thao tác nhập trước khi trình chiếu bắt đầu."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "giây"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Thời gian"
+msgid "Start the slideshow"
+msgstr "Bắt đầu trình chiếu"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -122,6 +196,14 @@ msgid ""
 msgstr ""
 "Thao tác nhập diễn ra sớm hơn mức này sau khi trình chiếu bắt đầu thì không "
 "khóa phiên (sớm hơn hẳn; 0 nghĩa là mọi thao tác nhập đều khóa)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Thời gian"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Lưu"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -309,6 +391,10 @@ msgstr "vừa khít hoặc lấp đầy màn hình"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "cuộn chậm ảnh dọc (chế độ lấp đầy)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "cách một ảnh chuyển sang ảnh kế tiếp, hoặc không (chỉ lần chạy này)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

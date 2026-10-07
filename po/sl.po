@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Slovenian\n"
@@ -49,20 +49,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Prilagodi (prikaže celotno sliko)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Brez (zamenjaj takoj)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Križno prelivanje"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Pojemanje skozi črno"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Drsenje noter"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Potisk"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Povečava"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Brisanje"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Krožno razkritje"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Zameglitev"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Vrtenje"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Naključna mešanica"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Nastavitve za Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Prebrskaj …"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Slike"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Mapa s slikami"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Prebrskaj …"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -85,8 +129,42 @@ msgstr ""
 "(samo z možnostjo Zapolni). Privzeto izklopljeno: porablja več baterije."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Zaženi diaprojekcijo"
+msgid "Pictures"
+msgstr "Slike"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Med slikami"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Kako se ena slika spremeni v naslednjo. \"Naključna mešanica\" ob vsaki "
+"spremembi izbere eno od osmih (brez Zameglitve in Ken Burns). Brez animacij "
+"namizja se slike zamenjajo takoj."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Trajanje prehoda"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Kako dolgo traja ena sprememba, enako za vsak prehod. Nikoli ni daljša od "
+"polovice časa, ko je prikazana slika."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekund"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Prehodi"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -97,12 +175,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Kako dolgo brez vnosa, preden se diaprojekcija zažene."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekund"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Časi"
+msgid "Start the slideshow"
+msgstr "Zaženi diaprojekcijo"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -119,6 +193,14 @@ msgid ""
 msgstr ""
 "Vnos, ki se zgodi prej kot ta čas po začetku diaprojekcije, ne zaklene seje "
 "(strogo prej; 0 pomeni, da vsak vnos zaklene)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Časi"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Shrani"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -308,6 +390,11 @@ msgstr "prilagodi ali zapolni monitor"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "počasi pomikaj pokončne slike (način zapolni)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"kako se ena slika spremeni v naslednjo ali brez prehoda (samo ta zagon)"
 
 #: slideshow_lock/preview_app.py
 #, python-format
