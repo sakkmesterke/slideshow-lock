@@ -12,6 +12,12 @@ own pixel size, on a device pixel boundary, is not filtered again. A frame talle
 the window (a panning portrait picture) is scrolled by whole pixels from a frame-clock
 tick, which only runs while there is something to scroll.
 
+A picture that does not scroll is never still while it is on screen: from the frame it appears on
+until the transition that takes it away has finished it moves slowly (``_Move``,
+``transition_draw.base_pose``: a Ken Burns zoom and drift if it fills the window, a gentle zoom if
+it does not), also under a transition, as the incoming and as the outgoing picture. So it is
+always drawn through the transform and not 1:1; the move is redrawn ``MOTION_FPS`` times a second.
+
 A transition (``slideshow_lock.transitions``, ``slideshow_lock.transition_draw``) keeps the old
 picture's texture next to the new one for its short time. What each of the ten looks like at a
 given moment is decided without GTK (``transition_draw.compose``: which picture, how opaque, how
@@ -20,10 +26,9 @@ calls from a tick of its own, always on black. Its end is a moment in time, not 
 so a slow machine draws fewer frames and not a longer transition. The first frame is drawn at
 progress 0 with both pictures, which is where the new texture is uploaded, out of sight; the clock
 of the transition starts at the second tick. When it ends the tick is removed and the picture is
-drawn 1:1 as always, so the last frame is never a filtered one and nothing redraws until the next
-change. The blur works on pictures reduced to a quarter of their size (it is the costly one), and
-on software rendering it, like a Ken Burns picture that is not the size of the window, is drawn as
-a cross fade (``transition_draw.effective_name``).
+drawn as always (a scrolling picture 1:1, the others with their move). The blur works on pictures
+reduced to a quarter of their size (it is the costly one), and on software rendering it is drawn
+as a cross fade (``transition_draw.effective_name``).
 
 Input: the window's own GTK controllers (motion, click, key, scroll) call
 ``on_input``, and so does a ``close-request`` (the window was closed from outside, from the
@@ -63,15 +68,30 @@ from slideshow_lock.preview import (  # noqa: E402
 )
 from slideshow_lock.scaling import Frame, device_size  # noqa: E402
 from slideshow_lock.transition_draw import (  # noqa: E402
+    MOTION_FPS,
+    SOFT_CIRCLE,
+    SOFT_CLIP,
+    SOFT_PICTURE,
+    STILL,
     Draw,
+    Pose,
     TransitionRun,
+    base_pose,
     compose,
+    edge_stops,
     effective_name,
+    fills_window,
+    picture_seconds,
+    rim_stops,
     software_renderer,
 )
-from slideshow_lock.transitions import BLUR, CROSSFADE, KEN_BURNS, NEW, OLD  # noqa: E402
+from slideshow_lock.transitions import BLUR, CROSSFADE, NEW, OLD  # noqa: E402
 
 _LOG = logging.getLogger(__name__)
+
+#: A picture that scrolls (taller or wider than the window) moves over this share of the time it is
+#: shown; the rest it rests. (The others move all the time they are on screen: ``_Move``.)
+PAN_FRACTION = 0.9
 
 #: The blur works on pictures this many times smaller in each direction.
 BLUR_REDUCTION = 4
@@ -82,6 +102,21 @@ MOTION_THRESHOLD_PIXELS = 2.0
 
 def _smoothstep(t: float) -> float:
     return t * t * (3 - 2 * t)
+
+
+class _Move:
+    """The slow move of one picture on screen (``transition_draw.base_pose``): its clock starts at
+    the first frame it is on screen for and runs for ``span`` seconds, whatever is drawn with it
+    (a transition as the incoming picture, the plain picture, a transition as the outgoing one)."""
+
+    def __init__(self, span: float, frame_size: Tuple[int, int]) -> None:
+        self.span = span
+        self.frame_size = frame_size
+        self.born: Optional[int] = None  # the frame clock's time, microseconds
+
+    def pose(self, now: Optional[int], width: float, window_size: Tuple[int, int]) -> Pose:
+        age = 0.0 if now is None or self.born is None else max(0, now - self.born) / 1_000_000
+        return base_pose(age, self.span, width, fills_window(self.frame_size, window_size))
 
 
 def animations_enabled() -> bool:
@@ -118,6 +153,67 @@ def software_gl(widget) -> bool:
             "software, so no blur transition" if _software_gl_cache else "not known to be software",
         )
     return _software_gl_cache
+
+
+def _color_stops(stops) -> List[Gsk.ColorStop]:
+    """``(offset, alpha)`` stops as gradient stops. Only the alpha counts: they are masks."""
+    result = []
+    for offset, alpha in stops:
+        stop = Gsk.ColorStop()
+        stop.offset = offset
+        color = Gdk.RGBA()
+        color.alpha = alpha
+        stop.color = color
+        result.append(stop)
+    return result
+
+
+def _edge_painters(rect, width: float, sides: str) -> List[Callable[[Any], None]]:
+    """What paints the mask of a soft edge on the sides *sides* of *rect* ``(x, y, width, height)``:
+    one gradient across it for the left/right sides, one down it for the top/bottom ones."""
+    x, y, rect_w, rect_h = rect
+    bounds = (x, y, rect_w, rect_h)
+    painters: List[Callable[[Any], None]] = []
+    if "l" in sides or "r" in sides:
+        stops = _color_stops(edge_stops(rect_w, width, "l" in sides, "r" in sides))
+        painters.append(
+            lambda snapshot, stops=stops: snapshot.append_linear_gradient(
+                Graphene.Rect().init(*bounds),
+                Graphene.Point().init(x, y),
+                Graphene.Point().init(x + rect_w, y),
+                stops,
+            )
+        )
+    if "t" in sides or "b" in sides:
+        stops = _color_stops(edge_stops(rect_h, width, "t" in sides, "b" in sides))
+        painters.append(
+            lambda snapshot, stops=stops: snapshot.append_linear_gradient(
+                Graphene.Rect().init(*bounds),
+                Graphene.Point().init(x, y),
+                Graphene.Point().init(x, y + rect_h),
+                stops,
+            )
+        )
+    return painters
+
+
+def _rim_painter(circle, width: float) -> Callable[[Any], None]:
+    """What paints the mask of a soft circle ``(centre x, centre y, radius)``."""
+    cx, cy, radius = circle
+    stops = _color_stops(rim_stops(radius, width))
+
+    def paint(snapshot) -> None:
+        snapshot.append_radial_gradient(
+            Graphene.Rect().init(cx - radius, cy - radius, 2 * radius, 2 * radius),
+            Graphene.Point().init(cx, cy),
+            radius,
+            radius,
+            0.0,
+            1.0,
+            stops,
+        )
+
+    return paint
 
 
 def _reduced_texture(frame: Frame, factor: int) -> Gdk.Texture:
@@ -160,17 +256,25 @@ class _Canvas(Gtk.Widget):
         self._reduced: Dict[str, Gdk.Texture] = {}  # the blur's pictures, by layer
         self._run: Optional[TransitionRun] = None
         self._run_tick_id = 0
+        self._move: Optional[_Move] = None  # the slow move of the picture on screen
+        self._old_move: Optional[_Move] = None  # and of the one going out, in a transition
+        self._move_tick_id = 0
+        self._now: Optional[int] = None  # the frame clock's time at the last tick
+        self._drawn_at = 0  # ... and at the last redraw of the slow move on its own
 
     def set_frame(
         self,
         frame: Optional[Frame],
-        pan_seconds: float,
+        seconds: float,
         transition: Optional[Tuple[str, float]] = None,
     ) -> None:
-        """Show *frame*. With *transition* ``(name, seconds)`` and a picture already on screen, the
-        old one goes out through the transition; any call, with or without one, first ends a
-        transition that is still running."""
+        """Show *frame*, which is on screen for *seconds*. With *transition* ``(name, seconds)`` and
+        a picture already on screen, the old one goes out through the transition; any call, with
+        or without one, first ends a transition that is still running."""
+        pan_seconds = seconds * PAN_FRACTION
         self._stop_pan()
+        previous_move = self._move
+        same_frame = frame is not None and frame is self._frame
         self._end_transition()
         outgoing = None
         if transition is not None and frame is not None and frame is not self._frame:
@@ -188,6 +292,7 @@ class _Canvas(Gtk.Widget):
             )
             self._frame = frame
         self._offset = (0, 0)
+        self._start_move(frame, seconds, previous_move if same_frame else None)
         if frame is not None and frame.pan_range != (0, 0):
             if pan_seconds > 0 and animations_enabled():
                 self._pan_seconds = pan_seconds
@@ -196,7 +301,7 @@ class _Canvas(Gtk.Widget):
             else:  # animations are off: the middle of the picture, like the centre crop
                 self._offset = (frame.pan_range[0] // 2, frame.pan_range[1] // 2)
         if outgoing is not None and outgoing[0] is not None and self._texture is not None:
-            self._begin_transition(outgoing, old_offset, pan_seconds, *transition)
+            self._begin_transition(outgoing, old_offset, previous_move, *transition)
         self.queue_draw()
 
     def _stop_pan(self) -> None:
@@ -204,12 +309,48 @@ class _Canvas(Gtk.Widget):
             self.remove_tick_callback(self._tick_id)
             self._tick_id = 0
 
-    def _begin_transition(
-        self, outgoing, offset, pan_seconds: float, name: str, seconds: float
+    def _start_move(
+        self, frame: Optional[Frame], seconds: float, old_move: Optional[_Move]
     ) -> None:
-        """Start *name* from the old picture *outgoing* ``(texture, frame)`` to the one just set.
-        *seconds* is how long it takes (for Ken Burns: how long its cross fade takes; its slow move
-        lasts *pan_seconds*, the picture time without its rest, and ends on the plain picture)."""
+        """Give *frame* its slow move: every picture that does not scroll has one, while the
+        desktop allows animations. The very same frame again (a folder of one) keeps the one it
+        has, so nothing jumps back (*old_move* is that one, None for any other frame)."""
+        if old_move is not None:  # the very same frame
+            self._move = old_move
+            return
+        if self._move_tick_id:
+            self.remove_tick_callback(self._move_tick_id)
+            self._move_tick_id = 0
+        self._move = None
+        if frame is not None and frame.pan_range == (0, 0) and seconds > 0 and animations_enabled():
+            self._move = _Move(picture_seconds(seconds), (frame.width, frame.height))
+            self._move_tick_id = self.add_tick_callback(self._on_move_tick)
+
+    def _on_move_tick(self, _widget, clock) -> bool:
+        """Keeps the clock of the slow move and redraws it ``MOTION_FPS`` times a second; while a
+        transition runs it redraws at every frame itself."""
+        self._sync(clock)
+        if self._run is None and self._now - self._drawn_at >= 1_000_000 // MOTION_FPS - 4_000:
+            self._drawn_at = self._now
+            self.queue_draw()
+        return GLib.SOURCE_CONTINUE
+
+    def _sync(self, clock) -> None:
+        self._now = clock.get_frame_time()
+        for move in (self._move, self._old_move):
+            if move is not None and move.born is None:
+                move.born = self._now
+
+    def _pose(self, move: Optional[_Move], width: float) -> Pose:
+        if move is None:
+            return STILL
+        scale = self._scale()
+        window = (round(width * scale), round(self.get_height() * scale))
+        return move.pose(self._now, width, window)
+
+    def _begin_transition(self, outgoing, offset, old_move, name: str, seconds: float) -> None:
+        """Start *name* from the old picture *outgoing* ``(texture, frame)``, which moves on with
+        *old_move*, to the one just set. *seconds* is how long it takes."""
         scale = self._scale()
         size = (round(self.get_width() * scale), round(self.get_height() * scale))
         frame = self._frame
@@ -220,10 +361,7 @@ class _Canvas(Gtk.Widget):
             frame.pan_range,
             software_gl(self) if name == BLUR else False,
         )
-        run_seconds, fade_share = seconds, 1.0
-        if name == KEN_BURNS:
-            run_seconds = max(seconds, pan_seconds)
-            fade_share = seconds / run_seconds
+        run_seconds = seconds
         reduced: Dict[str, Gdk.Texture] = {}
         if name == BLUR:
             try:
@@ -240,8 +378,9 @@ class _Canvas(Gtk.Widget):
         self._old_offset = (
             offset  # the old picture stands where it stopped, the new one starts at 0
         )
+        self._old_move = old_move
         self._reduced = reduced
-        self._run = TransitionRun(name, run_seconds, fade_share)
+        self._run = TransitionRun(name, run_seconds)
         self._run_tick_id = self.add_tick_callback(self._on_transition_tick)
 
     def _end_transition(self) -> None:
@@ -251,9 +390,11 @@ class _Canvas(Gtk.Widget):
             self._run_tick_id = 0
         self._run = None
         self._old_texture = self._old_frame = None
+        self._old_move = None
         self._reduced = {}
 
     def _on_transition_tick(self, _widget, clock) -> bool:
+        self._sync(clock)
         if self._run.tick(clock.get_frame_time()):
             self.queue_draw()
             return GLib.SOURCE_CONTINUE
@@ -283,9 +424,13 @@ class _Canvas(Gtk.Widget):
         black = Gdk.RGBA()
         black.alpha = 1.0
         snapshot.append_color(black, Graphene.Rect().init(0, 0, width, height))
+        new_pose = self._pose(self._move, width)
         if self._run is not None and self._old_texture is not None:
-            for draw in self._run.draws(width, height):
+            old_pose = self._pose(self._old_move, width)
+            for draw in self._run.draws(width, height, old_pose, new_pose):
                 self._paint(snapshot, draw, width, height)
+        elif self._texture is not None and new_pose != STILL:
+            self._paint(snapshot, Draw(NEW, pose=new_pose), width, height)
         elif self._texture is not None:
             self._append(snapshot, self._texture, self._offset, width, height)
 
@@ -313,10 +458,20 @@ class _Canvas(Gtk.Widget):
         rect = self._rect(texture, offset, width, height)
         if draw.blur > 0 and draw.layer in self._reduced:
             texture = self._reduced[draw.layer]  # same place, a quarter of the pixels
-        pops = 0
+        pose = draw.pose
+        # The soft edges are on the picture's place: its own rectangle, or, moved by its slow move,
+        # that rectangle moved and cut to the window's (so that an enlarged picture is soft at the
+        # edge of the window's rectangle, which is where it is cut).
+        edge_rect = rect if pose == STILL else self._moved_rect(rect, pose, width, height)
+        masks = self._soft_painters(snapshot, draw, edge_rect)
+        closers: List[Callable[[], None]] = []
+        settled = self._settled_rect(draw, rect, width, height)
+        if settled is not None:
+            snapshot.push_clip(settled)
+            closers.append(snapshot.pop)
         if draw.clip is not None:
             snapshot.push_clip(Graphene.Rect().init(*draw.clip))
-            pops += 1
+            closers.append(snapshot.pop)
         if draw.circle is not None:
             cx, cy, radius = draw.circle
             rounded = Gsk.RoundedRect()
@@ -324,13 +479,16 @@ class _Canvas(Gtk.Widget):
                 Graphene.Rect().init(cx - radius, cy - radius, 2 * radius, 2 * radius), radius
             )
             snapshot.push_rounded_clip(rounded)
-            pops += 1
+            closers.append(snapshot.pop)
         if draw.opacity < 1.0:
             snapshot.push_opacity(draw.opacity)
-            pops += 1
+            closers.append(snapshot.pop)
         if draw.blur > 0:
             snapshot.push_blur(draw.blur)
-            pops += 1
+            closers.append(snapshot.pop)
+        for painter in masks[SOFT_CLIP]:  # in window coordinates, like the cuts above
+            self._push_mask(snapshot, painter)
+            closers.append(snapshot.pop)
         snapshot.save()
         snapshot.translate(Graphene.Point().init(width / 2 + draw.dx, height / 2 + draw.dy))
         if draw.angle:
@@ -338,10 +496,100 @@ class _Canvas(Gtk.Widget):
         if draw.scale != 1.0:
             snapshot.scale(draw.scale, draw.scale)
         snapshot.translate(Graphene.Point().init(-width / 2, -height / 2))
+        if pose != STILL:  # the slow move stays inside the picture's place
+            snapshot.push_clip(Graphene.Rect().init(0, 0, width, height))
+        for painter in masks[SOFT_PICTURE]:  # in the picture's own coordinates
+            self._push_mask(snapshot, painter)
+        if pose != STILL:
+            snapshot.save()
+            snapshot.translate(Graphene.Point().init(width / 2 + pose.dx, height / 2))
+            snapshot.scale(pose.scale, pose.scale)
+            snapshot.translate(Graphene.Point().init(-width / 2, -height / 2))
         snapshot.append_texture(texture, rect)
-        snapshot.restore()
-        for _popped in range(pops):
+        if pose != STILL:
+            snapshot.restore()
+        for _masked in masks[SOFT_PICTURE]:
             snapshot.pop()
+        if pose != STILL:
+            snapshot.pop()
+        snapshot.restore()
+        for close in reversed(closers):
+            close()
+
+    def _settled_rect(
+        self, draw: Draw, rect, width: float, height: float
+    ) -> Optional[Graphene.Rect]:
+        """Where the outgoing picture of a transition may show: its own area (as the transition
+        moves it) drawn in, by ``draw.settle.share``, towards the area the incoming picture ends in,
+        less a pixel so that no edge of the old one shows round the new one's antialiased edge.
+        None when the outgoing picture is not cut: no ``settle``, nothing moves, no turn, or the
+        incoming picture fills the window (it covers all of it)."""
+        settle = draw.settle
+        if settle is None or settle.share <= 0.0 or draw.layer != OLD or draw.angle:
+            return None
+        if draw.pose == STILL and settle.to == STILL:
+            return None
+        new_rect = self._rect(self._texture, self._offset, width, height)
+        end = self._moved_rect(new_rect, settle.to, width, height)
+        if end.get_width() >= width and end.get_height() >= height:
+            return None
+        cx, cy = width / 2, height / 2
+        start = self._moved_rect(rect, draw.pose, width, height)  # then the transition moves it
+        s0 = (
+            cx + draw.dx + (start.get_x() - cx) * draw.scale,
+            cy + draw.dy + (start.get_y() - cy) * draw.scale,
+        )
+        s1 = (s0[0] + start.get_width() * draw.scale, s0[1] + start.get_height() * draw.scale)
+        inset_x = min(1.0, end.get_width() / 2)
+        inset_y = min(1.0, end.get_height() / 2)
+        e0 = (end.get_x() + inset_x, end.get_y() + inset_y)
+        e1 = (end.get_x() + end.get_width() - inset_x, end.get_y() + end.get_height() - inset_y)
+        k = min(1.0, settle.share)
+        left, top = (a + (b - a) * k for a, b in zip(s0, e0))
+        right, bottom = (a + (b - a) * k for a, b in zip(s1, e1))
+        return Graphene.Rect().init(left, top, max(0.0, right - left), max(0.0, bottom - top))
+
+    @staticmethod
+    def _moved_rect(rect, pose: Pose, width: float, height: float) -> Graphene.Rect:
+        """*rect* (the picture's place) moved by its slow move, cut to the window's rectangle."""
+        cx, cy = width / 2, height / 2
+        left = cx + pose.dx + (rect.get_x() - cx) * pose.scale
+        top = cy + (rect.get_y() - cy) * pose.scale
+        right = left + rect.get_width() * pose.scale
+        bottom = top + rect.get_height() * pose.scale
+        left, top = max(0.0, left), max(0.0, top)
+        right, bottom = min(width, right), min(height, bottom)
+        return Graphene.Rect().init(left, top, max(0.0, right - left), max(0.0, bottom - top))
+
+    @staticmethod
+    def _push_mask(snapshot, painter) -> None:
+        """Start a mask over what is drawn next: GTK takes the first thing recorded as the mask
+        (here *painter*'s gradient, only its alpha counts) and the rest, up to the ``pop`` that the
+        caller makes, as the picture it cuts."""
+        snapshot.push_mask(Gsk.MaskMode.ALPHA)
+        painter(snapshot)
+        snapshot.pop()
+
+    @staticmethod
+    def _soft_painters(snapshot, draw: Draw, rect) -> Dict[str, List[Callable[[Any], None]]]:
+        """The mask painters of ``draw.soft``, by the coordinates they paint in. None where the
+        edge is hard: no soft edge asked for, or GTK before 4.10, which has no masks (the pictures
+        then keep the cut edge they had)."""
+        masks: Dict[str, List[Callable[[Any], None]]] = {SOFT_CLIP: [], SOFT_PICTURE: []}
+        soft = draw.soft
+        if soft is None or soft.width <= 0.0 or not hasattr(snapshot, "push_mask"):
+            return masks
+        if soft.kind == SOFT_CIRCLE and draw.circle is not None:
+            masks[SOFT_CLIP].append(_rim_painter(draw.circle, soft.width))
+        elif soft.kind == SOFT_CLIP and draw.clip is not None:
+            masks[SOFT_CLIP] += _edge_painters(draw.clip, soft.width, soft.sides)
+        elif soft.kind == SOFT_PICTURE:
+            masks[SOFT_PICTURE] += _edge_painters(
+                (rect.get_x(), rect.get_y(), rect.get_width(), rect.get_height()),
+                soft.width,
+                soft.sides,
+            )
+        return masks
 
 
 class PreviewWindow:
@@ -407,10 +655,10 @@ class PreviewWindow:
         return device_size(surface.get_width(), surface.get_height(), self._scale())
 
     def show_frame(
-        self, frame: Frame, pan_seconds: float, transition: Optional[Tuple[str, float]] = None
+        self, frame: Frame, seconds: float, transition: Optional[Tuple[str, float]] = None
     ) -> None:
         self._message.set_visible(False)
-        self._canvas.set_frame(frame, pan_seconds, transition)
+        self._canvas.set_frame(frame, seconds, transition)
 
     def show_message(self, text: str) -> None:
         """Black screen with a short message; an empty string shows plain black."""
