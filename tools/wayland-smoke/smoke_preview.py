@@ -16,6 +16,8 @@ this script only checks that the preview ends and nothing else.
     run.sh --input close           # Gtk.Window.close() on a window: close-request ends it
     run.sh --input none            # inject nothing: the preview must keep running
     run.sh --animations off --pan  # "reduce animations" on: portrait pictures do not scroll
+    run.sh --transition zoom       # a transition name, "random" or "none": each picture after the
+                                   # first comes in with it, and the redraws stop when it is over
 
 What a check proves is said in its own name. Two things to know: ``--input none`` injects
 nothing and does not park the pointer, it rests wherever the compositor put it; and the key
@@ -49,8 +51,10 @@ from slideshow_lock.preview_app import build_source  # noqa: E402
 from slideshow_lock.preview_window import animations_enabled, open_monitor_windows  # noqa: E402
 from slideshow_lock.scaling import ImageScaler  # noqa: E402
 from slideshow_lock.settings import Settings  # noqa: E402
+from slideshow_lock.transitions import ALL_TRANSITIONS, RANDOM_POOL  # noqa: E402
 
 RESULTS = []
+TRANSITIONS: list = []  # (window index, what show_frame was given as its transition)
 
 
 def check(name: str, ok: bool, detail: str = "") -> None:
@@ -88,6 +92,51 @@ def make_pictures(folder: str) -> None:
         os.utime(os.path.join(folder, name), (old, old))
 
 
+def transitions_for(choice):
+    """The ``transitions`` list a ``--transition`` choice stores (None: leave the default)."""
+    if choice is None:
+        return None
+    if choice == "none":
+        return []
+    return list(RANDOM_POOL) if choice == "random" else [choice]
+
+
+def check_transitions(args, shown, per_picture) -> None:
+    """Every picture after the first came in with the chosen transition (never twice the same name
+    in a row for "random"), and the redraws of a picture stay within what the transition needs."""
+    first_window = [t for index, t in TRANSITIONS if index == 0]
+    later = first_window[1:]
+    if args.transition == "none":
+        check("transition none: every picture is a cut", all(t is None for t in later), str(later))
+        return
+    names = [t[0] for t in later if t is not None]
+    allowed = set(RANDOM_POOL) if args.transition == "random" else {args.transition}
+    check(
+        f"transition {args.transition}: every later picture comes in with it",
+        len(later) > 0 and len(names) == len(later) and set(names) <= allowed,
+        str(names[:6]),
+    )
+    if args.transition == "random":
+        check(
+            "transition random: never the same one twice in a row",
+            all(a != b for a, b in zip(names, names[1:])),
+            str(names[:6]),
+        )
+    run_seconds = [
+        max(t[1], args.interval * 0.9) if t[0] == "ken-burns" else t[1] for t in later if t
+    ]
+    # a redraw per frame at 60 Hz, with some room; the first picture of the run has none to show
+    bounded = [
+        paints <= 65 * seconds + 12
+        for (_n, _p, paints), seconds in zip(per_picture[1:], run_seconds)
+    ]
+    check(
+        f"transition {args.transition}: the redraws stop when the transition is over",
+        all(bounded) and len(bounded) > 0,
+        str([p for _n, _pan, p in per_picture[1:5]]),
+    )
+
+
 class Recorder(logging.Handler):
     def __init__(self) -> None:
         super().__init__()
@@ -122,6 +171,7 @@ class RecordingWindow:
 
     def show_frame(self, frame, pan_seconds, transition=None):
         self.shown.append((self.index, frame, time.monotonic(), self.paints))
+        TRANSITIONS.append((self.index, transition))
         self.inner.show_frame(frame, pan_seconds, transition)
 
     def show_message(self, text):
@@ -237,6 +287,11 @@ def main() -> int:
     parser.add_argument("--scaling", choices=("fit", "fill"), default="fill")
     parser.add_argument("--pan", action="store_true")
     parser.add_argument("--interval", type=int, default=2)
+    parser.add_argument(
+        "--transition",
+        choices=("none", "random", *ALL_TRANSITIONS),
+        help="the stored transition: a name, random (the eight, never twice in a row) or none",
+    )
     parser.add_argument("--dump", help="write every frame shown as a PNG into this folder")
     args = parser.parse_args()
     if args.pan and args.scaling == "fit":
@@ -260,6 +315,11 @@ def main() -> int:
                 settings.set_scaling(args.scaling),
                 settings.set_pan_portrait_images(args.pan),
             ]
+            + (
+                [settings.set_transitions(chosen), settings.set_transition_order("random")]
+                if (chosen := transitions_for(args.transition)) is not None
+                else []
+            )
         ),
     )
 
@@ -416,6 +476,8 @@ def main() -> int:
                     (os.path.basename(frame.path), frame.pan_range != (0, 0), next_paints - paints)
                 )
             print(f"SMOKE redraws per picture (first window): {per_picture[:4]}", flush=True)
+            if args.transition is not None:
+                check_transitions(args, shown, per_picture)
             if args.pan and args.animations == "off":
                 portrait = [
                     (index, frame)

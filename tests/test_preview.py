@@ -13,6 +13,7 @@ from __future__ import annotations
 import ast
 import logging
 import os
+import random
 import re
 import threading
 import time
@@ -35,8 +36,10 @@ from slideshow_lock.settings import (
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_ORDER,
     KEY_TRANSITIONS,
 )
+from slideshow_lock.transition_draw import TransitionChooser
 from tests.jpeg_fixtures import fake_jpeg
 from tests.test_image_source import (
     FakeWatcher,
@@ -199,12 +202,13 @@ class FakeScaler:
 
 
 class FakeSettings:
-    def __init__(self, interval=10, scaling="fill", pan=False, transitions=()):
+    def __init__(self, interval=10, scaling="fill", pan=False, transitions=(), order="random"):
         self.values = {
             KEY_SLIDE_INTERVAL_SECONDS: interval,
             KEY_SCALING: scaling,
             KEY_PAN_PORTRAIT_IMAGES: pan,
             KEY_TRANSITIONS: list(transitions),  # none: the tests of the cut are the older ones
+            KEY_TRANSITION_ORDER: order,
         }
         self._callbacks = []
 
@@ -219,6 +223,9 @@ class FakeSettings:
 
     def get_transitions(self):
         return list(self.values[KEY_TRANSITIONS])
+
+    def get_transition_order(self):
+        return self.values[KEY_TRANSITION_ORDER]
 
     def connect_changed(self, callback):
         self._callbacks.append(callback)
@@ -245,6 +252,7 @@ class Rig:
         sizes=None,
         scan=True,
         animations=lambda: True,
+        chooser=None,
         **source_kwargs,
     ):
         self.root = tmp_path
@@ -271,6 +279,7 @@ class Rig:
             clock=self.clock,
             worker=self.worker,
             animations=animations,
+            chooser=chooser,
         )
         self.controller.connect_stopped(self.stops.append)
 
@@ -1098,6 +1107,7 @@ ALLOWED_CALLS = {
     ("settings", "get_pan_portrait_images"),
     ("settings", "get_slide_interval_seconds"),
     ("settings", "get_transitions"),
+    ("settings", "get_transition_order"),
     ("settings", "connect_changed"),
     ("window", "device_size"),
     ("window", "show_frame"),
@@ -1706,11 +1716,13 @@ def test_ac8_no_monitor_means_no_preview_and_a_warning(tmp_path, backends, caplo
 # -- transitions between pictures -----------------------------------------------------------------
 
 
-def transition_rig(tmp_path, backends, chosen=("crossfade",), interval=10, **kwargs):
+def transition_rig(
+    tmp_path, backends, chosen=("crossfade",), interval=10, order="random", **kwargs
+):
     kwargs.setdefault("windows", 2)
     kwargs.setdefault("files", ("a.png", "b.png", "c.png"))
     files = kwargs.pop("files")
-    settings = FakeSettings(interval=interval, transitions=chosen)
+    settings = FakeSettings(interval=interval, transitions=chosen, order=order)
     return rig(tmp_path, backends, files, settings=settings, **kwargs)
 
 
@@ -1747,15 +1759,15 @@ def test_an_interval_too_short_for_a_transition_is_a_cut(tmp_path, backends):
     assert r.windows[0].transitions == [None, None]
 
 
-@pytest.mark.parametrize("chosen", [(), ("wipe",), ("sparkle",), ("blur", "rotate")])
-def test_no_chosen_drawable_transition_is_a_cut(tmp_path, backends, chosen):
+@pytest.mark.parametrize("chosen", [(), ("sparkle",), ("sparkle", "other")])
+def test_no_chosen_transition_is_a_cut(tmp_path, backends, chosen):
     r = transition_rig(tmp_path, backends, chosen=chosen)
     r.tick(10)
     assert r.windows[0].transitions == [None, None]
 
 
-def test_a_name_this_version_cannot_draw_is_passed_over_for_one_it_can(tmp_path, backends):
-    r = transition_rig(tmp_path, backends, chosen=("wipe", "fade-black"))
+def test_a_name_that_is_not_a_transition_is_passed_over_for_one_that_is(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("sparkle", "fade-black"))
     r.tick(10)
     assert r.windows[0].transitions[-1] == ("fade-black", 1.2)
 
@@ -1830,6 +1842,52 @@ def test_a_window_with_nothing_on_screen_yet_shows_the_picture_without_a_transit
     r.tick(10)
     assert r.windows[0].transitions[-1] == ("crossfade", 1.0)
     assert r.windows[1].transitions == [None]
+
+
+def names_shown(window):
+    return [t[0] for t in window.transitions if t is not None]
+
+
+def test_random_never_shows_the_same_transition_twice_in_a_row(tmp_path, backends):
+    chosen = ("crossfade", "push", "zoom", "circle")
+    r = transition_rig(
+        tmp_path, backends, chosen=chosen, chooser=TransitionChooser(random.Random(4))
+    )
+    for _ in range(40):
+        r.tick(10)
+    names = names_shown(r.windows[0])
+    assert len(names) == 40 and set(names) == set(chosen)
+    assert all(a != b for a, b in zip(names, names[1:]))
+
+
+def test_one_transition_is_chosen_for_a_change_and_every_monitor_gets_it(tmp_path, backends):
+    chosen = ("crossfade", "push", "zoom", "circle")
+    r = transition_rig(
+        tmp_path, backends, chosen=chosen, windows=3, chooser=TransitionChooser(random.Random(9))
+    )
+    for _ in range(12):
+        r.tick(10)
+    assert names_shown(r.windows[0]) == names_shown(r.windows[1]) == names_shown(r.windows[2])
+
+
+def test_in_sequence_the_chosen_ones_come_round_in_the_canonical_order(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("wipe", "crossfade", "push"), order="sequence")
+    for _ in range(7):
+        r.tick(10)
+    assert names_shown(r.windows[0]) == ["crossfade", "push", "wipe"] * 2 + ["crossfade"]
+
+
+def test_the_order_is_read_for_every_change_of_picture(tmp_path, backends):
+    chosen = ("crossfade", "push", "wipe")
+    r = transition_rig(tmp_path, backends, chosen=chosen, order="sequence")
+    r.tick(10)
+    r.tick(10)
+    assert names_shown(r.windows[0]) == ["crossfade", "push"]
+    r.settings.set(KEY_TRANSITION_ORDER, "random")
+    for _ in range(20):
+        r.tick(10)
+    names = names_shown(r.windows[0])[2:]
+    assert all(a != b for a, b in zip(["push"] + names, names))  # still never twice in a row
 
 
 def test_a_stopped_preview_draws_no_more_transitions(tmp_path, backends):

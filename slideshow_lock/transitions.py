@@ -1,29 +1,23 @@
 """The transitions between two pictures, without GTK.
 
-What a transition is called, how long it takes, and what it looks like at a given moment, as
-plain numbers: the preview window (``slideshow_lock.preview_window``) only turns these numbers
-into drawing calls, so everything decided here is tested without a display.
+What a transition is called and how long it takes, as plain numbers, so that everything decided
+here is tested without a display. What each looks like is ``slideshow_lock.transition_draw``; the
+preview window (``slideshow_lock.preview_window``) only turns that into drawing calls.
 
 The ten identifiers are the contract of the ``transitions`` setting: they are stored as they are
-written here, and a later version may draw more of them than this one does. ``DRAWABLE`` are the
-ones this version draws; the others are valid in the setting (they are kept, never rewritten) but
-this version shows nothing for them.
+written here. The slideshow draws all ten (``slideshow_lock.transition_draw`` says what each looks
+like and which comes next, the preview window draws it); a name that is not one of them is dropped
+and logged once.
 
 A transition runs for ``transition_seconds`` from the moment the new picture appears, and never
 longer than a quarter of the slide interval, so a short interval does not turn into one long
 dissolve. Below ``MIN_TRANSITION_SECONDS`` a transition is not worth drawing: the picture is cut.
-
-``layers(name, p)`` says what is on screen at progress ``p`` (0 = the old picture alone, 1 = the new
-one alone) as a cross fade between two layers: ``(start, end, progress)`` where start and end are
-``OLD``, ``NEW`` or ``BLACK``. A cross fade between the old picture and the new one is the
-"crossfade"; the "fade-black" is the old picture fading to black, then black fading to the new
-one. Both are the same drawing call, so the window needs no second code path.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Iterable, List, NamedTuple, Optional, Sequence
+from typing import Iterable, List, Optional, Sequence
 
 _LOG = logging.getLogger(__name__)
 
@@ -52,8 +46,15 @@ ALL_TRANSITIONS = (
     ROTATE,
 )
 
-#: The ones this version of the program can draw.
+#: The two the settings window's single-choice drop-down offers (and ``choose`` picks from). The
+#: slideshow itself draws all ten and chooses with ``transition_draw.TransitionChooser``: this
+#: goes away with the drop-down, when the window lists the ten.
 DRAWABLE = (CROSSFADE, FADE_BLACK)
+
+#: What "random" in the window and on the command line (``--transition random``) stores in the
+#: ``transitions`` setting: the eight that are cheap and always look right. The blur is heavy and
+#: Ken Burns only suits a picture that fills the window, so both are for choosing by name.
+RANDOM_POOL = tuple(name for name in ALL_TRANSITIONS if name not in (BLUR, KEN_BURNS))
 
 #: What the ``transitions`` setting holds until it is changed.
 DEFAULT_TRANSITIONS = (CROSSFADE,)
@@ -64,8 +65,10 @@ ORDER_SEQUENCE = "sequence"
 ORDERS = (ORDER_RANDOM, ORDER_SEQUENCE)
 DEFAULT_ORDER = ORDER_RANDOM
 
-#: The value of ``--transition`` that means "no transition, cut" (never stored: an empty list is).
+#: The values of ``--transition`` that mean "no transition, cut" (never stored: an empty list is)
+#: and "a different one each time from ``RANDOM_POOL``" (stored as that list with ``ORDER_RANDOM``).
 NONE = "none"
+RANDOM = "random"
 
 #: How long each transition takes, in seconds, before the limit of the slide interval.
 #: The Ken Burns figure is only its cross fade into the picture; the slow move that goes with it
@@ -89,18 +92,9 @@ INTERVAL_SHARE = 0.25
 #: A transition shorter than this is not drawn: the new picture simply replaces the old one.
 MIN_TRANSITION_SECONDS = 0.2
 
-# What a layer of the drawing is.
+# The two pictures of a transition.
 OLD = "old"
 NEW = "new"
-BLACK = "black"
-
-
-class Layers(NamedTuple):
-    """A cross fade: ``start`` is shown at progress 0, ``end`` at 1, mixed by ``progress``."""
-
-    start: str
-    end: str
-    progress: float
 
 
 def is_valid(name) -> bool:
@@ -144,26 +138,10 @@ def transition_seconds(name: str, interval: float) -> float:
 
 
 def choose(names: Sequence[str]) -> Optional[str]:
-    """The transition to use among the chosen *names*: the first one this version can draw, in the
-    order of ``ALL_TRANSITIONS``; None when there is none (a cut). The window offers one choice
-    only, so this is what decides if the stored list ever holds more than one."""
+    """The first of the chosen *names* that is in ``DRAWABLE``, in the order of ``ALL_TRANSITIONS``;
+    None when there is none (a cut). What the settings window's single-choice drop-down shows; the
+    slideshow itself chooses with ``transition_draw.TransitionChooser``."""
     for name in ALL_TRANSITIONS:
         if name in names and name in DRAWABLE:
             return name
-    return None
-
-
-def layers(name: str, progress: float) -> Optional[Layers]:
-    """What *name* shows at *progress* (0 to 1, clamped): None for a name this version cannot draw.
-
-    At 0 only the old picture is visible, at 1 only the new one; in between the new picture never
-    becomes less visible and the old one never more.
-    """
-    p = min(1.0, max(0.0, float(progress)))
-    if name == CROSSFADE:
-        return Layers(OLD, NEW, p)
-    if name == FADE_BLACK:
-        if p < 0.5:
-            return Layers(OLD, BLACK, 2.0 * p)
-        return Layers(BLACK, NEW, 2.0 * p - 1.0)
     return None
