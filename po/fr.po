@@ -16,6 +16,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Démarrer le service du diaporama et ouvrir la fenêtre des paramètres."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "à la connexion : démarrer le service, n’ouvrir la fenêtre que la première fois"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Aléatoire"
@@ -144,8 +152,8 @@ msgstr "Aperçu en cours : appuyer sur une touche ou bouger la souris pour l’a
 msgid "Change the slideshow settings."
 msgstr "Modifier les paramètres du diaporama."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "log every step"
 msgstr "journaliser chaque étape"
 

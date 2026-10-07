@@ -26,11 +26,12 @@ SPEC = REPO / "packaging" / "fedora" / "slideshow-lock.spec"
 UNIT = REPO / "data" / "slideshow-lock.service"
 SH = shutil.which("sh") or "/bin/sh"
 EXEC_LINE = 'exec /usr/bin/python3 -P -m "$module" "$@"'
-SHORT_EXEC_LINE = 'exec /usr/bin/slideshow-lock settings "$@"'
+SHORT_EXEC_LINE = 'exec /usr/bin/slideshow-lock control "$@"'
 
 MODULES = {
     "service": "slideshow_lock.service",
     "settings": "slideshow_lock.settings_app",
+    "control": "slideshow_lock.control",
     "preview": "slideshow_lock.preview_app",
 }
 
@@ -193,14 +194,39 @@ def test_the_unit_restarts_on_failure_only_and_within_a_bound():
     assert service["RestartPreventExitStatus"] == ["2"]
 
 
-# -- slideshowlock: the short command that opens the settings window ----------------------------
+# -- slideshowlock: the short command that starts the service and opens the settings window -------
 
 
 @pytest.mark.spawns_processes
-def test_the_short_command_opens_the_settings_window(short_launcher):
+def test_the_short_command_runs_the_control_command(short_launcher):
     result = _run(short_launcher)
     assert result.returncode == 0, result.stderr
-    assert result.stdout.splitlines() == ["ARGC=1", "ARG=settings"]
+    assert result.stdout.splitlines() == ["ARGC=1", "ARG=control"]
+
+
+@pytest.mark.spawns_processes
+def test_the_login_start_reaches_the_control_module_isolated_from_the_current_directory(
+    short_launcher, tmp_path
+):
+    """The whole way of the autostart entry: slideshowlock -> slideshow-lock control -> the module,
+    run as ``/usr/bin/python3 -P -m`` (no current directory in ``sys.path``), with the mode."""
+    launcher_text = LAUNCHER.read_text()
+    assert launcher_text.count(EXEC_LINE) == 1
+    recorder = tmp_path / "python3"
+    recorder.write_text('#!/bin/sh\nfor a in "$@"; do echo "ARG=$a"; done\n')
+    recorder.chmod(recorder.stat().st_mode | stat.S_IXUSR)
+    chain = tmp_path / "slideshow-lock"
+    chain.write_text(launcher_text.replace("/usr/bin/python3", str(recorder)))
+    short = tmp_path / "slideshowlock"
+    short.write_text(SHORT_LAUNCHER.read_text().replace("/usr/bin/slideshow-lock", f"{SH} {chain}"))
+    result = _run(short, "autostart")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == [
+        "ARG=-P",
+        "ARG=-m",
+        "ARG=slideshow_lock.control",
+        "ARG=autostart",
+    ]
 
 
 @pytest.mark.spawns_processes
@@ -209,7 +235,7 @@ def test_the_short_command_passes_the_arguments_on_unchanged_and_in_order(short_
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines() == [
         "ARGC=4",
-        "ARG=settings",
+        "ARG=control",
         "ARG=--debug",
         "ARG=--folder",
         "ARG=/x y",
@@ -223,8 +249,8 @@ def test_the_short_commands_help_names_it_and_starts_nothing(short_launcher, fla
     assert result.returncode == 0
     assert result.stderr == ""
     assert "ARGC=" not in result.stdout
-    assert "usage: slideshowlock" in result.stdout
-    assert "slideshow-lock settings" in result.stdout
+    assert "usage: slideshowlock [autostart] [--debug]" in result.stdout
+    assert "slideshow-lock control" in result.stdout
     assert "--debug" in result.stdout
 
 

@@ -109,8 +109,8 @@ gsettings list-recursively io.github.sakkmesterke.SlideshowLock
 gsettings reset-recursively io.github.sakkmesterke.SlideshowLock
 ```
 
-The first command prints the seven keys with their current values (defaults included): note them
-if you want to restore your own. The second sets all seven back to their defaults, including any
+The first command prints the eight keys with their current values (defaults included): note them
+if you want to restore your own. The second sets all eight back to their defaults, including any
 that you had changed before the trial. Tried with GLib's keyfile settings backend in a headless
 session (two keys changed, then reset: both back at their defaults); not tried with dconf on a
 desktop.

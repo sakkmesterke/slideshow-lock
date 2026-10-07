@@ -269,3 +269,38 @@ def test_get_picture_folder_no_warning_when_folder_exists(tmp_path, caplog):
         settings.get_picture_folder()
 
     assert not any("[slideshow-dir]" in record.message for record in caplog.records)
+
+
+# -- first-run-done and the user's own picture folder (the login start of ``control``) -------------
+
+
+@pytest.fixture
+def first_run_keys():
+    settings = Settings()
+    for key in ("first-run-done", "picture-folder"):
+        settings._settings.reset(key)
+    yield settings
+    for key in ("first-run-done", "picture-folder"):
+        settings._settings.reset(key)
+
+
+def test_first_run_done_is_false_until_it_is_set(first_run_keys):
+    assert first_run_keys.get_first_run_done() is False
+    assert first_run_keys.set_first_run_done(True) is True
+    assert Settings().get_first_run_done() is True
+
+
+def test_first_run_done_takes_nothing_but_a_boolean(first_run_keys, caplog):
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+        assert first_run_keys.set_first_run_done("yes") is False
+    assert first_run_keys.get_first_run_done() is False
+
+
+def test_the_default_picture_folder_is_not_a_chosen_one(first_run_keys):
+    assert first_run_keys.has_chosen_picture_folder() is False
+
+
+@pytest.mark.parametrize("value", ["/home/user/Pictures/Holiday", ""])
+def test_a_stored_picture_folder_is_a_chosen_one_even_an_empty_one(first_run_keys, value):
+    first_run_keys.set_picture_folder(value)
+    assert first_run_keys.has_chosen_picture_folder() is True
