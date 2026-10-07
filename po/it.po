@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 06:38+0000\n"
+"POT-Creation-Date: 2026-10-07 04:15+0000\n"
 "PO-Revision-Date: 2026-10-06 04:00+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: Italian\n"
@@ -18,11 +18,19 @@ msgstr "Slideshow Lock"
 
 #: slideshow_lock/control.py
 msgid "Start the slideshow service and open the settings window."
-msgstr "Avviare il servizio della presentazione e aprire la finestra delle impostazioni."
+msgstr ""
+"Avviare il servizio della presentazione e aprire la finestra delle "
+"impostazioni."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "all'accesso: avviare il servizio e aprire la finestra solo la prima volta"
+msgstr ""
+"all'accesso: avviare il servizio e aprire la finestra solo la prima volta"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "registrare ogni passaggio"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -53,20 +61,52 @@ msgid "Fade through black"
 msgstr "Dissolvenza in nero"
 
 #: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Scorrimento in entrata"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Spinta"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoom"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Tendina"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Rivelazione circolare"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Sfocatura"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Rotazione"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Mix casuale"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Impostazioni di Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Sfoglia..."
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Immagini"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Cartella delle immagini"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Sfoglia..."
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -81,24 +121,35 @@ msgid "Scroll tall pictures"
 msgstr "Scorrimento delle immagini verticali"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Le immagini verticali su uno schermo orizzontale scorrono lentamente dall'alto verso il basso (solo con Riempi lo schermo). Disattivato per impostazione predefinita: consuma più batteria."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Le immagini verticali su uno schermo orizzontale scorrono lentamente "
+"dall'alto verso il basso (solo con Riempi lo schermo). Disattivato per "
+"impostazione predefinita: consuma più batteria."
 
 #: slideshow_lock/preferences.py
-msgid "Transitions"
-msgstr "Transizioni"
+msgid "Pictures"
+msgstr "Immagini"
 
 #: slideshow_lock/preferences.py
 msgid "Between pictures"
 msgstr "Tra le immagini"
 
 #: slideshow_lock/preferences.py
-msgid "How a picture changes into the next. Without desktop animations the pictures change at once."
-msgstr "Come un'immagine passa alla successiva. Senza le animazioni del desktop, le immagini cambiano subito."
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Come un'immagine passa alla successiva. «Mix casuale» sceglie a ogni cambio "
+"una di otto transizioni (escluse Sfocatura e Ken Burns). Senza le animazioni "
+"del desktop le immagini cambiano subito."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Avvio della presentazione"
+msgid "Transitions"
+msgstr "Transizioni"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -113,8 +164,8 @@ msgid "seconds"
 msgstr "secondi"
 
 #: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Tempi"
+msgid "Start the slideshow"
+msgstr "Avvio della presentazione"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -125,8 +176,20 @@ msgid "Lock grace period"
 msgstr "Periodo di tolleranza del blocco"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Un input arrivato prima di questo tempo dall'avvio della presentazione non blocca la sessione (strettamente prima; 0 significa che ogni input blocca)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Un input arrivato prima di questo tempo dall'avvio della presentazione non "
+"blocca la sessione (strettamente prima; 0 significa che ogni input blocca)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Tempi"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Salva"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -170,16 +233,13 @@ msgstr "Nessun monitor su cui mostrare l'anteprima."
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Anteprima in corso: premere un tasto qualsiasi o muovere il mouse per terminarla."
+msgstr ""
+"Anteprima in corso: premere un tasto qualsiasi o muovere il mouse per "
+"terminarla."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Modificare le impostazioni della presentazione."
-
-#: slideshow_lock/control.py slideshow_lock/preferences.py
-#: slideshow_lock/preview_app.py slideshow_lock/service.py
-msgid "log every step"
-msgstr "registrare ogni passaggio"
 
 #: slideshow_lock/preferences.py
 msgid ""
@@ -187,7 +247,8 @@ msgid ""
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 msgstr ""
-"Lo schema delle impostazioni non è installato. Compilarlo e indicarlo a GSettings:\n"
+"Lo schema delle impostazioni non è installato. Compilarlo e indicarlo a "
+"GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
@@ -225,8 +286,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "In uso: %s (la cartella non esiste ancora, non verrà mostrato nulla)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Non corrisponde a un passo del cursore: viene mostrato quello più vicino. Il valore salvato resta invariato finché non si sposta il cursore."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Non corrisponde a un passo del cursore: viene mostrato quello più vicino. Il "
+"valore salvato resta invariato finché non si sposta il cursore."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -250,14 +315,6 @@ msgid "This choice is not available."
 msgstr "Questa scelta non è disponibile."
 
 #: slideshow_lock/preferences_model.py
-msgid "The value was not accepted, the old one is kept."
-msgstr "Il valore non è stato accettato, viene mantenuto quello precedente."
-
-#: slideshow_lock/preferences_model.py
-msgid "The value could not be saved."
-msgstr "Impossibile salvare il valore."
-
-#: slideshow_lock/preferences_model.py
 msgid "This must be on or off."
 msgstr "Deve essere attivato o disattivato."
 
@@ -278,6 +335,14 @@ msgid "This path is a file, not a folder."
 msgstr "Questo percorso è un file, non una cartella."
 
 #: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Il valore non è stato accettato, viene mantenuto quello precedente."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Impossibile salvare il valore."
+
+#: slideshow_lock/preferences_model.py
 msgid "The folder was not accepted, the old one is kept."
 msgstr "La cartella non è stata accettata, viene mantenuta quella precedente."
 
@@ -290,8 +355,11 @@ msgid "No pictures to show"
 msgstr "Nessuna immagine da mostrare"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Mostrare l'anteprima della presentazione. Qualsiasi input la termina. Non blocca mai la sessione."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Mostrare l'anteprima della presentazione. Qualsiasi input la termina. Non "
+"blocca mai la sessione."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -315,7 +383,9 @@ msgstr "scorrere lentamente le immagini verticali (modalità riempimento)"
 
 #: slideshow_lock/preview_app.py
 msgid "how a picture changes into the next, or none (this run only)"
-msgstr "come un'immagine passa alla successiva, oppure none (solo per questa esecuzione)"
+msgstr ""
+"come un'immagine passa alla successiva, oppure none (solo per questa "
+"esecuzione)"
 
 #: slideshow_lock/preview_app.py
 #, python-format
@@ -328,7 +398,8 @@ msgid ""
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 msgstr ""
-"Lo schema delle impostazioni non è installato. Compilarlo e indicarlo a GSettings:\n"
+"Lo schema delle impostazioni non è installato. Compilarlo e indicarlo a "
+"GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
@@ -337,8 +408,13 @@ msgid "Slideshow Lock preview"
 msgstr "Anteprima di Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Avviare la presentazione quando la sessione è inattiva, bloccarla al primo input dopo il periodo di tolleranza e bloccarla prima che il computer vada in sospensione."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Avviare la presentazione quando la sessione è inattiva, bloccarla al primo "
+"input dopo il periodo di tolleranza e bloccarla prima che il computer vada "
+"in sospensione."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -362,6 +438,7 @@ msgid ""
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 msgstr ""
-"Lo schema delle impostazioni non è installato. Compilarlo e indicarlo a GSettings:\n"
+"Lo schema delle impostazioni non è installato. Compilarlo e indicarlo a "
+"GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
