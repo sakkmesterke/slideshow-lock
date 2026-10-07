@@ -270,21 +270,21 @@ class PreferencesWindow(Adw.ApplicationWindow):
             page.add(group)
         page.set_vexpand(True)
 
-        # -- the header bar (Save), the preview and the status ------------------------------
-        self.save_button = Gtk.Button(label=_("Save"), sensitive=False)
-        self.save_button.add_css_class("suggested-action")
-        self.save_button.connect("clicked", lambda _button: self.save())
+        # -- the header bar, the Preview and Save buttons and the status ---------------------
         header = Adw.HeaderBar()
-        header.pack_end(self.save_button)
 
         self.preview_button = Gtk.Button(label=_("Preview"), valign=Gtk.Align.CENTER)
         self.preview_button.connect("clicked", lambda _button: self._start_preview())
+        self.save_button = Gtk.Button(label=_("Save"), valign=Gtk.Align.CENTER, sensitive=False)
+        self.save_button.add_css_class("suggested-action")
+        self.save_button.connect("clicked", lambda _button: self.save())
         self.status = Gtk.Label(xalign=0, wrap=True, hexpand=True)
         self.status.add_css_class("dim-label")
         footer = Gtk.Box(spacing=ROW_SPACING)
         for margin in ("top", "bottom", "start", "end"):
             getattr(footer, "set_margin_" + margin)(MARGIN if margin in ("start", "end") else 12)
         footer.append(self.preview_button)
+        footer.append(self.save_button)
         footer.append(self.status)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
