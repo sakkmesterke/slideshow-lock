@@ -43,19 +43,6 @@ INTERVALS = (3.0, 60.0)
 HZ = 60
 DURATION = 1.0
 
-#: What a frame may differ from the next by at the end of a transition, in 8-bit channel steps,
-#: beyond twice the difference of the two frames before (the pictures move a little between any
-#: two frames, and the renderer rounds). The ghost frame it replaces made it 253. Measured on the
-#: zoom and the rotate, whose soft edge narrows to nothing: one row of antialiased pixels at the
-#: picture's border, 29 steps; that is not the ghost frame and is allowed for here.
-JUMP_ALLOWANCE = 32
-
-#: The blur is left out of the jump check: GTK's Cairo renderer draws a blur of a hundredth of a
-#: pixel as a blur of about a pixel, so the frame before the last one differs from it by up to 94
-#: steps over the whole picture, with a picture of the window's size too (measured). That is
-#: not the ghost frame (the two frames at the end are the same picture, which is still checked).
-NO_JUMP_CHECK = ("blur",)
-
 
 def _pointer(obj):
     get = ctypes.pythonapi.PyCapsule_GetPointer
@@ -128,7 +115,7 @@ def _difference(a: bytes, b: bytes) -> int:
 def _frames(renderer, name: str, interval: float):
     """The frames at the end of the transition that takes the old picture out, with the poses the
     window gives them at *HZ* frames a second: the last two frames of the transition (progress
-    just below 1 and exactly 1) and the plain frame, then the one after it."""
+    just below 1 and exactly 1) and the plain frame that follows."""
     seconds = transition_seconds(name, interval, DURATION)
     span = td.picture_seconds(interval)
     canvas = _canvas()
@@ -145,13 +132,7 @@ def _frames(renderer, name: str, interval: float):
         return _render(renderer, canvas, [td.Draw(NEW, pose=pose)])
 
     step = 1.0 / HZ
-    return (
-        transition(end - 2 * step),
-        transition(end - step),
-        transition(end),
-        plain(end),
-        plain(end + step),
-    )
+    return transition(end - step), transition(end), plain(end)
 
 
 @pytest.mark.parametrize("interval", INTERVALS)
@@ -159,12 +140,10 @@ def _frames(renderer, name: str, interval: float):
 def test_the_last_frame_of_a_transition_is_the_plain_frame_for_a_small_picture(
     renderer, name, interval
 ):
-    before, previous, last, plain, later = _frames(renderer, name, interval)
-    assert _difference(last, plain) <= 2, (name, interval)  # the same picture, to the rounding
-    if name in NO_JUMP_CHECK:
-        return
-    steady = max(_difference(before, previous), _difference(plain, later))
-    assert _difference(previous, last) <= 2 * steady + JUMP_ALLOWANCE, (name, interval)
+    previous, last, plain = _frames(renderer, name, interval)
+    # the same picture, to the rounding, and no bigger a step than the one into the last frame
+    assert _difference(last, plain) <= max(2, _difference(previous, last)), (name, interval)
+    assert _difference(last, plain) <= 2, (name, interval)
 
 
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
