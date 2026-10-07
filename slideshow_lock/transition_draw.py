@@ -11,6 +11,12 @@ window passes the plain fraction of the time that has gone. The new picture is a
 the old one, never beside it in the same layer, so it never makes the old one less opaque than the
 pixels below it would allow: a transition cannot dip towards black unless it is the "fade-black".
 
+A picture is never still while it is shown: ``base_pose`` is its slow move (the Ken Burns move for
+a picture that fills the window, a gentle zoom for one that does not), measured from the moment it
+appears and carried by the picture through every transition, as the outgoing picture and as the
+incoming one. A ``Draw`` carries it as ``pose``; the window applies it inside the picture's own
+place, so every transition cuts, slides and fades that moving picture as it would a still one.
+
 ``TransitionChooser`` picks the transition for every change of picture from the stored list.
 """
 
@@ -26,7 +32,9 @@ from slideshow_lock.transitions import (
     CIRCLE,
     CROSSFADE,
     FADE_BLACK,
+    INTERVAL_SHARE,
     KEN_BURNS,
+    MAX_DURATION,
     NEW,
     OLD,
     ORDER_SEQUENCE,
@@ -38,14 +46,23 @@ from slideshow_lock.transitions import (
     clean,
 )
 
-#: The Ken Burns picture comes in enlarged by this much and over the whole run shrinks to its own
-#: size, and starts shifted to the left by ``KEN_BURNS_DRIFT`` of the window's width and drifts back
-#: to the middle: the last frame of the run is the picture as the plain drawing shows it, so
-#: nothing jumps when the run ends. The enlarged picture must cover the window at every moment of
-#: the run (no black edge shows): half of what it is larger by is at least what it is shifted by,
-#: ``KEN_BURNS_DRIFT <= KEN_BURNS_ZOOM / 2`` (both shrink with the same factor, so this is enough).
+#: The slow move of a picture that fills the window (Ken Burns): it appears enlarged by this much
+#: and, over the time it is shown, shrinks towards its own size, shifted to the left by
+#: ``KEN_BURNS_DRIFT`` of the window's width and drifting back to the middle. The enlarged picture
+#: must cover the window at every moment (no black edge shows): half of what it is larger by is at
+#: least what it is shifted by, ``KEN_BURNS_DRIFT <= KEN_BURNS_ZOOM / 2`` (both shrink with the
+#: same factor, so this is enough).
 KEN_BURNS_ZOOM = 0.14
 KEN_BURNS_DRIFT = 0.035
+
+#: The slow move of a picture that does not fill the window: it grows by this much over the time it
+#: is shown, around the middle of the window, without a shift (a shift would show its border move).
+SMALL_ZOOM = 0.04
+
+#: The slow move is redrawn this many times a second at most (the transitions run at the frame
+#: clock's rate): a drift of a few pixels over many seconds needs no more, and a picture that is
+#: always moving is drawn all the time, which the processor and the battery pay for.
+MOTION_FPS = 30
 
 #: The zoom: the old picture grows by this much while it fades out, the new one comes in from
 #: ``1 - ZOOM_IN`` of its size.
@@ -79,6 +96,18 @@ SOFT_CIRCLE = "circle"
 Rect = Tuple[float, float, float, float]  # x, y, width, height in window pixels
 
 
+class Pose(NamedTuple):
+    """Where a picture stands inside its own place because of its slow move: enlarged by ``scale``
+    around the middle of the window and shifted by ``dx`` window pixels (applied after the scale).
+    The transition then moves, turns and cuts the result."""
+
+    scale: float = 1.0
+    dx: float = 0.0
+
+
+STILL = Pose()
+
+
 class Soft(NamedTuple):
     """A soft edge: the picture goes from nothing at the cut edge to whole *width* pixels inside it
     (linearly), instead of stopping at a line. *kind* says which edge (``SOFT_CLIP``,
@@ -94,7 +123,8 @@ class Draw(NamedTuple):
     """One picture to paint. ``scale``, ``angle`` (degrees, clockwise) and the translation
     ``dx, dy`` (window pixels, applied after them) work around the centre of the window; ``clip``
     and ``circle`` (centre x, centre y, radius) cut the result; ``soft`` makes one of the cuts, or
-    the picture's own edge, a gradient; ``blur`` is a radius in pixels."""
+    the picture's own edge, a gradient; ``blur`` is a radius in pixels; ``pose`` is the picture's
+    slow move inside its own place, done before everything else."""
 
     layer: str
     opacity: float = 1.0
@@ -106,12 +136,37 @@ class Draw(NamedTuple):
     circle: Optional[Tuple[float, float, float]] = None
     blur: float = 0.0
     soft: Optional[Soft] = None
+    pose: Pose = STILL
 
 
 def ease(progress: float) -> float:
     """Smoothstep of *progress* clamped to 0..1: slow start and end, 0 and 1 stay where they are."""
     p = min(1.0, max(0.0, float(progress)))
     return p * p * (3.0 - 2.0 * p)
+
+
+def picture_seconds(interval: float) -> float:
+    """How long the longest-living picture of a slideshow with *interval* seconds per picture is on
+    screen: it appears, is shown for *interval* and stays under the next transition, which is at
+    most ``MAX_DURATION`` and ``INTERVAL_SHARE`` of the interval."""
+    interval = max(0.0, float(interval))
+    return interval + min(MAX_DURATION, INTERVAL_SHARE * interval)
+
+
+def base_pose(age: float, span: float, width: float, fills: bool) -> Pose:
+    """The slow move of a picture *age* seconds after it appeared, if it lives for *span* seconds
+    (``picture_seconds``): one move at a constant pace over the whole of it, so that it is never
+    still, and it has no end point it could rest in. A picture that fills the window (*fills*) is
+    the Ken Burns one; a picture that does not only grows, around the middle."""
+    left = 1.0 - min(1.0, max(0.0, float(age) / span)) if span > 0 else 1.0
+    if fills:
+        return Pose(1.0 + KEN_BURNS_ZOOM * left, -float(width) * KEN_BURNS_DRIFT * left)
+    return Pose(1.0 + SMALL_ZOOM * (1.0 - left))
+
+
+def fills_window(frame_size: Tuple[int, int], window_size: Tuple[int, int]) -> bool:
+    """True if a picture of *frame_size* covers a window of *window_size*."""
+    return frame_size[0] >= window_size[0] and frame_size[1] >= window_size[1]
 
 
 def soft_width(width: float, height: float) -> float:
@@ -172,22 +227,19 @@ def stops_alpha(stops: Sequence[Tuple[float, float]], offset: float) -> float:
     return stops[-1][1]
 
 
-def compose(
-    name: str, progress: float, width: float, height: float, fade_share: float = 1.0
-) -> List[Draw]:
+def compose(name: str, progress: float, width: float, height: float) -> List[Draw]:
     """The pictures to paint for transition *name* at *progress* (0 to 1, clamped) in a window of
     *width* x *height* pixels, bottom first. An empty list for a name that is not one of the ten.
 
-    ``fade_share`` only matters for Ken Burns, whose slow move lasts for the whole run (its last
-    frame is the picture as it is) while the cross fade into it takes this share of that time
-    (0 to 1)."""
+    The slow move of the pictures is not in it (``Draw.pose`` is ``STILL``): ``with_poses`` adds it.
+    Ken Burns is the cross fade: its move is the move every picture has."""
     p = min(1.0, max(0.0, float(progress)))
     e = ease(p)
     w, h = float(width), float(height)
     window: Rect = (0.0, 0.0, w, h)
     soft = soft_width(w, h)
 
-    if name == CROSSFADE:
+    if name in (CROSSFADE, KEN_BURNS):
         return [Draw(OLD), Draw(NEW, opacity=e)]
     if name == FADE_BLACK:
         if e < 0.5:
@@ -212,19 +264,6 @@ def compose(
                 dx=seam - overlap,
                 clip=window,
                 soft=Soft(SOFT_PICTURE, overlap, "l") if overlap > 0 else None,
-            ),
-        ]
-    if name == KEN_BURNS:
-        share = min(1.0, max(1e-6, float(fade_share)))
-        fade = ease(min(1.0, p / share))
-        left = 1.0 - p  # the part of the slow move still to go: 1 at the start, 0 at the end
-        return [
-            Draw(OLD),
-            Draw(
-                NEW,
-                opacity=fade,
-                scale=1.0 + KEN_BURNS_ZOOM * left,
-                dx=-w * KEN_BURNS_DRIFT * left,
             ),
         ]
     if name == ZOOM:
@@ -273,10 +312,15 @@ def compose(
     return []
 
 
-def first_frame(name: str, width: float, height: float, fade_share: float = 1.0) -> List[Draw]:
+def with_poses(draws: Sequence[Draw], old: Pose = STILL, new: Pose = STILL) -> List[Draw]:
+    """*draws* with the slow move of the outgoing picture (*old*) and the incoming one (*new*)."""
+    return [draw._replace(pose=old if draw.layer == OLD else new) for draw in draws]
+
+
+def first_frame(name: str, width: float, height: float) -> List[Draw]:
     """The frame drawn before the transition's clock starts: ``compose`` at 0 with the new picture
     added at a single pixel and almost no opacity, so that it is drawn, hence uploaded, here."""
-    draws = compose(name, 0.0, width, height, fade_share)
+    draws = compose(name, 0.0, width, height)
     if not draws and name not in ALL_TRANSITIONS:
         return draws
     return draws + [Draw(NEW, opacity=UPLOAD_OPACITY, clip=(0.0, 0.0, 1.0, 1.0))]
@@ -290,12 +334,11 @@ def effective_name(
     software_gl: bool = False,
 ) -> str:
     """The transition that is really drawn for *name* when the new picture is *frame_size*
-    pixels in a window of *window_size*: Ken Burns needs a picture that fills the window and does
-    not scroll (a smaller one would show its edges move, a scrolling one already moves), the blur
-    is too heavy for software rendering. Both become the cross fade."""
+    pixels in a window of *window_size*: Ken Burns, which is the cross fade of pictures that move,
+    stays a cross fade for a picture that does not fill the window or scrolls; the blur is too
+    heavy for software rendering and becomes the cross fade too."""
     if name == KEN_BURNS:
-        fills = frame_size[0] >= window_size[0] and frame_size[1] >= window_size[1]
-        if not fills or tuple(pan_range) != (0, 0):
+        if not fills_window(frame_size, window_size) or tuple(pan_range) != (0, 0):
             return CROSSFADE
     if name == BLUR and software_gl:
         return CROSSFADE
@@ -355,13 +398,11 @@ class TransitionRun:
     Its end is a moment (``seconds`` after its clock started), not a number of frames, so a slow
     machine draws fewer frames and not a longer transition. The first tick only shows the first
     frame (``first_frame``: the old picture, the new texture uploaded out of sight) and starts no
-    clock; the clock starts at the second tick, so the upload is not counted in the time.
-    *fade_share* is for Ken Burns (see ``compose``)."""
+    clock; the clock starts at the second tick, so the upload is not counted in the time."""
 
-    def __init__(self, name: str, seconds: float, fade_share: float = 1.0) -> None:
+    def __init__(self, name: str, seconds: float) -> None:
         self.name = name
         self.seconds = float(seconds)
-        self.fade_share = fade_share
         self.progress = 0.0
         self._ticks = 0
         self._t0: Optional[int] = None
@@ -386,7 +427,11 @@ class TransitionRun:
         self.progress = max(0.0, self.progress)
         return True
 
-    def draws(self, width: float, height: float) -> List[Draw]:
+    def draws(
+        self, width: float, height: float, old: Pose = STILL, new: Pose = STILL
+    ) -> List[Draw]:
+        """The pictures to paint now, the outgoing one with the slow move *old*, the incoming one
+        with *new* (see ``with_poses``)."""
         if self.first:
-            return first_frame(self.name, width, height, self.fade_share)
-        return compose(self.name, self.progress, width, height, self.fade_share)
+            return with_poses(first_frame(self.name, width, height), old, new)
+        return with_poses(compose(self.name, self.progress, width, height), old, new)

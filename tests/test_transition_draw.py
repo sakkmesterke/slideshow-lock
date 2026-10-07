@@ -74,10 +74,10 @@ def test_at_progress_zero_the_old_picture_is_alone(name):
 
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
 def test_at_progress_one_the_new_picture_is_alone_and_untouched(name):
-    draws = td.compose(name, 1.0, W, H, fade_share=0.1)
+    draws = td.compose(name, 1.0, W, H)
     assert draws, name
     assert draws[-1].layer == NEW and draws[-1].opacity == 1.0
-    assert _new_whole(draws[-1])  # Ken Burns too: its last frame is the plain picture, no jump
+    assert _new_whole(draws[-1])
 
 
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
@@ -169,16 +169,9 @@ def test_push_moves_both_pictures_together_the_new_one_over_the_edge_of_the_old_
         assert old.clip == new.clip == (0.0, 0.0, W, H)
 
 
-def test_ken_burns_fades_in_during_its_share_and_then_keeps_moving():
-    early = td.compose(KEN_BURNS, 0.05, W, H, fade_share=0.1)[-1]
-    late = td.compose(KEN_BURNS, 0.5, W, H, fade_share=0.1)[-1]
-    end = td.compose(KEN_BURNS, 1.0, W, H, fade_share=0.1)[-1]
-    assert 0.0 < early.opacity < 1.0
-    assert late.opacity == 1.0 and end.opacity == 1.0
-    start = td.compose(KEN_BURNS, 0.0, W, H, fade_share=0.1)[-1]
-    assert start.scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM) and start.dx < 0.0
-    assert start.scale > early.scale > late.scale > end.scale == 1.0
-    assert start.dx < early.dx < late.dx < end.dx == 0.0
+def test_ken_burns_is_the_cross_fade_of_pictures_that_move_on_their_own():
+    for p in (0.0, 0.3, 0.5, 1.0):
+        assert td.compose(KEN_BURNS, p, W, H) == td.compose(CROSSFADE, p, W, H)
 
 
 #: ``KEN_BURNS_ZOOM`` on main (070e033), before the zoom was made stronger. The new one is 1.5 to
@@ -189,46 +182,37 @@ OLD_KEN_BURNS_ZOOM = 0.08
 def test_ken_burns_zoom_is_one_and_a_half_to_two_times_the_old_one():
     assert 0.12 <= td.KEN_BURNS_ZOOM <= 0.16
     assert 1.5 <= td.KEN_BURNS_ZOOM / OLD_KEN_BURNS_ZOOM <= 2.0
-    start = td.compose(KEN_BURNS, 0.0, W, H, fade_share=0.1)[-1]
-    assert start.scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM)
+    assert td.base_pose(0.0, 60.0, W, True).scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM)
 
 
-def test_ken_burns_never_shows_a_black_edge():
+def test_the_slow_move_of_a_picture_that_fills_the_window_never_shows_a_black_edge():
     """The enlarged picture reaches past the window on both sides by more than it is shifted by,
-    at every point of the run: ``scale - 1`` is at least ``2 |dx| / width``."""
+    at every point of its time: ``scale - 1`` is at least ``2 |dx| / width``."""
     assert td.KEN_BURNS_DRIFT <= td.KEN_BURNS_ZOOM / 2.0
-    for p in (0.0, 0.25, 0.5, 0.75, 1.0):
-        draw = td.compose(KEN_BURNS, p, W, H, fade_share=0.1)[-1]
-        assert draw.scale - 1.0 >= 2.0 * abs(draw.dx) / W - 1e-12, p
-        assert draw.dy == 0.0
+    for age in (0.0, 15.0, 30.0, 45.0, 60.0, 90.0):
+        pose = td.base_pose(age, 60.0, W, True)
+        assert pose.scale - 1.0 >= 2.0 * abs(pose.dx) / W - 1e-12, age
 
 
-def test_ken_burns_shrinks_smoothly_without_a_jump():
-    scales = [td.compose(KEN_BURNS, i / 200.0, W, H, fade_share=0.1)[-1].scale for i in range(201)]
-    steps = [a - b for a, b in zip(scales, scales[1:])]
-    assert all(step > 0.0 for step in steps)  # always shrinking, never still
-    assert max(steps) <= 1.01 * min(steps)  # at a steady pace: no step is bigger than the others
-    assert scales[0] == pytest.approx(1.0 + td.KEN_BURNS_ZOOM) and scales[-1] == 1.0
+def test_the_slow_move_of_a_picture_that_does_not_fill_the_window_only_grows_a_little():
+    start, end = td.base_pose(0.0, 60.0, W, False), td.base_pose(60.0, 60.0, W, False)
+    assert start == td.STILL
+    assert end.scale == pytest.approx(1.0 + td.SMALL_ZOOM) and end.dx == 0.0
 
 
-def test_ken_burns_last_frame_is_the_picture_the_plain_drawing_shows_after_it():
-    """The window draws the new picture plainly (scale 1, no shift, whole opacity) once the run is
-    over, so the last animated frame must be that: no jump when the run ends."""
-    plain = td.Draw(NEW)
-    for share in (0.0, 0.05, 0.1, 1.0):
-        assert td.compose(KEN_BURNS, 1.0, W, H, fade_share=share)[-1] == plain, share
-    run = td.TransitionRun(KEN_BURNS, 9.0, fade_share=0.1)
-    run.tick(0)  # the first frame
-    run.tick(1_000_000)  # the clock starts
-    assert run.tick(1_000_000 + 8_999_999)  # the last tick before the end still draws
-    almost = run.draws(W, H)[-1]
-    assert abs(almost.scale - 1.0) < 1e-5 and abs(almost.dx) < 1e-4 * W
-    assert run.tick(1_000_000 + 9_000_000) is False  # over: the window draws plainly
-    assert run.draws(W, H)[-1] == plain
+@pytest.mark.parametrize("fills", [True, False])
+def test_the_slow_move_goes_on_at_a_steady_pace_for_the_whole_time_of_the_picture(fills):
+    span = td.picture_seconds(20.0)
+    poses = [td.base_pose(span * i / 200.0, span, W, fills) for i in range(201)]
+    steps = [abs(b.scale - a.scale) + abs(b.dx - a.dx) for a, b in zip(poses, poses[1:])]
+    assert min(steps) > 0.0  # never still, not even at the end
+    assert max(steps) <= 1.01 * min(steps)
 
 
-def test_ken_burns_with_a_zero_share_does_not_divide_by_zero():
-    assert td.compose(KEN_BURNS, 0.5, W, H, fade_share=0.0)[-1].opacity == 1.0
+def test_a_picture_lives_for_its_interval_and_the_longest_transition_after_it():
+    assert td.picture_seconds(20.0) == 25.0  # the transition is cut to its longest, 5 s
+    assert td.picture_seconds(3.0) == 4.5  # half of the interval
+    assert td.picture_seconds(300.0) == 305.0
 
 
 def test_zoom_grows_the_old_picture_and_brings_the_new_one_in_from_smaller():
@@ -440,11 +424,3 @@ def test_draws_follow_the_progress_after_the_first_frame():
     run.tick(100)
     run.tick(100 + 500_000)
     assert run.draws(W, H) == td.compose(CIRCLE, 0.5, W, H)
-
-
-def test_ken_burns_run_keeps_the_fade_share_it_was_given():
-    run = td.TransitionRun(KEN_BURNS, 10.0, fade_share=0.08)
-    run.tick(0)
-    run.tick(1)
-    run.tick(1 + 400_000)  # 4 % of the run: half way through the fade
-    assert run.draws(W, H) == td.compose(KEN_BURNS, 0.04, W, H, 0.08)
