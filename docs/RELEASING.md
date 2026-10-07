@@ -27,8 +27,8 @@ The maintainer's rule, set on 2026-10-07.
    A test build gets a lower `Release` than the release, for example `1.0.1-0.1.test` against
    `1.0.1-1`, and never the `Release` of the release. The lower `Release` is set only in the build
    that is tested, not on `main`: `main` has the `Release` of the release. Measured twice,
-   independently, on 2026-10-07 in a local, rootless CentOS Stream 10 build root (`rpm` 4.19.1.1),
-   not in the COPR project and not as a COPR build:
+   by two people, on 2026-10-07 in the same local, rootless CentOS Stream 10 build root (`rpm`
+   4.19.1.1), not in the COPR project and not as a COPR build:
 
    ```
    rpm --eval '%{lua:print(rpm.vercmp("1.0.1-0.1.test","1.0.1-1"))}'
