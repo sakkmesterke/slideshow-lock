@@ -149,7 +149,15 @@ transitions (section 2, "Transitions").
   the left), `circle` (from the centre in a growing circle that ends past the corners),
   `blur` (the old picture blurs, at the middle the new one takes over and sharpens) and
   `rotate` (the new picture turns in from -12 degrees, enlarged by 25 %, while it fades in over
-  the old one). Progress is eased (smoothstep). An empty list, or a list with no valid name,
+  the old one). Progress is eased (smoothstep). **Soft edges:** where the new picture meets the old
+  one there is a band, not a line: `slide-in`, `push`, `wipe`, `circle`, `zoom` and `rotate` fade
+  the new picture in over `SOFT_EDGE_SHARE` (12 %) of the window's shorter side. The band narrows
+  where the edge has no room (at the window's border at the start and at the end of a run), so the
+  first and the last frame are the plain pictures with no band left behind; a `wipe` and a
+  `circle` run on until the whole band is past the window, and a `push` lets the new picture come
+  in over the last pixels of the old one, so the seam is two pictures dissolving into each other,
+  not a dark line. `crossfade`, `fade-black` and `blur` have no edge, and a Ken Burns picture
+  is larger than the window the whole run. An empty list, or a list with no valid name,
   is the cut. One setting, `transition-duration` (0.2 to 5.0 s, default 1.0 s), is the length of
   every transition. A transition never takes more than half of the interval (a 1 s interval
   cross-fades for 0.5 s; the default 10 s interval leaves the whole 1.0 s) and under 0.2 s it is a
@@ -177,8 +185,9 @@ transitions (section 2, "Transitions").
   a warning in the log, if the reduced pictures cannot be made.
   How it is drawn: `_Canvas` keeps the old texture; `transition_draw.compose` gives, for a moment
   of the transition, the pictures to paint from the bottom up (which one, opacity, scale, angle,
-  shift, clip, circle, blur), and the canvas turns each into `Gtk.Snapshot` calls (clip, opacity,
-  blur, then shift/rotate/scale around the centre). A picture of opacity 0 is not painted at all:
+  shift, clip, circle, blur, soft edge), and the canvas turns each into `Gtk.Snapshot` calls (clip,
+  opacity, blur, then shift/rotate/scale around the centre). A soft edge is a `push_mask` with
+  an alpha gradient, which needs GTK 4.10: on GTK 4.8 the edges stay as they were cut. A picture of opacity 0 is not painted at all:
   on GTK 4.8.3 a rotated, faded-out node was seen to change the pixels of the picture under it
   (cause not looked into). The canvas has a frame-clock tick of its own and a `TransitionRun`
   whose end is a point in time, not a number of frames, so a slow machine draws fewer frames and

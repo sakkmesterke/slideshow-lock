@@ -63,10 +63,15 @@ from slideshow_lock.preview import (  # noqa: E402
 )
 from slideshow_lock.scaling import Frame, device_size  # noqa: E402
 from slideshow_lock.transition_draw import (  # noqa: E402
+    SOFT_CIRCLE,
+    SOFT_CLIP,
+    SOFT_PICTURE,
     Draw,
     TransitionRun,
     compose,
+    edge_stops,
     effective_name,
+    rim_stops,
     software_renderer,
 )
 from slideshow_lock.transitions import BLUR, CROSSFADE, KEN_BURNS, NEW, OLD  # noqa: E402
@@ -118,6 +123,67 @@ def software_gl(widget) -> bool:
             "software, so no blur transition" if _software_gl_cache else "not known to be software",
         )
     return _software_gl_cache
+
+
+def _color_stops(stops) -> List[Gsk.ColorStop]:
+    """``(offset, alpha)`` stops as gradient stops. Only the alpha counts: they are masks."""
+    result = []
+    for offset, alpha in stops:
+        stop = Gsk.ColorStop()
+        stop.offset = offset
+        color = Gdk.RGBA()
+        color.alpha = alpha
+        stop.color = color
+        result.append(stop)
+    return result
+
+
+def _edge_painters(rect, width: float, sides: str) -> List[Callable[[Any], None]]:
+    """What paints the mask of a soft edge on the sides *sides* of *rect* ``(x, y, width, height)``:
+    one gradient across it for the left/right sides, one down it for the top/bottom ones."""
+    x, y, rect_w, rect_h = rect
+    bounds = (x, y, rect_w, rect_h)
+    painters: List[Callable[[Any], None]] = []
+    if "l" in sides or "r" in sides:
+        stops = _color_stops(edge_stops(rect_w, width, "l" in sides, "r" in sides))
+        painters.append(
+            lambda snapshot, stops=stops: snapshot.append_linear_gradient(
+                Graphene.Rect().init(*bounds),
+                Graphene.Point().init(x, y),
+                Graphene.Point().init(x + rect_w, y),
+                stops,
+            )
+        )
+    if "t" in sides or "b" in sides:
+        stops = _color_stops(edge_stops(rect_h, width, "t" in sides, "b" in sides))
+        painters.append(
+            lambda snapshot, stops=stops: snapshot.append_linear_gradient(
+                Graphene.Rect().init(*bounds),
+                Graphene.Point().init(x, y),
+                Graphene.Point().init(x, y + rect_h),
+                stops,
+            )
+        )
+    return painters
+
+
+def _rim_painter(circle, width: float) -> Callable[[Any], None]:
+    """What paints the mask of a soft circle ``(centre x, centre y, radius)``."""
+    cx, cy, radius = circle
+    stops = _color_stops(rim_stops(radius, width))
+
+    def paint(snapshot) -> None:
+        snapshot.append_radial_gradient(
+            Graphene.Rect().init(cx - radius, cy - radius, 2 * radius, 2 * radius),
+            Graphene.Point().init(cx, cy),
+            radius,
+            radius,
+            0.0,
+            1.0,
+            stops,
+        )
+
+    return paint
 
 
 def _reduced_texture(frame: Frame, factor: int) -> Gdk.Texture:
@@ -313,10 +379,11 @@ class _Canvas(Gtk.Widget):
         rect = self._rect(texture, offset, width, height)
         if draw.blur > 0 and draw.layer in self._reduced:
             texture = self._reduced[draw.layer]  # same place, a quarter of the pixels
-        pops = 0
+        masks = self._soft_painters(snapshot, draw, rect)
+        closers: List[Callable[[], None]] = []
         if draw.clip is not None:
             snapshot.push_clip(Graphene.Rect().init(*draw.clip))
-            pops += 1
+            closers.append(snapshot.pop)
         if draw.circle is not None:
             cx, cy, radius = draw.circle
             rounded = Gsk.RoundedRect()
@@ -324,13 +391,16 @@ class _Canvas(Gtk.Widget):
                 Graphene.Rect().init(cx - radius, cy - radius, 2 * radius, 2 * radius), radius
             )
             snapshot.push_rounded_clip(rounded)
-            pops += 1
+            closers.append(snapshot.pop)
         if draw.opacity < 1.0:
             snapshot.push_opacity(draw.opacity)
-            pops += 1
+            closers.append(snapshot.pop)
         if draw.blur > 0:
             snapshot.push_blur(draw.blur)
-            pops += 1
+            closers.append(snapshot.pop)
+        for painter in masks[SOFT_CLIP]:  # in window coordinates, like the cuts above
+            self._push_mask(snapshot, painter)
+            closers.append(snapshot.pop)
         snapshot.save()
         snapshot.translate(Graphene.Point().init(width / 2 + draw.dx, height / 2 + draw.dy))
         if draw.angle:
@@ -338,10 +408,44 @@ class _Canvas(Gtk.Widget):
         if draw.scale != 1.0:
             snapshot.scale(draw.scale, draw.scale)
         snapshot.translate(Graphene.Point().init(-width / 2, -height / 2))
+        for painter in masks[SOFT_PICTURE]:  # in the picture's own coordinates
+            self._push_mask(snapshot, painter)
         snapshot.append_texture(texture, rect)
-        snapshot.restore()
-        for _popped in range(pops):
+        for _masked in masks[SOFT_PICTURE]:
             snapshot.pop()
+        snapshot.restore()
+        for close in reversed(closers):
+            close()
+
+    @staticmethod
+    def _push_mask(snapshot, painter) -> None:
+        """Start a mask over what is drawn next: GTK takes the first thing recorded as the mask
+        (here *painter*'s gradient, only its alpha counts) and the rest, up to the ``pop`` that the
+        caller makes, as the picture it cuts."""
+        snapshot.push_mask(Gsk.MaskMode.ALPHA)
+        painter(snapshot)
+        snapshot.pop()
+
+    @staticmethod
+    def _soft_painters(snapshot, draw: Draw, rect) -> Dict[str, List[Callable[[Any], None]]]:
+        """The mask painters of ``draw.soft``, by the coordinates they paint in. None where the
+        edge is hard: no soft edge asked for, or GTK before 4.10, which has no masks (the pictures
+        then keep the cut edge they had)."""
+        masks: Dict[str, List[Callable[[Any], None]]] = {SOFT_CLIP: [], SOFT_PICTURE: []}
+        soft = draw.soft
+        if soft is None or soft.width <= 0.0 or not hasattr(snapshot, "push_mask"):
+            return masks
+        if soft.kind == SOFT_CIRCLE and draw.circle is not None:
+            masks[SOFT_CLIP].append(_rim_painter(draw.circle, soft.width))
+        elif soft.kind == SOFT_CLIP and draw.clip is not None:
+            masks[SOFT_CLIP] += _edge_painters(draw.clip, soft.width, soft.sides)
+        elif soft.kind == SOFT_PICTURE:
+            masks[SOFT_PICTURE] += _edge_painters(
+                (rect.get_x(), rect.get_y(), rect.get_width(), rect.get_height()),
+                soft.width,
+                soft.sides,
+            )
+        return masks
 
 
 class PreviewWindow:
