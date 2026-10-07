@@ -38,13 +38,14 @@ What it does:
   ``TransitionChooser``: never the same one twice in a row in ``random`` order) when the interval
   ends, and only then: not the first picture, not a redo after a settings or size change, not when
   the same picture is shown again (a folder of one), not when the desktop's animations are off, and
-  not when a quarter of the interval is too short for it. A window that had nothing on screen
-  before just shows the picture. The window draws it and ends it by itself; any later picture,
-  message or close ends a running one at once (``show_frame`` and ``show_message`` of the
-  window).
-* Live settings: the interval, ``scaling``, ``pan-portrait-images``, ``transitions`` and
-  ``transition-order`` take effect without a restart (the folder and the order are handled by
-  ``source_from_settings``); the transition is read for every change of picture.
+  not when half of the interval (or the ``transition-duration``) is under 0.2 s. A window that
+  had nothing on screen before just shows the picture. The window draws it and ends it by itself;
+  any later picture, message or close ends a running one at once (``show_frame`` and
+  ``show_message`` of the window).
+* Live settings: the interval, ``scaling``, ``pan-portrait-images``, ``transitions``,
+  ``transition-order`` and ``transition-duration`` take effect without a restart (the folder and
+  the order are handled by ``source_from_settings``); the transition is read for every change of
+  picture.
 
 The source cursor runs one picture ahead of the screen because of the prefetch. A picture
 that is shown stays on screen even if its file is deleted meanwhile (the pixels are in
@@ -446,7 +447,9 @@ class PreviewController:
         )
         if name is None:
             return None
-        seconds = transition_seconds(name, self._interval())
+        seconds = transition_seconds(
+            name, self._interval(), self._settings.get_transition_duration()
+        )
         return (name, seconds) if seconds > 0 else None
 
     def _comes_in_changed(self, index: int, frame: Frame) -> bool:

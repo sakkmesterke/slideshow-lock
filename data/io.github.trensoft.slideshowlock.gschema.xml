@@ -47,7 +47,7 @@
 
     <key name="slide-interval-seconds" type="u">
       <range min="1" max="86399"/>
-      <default>5</default>
+      <default>10</default>
       <summary>Slide interval</summary>
       <description>
         Seconds each image is shown before advancing to the next one. From
@@ -121,8 +121,9 @@
         crossfade, fade-black, slide-in, push, ken-burns, zoom, wipe, circle, blur
         and rotate; with several names, "transition-order" says how one is chosen
         for each change. An empty list means no transition: the pictures change
-        at once. A transition takes at most a quarter of the slide interval, and
-        there is none when the desktop's animations are off. On software
+        at once. How long a transition takes is "transition-duration", cut to
+        half of the slide interval; there is none when the desktop's animations
+        are off. On software
         rendering the blur is drawn as a cross fade, and so is Ken Burns on a
         picture that does not fill the window.
         A name that is not in the list above is ignored (and logged once), so a
@@ -142,6 +143,19 @@
         With more than one name in "transitions": "random" picks one for each
         change, never the one just used; "sequence" goes through them in the
         order of the list above, round and round.
+      </description>
+    </key>
+
+    <key name="transition-duration" type="d">
+      <range min="0.2" max="5.0"/>
+      <default>1.0</default>
+      <summary>How long a transition takes</summary>
+      <description>
+        Seconds a transition takes, the same for every transition, from 0.2 to
+        5.0. The slideshow never lets a transition take more than half of the
+        slide interval (a shorter time is used then, the stored value is not
+        changed), and a transition that would be shorter than 0.2 seconds is
+        not drawn: the picture changes at once.
       </description>
     </key>
 

@@ -16,7 +16,7 @@ import time
 import warnings
 
 import pytest
-from gi.repository import GLib
+from gi.repository import Gio, GLib
 
 from slideshow_lock import APP_ID
 from slideshow_lock.settings import (
@@ -60,7 +60,7 @@ def test_defaults_match_brief_section_5():
     settings = Settings()
     assert settings.get_idle_timeout_seconds() == 120
     assert settings.get_lock_grace_period_seconds() == 0
-    assert settings.get_slide_interval_seconds() == 5
+    assert settings.get_slide_interval_seconds() == 10
     assert settings.get_order() == "random"
     assert settings.get_scaling() == "fill"
     # Battery-sensitive animation: stays off until it is measured on the reference laptop.
@@ -68,6 +68,7 @@ def test_defaults_match_brief_section_5():
     # The cross-fade is the picture change out of the box (an empty list would be the cut).
     assert settings.get_transitions() == ["crossfade"]
     assert settings.get_transition_order() == "random"
+    assert settings.get_transition_duration() == 1.0
 
 
 # -- roundtrips -----------------------------------------------------------------
@@ -382,3 +383,34 @@ def test_the_default_picture_folder_is_not_a_chosen_one(first_run_keys):
 def test_a_stored_picture_folder_is_a_chosen_one_even_an_empty_one(first_run_keys, value):
     first_run_keys.set_picture_folder(value)
     assert first_run_keys.has_chosen_picture_folder() is True
+
+
+# -- transition-duration ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("value", [0.2, 0.5, 1.0, 2.75, 5.0, 3])
+def test_transition_duration_roundtrip(value):
+    settings = Settings()
+    assert settings.set_transition_duration(value) is True
+    assert settings.get_transition_duration() == float(value)
+
+
+@pytest.mark.parametrize(
+    "value", [0.19, 0.0, -1.0, 5.01, 60, float("nan"), float("inf"), "1.0", None, True, [1.0]]
+)
+def test_transition_duration_rejects_what_is_outside_its_range_or_not_a_number(value, caplog):
+    settings = Settings()
+    assert settings.set_transition_duration(2.0) is True
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+        assert settings.set_transition_duration(value) is False
+    assert settings.get_transition_duration() == 2.0  # unchanged
+    assert any(
+        "transition-duration" in r.message and "[config]" in r.message for r in caplog.records
+    )
+
+
+def test_the_schema_holds_the_duration_to_its_range():
+    schema = Gio.SettingsSchemaSource.get_default().lookup(APP_ID, True)
+    assert schema.get_key("transition-duration").get_range().unpack() == ("range", (0.2, 5.0))
+    assert schema.get_key("transition-duration").get_default_value().unpack() == 1.0
+    assert schema.get_key("slide-interval-seconds").get_default_value().unpack() == 10
