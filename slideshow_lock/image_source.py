@@ -240,6 +240,11 @@ def _kernel_watch_inodes() -> Optional[Set[Tuple[int, int]]]:
     return held
 
 
+#: Message ids of the start of a screenshot's file name in GNOME Shell's catalog: the one in its
+#: source (js/ui/screenshot.js) and the lower case spelling the name has on disk.
+_SHELL_FILE_MSGIDS = ("Screenshot From %s", "Screenshot from %s")
+
+
 def _gnome_shell_names(
     translate: Optional[Callable[[str], str]] = None,
 ) -> Tuple[Set[str], Set[str]]:
@@ -247,7 +252,7 @@ def _gnome_shell_names(
     language of this session, found in its own catalog (text domain ``gnome-shell``), lower case.
 
     GNOME Shell translates the name of its screenshot folder and the start of a file name
-    ("Screenshot from %s"). Where the catalog is not installed, or has no such string, nothing is
+    ("Screenshot From %s"). Where the catalog is not installed, or has no such string, nothing is
     added: the English text comes back, which is already known. Never raises. *translate* is for
     the tests; by default it is the ``gnome-shell`` catalog of the session's language.
     """
@@ -261,9 +266,11 @@ def _gnome_shell_names(
         folder = translate("Screenshots").strip().casefold()
         if folder and os.sep not in folder:
             folders.add(folder)
-        head = translate("Screenshot from %s").split("%s", 1)[0].strip().casefold()
-        if len(head) >= 4:  # "%s" first, or a stub, would hide every picture
-            prefixes.add(head)
+        # gettext matches the message id exactly, so both spellings are asked (see above).
+        for msgid in _SHELL_FILE_MSGIDS:
+            head = translate(msgid).split("%s", 1)[0].strip().casefold()
+            if len(head) >= 4:  # "%s" first, or a stub, would hide every picture
+                prefixes.add(head)
     except Exception as exc:  # a broken catalog must not stop the slideshow
         _LOG.debug("[slideshow-dir] no GNOME screenshot names (%s)", exc)
     return folders, prefixes

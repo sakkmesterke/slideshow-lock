@@ -126,12 +126,19 @@ becomes empty (`None`). It does not fire for `advance()`.
     setting on. So a link *named* `Screenshots` is left out, and a link named something else that
     points to a screenshot folder is followed like any link ("Nothing is filtered by where a link
     points").
-  - **Not measured:** a real GNOME (this was written without one). That GNOME Shell 42 and later
-    saves to `Pictures/Screenshots/Screenshot from <date>.png`, that the folder name is translated,
-    and what the translations are, is from memory of GNOME's behaviour, not from its source: the
-    source and the catalogs could not be fetched here. The Hungarian folder name `Képernyőképek` is
-    from the project brief. A folder or a file name that is in neither list, and a screenshot tool
-    that names them differently, is shown.
+  - **Best effort, not a privacy control.** The filter is a convenience that goes by names. A
+    screenshot that was renamed, and a link of another name that points to a screenshot folder,
+    are shown. Do not rely on it to keep a picture out of the lock screen.
+  - **Checked against the source:** the message ids and the translations of GNOME Shell's catalog.
+    The id of the file name is `Screenshot From %s` (capital F, `js/ui/screenshot.js` in GNOME
+    Shell), not `Screenshot from %s`; gettext matches the id exactly, so both spellings are asked
+    (hu: `Képernyőkép %s`, de: `Bildschirmfoto vom %s`). The Hungarian folder name `Képernyőképek`
+    is confirmed by the same catalog. This was read by the reviewer from the raw files in GNOME's
+    gitlab, not run here.
+  - **Not measured:** a real GNOME session (this was written without one): that the folder and the
+    files are really made as `Pictures/Screenshots/Screenshot from <date>.png` on GNOME 42 and
+    later, and what the installed `gnome-shell` catalog gives at run time. A folder or a file name
+    that is in neither list, and a screenshot tool that names them differently, is shown.
 - **Order.** `name`: case-insensitive by full path. `random`: every image once per
   cycle, no image twice in a row across a cycle boundary; a new image joins the
   current cycle.
