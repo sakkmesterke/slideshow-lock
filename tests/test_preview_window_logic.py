@@ -140,7 +140,6 @@ def window_for_frames(monkeypatch, full=True, reading=_UNSET):
     window._move = window._old_move = None
     window._move_tick_id = 0
     window._now = None
-    window._drawn_at = 0
     window._scale = lambda: 1.0
     calls = []
     monkeypatch.setattr(_Canvas, "add_tick_callback", lambda self, fn: calls.append("tick") or 7)
@@ -594,15 +593,22 @@ def test_the_clock_of_the_move_starts_at_the_first_tick_and_the_poses_follow_it(
     assert window._pose(window._move, 4.0) == td.base_pose(10.0, span, 4.0, True)
 
 
-def test_the_slow_move_is_redrawn_at_thirty_frames_a_second_not_at_every_frame(
-    monkeypatch,
-):
+@pytest.mark.parametrize("refresh", [60, 144])
+def test_the_slow_move_is_redrawn_at_every_tick_of_the_frame_clock(monkeypatch, refresh):
+    """It used to be redrawn at a fixed 30 a second (MOTION_FPS), so a 60 Hz screen showed every
+    pose twice and the picture stood still at every second refresh. Now a redraw is asked for at
+    every tick, whatever the refresh rate."""
     window, _calls = moving_canvas(monkeypatch)
     draws = []
     monkeypatch.setattr(_Canvas, "queue_draw", lambda self: draws.append(1))
-    for frame in range(60):  # one second of a 60 Hz frame clock
-        window._on_move_tick(None, _Clock(frame / 60.0))
-    assert 28 <= len(draws) <= 32
+    for frame in range(refresh):  # one second of the frame clock
+        window._on_move_tick(None, _Clock(frame / refresh))
+    assert len(draws) == refresh
+
+
+def test_the_move_tick_goes_on_after_every_redraw(monkeypatch):
+    window, _calls = moving_canvas(monkeypatch)
+    assert window._on_move_tick(None, _Clock(1.0)) == GLib.SOURCE_CONTINUE
 
 
 def test_the_outgoing_picture_keeps_its_move_and_the_incoming_one_starts_its_own(monkeypatch):

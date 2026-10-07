@@ -65,11 +65,6 @@ KEN_BURNS_DRIFT = 0.035
 #: is shown, around the middle of the window, without a shift (a shift would show its border move).
 SMALL_ZOOM = 0.04
 
-#: The slow move is redrawn this many times a second at most (the transitions run at the frame
-#: clock's rate): a drift of a few pixels over many seconds needs no more, and a picture that is
-#: always moving is drawn all the time, which the processor and the battery pay for.
-MOTION_FPS = 30
-
 #: The zoom: the old picture grows by this much while it fades out, the new one comes in from
 #: ``1 - ZOOM_IN`` of its size.
 ZOOM_OUT = 0.15

@@ -26,7 +26,7 @@ from slideshow_lock.transitions import (
 
 W, H = 1280.0, 720.0
 INTERVALS = (3.0, 60.0, 300.0)  # a short and two long times a picture is shown
-RATES = (60, 30)  # the frame clock; the slow move itself is redrawn at 30 a second (MOTION_FPS)
+RATES = (60, 30)  # the frame clock; the move is redrawn at every frame of it
 DURATION = 1.0  # the transition-duration setting
 
 
