@@ -504,6 +504,19 @@ def main() -> int:
         window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 20
         and stored.get_idle_timeout_seconds() == 300,
     )
+    window.idle_spin.set_text("99")
+    window.idle_spin.update()
+    stored.set_scaling("fill")  # another process changes another key: the window refreshes
+    pump(0.5)
+    check(
+        "a change elsewhere does not take an edit out of a number field that is not saved",
+        window.idle_spin.get_value_as_int() == 99
+        and window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 99
+        and window.scaling_drop.get_selected() == CHOICES[KEY_SCALING].index("fill"),
+        str(window.idle_spin.get_value_as_int()),
+    )
+    window.idle_spin.set_text("20")
+    window.idle_spin.update()
     window.save_button.emit("clicked")
     check("and Save stores it", stored.get_idle_timeout_seconds() == 20)
     stored.set_idle_timeout_seconds(77)
