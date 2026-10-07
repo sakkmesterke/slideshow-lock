@@ -134,6 +134,10 @@ msgstr ""
 "akkumulátort fogyaszt."
 
 #: slideshow_lock/preferences.py
+msgid "Show screenshots"
+msgstr "Képernyőképek megjelenítése"
+
+#: slideshow_lock/preferences.py
 msgid "Pictures"
 msgstr "Képek"
 

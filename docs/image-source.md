@@ -105,6 +105,40 @@ becomes empty (`None`). It does not fire for `advance()`.
   A file still being copied is re-checked when the writer finishes, and only
   logged then. The check reads the header only: a file damaged deeper in is for
   the display layer to skip the same way (it does: see [`preview.md`](preview.md), section 3).
+- **Screenshots.** Left out unless the `show-screenshots` setting is on (it is off by default; the
+  settings window has a "Show screenshots" switch). `ImageSource(..., show_screenshots=False)`,
+  `set_show_screenshots(bool)` (a live change walks the folder again, like `set_folder`).
+  What counts, judged by the **name** of a walked entry only:
+  - a **folder** called `Screenshots` or `Képernyőképek` (any case) is not walked and gets no
+    monitor, with everything under it; and the same for the name GNOME Shell gives the folder in
+    the language of the session, read from GNOME Shell's own catalog (text domain `gnome-shell`,
+    message "Screenshots") when that catalog is installed;
+  - a **file** whose name starts (any case) with `Screenshot` (GNOME: `Screenshot from 2026-10-07
+    11-00-00.png`; KDE Spectacle: `Screenshot_20261007_110000.png`), with `Képernyőkép`, or with
+    the text GNOME Shell's catalog gives before the date of "Screenshot from %s".
+  - **Not touched:** a picture whose name merely contains the word (`my screenshot.png`); the
+    folder of the sample pictures (`trensoft`) and everything under it; and a picture folder
+    chosen on purpose: when the root itself, or a folder above it, is a screenshot folder (or
+    `trensoft`), nothing in it is left out (the explicit choice wins).
+  - **Links.** The filter reads names and never looks where a link goes (a test makes
+    `realpath`, `readlink` and `lstat` fail). It only takes entries out of the walk: how the walk
+    follows links, the `(st_dev, st_ino)` loop guard and the limits are exactly as with the
+    setting on. So a link *named* `Screenshots` is left out, and a link named something else that
+    points to a screenshot folder is followed like any link ("Nothing is filtered by where a link
+    points").
+  - **Best effort, not a privacy control.** The filter is a convenience that goes by names. A
+    screenshot that was renamed, and a link of another name that points to a screenshot folder,
+    are shown. Do not rely on it to keep a picture out of the lock screen.
+  - **Checked against the source:** the message ids and the translations of GNOME Shell's catalog.
+    The id of the file name is `Screenshot From %s` (capital F, `js/ui/screenshot.js` in GNOME
+    Shell), not `Screenshot from %s`; gettext matches the id exactly, so both spellings are asked
+    (hu: `Képernyőkép %s`, de: `Bildschirmfoto vom %s`). The Hungarian folder name `Képernyőképek`
+    is confirmed by the same catalog. This was read by the reviewer from the raw files in GNOME's
+    gitlab, not run here.
+  - **Not measured:** a real GNOME session (this was written without one): that the folder and the
+    files are really made as `Pictures/Screenshots/Screenshot from <date>.png` on GNOME 42 and
+    later, and what the installed `gnome-shell` catalog gives at run time. A folder or a file name
+    that is in neither list, and a screenshot tool that names them differently, is shown.
 - **Order.** `name`: case-insensitive by full path. `random`: every image once per
   cycle, no image twice in a row across a cycle boundary; a new image joins the
   current cycle.

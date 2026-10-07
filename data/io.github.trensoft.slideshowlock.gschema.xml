@@ -101,6 +101,22 @@
       </description>
     </key>
 
+    <key name="show-screenshots" type="b">
+      <default>false</default>
+      <summary>Show screenshots in the slideshow</summary>
+      <description>
+        When false (the default) the slideshow leaves screenshots out: a folder
+        named like a screenshot folder (Screenshots, and its translation in the
+        language of the desktop, such as Képernyőképek in Hungarian) is not read, and
+        neither is a picture whose file name starts like a screenshot's
+        (Screenshot from ..., Screenshot_..., Képernyőkép ...). Only the names
+        are looked at, never what a link points to. A picture folder chosen on
+        purpose is not emptied by it: if the folder itself (or one above it) is a
+        screenshot folder, nothing in it is left out. The sample pictures folder
+        (trensoft) is never touched. When true, nothing is left out.
+      </description>
+    </key>
+
     <key name="first-run-done" type="b">
       <default>false</default>
       <summary>The settings window was opened once at login</summary>

@@ -78,6 +78,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_ORDER,
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_SCALING,
+    KEY_SHOW_SCREENSHOTS,
     KEY_TRANSITION_DURATION,
     KEY_TRANSITIONS,
     Settings,
@@ -165,8 +166,20 @@ class PreferencesWindow(Adw.ApplicationWindow):
         pan_row.add_suffix(self.pan_switch)
         pan_row.set_activatable_widget(self.pan_switch)
 
+        self.screenshots_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.screenshots_switch.connect("notify::active", lambda *_a: self._on_screenshots())
+        screenshots_row = Adw.ActionRow(title=_("Show screenshots"))
+        screenshots_row.add_suffix(self.screenshots_switch)
+        screenshots_row.set_activatable_widget(self.screenshots_switch)
+
         self.pictures_group = Adw.PreferencesGroup(title=_("Pictures"))
-        for row in (self.folder_row, self.order_drop, self.scaling_drop, pan_row):
+        for row in (
+            self.folder_row,
+            self.order_drop,
+            self.scaling_drop,
+            pan_row,
+            screenshots_row,
+        ):
             self.pictures_group.add(row)
 
         # -- transitions: how one picture changes into the next ---------------------------------
@@ -364,6 +377,7 @@ class PreferencesWindow(Adw.ApplicationWindow):
             )
             # set_property, not set_active: the D11 scan flags that name (a screensaver call too)
             self.pan_switch.set_property("active", self._draft.value(KEY_PAN_PORTRAIT_IMAGES))
+            self.screenshots_switch.set_property("active", self._draft.value(KEY_SHOW_SCREENSHOTS))
             self.transition_drop.set_selected(
                 TRANSITION_CHOICES.index(self._draft.value(KEY_TRANSITIONS))
             )
@@ -480,6 +494,10 @@ class PreferencesWindow(Adw.ApplicationWindow):
     def _on_pan(self) -> None:
         if not self._updating:
             self._report(self._draft.edit_pan_portrait_images(self.pan_switch.get_active()))
+
+    def _on_screenshots(self) -> None:
+        if not self._updating:
+            self._report(self._draft.edit_show_screenshots(self.screenshots_switch.get_active()))
 
     def _on_folder_focus(self, controller, _pspec) -> None:
         if not controller.get_property("contains-focus"):
