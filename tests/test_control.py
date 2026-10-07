@@ -413,6 +413,49 @@ def test_the_exit_status_does_not_depend_on_the_copy(copying, env, caplog):
     )
 
 
+class NoThread(threading.Thread):
+    def start(self):
+        raise RuntimeError("can't start new thread")
+
+
+def _find_source_fails():
+    raise OSError("no package")
+
+
+def _uses_default_folder_fails(self):
+    raise RuntimeError("no settings")
+
+
+@pytest.mark.parametrize("window", [True, False], ids=["with the window", "without the window"])
+@pytest.mark.parametrize(
+    "target, name, broken, error",
+    [
+        (
+            control.Settings,
+            "uses_default_picture_folder",
+            _uses_default_folder_fails,
+            "RuntimeError",
+        ),
+        (sample_pictures, "find_source_dir", _find_source_fails, "OSError"),
+        (control.threading, "Thread", NoThread, "RuntimeError"),
+    ],
+    ids=["the settings", "the source", "the thread"],
+)
+def test_a_copy_that_cannot_even_start_is_one_warning_and_the_command_goes_on(
+    copying, env, monkeypatch, caplog, window, target, name, broken, error
+):
+    env.settings.set_first_run_done(True)
+    env.window_status = 2
+    monkeypatch.setattr(target, name, broken)
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.control"):
+        status = control.main([] if window else ["autostart"])
+    assert status == (2 if window else 0)  # the window's, or the service's: never the copy's
+    assert ("window" in env.calls) is window
+    assert [m for m in caplog.messages if m.startswith("[samples]")] == [
+        f"[samples] the sample pictures were not copied ({error})"
+    ]
+
+
 def test_the_window_opens_and_the_command_returns_while_the_copy_is_still_running(copying, env):
     copying.block = True
     assert control.main([]) == 0  # the window is the stand-in: it returns, the copy has not ended

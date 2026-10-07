@@ -513,6 +513,26 @@ def test_a_second_start_at_the_same_time_is_busy_and_writes_nothing(rig):
     assert rig.run().status == sp.DONE  # the lock was let go: the next one copies
 
 
+def test_the_lock_file_is_private(rig):
+    rig.run()
+    assert stat.S_IMODE(os.stat(rig.state + ".lock").st_mode) == 0o600
+
+
+def test_a_link_in_the_place_of_the_lock_file_is_not_followed(rig, tmp_path):
+    target = tmp_path / "somebody-elses"
+    target.write_bytes(b"")
+    os.makedirs(os.path.dirname(rig.state))
+    os.symlink(target, rig.state + ".lock")
+    held = os.open(target, os.O_RDWR)
+    fcntl.flock(held, fcntl.LOCK_EX)  # a followed link would meet this lock and be busy
+    try:
+        assert rig.run().status == sp.DONE
+    finally:
+        os.close(held)
+    assert target.read_bytes() == b""
+    assert os.path.islink(rig.state + ".lock")
+
+
 def test_a_file_system_without_locks_copies_without_cleaning_up(rig, monkeypatch):
     rig.sub.mkdir(parents=True)
     orphan = rig.sub / ".fr01.jpg.part-123"
@@ -638,6 +658,8 @@ DAMAGED = {
     "too long": b'{"version": 1, "handled": [], "pad": "' + b"x" * (1 << 20) + b'"}',
     "not utf-8": b'{"version": 1, "handled": ["\xff"]}',
     "too long, still valid json": b'{"version": 1, "handled": []}' + b" " * 70000,
+    "lists nested too deep": b"[" * 60000,  # under the size limit, over the recursion limit
+    "objects nested too deep": b'{"a":' * 13000,
 }
 
 
@@ -857,7 +879,18 @@ def _imports(path: Path):
 
 def test_the_module_needs_no_gtk_and_no_network():
     imported = _imports(PACKAGE / "sample_pictures.py")
-    forbidden = {"gi", "socket", "urllib", "http", "ftplib", "ssl", "requests", "smtplib"}
+    forbidden = {
+        "gi",
+        "socket",
+        "urllib",
+        "http",
+        "ftplib",
+        "ssl",
+        "requests",
+        "smtplib",
+        "subprocess",
+        "ctypes",
+    }
     assert not imported & forbidden
 
 

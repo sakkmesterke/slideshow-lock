@@ -266,7 +266,7 @@ def _parse_state(raw: bytes) -> Optional[Set[str]]:
     """The names in a state file, or ``None`` when it is not the file this program writes."""
     try:
         data = json.loads(raw.decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
+    except (ValueError, UnicodeDecodeError, RecursionError):  # RecursionError: nested too deep
         return None
     if not isinstance(data, dict) or type(data.get("version")) is not int:
         return None
