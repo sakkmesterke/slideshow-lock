@@ -114,11 +114,14 @@ measured.
 
 A push to a branch must not start a build; only the creation of a tag does. Measured: on
 2026-10-06 each merge into `main` (#52, #53, #54) started a build 2 seconds later (builds 11084437,
-11084605, 11084818). The newest build in the COPR list on 2026-10-07 is 11084848: it is the build of
-the tag `v1.0.0` (its source log shows `git checkout v1.0.0`, which is `f94b29d`), submitted at
-14:56 CEST on 2026-10-06. After it `main` got #55 (`ba5d30d`, merged at 15:59 CEST on 2026-10-06) and
-#56 to #63, and no build was submitted: #55 did not start a build, and neither did the later merges.
-`[H]` That the "Pushes" event is now off is a reading of this, not seen in the GitHub settings.
+11084605, 11084818). The COPR build list (`api_3/build/list`, read on 2026-10-07 at about 05:50
+CEST) ends with 11084848, version `1.0.0-1`, `succeeded`,
+submitted at 12:56:08 UTC on 2026-10-06. It is the build of the tag `v1.0.0`: its source log shows
+`git checkout v1.0.0`, which is `f94b29d`, and the tag was made at 12:56:03 UTC (the tagger time in
+`git cat-file -p v1.0.0`), 5 seconds before. After it `main` got #55 (`ba5d30d`, merged at 15:59 CEST on 2026-10-06)
+and #56 to #63, and no build was submitted: #55 did not start a build, and neither did the later
+merges. `[H]` That the "Pushes" event is now off is a reading of this, not seen in the GitHub
+settings.
 
 Any tag creation with the package name in the URL starts a build, whatever the tag is called, and
 a tag is not deleted (see "A failed step"), so a tag is never pushed to test the webhook. The
