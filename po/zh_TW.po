@@ -18,6 +18,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "啟動投影片放映服務並開啟設定視窗。"
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "登入時：啟動服務，僅在第一次開啟視窗"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "隨機"

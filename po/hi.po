@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Hindi\n"
@@ -21,6 +21,19 @@ msgstr ""
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "स्लाइडशो सेवा शुरू करें और सेटिंग्स विंडो खोलें।"
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "लॉगिन पर: सेवा शुरू करें, विंडो केवल पहली बार खोलें"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "हर चरण का लॉग रखें"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -157,11 +170,6 @@ msgstr "पूर्वावलोकन चल रहा है: इसे स
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "स्लाइडशो की सेटिंग्स बदलें।"
-
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "हर चरण का लॉग रखें"
 
 #: slideshow_lock/preferences.py
 msgid ""

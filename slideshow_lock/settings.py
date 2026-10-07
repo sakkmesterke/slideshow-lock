@@ -47,6 +47,7 @@ KEY_SLIDE_INTERVAL_SECONDS = "slide-interval-seconds"
 KEY_ORDER = "order"
 KEY_SCALING = "scaling"
 KEY_PAN_PORTRAIT_IMAGES = "pan-portrait-images"
+KEY_FIRST_RUN_DONE = "first-run-done"
 
 
 def default_picture_folder() -> str:
@@ -174,6 +175,20 @@ class Settings:
 
     def set_picture_folder(self, value: str) -> bool:
         return self._set_string(KEY_PICTURE_FOLDER, value)
+
+    # -- first-run-done (the login start opens the settings window once) ---------------
+
+    def get_first_run_done(self) -> bool:
+        return self._settings.get_boolean(KEY_FIRST_RUN_DONE)
+
+    def set_first_run_done(self, value: bool) -> bool:
+        return self._set_boolean(KEY_FIRST_RUN_DONE, value)
+
+    def has_chosen_picture_folder(self) -> bool:
+        """True if the user has stored a value for the picture folder (any value, an empty one
+        included): the schema default does not count, so a user who never chose is told apart from
+        one who chose."""
+        return self._settings.get_user_value(KEY_PICTURE_FOLDER) is not None
 
     # -- shared validation plumbing ------------------------------------------
 

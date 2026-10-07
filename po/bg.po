@@ -18,6 +18,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Стартиране на услугата за слайдшоу и отваряне на прозореца с настройки."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "при влизане: стартиране на услугата, отваряне на прозореца само първия път"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Произволно"
