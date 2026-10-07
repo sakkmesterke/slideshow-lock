@@ -1306,6 +1306,7 @@ def _package_file(module: str) -> str:
 #: purpose. Every other module of the package, the preview's, is scanned below. A module goes on
 #: this list only by a decision made here: a new module is in the scan from the start.
 LOCK_SIDE_MODULES = {
+    "control.py",
     "dbus_adapters.py",
     "service.py",
     "settings_app.py",

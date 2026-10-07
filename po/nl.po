@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:55+0000\n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
 "PO-Revision-Date: 2026-10-06 20:57+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Dutch\n"
@@ -17,6 +17,19 @@ msgstr ""
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Start de dienst voor de diavoorstelling en open het instellingenvenster."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "bij het inloggen: de dienst starten, het venster alleen de eerste keer openen"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "elke stap loggen"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -155,11 +168,6 @@ msgstr ""
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "De instellingen van de diavoorstelling wijzigen."
-
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "elke stap loggen"
 
 #: slideshow_lock/preferences.py
 msgid ""
