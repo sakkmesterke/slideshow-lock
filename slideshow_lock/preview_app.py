@@ -59,6 +59,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
+    KEY_SHOW_SCREENSHOTS,
     KEY_SLIDE_INTERVAL_SECONDS,
     KEY_TRANSITION_DURATION,
     KEY_TRANSITION_ORDER,
@@ -155,6 +156,9 @@ class SessionSettings:
 
     def get_pan_portrait_images(self) -> bool:
         return self._get(KEY_PAN_PORTRAIT_IMAGES, self._settings.get_pan_portrait_images)
+
+    def get_show_screenshots(self) -> bool:
+        return self._get(KEY_SHOW_SCREENSHOTS, self._settings.get_show_screenshots)
 
     def get_transitions(self) -> List[str]:
         return self._get(KEY_TRANSITIONS, self._settings.get_transitions)

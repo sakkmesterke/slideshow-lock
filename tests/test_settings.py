@@ -65,6 +65,8 @@ def test_defaults_match_brief_section_5():
     assert settings.get_scaling() == "fill"
     # Battery-sensitive animation: stays off until it is measured on the reference laptop.
     assert settings.get_pan_portrait_images() is False
+    # Screenshots are left out of the slideshow until the user asks for them.
+    assert settings.get_show_screenshots() is False
     # Ken Burns is the picture change out of the box (an empty list would be the cut).
     assert settings.get_transitions() == ["ken-burns"]
     assert settings.get_transition_order() == "random"
@@ -112,6 +114,14 @@ def test_pan_portrait_images_roundtrip():
     assert settings.get_pan_portrait_images() is True
     assert settings.set_pan_portrait_images(False) is True
     assert settings.get_pan_portrait_images() is False
+
+
+def test_show_screenshots_roundtrip():
+    settings = Settings()
+    assert settings.set_show_screenshots(True) is True
+    assert settings.get_show_screenshots() is True
+    assert settings.set_show_screenshots(False) is True
+    assert settings.get_show_screenshots() is False
 
 
 def test_transitions_roundtrip_in_the_order_given():
@@ -219,6 +229,15 @@ def test_pan_portrait_images_rejects_values_that_are_not_a_real_bool(caplog):
             assert settings.set_pan_portrait_images(bad) is False
         assert settings.get_pan_portrait_images() is False  # unchanged default
     assert any("pan-portrait-images" in record.message for record in caplog.records)
+
+
+def test_show_screenshots_rejects_values_that_are_not_a_real_bool(caplog):
+    settings = Settings()
+    for bad in ("no", "false", 1, 0, None, [], "yes"):
+        with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+            assert settings.set_show_screenshots(bad) is False
+        assert settings.get_show_screenshots() is False  # unchanged default
+    assert any("show-screenshots" in record.message for record in caplog.records)
 
 
 @pytest.mark.parametrize(

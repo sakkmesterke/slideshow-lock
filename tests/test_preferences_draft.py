@@ -27,6 +27,7 @@ from slideshow_lock.settings import (
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
+    KEY_SHOW_SCREENSHOTS,
     KEY_SLIDE_INTERVAL_SECONDS,
     KEY_TRANSITION_DURATION,
     KEY_TRANSITION_ORDER,
@@ -51,6 +52,7 @@ def stored():
         "order": other.get_order(),
         "scaling": other.get_scaling(),
         "pan": other.get_pan_portrait_images(),
+        "screenshots": other.get_show_screenshots(),
         "transitions": other.get_transitions(),
         "transition_order": other.get_transition_order(),
         "duration": other.get_transition_duration(),
@@ -66,6 +68,7 @@ def edit_everything(draft, folder):
         draft.edit_choice(KEY_ORDER, "name"),
         draft.edit_choice(KEY_SCALING, "fit"),
         draft.edit_pan_portrait_images(True),
+        draft.edit_show_screenshots(True),
         draft.edit_transition("zoom"),
         draft.edit_duration(2.5),
         draft.edit_folder(str(folder)),
@@ -88,6 +91,7 @@ def test_the_draft_shows_its_own_values_over_the_stored_ones(draft, tmp_path):
     assert draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 300
     assert draft.value(KEY_ORDER) == "name"
     assert draft.value(KEY_PAN_PORTRAIT_IMAGES) is True
+    assert draft.value(KEY_SHOW_SCREENSHOTS) is True
     assert draft.value(KEY_TRANSITIONS) == "zoom"
     assert draft.folder_text() == str(tmp_path)
     assert draft.interval_view().seconds == 30
@@ -117,6 +121,7 @@ def test_save_writes_every_edit(draft, tmp_path):
         "order": "name",
         "scaling": "fit",
         "pan": True,
+        "screenshots": True,
         "transitions": ["zoom"],
         "transition_order": "random",
         "duration": 2.5,
@@ -134,6 +139,7 @@ def test_save_writes_every_edit(draft, tmp_path):
         (lambda d: d.edit_choice(KEY_ORDER, "name"), KEY_ORDER),
         (lambda d: d.edit_choice(KEY_SCALING, "fit"), KEY_SCALING),
         (lambda d: d.edit_pan_portrait_images(True), KEY_PAN_PORTRAIT_IMAGES),
+        (lambda d: d.edit_show_screenshots(True), KEY_SHOW_SCREENSHOTS),
         (lambda d: d.edit_transition("wipe"), KEY_TRANSITIONS),
         (lambda d: d.edit_duration(3.3), KEY_TRANSITION_DURATION),
         (lambda d: d.edit_folder("/nonexistent/pictures"), KEY_PICTURE_FOLDER),
@@ -154,7 +160,13 @@ def test_every_key_a_draft_can_hold_is_in_the_save_order():
     assert set(SAVE_ORDER) == (
         set(INT_RANGES)
         | set(CHOICES)
-        | {KEY_PAN_PORTRAIT_IMAGES, KEY_PICTURE_FOLDER, KEY_TRANSITIONS, KEY_TRANSITION_DURATION}
+        | {
+            KEY_PAN_PORTRAIT_IMAGES,
+            KEY_SHOW_SCREENSHOTS,
+            KEY_PICTURE_FOLDER,
+            KEY_TRANSITIONS,
+            KEY_TRANSITION_DURATION,
+        }
     )
     assert len(SAVE_ORDER) == len(set(SAVE_ORDER))
 
@@ -257,6 +269,17 @@ def test_the_first_failure_is_the_one_reported(draft, monkeypatch):
     assert set(draft.pending) == {KEY_ORDER, KEY_SCALING}
 
 
+def test_the_screenshots_switch_is_a_draft_edit_like_the_others(draft):
+    assert draft.value(KEY_SHOW_SCREENSHOTS) is False
+    assert draft.edit_show_screenshots(True).ok
+    assert draft.pending == {KEY_SHOW_SCREENSHOTS: True}
+    assert stored()["screenshots"] is False  # not stored before save
+    assert draft.edit_show_screenshots(False).ok  # back to the stored value: not an edit any more
+    assert not draft.dirty
+    assert not draft.edit_show_screenshots("yes").ok
+    assert not draft.dirty
+
+
 # -- what the preview reads ------------------------------------------------------------------
 
 
@@ -269,6 +292,7 @@ def test_the_preview_values_are_the_edits_as_the_settings_getters_return_them(dr
         KEY_ORDER: "name",
         KEY_SCALING: "fit",
         KEY_PAN_PORTRAIT_IMAGES: True,
+        KEY_SHOW_SCREENSHOTS: True,
         KEY_TRANSITIONS: ["zoom"],
         KEY_TRANSITION_DURATION: 2.5,
         KEY_PICTURE_FOLDER: str(tmp_path),

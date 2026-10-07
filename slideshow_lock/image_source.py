@@ -26,6 +26,12 @@ Behaviour in short:
   but cannot be read, or whose header is not a known image header, is skipped
   with a WARNING. Header sniffing only: a file that is damaged deeper in is
   caught by the display layer (CORE-2), which must skip it the same way.
+* Screenshots are left out unless ``show_screenshots`` is true (the "show-screenshots"
+  setting, off by default): a folder named like a screenshot folder (``Screenshots`` and its
+  translations) is not walked, and a file named like a screenshot is not listed. The test is on
+  the *name* of a walked entry, nothing else: a link is judged by its own name, not by where it
+  points, so the filter only ever takes entries out and never changes how the walk follows links
+  (see ``is_screenshot_dir_name``).
 * Nothing assumes the folder exists, the default folder included.
 * Resource limits: at most ``max_directories`` folders are walked and at most
   ``max_watches`` get a monitor (module constants, constructor parameters). Past
@@ -61,6 +67,20 @@ ORDER_NAME = "name"
 #: Extensions treated as candidate images. Kept in one place so it can be
 #: trimmed once the display layer's (CORE-2) real loader support is known.
 IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".webp"})
+
+#: Folder names (compared case-insensitively) that hold screenshots: the one GNOME Shell makes in
+#: the pictures folder (``Pictures/Screenshots``), and its Hungarian name. The translation of the
+#: running desktop is added at run time (``_gnome_shell_names``), so other languages are covered
+#: where GNOME's own catalog is installed; a name that is in neither is not recognised.
+SCREENSHOT_DIR_NAMES = frozenset({"screenshots", "képernyőképek"})
+
+#: File name starts (compared case-insensitively) of a screenshot: GNOME ("Screenshot from ..."),
+#: KDE Spectacle and others ("Screenshot_2026...", "Screenshot-..."), and the Hungarian word.
+SCREENSHOT_NAME_PREFIXES = ("screenshot", "képernyőkép")
+
+#: The folder of the sample pictures (``sample_pictures.SUBDIR``, a test compares them). Nothing
+#: under it is ever taken for a screenshot. Not imported from there: that module imports this one.
+SAMPLE_DIR_NAME = "sakkmesterke"
 
 #: Work budget of one scan step. The scan hands control back to the main loop
 #: after this long, so input and monitor events stay responsive during a walk.
@@ -220,8 +240,79 @@ def _kernel_watch_inodes() -> Optional[Set[Tuple[int, int]]]:
     return held
 
 
+#: Message ids of the start of a screenshot's file name in GNOME Shell's catalog: the one in its
+#: source (js/ui/screenshot.js) and the lower case spelling the name has on disk.
+_SHELL_FILE_MSGIDS = ("Screenshot From %s", "Screenshot from %s")
+
+
+def _gnome_shell_names(
+    translate: Optional[Callable[[str], str]] = None,
+) -> Tuple[Set[str], Set[str]]:
+    """``(folder names, file name prefixes)`` that GNOME Shell uses for screenshots in the
+    language of this session, found in its own catalog (text domain ``gnome-shell``), lower case.
+
+    GNOME Shell translates the name of its screenshot folder and the start of a file name
+    ("Screenshot From %s"). Where the catalog is not installed, or has no such string, nothing is
+    added: the English text comes back, which is already known. Never raises. *translate* is for
+    the tests; by default it is the ``gnome-shell`` catalog of the session's language.
+    """
+    if translate is None:
+        import gettext
+
+        translate = gettext.translation("gnome-shell", fallback=True).gettext
+    folders: Set[str] = set()
+    prefixes: Set[str] = set()
+    try:
+        folder = translate("Screenshots").strip().casefold()
+        if folder and os.sep not in folder:
+            folders.add(folder)
+        # gettext matches the message id exactly, so both spellings are asked (see above).
+        for msgid in _SHELL_FILE_MSGIDS:
+            head = translate(msgid).split("%s", 1)[0].strip().casefold()
+            if len(head) >= 4:  # "%s" first, or a stub, would hide every picture
+                prefixes.add(head)
+    except Exception as exc:  # a broken catalog must not stop the slideshow
+        _LOG.debug("[slideshow-dir] no GNOME screenshot names (%s)", exc)
+    return folders, prefixes
+
+
+_DESKTOP_NAMES: Optional[Tuple[Set[str], Set[str]]] = None
+
+
+def _desktop_names() -> Tuple[Set[str], Set[str]]:
+    """``_gnome_shell_names()`` for this process, read once (the language does not change)."""
+    global _DESKTOP_NAMES
+    if _DESKTOP_NAMES is None:
+        _DESKTOP_NAMES = _gnome_shell_names()
+    return _DESKTOP_NAMES
+
+
+def is_screenshot_dir_name(name: str) -> bool:
+    """True if a folder called *name* is a screenshot folder. The name only, never the target of a
+    link of that name and never the path."""
+    key = name.casefold()
+    return key in SCREENSHOT_DIR_NAMES or key in _desktop_names()[0]
+
+
+def is_screenshot_file_name(name: str) -> bool:
+    """True if a file called *name* starts like a screenshot's name (see
+    ``SCREENSHOT_NAME_PREFIXES``). The name only."""
+    key = name.casefold()
+    return key.startswith(SCREENSHOT_NAME_PREFIXES + tuple(sorted(_desktop_names()[1])))
+
+
 def _has_image_extension(name: str) -> bool:
     return os.path.splitext(name)[1].lower() in IMAGE_EXTENSIONS
+
+
+def _root_is_exempt(root: str) -> bool:
+    """True if the filter must not touch this root: the root or one of its parents is a screenshot
+    folder or the sample pictures' folder. Whoever picked such a folder wants what is in it."""
+    return any(
+        part == SAMPLE_DIR_NAME or is_screenshot_dir_name(part)
+        for part in root.split(os.sep)
+        if part
+    )
 
 
 def _name_key(path: str) -> Tuple[str, str]:
@@ -239,6 +330,7 @@ class ImageSource:
         folder: str,
         *,
         order: str = ORDER_RANDOM,
+        show_screenshots: bool = False,
         probe: Callable[[str], Any] = probe_image,
         watcher: Optional[WatcherFactory] = None,
         scheduler: Optional[Scheduler] = None,
@@ -251,6 +343,8 @@ class ImageSource:
         self._check_order(order)
         self._root = os.path.abspath(folder)
         self._order = order
+        self._show_screenshots = bool(show_screenshots)
+        self._root_exempt = _root_is_exempt(self._root)
         self._probe = probe
         self._watcher = watcher if watcher is not None else gio_directory_watcher
         self._scheduler = scheduler if scheduler is not None else glib_idle_scheduler
@@ -303,6 +397,10 @@ class ImageSource:
         return self._order
 
     @property
+    def show_screenshots(self) -> bool:
+        return self._show_screenshots
+
+    @property
     def scan_complete(self) -> bool:
         """True when no directory is left to walk (live watching continues)."""
         return not self._pending and not self._buffer
@@ -329,10 +427,31 @@ class ImageSource:
         root = os.path.abspath(folder)
         if root == self._root:
             return
+
+        def change() -> None:
+            self._root = root
+            self._root_exempt = _root_is_exempt(root)
+
+        self._rewalk(change)
+
+    def set_show_screenshots(self, show: bool) -> None:
+        """Show or leave out the screenshots at runtime (live settings reload): the folder is
+        walked again, as for a new folder, because what is in the queue changes."""
+        show = bool(show)
+        if show == self._show_screenshots:
+            return
+
+        def change() -> None:
+            self._show_screenshots = show
+
+        self._rewalk(change)
+
+    def _rewalk(self, change: Callable[[], None]) -> None:
+        """Stop, apply *change*, and start again if it was running."""
         was_running = self._running
         old = self.current()
         self.stop()
-        self._root = root
+        change()
         self._empty_logged = False
         if old is not None:
             self._notify(None)
@@ -648,14 +767,31 @@ class ImageSource:
             return
         try:
             if entry.is_dir():
-                if self._claim_dir(entry.path):
+                if not self._left_out(entry.path, is_dir=True) and self._claim_dir(entry.path):
                     self._pending.append(entry.path)
                 return
             if not entry.is_file() or not _has_image_extension(entry.name):
                 return
         except OSError:
             return
+        if self._left_out(entry.path, is_dir=False):
+            return
         self._consider_file(entry.path, final=True)
+
+    def _left_out(self, path: str, *, is_dir: bool) -> bool:
+        """True if *path* is a screenshot folder or file that the setting leaves out.
+
+        Judged by the entry's own name only (a link by the name of the link), so the walk and the
+        link rules are the same with the filter on or off: it can only take entries out. Never
+        for the sample pictures' folder (``SAMPLE_DIR_NAME`` under the root), and never when the
+        root is itself, or lies under, a screenshot folder: a folder chosen on purpose is shown.
+        """
+        if self._show_screenshots or self._root_exempt:
+            return False
+        if path.startswith(os.path.join(self._root, SAMPLE_DIR_NAME) + os.sep):
+            return False
+        name = os.path.basename(path)
+        return is_screenshot_dir_name(name) if is_dir else is_screenshot_file_name(name)
 
     def _claim_dir(self, path: str) -> bool:
         """Register *path* as a walked directory; False if it must not be walked.
@@ -761,11 +897,19 @@ class ImageSource:
         if path == self._root:
             return
         if os.path.isdir(path):
-            if path not in self._dir_keys and self._claim_dir(path):
+            if (
+                path not in self._dir_keys
+                and not self._left_out(path, is_dir=True)
+                and self._claim_dir(path)
+            ):
                 self._pending.append(path)
                 self._ensure_scanning()
             return
-        if _has_image_extension(path) and os.path.isfile(path):
+        if (
+            _has_image_extension(path)
+            and os.path.isfile(path)
+            and not self._left_out(path, is_dir=False)
+        ):
             self._consider_file(path, final=final)
 
     def _on_deleted(self, path: str) -> None:
@@ -875,15 +1019,22 @@ def source_from_settings(settings, **kwargs) -> ImageSource:
     The returned source is not started. Changing the ``picture-folder`` or
     ``order`` key later moves the source over without a restart.
     """
-    from slideshow_lock.settings import KEY_ORDER, KEY_PICTURE_FOLDER
+    from slideshow_lock.settings import KEY_ORDER, KEY_PICTURE_FOLDER, KEY_SHOW_SCREENSHOTS
 
-    source = ImageSource(settings.get_picture_folder(), order=settings.get_order(), **kwargs)
+    source = ImageSource(
+        settings.get_picture_folder(),
+        order=settings.get_order(),
+        show_screenshots=settings.get_show_screenshots(),
+        **kwargs,
+    )
 
     def on_changed(key: str) -> None:
         if key == KEY_PICTURE_FOLDER:
             source.set_folder(settings.get_picture_folder())
         elif key == KEY_ORDER:
             source.set_order(settings.get_order())
+        elif key == KEY_SHOW_SCREENSHOTS:
+            source.set_show_screenshots(settings.get_show_screenshots())
 
     settings.connect_changed(on_changed)
     return source
