@@ -56,6 +56,7 @@ def _new_whole(draw: td.Draw) -> bool:
         and draw.dx == 0.0
         and draw.dy == 0.0
         and draw.blur == 0.0
+        and draw.soft is None  # no band of a soft edge left behind
         and clip_ok
         and circle_ok
     )
@@ -73,10 +74,10 @@ def test_at_progress_zero_the_old_picture_is_alone(name):
 
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
 def test_at_progress_one_the_new_picture_is_alone_and_untouched(name):
-    draws = td.compose(name, 1.0, W, H, fade_share=0.1)
+    draws = td.compose(name, 1.0, W, H)
     assert draws, name
     assert draws[-1].layer == NEW and draws[-1].opacity == 1.0
-    assert _new_whole(draws[-1])  # Ken Burns too: its last frame is the plain picture, no jump
+    assert _new_whole(draws[-1])
 
 
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
@@ -112,12 +113,15 @@ def _coverage(name: str, p: float) -> float:
     d = new[-1]
     if name in (CROSSFADE, FADE_BLACK, ZOOM, ROTATE):
         return d.opacity
-    if name in (SLIDE_IN, PUSH):
+    if name == SLIDE_IN:
         return 1.0 - d.dx / W
-    if name == WIPE:
-        return d.clip[2] / W
+    if name == PUSH:
+        return -td.compose(PUSH, p, W, H)[0].dx / W  # the old picture's move
+    soft = td.soft_width(W, H)
+    if name == WIPE:  # the soft front runs on past the window, and the last frame is the plain one
+        return 1.0 if d.clip is None else d.clip[2] / (W + soft)
     if name == CIRCLE:
-        return d.circle[2] / (math.hypot(W, H) / 2)
+        return 1.0 if d.circle is None else d.circle[2] / (math.hypot(W, H) / 2 + soft)
     if name == KEN_BURNS:
         return d.opacity
     if name == BLUR:
@@ -134,7 +138,7 @@ def test_the_new_picture_never_goes_back(name):
 
 def test_crossfade_is_the_new_picture_over_the_old_at_the_eased_opacity():
     old, new = td.compose(CROSSFADE, 0.25, W, H)
-    assert old == td.Draw(OLD)
+    assert old == td.Draw(OLD, settle=td.Settle(td.ease(0.25)))
     assert new == td.Draw(NEW, opacity=td.ease(0.25))
 
 
@@ -149,47 +153,66 @@ def test_fade_black_dips_to_black_in_the_middle_and_never_shows_both():
 
 def test_slide_in_moves_the_new_picture_over_a_still_old_one_inside_the_window():
     old, new = td.compose(SLIDE_IN, 0.5, W, H)
-    assert old == td.Draw(OLD)
+    assert old == td.Draw(OLD, settle=td.Settle(td.ease(0.5)))
     assert new.dx == pytest.approx(W * 0.5) and new.clip == (0.0, 0.0, W, H)
 
 
-def test_push_moves_both_pictures_together():
+def test_push_moves_both_pictures_together_the_new_one_over_the_edge_of_the_old_one():
     for p in (0.1, 0.5, 0.9):
         old, new = td.compose(PUSH, p, W, H)
-        assert new.dx - old.dx == pytest.approx(W)  # always one window apart
+        e = td.ease(p)
+        assert old.dx == pytest.approx(-W * e)  # the old picture goes out as fast as ever
+        # the new one is one window behind it, less the overlap its soft edge dissolves over
+        overlap = W - (new.dx - old.dx)
+        assert 0.0 < overlap <= td.soft_width(W, H) + 1e-9
+        assert new.soft.width == pytest.approx(overlap)
         assert old.clip == new.clip == (0.0, 0.0, W, H)
 
 
-def test_ken_burns_fades_in_during_its_share_and_then_keeps_moving():
-    early = td.compose(KEN_BURNS, 0.05, W, H, fade_share=0.1)[-1]
-    late = td.compose(KEN_BURNS, 0.5, W, H, fade_share=0.1)[-1]
-    end = td.compose(KEN_BURNS, 1.0, W, H, fade_share=0.1)[-1]
-    assert 0.0 < early.opacity < 1.0
-    assert late.opacity == 1.0 and end.opacity == 1.0
-    start = td.compose(KEN_BURNS, 0.0, W, H, fade_share=0.1)[-1]
-    assert start.scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM) and start.dx < 0.0
-    assert start.scale > early.scale > late.scale > end.scale == 1.0
-    assert start.dx < early.dx < late.dx < end.dx == 0.0
+def test_ken_burns_is_the_cross_fade_of_pictures_that_move_on_their_own():
+    for p in (0.0, 0.3, 0.5, 1.0):
+        assert td.compose(KEN_BURNS, p, W, H) == td.compose(CROSSFADE, p, W, H)
 
 
-def test_ken_burns_last_frame_is_the_picture_the_plain_drawing_shows_after_it():
-    """The window draws the new picture plainly (scale 1, no shift, whole opacity) once the run is
-    over, so the last animated frame must be that: no jump when the run ends."""
-    plain = td.Draw(NEW)
-    for share in (0.0, 0.05, 0.1, 1.0):
-        assert td.compose(KEN_BURNS, 1.0, W, H, fade_share=share)[-1] == plain, share
-    run = td.TransitionRun(KEN_BURNS, 9.0, fade_share=0.1)
-    run.tick(0)  # the first frame
-    run.tick(1_000_000)  # the clock starts
-    assert run.tick(1_000_000 + 8_999_999)  # the last tick before the end still draws
-    almost = run.draws(W, H)[-1]
-    assert abs(almost.scale - 1.0) < 1e-5 and abs(almost.dx) < 1e-4 * W
-    assert run.tick(1_000_000 + 9_000_000) is False  # over: the window draws plainly
-    assert run.draws(W, H)[-1] == plain
+#: ``KEN_BURNS_ZOOM`` on main (070e033), before the zoom was made stronger. The new one is 1.5 to
+#: 2 times that, and stays in the 0.12 to 0.16 range.
+OLD_KEN_BURNS_ZOOM = 0.08
 
 
-def test_ken_burns_with_a_zero_share_does_not_divide_by_zero():
-    assert td.compose(KEN_BURNS, 0.5, W, H, fade_share=0.0)[-1].opacity == 1.0
+def test_ken_burns_zoom_is_one_and_a_half_to_two_times_the_old_one():
+    assert 0.12 <= td.KEN_BURNS_ZOOM <= 0.16
+    assert 1.5 <= td.KEN_BURNS_ZOOM / OLD_KEN_BURNS_ZOOM <= 2.0
+    assert td.base_pose(0.0, 60.0, W, True).scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM)
+
+
+def test_the_slow_move_of_a_picture_that_fills_the_window_never_shows_a_black_edge():
+    """The enlarged picture reaches past the window on both sides by more than it is shifted by,
+    at every point of its time: ``scale - 1`` is at least ``2 |dx| / width``."""
+    assert td.KEN_BURNS_DRIFT <= td.KEN_BURNS_ZOOM / 2.0
+    for age in (0.0, 15.0, 30.0, 45.0, 60.0, 90.0):
+        pose = td.base_pose(age, 60.0, W, True)
+        assert pose.scale - 1.0 >= 2.0 * abs(pose.dx) / W - 1e-12, age
+
+
+def test_the_slow_move_of_a_picture_that_does_not_fill_the_window_only_grows_a_little():
+    start, end = td.base_pose(0.0, 60.0, W, False), td.base_pose(60.0, 60.0, W, False)
+    assert start == td.STILL
+    assert end.scale == pytest.approx(1.0 + td.SMALL_ZOOM) and end.dx == 0.0
+
+
+@pytest.mark.parametrize("fills", [True, False])
+def test_the_slow_move_goes_on_at_a_steady_pace_for_the_whole_time_of_the_picture(fills):
+    span = td.picture_seconds(20.0)
+    poses = [td.base_pose(span * i / 200.0, span, W, fills) for i in range(201)]
+    steps = [abs(b.scale - a.scale) + abs(b.dx - a.dx) for a, b in zip(poses, poses[1:])]
+    assert min(steps) > 0.0  # never still, not even at the end
+    assert max(steps) <= 1.01 * min(steps)
+
+
+def test_a_picture_lives_for_its_interval_and_the_longest_transition_after_it():
+    assert td.picture_seconds(20.0) == 25.0  # the transition is cut to its longest, 5 s
+    assert td.picture_seconds(3.0) == 4.5  # half of the interval
+    assert td.picture_seconds(300.0) == 305.0
 
 
 def test_zoom_grows_the_old_picture_and_brings_the_new_one_in_from_smaller():
@@ -200,12 +223,16 @@ def test_zoom_grows_the_old_picture_and_brings_the_new_one_in_from_smaller():
 
 
 def test_wipe_runs_left_to_right_and_the_circle_grows_from_the_centre():
-    assert td.compose(WIPE, 0.5, W, H)[-1].clip == (0.0, 0.0, W * 0.5, H)
+    soft = td.soft_width(W, H)
+    assert td.compose(WIPE, 0.5, W, H)[-1].clip == (0.0, 0.0, (W + soft) * 0.5, H)
     cx, cy, r = td.compose(CIRCLE, 0.5, W, H)[-1].circle
     assert (cx, cy) == (W / 2, H / 2)
-    assert r == pytest.approx(0.5 * math.hypot(W, H) / 2)
-    # the full circle covers the corners: the farthest point from the centre is half the diagonal
-    assert td.compose(CIRCLE, 1.0, W, H)[-1].circle[2] == pytest.approx(math.hypot(W, H) / 2)
+    # the soft rim runs on until its whole band is past the corners (the farthest point from the
+    # centre is half the diagonal): the circle ends a band's width larger than the corners need
+    assert r == pytest.approx(0.5 * (math.hypot(W, H) / 2 + soft))
+    assert td.compose(CIRCLE, 0.999, W, H)[-1].circle[2] > math.hypot(W, H) / 2
+    assert td.compose(CIRCLE, 1.0, W, H)[-1] == td.Draw(NEW)
+    assert td.compose(WIPE, 1.0, W, H)[-1] == td.Draw(NEW)
 
 
 def test_blur_peaks_at_the_cut_and_shows_the_old_picture_first_then_the_new_one():
@@ -397,11 +424,3 @@ def test_draws_follow_the_progress_after_the_first_frame():
     run.tick(100)
     run.tick(100 + 500_000)
     assert run.draws(W, H) == td.compose(CIRCLE, 0.5, W, H)
-
-
-def test_ken_burns_run_keeps_the_fade_share_it_was_given():
-    run = td.TransitionRun(KEN_BURNS, 10.0, fade_share=0.08)
-    run.tick(0)
-    run.tick(1)
-    run.tick(1 + 400_000)  # 4 % of the run: half way through the fade
-    assert run.draws(W, H) == td.compose(KEN_BURNS, 0.04, W, H, 0.08)

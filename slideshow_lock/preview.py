@@ -69,9 +69,6 @@ _LOG = logging.getLogger(__name__)
 
 TRIGGER_PREVIEW = "preview"
 
-#: The pan animation takes this share of the slide interval; the rest the picture rests.
-PAN_FRACTION = 0.9
-
 #: If a window has not reported its size after this long, the preview starts without it.
 SIZE_WAIT_SECONDS = 2.0
 
@@ -113,7 +110,7 @@ class PreviewController:
     scrolled, so no tall panning frame is made for it, and a picture comes in without a
     transition.
 
-    A window has ``device_size()``, ``show_frame(frame, pan_seconds)`` (with a third argument,
+    A window has ``device_size()``, ``show_frame(frame, seconds)`` (with a third argument,
     ``transition=(name, seconds)``, only when the picture comes in with one),
     ``show_message(text)``, ``connect_input(cb)``, ``connect_size_changed(cb)`` and
     ``close()``.
@@ -398,9 +395,9 @@ class PreviewController:
             if frame is None:
                 window.show_message("")
             elif transition is not None and self._comes_in_changed(index, frame):
-                window.show_frame(frame, interval * PAN_FRACTION, transition)
+                window.show_frame(frame, interval, transition)
             else:
-                window.show_frame(frame, interval * PAN_FRACTION)
+                window.show_frame(frame, interval)
         self._shown_path = path
         self._shown_frames = frames
         self._shown_stale = False

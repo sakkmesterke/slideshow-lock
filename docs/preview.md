@@ -141,15 +141,33 @@ transitions (section 2, "Transitions").
   are drawn, each over black, the new picture over the old one: `crossfade`, `fade-black`
   (the old picture to black, black to the new one), `slide-in` (the new picture slides in
   from the right over the still old one), `push` (the new picture pushes the old one out to
-  the left), `ken-burns` (a cross-fade into the new picture enlarged by 8 % and shifted
-  left by 2 % of the window width, which over the run shrinks and drifts back to its own size
-  and place: the last frame is the plain picture, so nothing jumps when the run ends; the run
-  lasts 90 % of the picture time), `zoom` (the old picture grows by 15 %
+  the left), `ken-burns` (the cross-fade; the move
+  that gave it its name is now every picture's, see below), `zoom` (the old picture grows by 15 %
   and fades while the new one comes in from 85 %), `wipe` (the new picture is uncovered from
   the left), `circle` (from the centre in a growing circle that ends past the corners),
   `blur` (the old picture blurs, at the middle the new one takes over and sharpens) and
   `rotate` (the new picture turns in from -12 degrees, enlarged by 25 %, while it fades in over
-  the old one). Progress is eased (smoothstep). An empty list, or a list with no valid name,
+  the old one). Progress is eased (smoothstep). **Soft edges:** where the new picture meets the old
+  one there is a band, not a line: `slide-in`, `push`, `wipe`, `circle`, `zoom` and `rotate` fade
+  the new picture in over `SOFT_EDGE_SHARE` (12 %) of the window's shorter side. The band narrows
+  where the edge has no room (at the window's border at the start and at the end of a run), so the
+  first and the last frame are the plain pictures with no band left behind; a `wipe` and a
+  `circle` run on until the whole band is past the window, and a `push` lets the new picture come
+  in over the last pixels of the old one, so the seam is two pictures dissolving into each other,
+  not a dark line. `crossfade`, `fade-black` and `blur` have no edge. **A picture is never still while it is on
+  screen** (`_Move`, `transition_draw.base_pose`), under every one of the ten: a picture that
+  does not scroll appears enlarged by 14 % (`KEN_BURNS_ZOOM`) and shifted left by 3.5 % of the
+  window width (`KEN_BURNS_DRIFT`) if it fills the window, and over the whole time it lives, which
+  is its interval plus the longest transition after it (`picture_seconds`), shrinks and drifts
+  back at a steady pace, without an end point it could rest in; the shift is at most half of the
+  enlargement, so the picture covers the window at every moment (no black edge). A picture that
+  does not fill the window only grows by 4 % (`SMALL_ZOOM`) around the middle, without a shift.
+  The move belongs to the picture: the incoming one arrives in motion, the outgoing one moves on
+  under the transition (`Draw.pose`, done inside the picture's own place before the transition
+  moves, turns and cuts it), and the plain drawing after the transition goes on from the same
+  value. It is redrawn 30 times a second (`MOTION_FPS`), and the picture is always drawn through
+  the transform (filtered), not 1:1. A scrolling picture keeps its pan and has no such move. No
+  move with the desktop's animations off. An empty list, or a list with no valid name,
   is the cut. One setting, `transition-duration` (0.2 to 5.0 s, default 1.0 s), is the length of
   every transition. A transition never takes more than half of the interval (a 1 s interval
   cross-fades for 0.5 s; the default 10 s interval leaves the whole 1.0 s) and under 0.2 s it is a
@@ -169,7 +187,7 @@ transitions (section 2, "Transitions").
   `--transition random` of `preview_app` does the same for one run.
   **Two are not always what was asked for** (`effective_name`): `ken-burns` needs a picture that
   fills the window and does not scroll (a fit picture, or a panning portrait, gets the cross-fade
-  instead), and the `blur`, which is the costly one (it works on pictures reduced to a quarter of
+  instead, which is what it is anyway now; the picture's own move differs), and the `blur`, which is the costly one (it works on pictures reduced to a quarter of
   their size), is a cross-fade when drawing is known to be in software (Cairo renderer,
   `GSK_RENDERER=cairo`, `LIBGL_ALWAYS_SOFTWARE`, `GALLIUM_DRIVER=llvmpipe|softpipe`; GTK does not
   say which OpenGL driver draws, so a Mesa that falls back to llvmpipe on its own, a virtual machine
@@ -177,17 +195,17 @@ transitions (section 2, "Transitions").
   a warning in the log, if the reduced pictures cannot be made.
   How it is drawn: `_Canvas` keeps the old texture; `transition_draw.compose` gives, for a moment
   of the transition, the pictures to paint from the bottom up (which one, opacity, scale, angle,
-  shift, clip, circle, blur), and the canvas turns each into `Gtk.Snapshot` calls (clip, opacity,
-  blur, then shift/rotate/scale around the centre). A picture of opacity 0 is not painted at all:
+  shift, clip, circle, blur, soft edge), and the canvas turns each into `Gtk.Snapshot` calls (clip,
+  opacity, blur, then shift/rotate/scale around the centre). A soft edge is a `push_mask` with
+  an alpha gradient, which needs GTK 4.10: on GTK 4.8 the edges stay as they were cut. A picture of opacity 0 is not painted at all:
   on GTK 4.8.3 a rotated, faded-out node was seen to change the pixels of the picture under it
   (cause not looked into). The canvas has a frame-clock tick of its own and a `TransitionRun`
   whose end is a point in time, not a number of frames, so a slow machine draws fewer frames and
   not a longer transition. The first frame is at progress 0 with the new picture added at one
   pixel and almost no opacity (the new texture is uploaded there, out of sight), the clock starts
-  at the second tick, and at the end the tick is removed and the picture is drawn 1:1 as always
-  (no filtered last frame, no redraw until the next change). Ken Burns is the one that keeps
-  drawing for 90 % of the time the picture is shown (a redraw per frame, like the pan). A panning old
-  picture stays where it stopped; the new one starts at the top. `--transition
+  at the second tick, and at the end the transition's tick is removed; the picture goes on with
+  the tick of its slow move (a scrolling picture is drawn 1:1 as always, no redraw until the
+  next change). A panning old picture stays where it stopped; the new one starts at the top. `--transition
   NAME|random|none` of `preview_app` replaces the setting for one run.
 - **Live settings.** The interval re-arms the running timer. `scaling` and `pan-portrait-images`
   redo the picture on screen and the prepared one. `transitions` is read at every change of

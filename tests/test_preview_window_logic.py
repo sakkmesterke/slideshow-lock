@@ -13,6 +13,7 @@ import pytest
 from gi.repository import GLib
 
 from slideshow_lock import preview_window
+from slideshow_lock import transition_draw as td
 from slideshow_lock.preview import (
     INPUT_BUTTON,
     INPUT_CLOSE,
@@ -130,6 +131,10 @@ def window_for_frames(monkeypatch):
     window._old_offset = (0, 0)
     window._reduced = {}
     window._run_tick_id = 0
+    window._move = window._old_move = None
+    window._move_tick_id = 0
+    window._now = None
+    window._drawn_at = 0
     window._scale = lambda: 1.0
     calls = []
     monkeypatch.setattr(_Canvas, "add_tick_callback", lambda self, fn: calls.append("tick") or 7)
@@ -159,11 +164,12 @@ def test_a_panning_frame_scrolls_only_while_the_desktop_animates(monkeypatch, en
         assert calls == [] and window._offset == (5, 300)
 
 
-def test_a_frame_that_does_not_pan_starts_no_tick_whatever_the_animation_choice(monkeypatch):
+def test_a_frame_that_does_not_pan_starts_no_pan_tick_whatever_the_animation_choice(monkeypatch):
     monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
     window, calls = window_for_frames(monkeypatch)
     window.set_frame(tall_frame((0, 0)), 5.0)
-    assert calls == [] and window._offset == (0, 0)
+    assert window._tick_id == 0 and window._offset == (0, 0)
+    assert calls == ["tick"] and window._move is not None  # the tick of its slow move
 
 
 class _FakeGtkSettings:
@@ -272,23 +278,14 @@ def test_every_one_of_the_ten_starts_a_run(monkeypatch, name):
     window, calls = canvas_with_a_picture(monkeypatch)
     monkeypatch.setattr(preview_window, "_reduced_texture", lambda frame, factor: object())
     window.set_frame(flat_frame("new.png"), 4.0, (name, 0.8))
-    assert calls == ["tick"] and window._run is not None
+    assert calls == ["tick", "tick"] and window._run is not None  # the slow move's and the run's
     assert window._run.name == name  # the frames fill the window, so Ken Burns stays Ken Burns
 
 
-def test_ken_burns_runs_as_long_as_the_picture_is_shown_and_fades_in_during_its_own_time(
-    monkeypatch,
-):
+def test_ken_burns_runs_as_long_as_its_fade_and_the_slow_move_is_the_pictures_own(monkeypatch):
     window, _calls = canvas_with_a_picture(monkeypatch)
     window.set_frame(flat_frame("new.png"), 9.0, ("ken-burns", 0.8))
-    assert window._run.name == "ken-burns" and window._run.seconds == 9.0
-    assert window._run.fade_share == pytest.approx(0.8 / 9.0)
-
-
-def test_ken_burns_on_a_short_picture_time_is_not_shorter_than_its_fade(monkeypatch):
-    window, _calls = canvas_with_a_picture(monkeypatch)
-    window.set_frame(flat_frame("new.png"), 0.3, ("ken-burns", 0.8))
-    assert window._run.seconds == 0.8 and window._run.fade_share == 1.0
+    assert window._run.name == "ken-burns" and window._run.seconds == 0.8
 
 
 def test_ken_burns_on_a_picture_that_does_not_fill_the_window_is_a_cross_fade(monkeypatch):
@@ -443,3 +440,200 @@ def test_the_first_frame_draws_both_pictures_and_the_second_draws_them_at_progre
     textures = [c[1] for c in snapshot.calls if c[0] == "append_texture"]
     assert window._old_texture in textures and window._texture in textures
     assert snapshot.calls[0][0] == "append_color"  # black comes first
+
+
+# -- the soft edges: the calls the canvas makes for them -----------------------------------------
+
+
+class _Texture:
+    def __init__(self, width, height):
+        self._size = (width, height)
+
+    def get_width(self):
+        return self._size[0]
+
+    def get_height(self):
+        return self._size[1]
+
+
+class _SnapshotWithoutMasks(_Snapshot):
+    """GTK before 4.10: no ``push_mask``."""
+
+    def __getattr__(self, name):
+        if name == "push_mask":
+            raise AttributeError(name)
+        return super().__getattr__(name)
+
+
+@pytest.fixture(autouse=False)
+def mask_mode(monkeypatch):
+    """``Gsk.MaskMode`` does not exist before GTK 4.10 (the tests of the calls run on any GTK)."""
+    import types
+
+    monkeypatch.setattr(
+        preview_window.Gsk, "MaskMode", types.SimpleNamespace(ALPHA="alpha"), raising=False
+    )
+
+
+def painting_canvas(width=64, height=36):
+    canvas = _Canvas.__new__(_Canvas)
+    canvas._scale = lambda: 1.0
+    canvas._old_texture, canvas._texture = _Texture(width, height), _Texture(width, height)
+    canvas._old_offset = canvas._offset = (0, 0)
+    canvas._reduced = {}
+    return canvas
+
+
+def paint_calls(name, progress, snapshot=None):
+    """The names of the calls the canvas makes to paint the new picture of *name* at *progress*."""
+    from slideshow_lock import transition_draw as td
+
+    snapshot = snapshot if snapshot is not None else _Snapshot()
+    draw = td.compose(name, progress, 64.0, 36.0)[-1]
+    painting_canvas()._paint(snapshot, draw, 64.0, 36.0)
+    return [call[0] for call in snapshot.calls]
+
+
+def test_a_soft_edge_is_a_mask_whose_gradient_comes_first_and_the_picture_after_it(mask_mode):
+    """GTK takes what is recorded before the first ``pop`` as the mask, the rest as the picture it
+    cuts: the other way round, the gradient would be painted, masked by the picture."""
+    names = paint_calls("slide-in", 0.5)
+    start = names.index("push_mask")
+    assert names[start : start + 5] == [
+        "push_mask",
+        "append_linear_gradient",
+        "pop",
+        "append_texture",
+        "pop",
+    ]
+    names = paint_calls("circle", 0.5)
+    start = names.index("push_mask")
+    assert names[start : start + 3] == ["push_mask", "append_radial_gradient", "pop"]
+    assert names.index("append_texture") > start + 2
+
+
+def test_an_edge_on_two_axes_is_two_masks_one_inside_the_other(mask_mode):
+    names = paint_calls("zoom", 0.25)
+    start = names.index("push_mask")
+    assert names[start : start + 9] == [
+        "push_mask",
+        "append_linear_gradient",
+        "pop",
+        "push_mask",
+        "append_linear_gradient",
+        "pop",
+        "append_texture",
+        "pop",
+        "pop",
+    ]
+
+
+@pytest.mark.parametrize("name", ("slide-in", "push", "wipe", "circle", "zoom", "rotate"))
+@pytest.mark.parametrize("progress", (0.0, 0.1, 0.5, 0.9, 1.0))
+def test_every_push_is_popped_with_or_without_masks(mask_mode, name, progress):
+    for snapshot in (_Snapshot(), _SnapshotWithoutMasks()):
+        names = paint_calls(name, progress, snapshot)
+        pushes = [n for n in names if n.startswith("push_")]
+        assert names.count("pop") == len(pushes) + names.count("push_mask")  # a mask ends twice
+        assert names.count("save") == names.count("restore")
+        for position, called in enumerate(names):
+            if called.endswith("_gradient"):
+                assert names[position - 1] == "push_mask"
+
+
+@pytest.mark.parametrize("name", ("slide-in", "push", "wipe", "circle", "zoom", "rotate"))
+def test_before_gtk_4_10_the_edges_stay_as_they_were_cut(name):
+    names = paint_calls(name, 0.5, _SnapshotWithoutMasks())
+    assert "push_mask" not in names and not any(n.endswith("_gradient") for n in names)
+    assert "append_texture" in names
+
+
+# -- the slow move of a picture: always on, through the transitions ------------------------------
+
+
+def moving_canvas(monkeypatch, seconds=20.0):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame("old.png"), seconds)
+    calls.clear()
+    return window, calls
+
+
+def test_a_picture_that_does_not_scroll_has_a_slow_move_as_long_as_it_and_its_transition_live(
+    monkeypatch,
+):
+    window, _calls = moving_canvas(monkeypatch)
+    assert window._move.span == td.picture_seconds(20.0)
+
+
+@pytest.mark.parametrize("pan_range,enabled", [((0, 600), True), ((0, 0), False)])
+def test_a_scrolling_picture_or_no_animations_means_no_slow_move(monkeypatch, pan_range, enabled):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: enabled)
+    window, _calls = window_for_frames(monkeypatch)
+    window.set_frame(tall_frame(pan_range), 20.0)
+    assert window._move is None
+
+
+def test_the_clock_of_the_move_starts_at_the_first_tick_and_the_poses_follow_it(monkeypatch):
+    window, _calls = moving_canvas(monkeypatch)
+    assert window._pose(window._move, 4.0) == td.base_pose(0.0, window._move.span, 4.0, True)
+    window._on_move_tick(None, _Clock(100.0))
+    window._on_move_tick(None, _Clock(110.0))
+    span = window._move.span
+    assert window._pose(window._move, 4.0) == td.base_pose(10.0, span, 4.0, True)
+
+
+def test_the_slow_move_is_redrawn_at_thirty_frames_a_second_not_at_every_frame(
+    monkeypatch,
+):
+    window, _calls = moving_canvas(monkeypatch)
+    draws = []
+    monkeypatch.setattr(_Canvas, "queue_draw", lambda self: draws.append(1))
+    for frame in range(60):  # one second of a 60 Hz frame clock
+        window._on_move_tick(None, _Clock(frame / 60.0))
+    assert 28 <= len(draws) <= 32
+
+
+def test_the_outgoing_picture_keeps_its_move_and_the_incoming_one_starts_its_own(monkeypatch):
+    window, calls = moving_canvas(monkeypatch)
+    window._on_move_tick(None, _Clock(5.0))
+    window._on_move_tick(None, _Clock(25.0))
+    before = window._move
+    window.set_frame(flat_frame("new.png"), 20.0, ("crossfade", 1.0))
+    assert window._old_move is before and window._move is not before
+    assert window._move.born is None  # it starts with the first tick of the transition
+    window._on_transition_tick(None, _Clock(25.5))
+    assert window._move.born == 25_500_000
+    old_pose = window._pose(window._old_move, 4.0)
+    assert old_pose == td.base_pose(20.5, before.span, 4.0, True)  # it goes on, no jump
+
+
+def test_the_same_frame_again_keeps_its_move_running(monkeypatch):
+    window, _calls = moving_canvas(monkeypatch)
+    move = window._move
+    window.set_frame(window._frame, 20.0)
+    assert window._move is move
+
+
+def test_the_move_goes_on_from_the_same_value_when_the_transition_ends(monkeypatch):
+    window, _calls = moving_canvas(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 20.0, ("crossfade", 1.0))
+    window._on_transition_tick(None, _Clock(30.0))  # the first frame
+    window._on_transition_tick(None, _Clock(30.0))  # the clock of the run starts
+    born = window._move.born
+    assert born == 30_000_000 and window._run is not None
+    window._on_transition_tick(None, _Clock(31.5))  # over
+    assert window._run is None and window._move.born == born  # not started again
+    window._on_move_tick(None, _Clock(31.6))
+    assert window._pose(window._move, 4.0) == td.base_pose(1.6, window._move.span, 4.0, True)
+
+
+def test_a_picture_smaller_than_the_window_only_grows_and_is_not_shifted(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, _calls = window_for_frames(monkeypatch)
+    small = Frame("s.png", 2, 3, 6, bytes(6 * 3), "fake", (0, 0))  # the window is 4 x 3
+    window.set_frame(small, 20.0)
+    window._on_move_tick(None, _Clock(0.0))
+    window._on_move_tick(None, _Clock(10.0))
+    pose = window._pose(window._move, 4.0)
+    assert pose.dx == 0.0 and 1.0 < pose.scale <= 1.0 + td.SMALL_ZOOM

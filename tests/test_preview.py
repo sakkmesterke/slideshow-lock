@@ -393,9 +393,9 @@ def test_ac4_pan_is_off_unless_switched_on_and_a_change_applies_live(tmp_path, b
     assert r.windows[0].frames[-1][0].method == "fake-fill-1"
 
 
-def test_ac4_the_pan_animation_is_given_a_share_of_the_interval(tmp_path, backends):
+def test_ac4_the_window_is_told_how_long_the_picture_is_shown(tmp_path, backends):
     r = rig(tmp_path, backends, settings=FakeSettings(interval=20))
-    assert r.windows[0].frames[0][1] == pytest.approx(18.0)  # 90 % of 20 s
+    assert r.windows[0].frames[0][1] == pytest.approx(20.0)  # the window moves it all that time
 
 
 def test_ac2_a_window_resize_redoes_the_picture_at_the_new_size(tmp_path, backends):
