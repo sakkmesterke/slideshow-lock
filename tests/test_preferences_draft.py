@@ -97,7 +97,7 @@ def test_the_draft_shows_its_own_values_over_the_stored_ones(draft, tmp_path):
 
 def test_what_is_not_edited_shows_the_stored_value(draft):
     assert draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 120
-    assert draft.value(KEY_TRANSITIONS) == "crossfade"
+    assert draft.value(KEY_TRANSITIONS) == "ken-burns"
     assert draft.interval_view().seconds == 10
     assert draft.value(KEY_TRANSITION_DURATION) == 1.0
     assert not draft.dirty

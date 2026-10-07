@@ -58,7 +58,7 @@ DRAWABLE = (CROSSFADE, FADE_BLACK)
 RANDOM_POOL = tuple(name for name in ALL_TRANSITIONS if name not in (BLUR, KEN_BURNS))
 
 #: What the ``transitions`` setting holds until it is changed.
-DEFAULT_TRANSITIONS = (CROSSFADE,)
+DEFAULT_TRANSITIONS = (KEN_BURNS,)
 
 #: How the picture to change with is chosen from several (``transition-order``).
 ORDER_RANDOM = "random"
