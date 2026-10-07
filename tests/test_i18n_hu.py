@@ -167,6 +167,7 @@ def test_the_catalog_built_from_this_checkout_is_what_the_programs_show_in_a_hun
     assert _("Cancel") == "Mégse"
     assert _("Preview") == "Előnézet"
     assert _("%d min") % 5 == "5 perc"
+    assert _("Show screenshots") == "Képernyőképek megjelenítése"
 
     for module, text in (
         (preview_app, "A diavetítés előnézetének megjelenítése"),

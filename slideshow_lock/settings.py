@@ -48,6 +48,7 @@ KEY_SLIDE_INTERVAL_SECONDS = "slide-interval-seconds"
 KEY_ORDER = "order"
 KEY_SCALING = "scaling"
 KEY_PAN_PORTRAIT_IMAGES = "pan-portrait-images"
+KEY_SHOW_SCREENSHOTS = "show-screenshots"
 KEY_FIRST_RUN_DONE = "first-run-done"
 KEY_TRANSITIONS = "transitions"
 KEY_TRANSITION_ORDER = "transition-order"
@@ -156,6 +157,14 @@ class Settings:
 
     def set_pan_portrait_images(self, value: bool) -> bool:
         return self._set_boolean(KEY_PAN_PORTRAIT_IMAGES, value)
+
+    # -- show-screenshots ------------------------------------------------------------
+
+    def get_show_screenshots(self) -> bool:
+        return self._settings.get_boolean(KEY_SHOW_SCREENSHOTS)
+
+    def set_show_screenshots(self, value: bool) -> bool:
+        return self._set_boolean(KEY_SHOW_SCREENSHOTS, value)
 
     # -- transitions ---------------------------------------------------------------
 

@@ -44,6 +44,7 @@ from slideshow_lock.settings import (
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
+    KEY_SHOW_SCREENSHOTS,
     KEY_SLIDE_INTERVAL_SECONDS,
     KEY_TRANSITION_DURATION,
     KEY_TRANSITION_ORDER,
@@ -88,6 +89,7 @@ def test_every_key_of_the_schema_has_a_field(model):
         | {
             KEY_PAN_PORTRAIT_IMAGES,
             KEY_PICTURE_FOLDER,
+            KEY_SHOW_SCREENSHOTS,
             KEY_TRANSITIONS,
             KEY_TRANSITION_ORDER,
             KEY_TRANSITION_DURATION,
@@ -103,6 +105,7 @@ def test_the_window_starts_from_the_stored_values(model):
     assert model.get(KEY_ORDER) == "random"
     assert model.get(KEY_SCALING) == "fill"
     assert model.get(KEY_PAN_PORTRAIT_IMAGES) is False  # off unless switched on
+    assert model.get(KEY_SHOW_SCREENSHOTS) is False  # screenshots stay out unless asked for
 
 
 def test_a_value_written_elsewhere_is_what_the_model_reads(model):
@@ -776,3 +779,16 @@ def test_a_folder_the_settings_claim_to_take_but_do_not_store_is_not_reported_as
     stub = _Settings()
     stub.mode = "lie"
     assert not PreferencesModel(stub).set_folder(str(tmp_path)).ok
+
+
+def test_show_screenshots_is_saved_on_and_off(model):
+    assert model.set_show_screenshots(True).ok
+    assert model.get(KEY_SHOW_SCREENSHOTS) is True
+    assert model.set_show_screenshots(False).ok
+    assert model.get(KEY_SHOW_SCREENSHOTS) is False
+
+
+@pytest.mark.parametrize("value", ["yes", 1, 0, None, []])
+def test_show_screenshots_takes_only_a_real_on_or_off(model, value):
+    assert not model.set_show_screenshots(value).ok
+    assert model.get(KEY_SHOW_SCREENSHOTS) is False
