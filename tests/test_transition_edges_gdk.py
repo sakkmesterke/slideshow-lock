@@ -94,6 +94,10 @@ def render(renderer, draws):
     snapshot.append_color(black, Graphene.Rect().init(0, 0, W, H))
     for draw in draws:
         canvas._paint(snapshot, draw, W, H)
+    return _pixels(renderer, snapshot)
+
+
+def _pixels(renderer, snapshot):
     # PyGObject has no Python type for the render nodes: the C functions, through ctypes
     gtk = ctypes.CDLL("libgtk-4.so.1")
     gtk.gtk_snapshot_to_node.restype = ctypes.c_void_p
@@ -155,9 +159,85 @@ def test_the_first_and_the_last_frame_are_the_plain_pictures(renderer, name):
     assert min(min(row) for row in last) >= 0.99, name
 
 
-def test_a_rendered_ken_burns_picture_covers_the_window_the_whole_run(renderer):
-    """The enlarged, shifted picture of Ken Burns, fully faded in (the old picture is red and
-    would show at an edge it does not cover): all green, to the last pixel of every border."""
-    for p in (1e-4, 0.25, 0.5, 0.75, 1.0):  # not 0: the picture is not faded in at the very start
-        rows = render(renderer, td.compose("ken-burns", p, W, H, fade_share=1e-6))
-        assert min(min(row) for row in rows) >= 0.99, p
+SPAN = td.picture_seconds(20.0)
+AGES = (0.0, 0.25 * SPAN, 0.5 * SPAN, 0.75 * SPAN, SPAN)
+
+
+@pytest.mark.parametrize("age", AGES)
+def test_a_rendered_picture_with_the_slow_move_of_a_filling_picture_covers_the_window(
+    renderer, age
+):
+    """The enlarged, shifted picture, fully faded in (the old picture is red and would show at an
+    edge it does not cover): all green, to the last pixel of every border."""
+    pose = td.base_pose(age, SPAN, W, True)
+    rows = render(renderer, td.with_poses(td.compose("ken-burns", 1.0, W, H), td.STILL, pose))
+    assert min(min(row) for row in rows) >= 0.99, age
+
+
+@pytest.mark.parametrize("name", SOFT)
+@pytest.mark.parametrize("age", AGES)
+def test_the_first_and_the_last_frame_are_the_plain_pictures_with_the_slow_move_too(
+    renderer, name, age
+):
+    """The moving pictures are still cut at the window's rectangle: nothing of the new picture
+    before the transition, nothing of the old one after it, whatever the move has reached."""
+    pose = td.base_pose(age, SPAN, W, True)
+    first = render(renderer, td.with_poses(td.compose(name, 0.0, W, H), pose, td.STILL))
+    assert max(max(row) for row in first) <= 0.01, (name, age)
+    last = render(renderer, td.with_poses(td.compose(name, 1.0, W, H), td.STILL, pose))
+    assert min(min(row) for row in last) >= 0.99, (name, age)
+
+
+@pytest.mark.parametrize("name", SOFT)
+def test_the_edge_is_still_a_ramp_when_the_pictures_move(renderer, name):
+    pose = td.base_pose(0.3 * SPAN, SPAN, W, True)
+    for p in MIDDLE:
+        draws = td.compose(name, p, W, H)
+        opacity = max(d.opacity for d in draws if d.layer == "new")
+        rows = render(renderer, td.with_poses(draws, pose, pose))
+        steepest = max(
+            [0.0] + [abs(b - a) for line in _lines(rows) for a, b in zip(line, line[1:])]
+        )
+        assert steepest / opacity <= STEP_LIMIT, (name, p, steepest)
+
+
+def _gradient_texture():
+    """The new picture with something to see: its green grows from the left to the right."""
+    row = b"".join(bytes((0, 40 + 160 * x // W, 0)) for x in range(W))
+    return Gdk.MemoryTexture.new(W, H, Gdk.MemoryFormat.R8G8B8, GLib.Bytes.new(row * H), W * 3)
+
+
+def _plain_canvas(monkeypatch, age):
+    """A canvas with one picture and no transition, at *age* seconds into the picture's move."""
+    canvas = _canvas()
+    canvas._texture = _gradient_texture()
+    canvas._run = None
+    canvas._old_move = None
+    canvas._move = preview_window._Move(SPAN, (W, H))
+    canvas._move.born = 0
+    canvas._now = int(age * 1_000_000)
+    monkeypatch.setattr(preview_window._Canvas, "get_width", lambda self: W)
+    monkeypatch.setattr(preview_window._Canvas, "get_height", lambda self: H)
+    return canvas
+
+
+def _plain_rows(renderer, canvas):
+    snapshot = Gtk.Snapshot()
+    canvas.do_snapshot(snapshot)
+    return _pixels(renderer, snapshot)
+
+
+def test_the_plain_picture_after_a_transition_goes_on_moving(renderer, monkeypatch):
+    """No transition runs: the window draws the picture with its slow move, which is what the
+    transition's last frame showed, and the picture is different a moment later."""
+    early = _plain_rows(renderer, _plain_canvas(monkeypatch, 0.5 * SPAN))
+    later = _plain_rows(renderer, _plain_canvas(monkeypatch, 0.5 * SPAN + 1.0))
+    assert early != later
+    canvas = _plain_canvas(monkeypatch, 0.5 * SPAN)
+    snapshot = Gtk.Snapshot()
+    black = Gdk.RGBA()
+    black.alpha = 1.0
+    snapshot.append_color(black, Graphene.Rect().init(0, 0, W, H))
+    pose = td.base_pose(0.5 * SPAN, SPAN, W, True)
+    canvas._paint(snapshot, td.Draw("new", pose=pose), W, H)
+    assert early == _pixels(renderer, snapshot)
