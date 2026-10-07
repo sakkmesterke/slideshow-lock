@@ -130,6 +130,25 @@ def test_nothing_in_the_sample_pictures_folder_is_left_out(tmp_path, backends):
     assert shown(src, tmp_path) == sorted(inside + ["plain.png"])
 
 
+def test_only_the_exact_sample_pictures_folder_is_exempt(tmp_path, backends):
+    """A folder whose name merely starts with the sample folder's name is an ordinary one: the
+    check is on the folder (the name and a path separator), not on the text."""
+    other = f"{SAMPLE_DIR_NAME}-old"
+    build(
+        tmp_path,
+        [
+            f"{other}/Screenshots/x.png",
+            f"{other}/Screenshot from the board.png",
+            f"{other}/kept.png",
+            f"{SAMPLE_DIR_NAME}/Screenshots/y.png",
+        ],
+    )
+    src = started(tmp_path, backends)
+    assert shown(src, tmp_path) == sorted(
+        [f"{other}/kept.png", f"{SAMPLE_DIR_NAME}/Screenshots/y.png"]
+    )
+
+
 def test_the_sample_pictures_folder_as_the_root_is_shown_whole(tmp_path, backends):
     root = tmp_path / SAMPLE_DIR_NAME
     files = ["Screenshot from the board.png", "Screenshots/y.png", "kept.png"]
@@ -162,6 +181,28 @@ def test_the_picture_folder_above_a_screenshot_folder_is_filtered(tmp_path, back
     build(tmp_path / "Pictures", ["Screenshots/s.png", "plain.png"])
     src = started(tmp_path / "Pictures", backends)
     assert shown(src, tmp_path / "Pictures") == ["plain.png"]
+
+
+# -- a new folder at runtime: the exception follows the new root -------------------------------
+
+
+def test_a_new_folder_is_judged_by_itself_not_by_the_one_before(tmp_path, backends):
+    """The root of a screenshot folder is shown whole; after ``set_folder`` to an ordinary folder
+    the filter works again, and the other way round (``_root_exempt`` is set again)."""
+    chosen = tmp_path / "Screenshots"
+    plain = tmp_path / "Pictures"
+    build(chosen, ["Screenshot from a.png", "kept.png"])
+    build(plain, ["Screenshots/s.png", "Screenshot from b.png", "kept.png"])
+
+    src = started(chosen, backends)
+    assert shown(src, chosen) == ["Screenshot from a.png", "kept.png"]
+    src.set_folder(str(plain))
+    assert backends[1].run_all()
+    assert shown(src, plain) == ["kept.png"]  # not exempt any more
+
+    src.set_folder(str(chosen))
+    assert backends[1].run_all()
+    assert shown(src, chosen) == ["Screenshot from a.png", "kept.png"]  # exempt again
 
 
 # -- links: the filter reads names and changes nothing about how the walk follows links --------
@@ -379,10 +420,19 @@ def test_names_that_are_not_screenshot_files(name):
 
 
 def test_the_translations_of_gnome_shell_are_added_when_its_catalog_is_there():
-    texts = {"Screenshots": "Bildschirmfotos", "Screenshot from %s": "Bildschirmfoto vom %s"}
+    # GNOME Shell's message id has a capital F: "Screenshot From %s" (js/ui/screenshot.js)
+    texts = {"Screenshots": "Bildschirmfotos", "Screenshot From %s": "Bildschirmfoto vom %s"}
     folders, prefixes = _gnome_shell_names(lambda msgid: texts.get(msgid, msgid))
     assert folders == {"bildschirmfotos"}
-    assert prefixes == {"bildschirmfoto vom"}
+    assert prefixes == {"bildschirmfoto vom", "screenshot from"}  # + the English one (no catalog)
+
+
+def test_the_message_id_is_asked_with_a_capital_f_and_with_a_small_one():
+    """gettext matches the id exactly: a catalog that has only one spelling must still be found."""
+    for msgid in ("Screenshot From %s", "Screenshot from %s"):
+        texts = {msgid: "Képernyőkép %s"}
+        _folders, prefixes = _gnome_shell_names(lambda m, texts=texts: texts.get(m, m))
+        assert "képernyőkép" in prefixes, msgid
 
 
 def test_without_a_gnome_catalog_nothing_new_is_added():
@@ -396,8 +446,10 @@ def test_without_a_gnome_catalog_nothing_new_is_added():
 @pytest.mark.parametrize(
     "texts",
     [
-        {"Screenshot from %s": "%s"},  # nothing before the date: it would match every picture
-        {"Screenshot from %s": "ab %s"},  # too short to be a name start
+        {"Screenshot From %s": "%s"},  # nothing before the date: it would match every picture
+        {"Screenshot from %s": "%s"},
+        {"Screenshot From %s": "ab %s"},  # too short to be a name start
+        {"Screenshot from %s": "ab %s"},
         {"Screenshots": "a/b"},  # a path, not a folder name
         {"Screenshots": "  "},
     ],
@@ -407,6 +459,28 @@ def test_a_translation_that_would_match_too_much_is_not_taken(texts):
     assert "" not in folders and "" not in prefixes
     assert "a/b" not in folders
     assert all(len(prefix) >= 4 for prefix in prefixes)
+
+
+def test_blanks_around_a_translation_are_cut_off():
+    """A name with blanks around it would never match a real file name (``.strip()``)."""
+    texts = {"Screenshots": "  Bildschirmfotos ", "Screenshot From %s": " Bildschirmfoto vom  %s"}
+    folders, prefixes = _gnome_shell_names(lambda msgid: texts.get(msgid, msgid))
+    assert folders == {"bildschirmfotos"}
+    assert "bildschirmfoto vom" in prefixes
+    assert all(name == name.strip() for name in folders | prefixes)
+
+
+def test_a_translation_of_blanks_only_is_not_taken():
+    """Blanks are no name: after the cut nothing is left, so nothing is added (the stub rule alone
+    would let four blanks through as a prefix that every file with leading blanks matches)."""
+    texts = {
+        "Screenshots": "   ",
+        "Screenshot From %s": "     %s",
+        "Screenshot from %s": "     %s",
+    }
+    folders, prefixes = _gnome_shell_names(lambda msgid: texts.get(msgid, msgid))
+    assert folders == set()
+    assert prefixes == set()
 
 
 def test_a_broken_catalog_changes_nothing():

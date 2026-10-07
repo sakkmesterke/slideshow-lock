@@ -20,7 +20,7 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Picture order | `order` | random, name |
 | Scaling | `scaling` | fill, fit |
 | Scroll tall pictures | `pan-portrait-images` | on, off (off by default) |
-| Show screenshots | `show-screenshots` | on, off (off by default): off leaves screenshots out of the slideshow, see `docs/image-source.md`, "Screenshots" |
+| Show screenshots | `show-screenshots` | on, off (off by default): off leaves screenshots out of the slideshow by their names, as a convenience and not a privacy control (a renamed screenshot, or a link of another name to a screenshot folder, is shown), see `docs/image-source.md`, "Screenshots" |
 | Between pictures (drop-down, in the Transitions group) | `transitions`, `transition-order` | none (an empty list); one of the ten: cross-fade (`crossfade`), fade through black (`fade-black`), slide in (`slide-in`), push (`push`), Ken Burns (`ken-burns`, the default), zoom (`zoom`), wipe (`wipe`), circle reveal (`circle`), blur (`blur`), rotate (`rotate`); or the random mix (see below) |
 | Transition length (slider with the value on its left, in the Transitions group) | `transition-duration` | 0.2 to 5.0 seconds, in steps of 0.1 (1.0 by default); the same for every transition |
 
