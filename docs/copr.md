@@ -29,8 +29,9 @@ is downloaded. It needs git, gzip, rpmbuild, sed, grep and head only and uses no
 
 Limits of (a):
 
-- The version in a build before the release is `1.0.1-1`, built from whatever commit COPR checked
-  out. Such a build must not be mistaken for the release.
+- A build before the release is a test build. It is not made in the release project
+  (`docs/RELEASING.md`, "What may be built in the COPR project"), and it has a lower `Release` than
+  the release, such as `1.0.1-0.1.test`.
 - A `git archive` tarball and the GitHub tag tarball hold the same files but are not the same
   bytes. A checksum recorded for the release belongs to one of the two (section 5).
 - `rpmbuild -bs` reads the whole spec in a chroot where the build dependencies are not installed:
@@ -140,7 +141,6 @@ These are open and are not part of this change:
   first);
 - the release date in the AppStream metainfo, when that file exists;
 - a COPR build in each chroot (section 2) that succeeded, and `rpmlint` on the result;
-- the version of a test build and of the release: both are `1.0.1-1`, so a machine that installed
-  the test build is not offered the release as an update. Which is chosen (a lower version for the
-  test builds, or a higher `Release` at the release) is decided at the release; the spec is not
-  changed by this change.
+- the version of a test build and of the release: decided, see `docs/RELEASING.md`, "What may be
+  built in the COPR project". The release is `1.0.1-1`; a test build is lower and is not made in
+  this project.

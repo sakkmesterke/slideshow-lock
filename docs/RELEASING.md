@@ -12,6 +12,26 @@ check the build.
 Not touched by this procedure, and done by the maintainer only when needed: the COPR project, the
 Fedora account, the webhook and the repository permissions.
 
+## What may be built in the COPR project
+
+The maintainer's rule, set on 2026-10-07.
+
+1. Only a tagged release that the maintainer has approved is built in the COPR project
+   `trensoft/slideshow-lock`.
+2. No test build is started in this project: not by a push, not by a manual Rebuild, not by hand.
+   The reason: the regular update on the maintainer's machines installs whatever appears there with
+   a higher version, so a test build would be installed there as if it were a release.
+3. If a test needs a build, the maintainer is told and makes a separate project (for example
+   `slideshow-lock-testing`). The releaser does not make one.
+4. The version of a release is always higher than that of any earlier build, test builds included.
+   A test build gets a lower `Release` than the release, for example `1.0.1-0.1.test` against
+   `1.0.1-1`, and never the `Release` of the release. The lower `Release` is set only in the build
+   that is tested, not on `main`: `main` has the `Release` of the release. `[H]` `rpm` sorts
+   `0.1.test` below `1`; this is not measured here.
+
+1.0.0 had no such rule: its test builds and the release were all `1.0.0-1`, so the maintainer had to
+reinstall by hand.
+
 ## Before the tag: the report and the approval
 
 Nothing is tagged before the maintainer has said "go". The release report to the maintainer has
@@ -19,13 +39,15 @@ four parts:
 
 1. The version and the commit SHA that would be tagged.
 2. What changed, in 3 to 5 lines.
-3. Whether the commit is green: the tests, `rpmlint`, and the build on Fedora and on EPEL 10.
+3. Whether the commit is green: the tests, `rpmlint`, and the build on Fedora and on EPEL 10. A
+   build for this is not made in the COPR project (see above); the report says where it was made, or
+   that it was not.
 4. What was not checked and what has to be tried by hand.
 
 The answer is "go" or "no". Without "go" no tag is pushed. The "go" is for the version and the
 commit SHA of that report. If the commit changes after the "go", the old "go" does not count and a
-new report is needed. A manual Rebuild in COPR before the tag runs on the same SHA that is
-tagged, so that the build that was seen green is the build of the release.
+new report is needed. No build is made in the COPR project before the tag, so the first build of
+the release is the build of the tag, on the commit named in the report.
 
 The version in `pyproject.toml` and in `packaging/fedora/slideshow-lock.spec` is the tag without
 the `v`; check both before the report. The open points about the release version and the tarball
@@ -84,9 +106,14 @@ measured.
 - URL: the COPR GitHub webhook address of the project, with `slideshow-lock/` added at the end.
   Without the package name a tag such as `v1.0.0` does not match. The address contains a secret
   (a uuid), so it is not written in the repository.
-- COPR package: "Webhook rebuild" on. The committish `main` is used only by a manual Rebuild.
+- COPR package: "Webhook rebuild" on. The committish `main` is not used: a build of `main` would be
+  a test build, which this project does not take.
 
-A push to a branch must not start a build; only the creation of a tag does.
+A push to a branch must not start a build; only the creation of a tag does. Measured: on
+2026-10-06 each merge into `main` (#52, #53, #54) started a build 2 seconds later (builds 11084437,
+11084605, 11084818). On 2026-10-07 the COPR build list has no build after 11084848 although `main`
+got #56 to #63 since. `[H]` That the "Pushes" event is now off is a reading of this, not seen in the
+GitHub settings.
 
 Any tag creation with the package name in the URL starts a build, whatever the tag is called, and
 a tag is not deleted (see "A failed step"), so a tag is never pushed to test the webhook. The
