@@ -72,6 +72,11 @@ OPT_OUTS = {
         "test_scaling_gdk.py",
         "test_preparing_a_picture_costs_about_the_same_bytes_per_pixel_for_every_width",
     ),
+    ("test_sample_pictures.py", "test_importing_it_does_not_load_gtk"),
+    (
+        "test_sample_pictures_xdg.py",
+        "test_the_pictures_land_in_the_default_folder_of_the_system",
+    ),
     ("test_run_script.py", "test_run_sh_is_executable_in_git"),
     ("test_run_script.py", "test_without_arguments_it_prints_the_usage_and_fails"),
     ("test_run_script.py", "test_an_unknown_command_prints_the_usage_and_fails"),

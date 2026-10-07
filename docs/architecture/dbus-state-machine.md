@@ -193,6 +193,12 @@ a smaller thing, only the start of the unit for the running session, and nothing
 - Failure: a refused `StartUnit` or no session bus is one WARNING (`[slideshow]`); the window opens
   all the same. The exit status is the window's; the login start without a window ends with 1
   when the service could not be started, 0 otherwise.
+- The sample pictures: after the window is decided and before it opens, `control.py` starts the
+  copy of the pictures of the package into `Pictures/trensoft` on a daemon thread
+  (`sample_pictures.install`, `docs/logging-and-lifecycle.md` section 6). It is not part of the
+  service and the lock side never waits for it; the menu start and the login start both run it,
+  the login start without a window waits for it for 120 s at most. It changes neither the window
+  nor the exit status.
 - One process: `StartUnit` leaves a running unit alone, so the unit stays the supervised one (one
   `Gio.Application` id, the journal under `slideshow-lock`), also when the user enabled it too.
 - Measured (automated, fake `org.freedesktop.systemd1` on a private bus): the method names, the
