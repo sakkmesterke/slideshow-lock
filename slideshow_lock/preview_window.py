@@ -17,9 +17,10 @@ picture that does not scroll is never still while it is on screen: from the fram
 until the transition that takes it away has finished it moves slowly (``_Move``,
 ``transition_draw.base_pose``: a Ken Burns zoom and drift if it fills the window, a gentle zoom if
 it does not), also under a transition, as the incoming and as the outgoing picture. So it is
-always drawn through the transform and not 1:1; the move is redrawn ``MOTION_FPS`` times a second.
-Anywhere else, or once the frame clock's ticks have shown that the machine does not keep up, the
-drawing is the plain one of 1.0.1: no move, hard edges (``transition_draw.compose_plain``).
+always drawn through the transform and not 1:1; the move is redrawn at every frame of the frame
+clock, as a transition is. Anywhere else, or once the frame clock's ticks have shown that the
+machine does not keep up, the drawing is the plain one of 1.0.1: no move, hard edges
+(``transition_draw.compose_plain``).
 
 A transition (``slideshow_lock.transitions``, ``slideshow_lock.transition_draw``) keeps the old
 picture's texture next to the new one for its short time. What each of the ten looks like at a
@@ -73,7 +74,6 @@ from slideshow_lock.preview import (  # noqa: E402
 )
 from slideshow_lock.scaling import Frame, device_size  # noqa: E402
 from slideshow_lock.transition_draw import (  # noqa: E402
-    MOTION_FPS,
     SOFT_CIRCLE,
     SOFT_CLIP,
     SOFT_PICTURE,
@@ -294,7 +294,6 @@ class _Canvas(Gtk.Widget):
         self._old_move: Optional[_Move] = None  # and of the one going out, in a transition
         self._move_tick_id = 0
         self._now: Optional[int] = None  # the frame clock's time at the last tick
-        self._drawn_at = 0  # ... and at the last redraw of the slow move on its own
 
     def set_frame(
         self,
@@ -379,16 +378,14 @@ class _Canvas(Gtk.Widget):
         self._move = None
 
     def _on_move_tick(self, _widget, clock) -> bool:
-        """Keeps the clock of the slow move and redraws it ``MOTION_FPS`` times a second; while a
-        transition runs it redraws at every frame itself."""
+        """Keeps the clock of the slow move and redraws it at every frame (the move is as smooth
+        as the screen allows, as in a transition)."""
         self._sync(clock)
         if self._move is None:  # the guard of the drawing time took the effects away
             self._move_tick_id = 0
             self.queue_draw()
             return GLib.SOURCE_REMOVE
-        if self._run is None and self._now - self._drawn_at >= 1_000_000 // MOTION_FPS - 4_000:
-            self._drawn_at = self._now
-            self.queue_draw()
+        self.queue_draw()
         return GLib.SOURCE_CONTINUE
 
     def _sync(self, clock) -> None:

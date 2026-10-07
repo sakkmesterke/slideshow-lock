@@ -169,7 +169,7 @@ transitions (section 2, "Transitions").
   The move belongs to the picture: the incoming one arrives in motion, the outgoing one moves on
   under the transition (`Draw.pose`, done inside the picture's own place before the transition
   moves, turns and cuts it), and the plain drawing after the transition goes on from the same
-  value. It is redrawn 30 times a second (`MOTION_FPS`), and the picture is always drawn through
+  value. It is redrawn at every frame of the frame clock, as a transition is (not at a fixed 30 a second, which a 60 Hz screen showed as every pose twice), and the picture is always drawn through
   the transform (filtered), not 1:1. A scrolling picture keeps its pan and has no such move. No
   move with the desktop's animations off. An empty list, or a list with no valid name,
   is the cut.
