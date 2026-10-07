@@ -195,6 +195,19 @@ Recommends:     gstreamer1-plugins-base
 # [K] optional: scaling.py falls back to GdkPixbuf bilinear without the GStreamer videoscale element
 # (run.sh: "optional"). [H] gstreamer1-plugins-base is the package run.sh names for it.
 
+# Picture formats (docs/image-source.md, "Picture formats"): on EL10 the loaders for TIFF and GIF are in
+# gdk-pixbuf2-modules (AppStream, base repositories), and those for BMP and WebP are in packages that
+# only EPEL 10 has: gdk-pixbuf2-modules-extra and webp-pixbuf-loader. [M: by the solution architect, from
+# the RPM file lists and primary.xml of Rocky 10.2 and EPEL 10; not measured again here] The EPEL ones
+# are weak dependencies on purpose: the package must not need EPEL. [H] dnf installs a weak dependency
+# that no enabled repository has without a message and without failing; not measured. Fedora needs none
+# of these (gdk-pixbuf2 pulls in glycin, which loads the formats); NOT measured on Fedora 43 or later.
+%if 0%{?rhel}
+Requires:       gdk-pixbuf2-modules
+Recommends:     webp-pixbuf-loader
+Recommends:     gdk-pixbuf2-modules-extra
+%endif
+
 %description
 slideshow-lock starts a full-screen picture slideshow on the screens of a
 GNOME session on Wayland when the session has been idle, and locks the
