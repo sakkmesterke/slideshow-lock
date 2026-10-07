@@ -181,6 +181,16 @@ def effective_name(
     return name
 
 
+def first_picture_name(names: Sequence) -> Optional[str]:
+    """The transition for a picture that comes in over nothing (the first one of a preview): Ken
+    Burns when it is the only one chosen, None (a plain picture) otherwise. Ken Burns is a slow
+    move that goes on while the picture is shown, so it has something to show even with no old
+    picture; the other nine are a change *from* one. A list of several is left alone here: the
+    chooser has not been asked, so the order of the mix starts, as it always did, with the second
+    picture."""
+    return KEN_BURNS if clean(names) == [KEN_BURNS] else None
+
+
 def software_renderer(renderer_class: str, environ=None) -> bool:
     """True when drawing is known to be done by the CPU: GTK's Cairo renderer (also asked for with
     ``GSK_RENDERER=cairo``), or Mesa told to use its software rasteriser (``LIBGL_ALWAYS_SOFTWARE``
