@@ -395,6 +395,33 @@ def test_a_stored_picture_folder_is_a_chosen_one_even_an_empty_one(first_run_key
     assert first_run_keys.has_chosen_picture_folder() is True
 
 
+def test_an_empty_key_means_the_default_picture_folder(first_run_keys):
+    assert first_run_keys.uses_default_picture_folder() is True
+    first_run_keys.set_picture_folder("")
+    assert first_run_keys.uses_default_picture_folder() is True
+
+
+def test_the_default_written_out_is_still_the_default_with_or_without_a_slash(first_run_keys):
+    default = default_picture_folder()
+    for text in (default, default + "/", default + "//", default + "/x/.."):
+        first_run_keys.set_picture_folder(text)
+        assert first_run_keys.uses_default_picture_folder() is True, text
+
+
+@pytest.mark.parametrize("text", ["/home/user/Pictures/Holiday", "/", "relative", "/tmp"])
+def test_any_other_folder_is_not_the_default(first_run_keys, text):
+    first_run_keys.set_picture_folder(text)
+    assert first_run_keys.uses_default_picture_folder() is False
+
+
+def test_asking_about_the_default_is_no_warning_when_the_folder_is_missing(first_run_keys, caplog):
+    first_run_keys.set_picture_folder("/nonexistent/chosen")
+    with caplog.at_level(logging.DEBUG, logger="slideshow_lock.settings"):
+        assert first_run_keys.uses_default_picture_folder() is False
+        assert Settings().uses_default_picture_folder() is False
+    assert not [r for r in caplog.records if "[slideshow-dir]" in r.getMessage()]
+
+
 # -- transition-duration ----------------------------------------------------------------------
 
 

@@ -16,8 +16,8 @@ correct claim is **"automated tests green, live verification pending"** -- never
   journald fields (`PRIORITY`, `SYSLOG_IDENTIFIER`, `MESSAGE`).
 - `SYSLOG_IDENTIFIER=slideshow-lock`.
 - Every message is prefixed with a bracketed event tag, e.g. `[idle-trigger]`,
-  `[lock]`, `[sleep-inhibit]`, `[config]`, `[slideshow-dir]`, `[slideshow]`, so filtering works
-  even without parsing structured fields.
+  `[lock]`, `[sleep-inhibit]`, `[config]`, `[slideshow-dir]`, `[slideshow]`, `[samples]`, so
+  filtering works even without parsing structured fields.
 - Single-line messages only.
 
 Level mapping:
@@ -95,3 +95,32 @@ Manual-only (reference machine, DOC-2):
 No claim beyond the automatable list is a claim of "works". For everything in
 the manual-only list the correct phrasing is: **automated tests green, live
 verification pending.**
+
+## 6. The sample pictures (`[samples]`, after 1.0.0)
+
+`slideshowlock` (the menu and the login start) copies the pictures the package installs under
+`<datadir>/slideshow-lock/pictures` into `Pictures/sakkmesterke` once (`slideshow_lock/sample_pictures.py`,
+started from `control.py` on a thread of its own, not in the service). Only when the user has not
+chosen another picture folder; the `picture-folder` key is never written.
+
+What the user can rely on, and what the log says:
+
+- A picture or the whole folder the user deletes does not come back: the names that were dealt with
+  are in `$XDG_STATE_HOME/slideshow-lock/sample-pictures.json` (`~/.local/state/...`). A name that a
+  later package adds is copied once. Nothing is overwritten; a file that is there is left as it is.
+- With nothing left to copy nothing is created and nothing is written: no folder, no cleanup, no
+  state rewrite. A start with everything done is silent (DEBUG at most).
+- The order inside `install`: the package and its file list; the lock (`flock` on
+  `sample-pictures.json.lock`); the state; what is still to do; then, only if there is something:
+  free space (the files plus a 16 MiB margin, measured on the nearest existing folder, so before any
+  folder is made), a trial write of the state, the folders, the removal of hidden leftovers of a cut
+  copy (`.<name>.part-<pid>`, only with the lock), the copies. A copy is written to the hidden name,
+  gets the time of the source, is flushed, and is given its name by a `link` that never replaces a
+  file (a file system without hard links gets a checked `rename`: a rare, documented race).
+- Log lines, one line each, never a path, a picture name or the content of the state: INFO
+  `[samples] copied N, already there M, dealt with before K`; WARNING `[samples] not copied: <reason>
+  (<errno name>)` with the reason `state-unreadable`, `state-unwritable`, `foreign-dir` (the subfolder
+  is a link, a file or belongs to another user), `pictures-unwritable`, `space-unknown`,
+  `copy-failed`, or the free-space line with the bytes needed and free; WARNING for a damaged state
+  file (it is replaced by the trial write, so the line comes once). The exit status of the command
+  does not depend on any of it.

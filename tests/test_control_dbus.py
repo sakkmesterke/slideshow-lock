@@ -17,6 +17,7 @@ import pytest
 from slideshow_lock import control
 from slideshow_lock.settings import KEY_FIRST_RUN_DONE, KEY_PICTURE_FOLDER, Settings
 from tests.fake_dbus import Desktop, dbus_daemon_available
+from tests.sample_fixtures import isolate_sample_pictures
 
 pytestmark = [
     pytest.mark.spawns_processes,
@@ -30,8 +31,10 @@ UNIT = "slideshow-lock.service"
 
 
 @pytest.fixture
-def window(monkeypatch):
-    """The settings window stands in (it needs a display): the arguments of each call."""
+def window(monkeypatch, tmp_path):
+    """The settings window stands in (it needs a display): the arguments of each call. No real
+    home and no real package folder either: the sample pictures are never copied from here."""
+    isolate_sample_pictures(monkeypatch, tmp_path)
     calls = []
     monkeypatch.setattr(control.settings_app, "main", lambda argv=None: calls.append(argv) or 0)
     settings = Settings()
