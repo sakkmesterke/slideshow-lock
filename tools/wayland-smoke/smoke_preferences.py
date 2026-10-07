@@ -52,6 +52,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
     Settings,
     default_picture_folder,
 )
@@ -156,8 +157,9 @@ def main() -> int:
             window.order_drop.get_selected(),
             window.scaling_drop.get_selected(),
             window.pan_switch.get_active(),
+            window.duration_scale.get_value(),
         )
-        == (120, 0, interval_position_for_seconds(5), 0, 0, False),
+        == (120, 0, interval_position_for_seconds(10), 0, 0, False, 1.0),
     )
     check(
         "the transition drop-down starts at the cross-fade, the stored default",
@@ -166,9 +168,17 @@ def main() -> int:
     )
     check(
         "the slide interval shows as a big HH:MM:SS and a short text above one slider",
-        window.interval_total.get_label() == "00:00:05"
-        and window.interval_caption.get_label() == "5 s",
+        window.interval_total.get_label() == "00:00:10"
+        and window.interval_caption.get_label() == "10 s",
         f"{window.interval_total.get_label()!r} {window.interval_caption.get_label()!r}",
+    )
+    duration = window.duration_scale.get_adjustment()
+    check(
+        "the transition length is a slider from 0.2 to 5.0 s, a tenth of a second a step",
+        (duration.get_lower(), duration.get_upper(), round(duration.get_step_increment(), 3))
+        == (0.2, 5.0, 0.1)
+        and window.duration_scale.get_digits() == 1,
+        f"{duration.get_lower()}..{duration.get_upper()}",
     )
     check(
         "the slider runs over the whole scale",
@@ -209,6 +219,7 @@ def main() -> int:
     window.scaling_drop.set_selected(CHOICES[KEY_SCALING].index("fit"))
     window.pan_switch.set_active(True)
     window.transition_drop.set_selected(TRANSITION_CHOICES.index("fade-black"))
+    window.duration_scale.set_value(2.5)
     window.folder_row.set_text(folder)
     window.folder_row.emit("entry-activated")
 
@@ -221,13 +232,14 @@ def main() -> int:
             stored.get_scaling(),
             stored.get_pan_portrait_images(),
             stored.get_transitions(),
+            stored.get_transition_duration(),
             stored.get_picture_folder(),
         )
 
     check(
         "the edits are kept: nothing is stored before Save",
         stored_values()
-        == (120, 0, 5, "random", "fill", False, ["crossfade"], default_picture_folder()),
+        == (120, 0, 10, "random", "fill", False, ["crossfade"], 1.0, default_picture_folder()),
         str(stored_values()),
     )
     check("Save is on", window.save_button.get_sensitive())
@@ -235,7 +247,7 @@ def main() -> int:
     window.save_button.emit("clicked")
     check(
         "Save writes every field",
-        stored_values() == (300, 5, 20, "name", "fit", True, ["fade-black"], folder),
+        stored_values() == (300, 5, 20, "name", "fit", True, ["fade-black"], 2.5, folder),
         str(stored_values()),
     )
     check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
@@ -525,6 +537,26 @@ def main() -> int:
         "an idle time set elsewhere shows up in the window",
         window.idle_spin.get_value_as_int() == 77,
     )
+
+    stored.set_transition_duration(3.7)  # another process changes the transition length
+    pump(1.0, until=lambda: abs(window.duration_scale.get_value() - 3.7) < 1e-6)
+    check(
+        "a transition length set elsewhere shows up in the slider, and the Save button stays off",
+        abs(window.duration_scale.get_value() - 3.7) < 1e-6
+        and not window.save_button.get_sensitive(),
+        str(window.duration_scale.get_value()),
+    )
+    window.duration_scale.set_value(0.2)
+    window.duration_scale.set_value(9.0)  # the scale itself stops at its end
+    check(
+        "the slider stops at 5.0 s and keeps what it shows",
+        window.duration_scale.get_value() == 5.0
+        and window._draft.value(KEY_TRANSITION_DURATION) == 5.0
+        and stored.get_transition_duration() == 3.7,
+        str(window.duration_scale.get_value()),
+    )
+    window.save_button.emit("clicked")
+    check("and Save stores it", stored.get_transition_duration() == 5.0)
 
     # -- the folder chooser: only the paths a headless run can reach ------------------------
     window.browse_button.emit("clicked")

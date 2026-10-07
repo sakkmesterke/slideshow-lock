@@ -28,6 +28,7 @@ from slideshow_lock.settings import (
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
     KEY_TRANSITION_ORDER,
     KEY_TRANSITIONS,
     Settings,
@@ -52,6 +53,7 @@ def stored():
         "pan": other.get_pan_portrait_images(),
         "transitions": other.get_transitions(),
         "transition_order": other.get_transition_order(),
+        "duration": other.get_transition_duration(),
         "folder": other.get_picture_folder(),
     }
 
@@ -65,6 +67,7 @@ def edit_everything(draft, folder):
         draft.edit_choice(KEY_SCALING, "fit"),
         draft.edit_pan_portrait_images(True),
         draft.edit_transition("zoom"),
+        draft.edit_duration(2.5),
         draft.edit_folder(str(folder)),
     ]
     assert all(r.ok for r in results), results
@@ -88,13 +91,15 @@ def test_the_draft_shows_its_own_values_over_the_stored_ones(draft, tmp_path):
     assert draft.value(KEY_TRANSITIONS) == "zoom"
     assert draft.folder_text() == str(tmp_path)
     assert draft.interval_view().seconds == 30
+    assert draft.value(KEY_TRANSITION_DURATION) == 2.5
     assert draft.value(KEY_LOCK_GRACE_PERIOD_SECONDS) == 7
 
 
 def test_what_is_not_edited_shows_the_stored_value(draft):
     assert draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 120
     assert draft.value(KEY_TRANSITIONS) == "crossfade"
-    assert draft.interval_view().seconds == 5
+    assert draft.interval_view().seconds == 10
+    assert draft.value(KEY_TRANSITION_DURATION) == 1.0
     assert not draft.dirty
 
 
@@ -114,6 +119,7 @@ def test_save_writes_every_edit(draft, tmp_path):
         "pan": True,
         "transitions": ["zoom"],
         "transition_order": "random",
+        "duration": 2.5,
         "folder": str(tmp_path),
     }
     assert not draft.dirty
@@ -129,6 +135,7 @@ def test_save_writes_every_edit(draft, tmp_path):
         (lambda d: d.edit_choice(KEY_SCALING, "fit"), KEY_SCALING),
         (lambda d: d.edit_pan_portrait_images(True), KEY_PAN_PORTRAIT_IMAGES),
         (lambda d: d.edit_transition("wipe"), KEY_TRANSITIONS),
+        (lambda d: d.edit_duration(3.3), KEY_TRANSITION_DURATION),
         (lambda d: d.edit_folder("/nonexistent/pictures"), KEY_PICTURE_FOLDER),
     ],
 )
@@ -147,7 +154,7 @@ def test_every_key_a_draft_can_hold_is_in_the_save_order():
     assert set(SAVE_ORDER) == (
         set(INT_RANGES)
         | set(CHOICES)
-        | {KEY_PAN_PORTRAIT_IMAGES, KEY_PICTURE_FOLDER, KEY_TRANSITIONS}
+        | {KEY_PAN_PORTRAIT_IMAGES, KEY_PICTURE_FOLDER, KEY_TRANSITIONS, KEY_TRANSITION_DURATION}
     )
     assert len(SAVE_ORDER) == len(set(SAVE_ORDER))
 
@@ -263,6 +270,7 @@ def test_the_preview_values_are_the_edits_as_the_settings_getters_return_them(dr
         KEY_SCALING: "fit",
         KEY_PAN_PORTRAIT_IMAGES: True,
         KEY_TRANSITIONS: ["zoom"],
+        KEY_TRANSITION_DURATION: 2.5,
         KEY_PICTURE_FOLDER: str(tmp_path),
     }
 
@@ -287,3 +295,21 @@ def test_reading_the_preview_values_stores_nothing(draft, tmp_path):
     edit_everything(draft, tmp_path)
     draft.preview_values()
     assert stored() == before
+
+
+def test_a_duration_back_at_the_stored_value_is_no_edit(draft):
+    assert draft.edit_duration(2.0).ok and draft.dirty
+    assert draft.edit_duration(1.0).ok  # the stored default
+    assert not draft.dirty
+
+
+def test_a_refused_duration_keeps_nothing(draft):
+    assert not draft.edit_duration(9.0).ok
+    assert not draft.edit_duration(float("nan")).ok
+    assert not draft.dirty
+
+
+def test_the_duration_edit_is_rounded_to_a_tenth_before_it_is_kept(draft):
+    assert draft.edit_duration(1.2345).ok
+    assert draft.value(KEY_TRANSITION_DURATION) == 1.2
+    assert draft.preview_values()[KEY_TRANSITION_DURATION] == 1.2

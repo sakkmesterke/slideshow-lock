@@ -24,6 +24,7 @@ from slideshow_lock.settings import (
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_ORDER,
     KEY_PICTURE_FOLDER,
+    KEY_TRANSITION_DURATION,
     Settings,
 )
 
@@ -480,6 +481,23 @@ def test_a_number_field_set_by_the_window_itself_keeps_nothing():
     assert window._draft.pending == {}
 
 
+def test_the_transition_length_slider_keeps_the_edit_and_stores_nothing():
+    window = _editing_stand_in()
+    window.duration_scale = SimpleNamespace(get_value=lambda: 2.5)
+    PreferencesWindow._on_duration(window)
+    assert window._draft.pending == {KEY_TRANSITION_DURATION: 2.5}
+    assert Settings().get_transition_duration() == 1.0  # nothing stored
+    assert ("button", True) in window.log
+
+
+def test_the_transition_length_slider_set_by_the_window_itself_keeps_nothing():
+    window = _editing_stand_in()
+    window._updating = True
+    window.duration_scale = SimpleNamespace(get_value=lambda: 2.5)
+    PreferencesWindow._on_duration(window)
+    assert window._draft.pending == {}
+
+
 def test_a_drop_down_keeps_the_edit_and_stores_nothing():
     window = _editing_stand_in()
     window.order_drop = SimpleNamespace(get_selected=lambda: CHOICES[KEY_ORDER].index("name"))
@@ -603,6 +621,7 @@ def test_the_preview_runs_on_the_values_of_the_window_and_stores_none_of_them(
     window._draft.edit_transition("zoom")
     window._draft.edit_folder(str(tmp_path))
     window._draft.edit_interval_position(0)
+    window._draft.edit_duration(2.5)
     monkeypatch.setattr(preferences, "build_source", fake_build_source)
     monkeypatch.setattr(preferences, "start_preview", fake_start_preview)
     PreferencesWindow._start_preview(window)
@@ -613,6 +632,7 @@ def test_the_preview_runs_on_the_values_of_the_window_and_stores_none_of_them(
     assert shown.get_transitions() == ["zoom"]
     assert shown.get_picture_folder() == str(tmp_path)
     assert shown.get_slide_interval_seconds() == 1
+    assert shown.get_transition_duration() == 2.5
     assert shown.get_scaling() == "fill"  # not edited: the stored value
     assert _stored(KEY_ORDER) == "random"  # nothing was stored
     assert Settings().get_transitions() == ["crossfade"]
