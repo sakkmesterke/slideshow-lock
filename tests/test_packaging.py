@@ -388,11 +388,11 @@ def test_the_scriptlets_name_no_home_directory():
 @pytest.mark.parametrize(
     "line", ["cp x $HOME/Pictures", "cp x ${HOME}/y", "cp x ~/y", "cp x /home/u/y"]
 )
-@pytest.mark.parametrize("section", ["pre", "post", "preun", "postun"])
+@pytest.mark.parametrize("section", ["pre", "post", "preun", "postun", "posttrans"])
 def test_the_scriptlet_check_sees_a_home_directory_in_every_scriptlet(section, line):
     text = SPEC.read_text().replace(f"\n%{section}\n", f"\n%{section}\n{line}\n", 1)
-    if section == "pre":  # the spec has no %pre: the control adds one
-        text = text.replace("\n%post\n", f"\n%pre\n{line}\n\n%post\n", 1)
+    if section in ("pre", "postun"):  # the spec has no such section: the control adds one
+        text = text.replace("\n%post\n", f"\n%{section}\n{line}\n\n%post\n", 1)
     assert scriptlet_problems(text), (section, line)
 
 
@@ -435,3 +435,46 @@ def test_the_licence_text_is_listed_once_and_matches_no_default_pattern_of_setup
 def test_the_changelog_names_the_pictures_and_their_licence():
     entry = SPEC.read_text().split("\n%changelog\n", 1)[1].split("\n\n", 1)[0]
     assert "CC BY-SA 4.0" in entry and "License tag" in entry
+
+
+# -- the running user service is restarted after an upgrade ----------------------------------------
+
+
+def _code(lines: list) -> list:
+    return [line.split("#", 1)[0].strip() for line in lines if line.split("#", 1)[0].strip()]
+
+
+def test_an_upgrade_restarts_the_running_user_service():
+    """ "sudo dnf upgrade" must leave nothing to do by hand: the new package marks the unit for a
+    restart in the user managers, and the systemd package restarts what is marked at the end of the
+    transaction. The macro is in %posttrans, the scriptlet of the NEW package: on an upgrade the
+    %postun that runs is the old package's, and the old one (1.0.1) has none."""
+    text = SPEC.read_text()
+    assert _code(_section(text, "posttrans")) == [
+        "%systemd_user_posttrans_with_restart %{name}.service"
+    ]
+
+
+def test_the_restart_is_not_in_postun_where_the_first_upgrade_would_miss_it():
+    text = SPEC.read_text()
+    assert _section(text, "postun") == []
+    assert "%systemd_user_postun" not in "\n".join(_code(text.splitlines()))
+
+
+def test_the_other_user_unit_scriptlets_stay():
+    text = SPEC.read_text()
+    assert _code(_section(text, "post")) == ["%systemd_user_post %{name}.service"]
+    assert _code(_section(text, "preun")) == ["%systemd_user_preun %{name}.service"]
+
+
+@pytest.mark.parametrize(
+    "stale",
+    [
+        "%%systemd_user_postun is empty",
+        "the upgrade does not\n#     restart the running service",
+        "Whether it should is a\n#     decision, not taken here",
+    ],
+)
+def test_the_spec_comments_no_longer_say_the_upgrade_leaves_the_service_running(stale):
+    """The comments said the opposite of the scriptlets once ("decision, not taken here")."""
+    assert stale not in SPEC.read_text()
