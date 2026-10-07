@@ -65,8 +65,8 @@ def test_defaults_match_brief_section_5():
     assert settings.get_scaling() == "fill"
     # Battery-sensitive animation: stays off until it is measured on the reference laptop.
     assert settings.get_pan_portrait_images() is False
-    # The cross-fade is the picture change out of the box (an empty list would be the cut).
-    assert settings.get_transitions() == ["crossfade"]
+    # Ken Burns is the picture change out of the box (an empty list would be the cut).
+    assert settings.get_transitions() == ["ken-burns"]
     assert settings.get_transition_order() == "random"
     assert settings.get_transition_duration() == 1.0
 
@@ -120,6 +120,16 @@ def test_transitions_roundtrip_in_the_order_given():
     assert settings.get_transitions() == ["fade-black", "crossfade"]
     assert settings.set_transitions(("push",)) is True  # a tuple is a list too
     assert settings.get_transitions() == ["push"]
+
+
+def test_a_stored_cross_fade_stays_a_cross_fade_when_the_default_is_another():
+    from slideshow_lock.transitions import DEFAULT_TRANSITIONS
+
+    settings = Settings()
+    assert settings.get_transitions() == ["ken-burns"]  # nothing stored: the default
+    assert settings.get_transitions() == list(DEFAULT_TRANSITIONS)  # the schema and the code agree
+    assert settings.set_transitions(["crossfade"]) is True
+    assert settings.get_transitions() == ["crossfade"]  # a stored choice is not the default
 
 
 def test_an_empty_list_of_transitions_is_a_real_choice_not_the_default():
@@ -230,7 +240,7 @@ def test_transitions_rejects_what_is_not_a_list_of_known_names_once_each(bad, ca
     settings = Settings()
     with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
         assert settings.set_transitions(bad) is False
-    assert settings.get_transitions() == ["crossfade"]  # unchanged default
+    assert settings.get_transitions() == ["ken-burns"]  # unchanged default
     assert any("transitions" in r.message and "[config]" in r.message for r in caplog.records)
 
 

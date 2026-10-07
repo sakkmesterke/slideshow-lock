@@ -584,8 +584,8 @@ def test_the_random_mix_is_the_eight_without_blur_and_ken_burns():
 
 
 def test_the_window_starts_at_the_stored_transition(model):
-    assert model.transition_choice() == "crossfade"  # the default: the random mix is not
-    assert model.get(KEY_TRANSITIONS) == ["crossfade"]
+    assert model.transition_choice() == "ken-burns"  # the default: the random mix is not
+    assert model.get(KEY_TRANSITIONS) == ["ken-burns"]
     assert model.get(KEY_TRANSITION_ORDER) == "random"  # the default of the order key
 
 
@@ -593,6 +593,12 @@ def test_the_window_starts_at_the_stored_transition(model):
 def test_every_listed_transition_is_saved_and_read_back(model, value):
     assert model.set_transition(value).ok
     assert model.transition_choice() == value
+
+
+def test_a_stored_cross_fade_still_reads_as_the_cross_fade(model):
+    model._settings.set_transitions(["crossfade"])
+    assert model.get(KEY_TRANSITIONS) == ["crossfade"]
+    assert model.transition_choice() == "crossfade"  # not the default (Ken Burns)
 
 
 def test_none_is_saved_as_the_empty_list_and_is_not_the_default_again(model):
