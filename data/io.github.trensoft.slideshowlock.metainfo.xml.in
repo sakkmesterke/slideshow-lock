@@ -21,5 +21,5 @@
     <binary>slideshowlock</binary>
   </provides>
   <content_rating type="oars-1.1"/>
-  <!-- The <releases> element, with the 1.0.0 entry and its date, is added when the release is made. -->
+  <!-- The <releases> element, with the 1.0.1 entry and its date, is added when the release is made. -->
 </component>
