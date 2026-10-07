@@ -1,4 +1,4 @@
-# Fedora and EL spec for slideshow-lock 1.0.0.
+# Fedora and EL spec for slideshow-lock 1.0.1.
 #
 # Legend for the comments in this file:
 #   [K]  known: read from this repository (the file is named) or from a source named in the comment
@@ -6,8 +6,9 @@
 #        COPR build, are named in the comment
 #   [H]  background knowledge about RPM, systemd and the Fedora packaging guidelines, NOT verified
 #
-# STATUS (2026-10-06): built in COPR (project sakkmesterke/slideshow-lock) in all four chroots, in two
-# builds: 11084376 of main 0ac5c23 before the fix of the cairo typelib, which failed on the three Fedora
+# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1 is not covered
+# by them): built in COPR (project sakkmesterke/slideshow-lock) in all four chroots, in two builds:
+# 11084376 of main 0ac5c23 before the fix of the cairo typelib, which failed on the three Fedora
 # chroots, and 11084605 of main 2f45728 (the committish in the log of the SRPM build) after the fix,
 # which succeeded on all four. COPR runs rpmbuild in one mock build root per chroot. [M] read from the
 # COPR API (api_3) and the builder logs of the build 11084605, which started at 2026-10-06 12:05 UTC
@@ -34,11 +35,11 @@
 # (no-manual-page-for-binary and empty-%%postun), 7 filtered. fedora-review (rc 0) wrote its template;
 # the review.txt of the three chroots lists 70 items (counted with the pattern "^\[.\]:" so that the two
 # legend lines are not counted): 35 marked "[x]", 2 marked "[!]" (the download of Source0, which fails
-# because the tag v1.0.0 does not exist yet, and the reminder to test the build in mock) and 33 marked
-# "[ ]" (manual review needed, still open); it has 1 entry under "Issues:" (the systemd user unit
-# scriptlets, which the %%post and %%preun of this spec provide). There is no fedora-review/ directory
-# and no rpmlint output on epel-10, and none for the build 11084376 (no such directory in any of its
-# chroots).
+# because the tag v1.0.0 did not exist yet when that run was made, and the reminder to test the build
+# in mock) and 33 marked "[ ]" (manual review needed, still open); it has 1 entry under "Issues:"
+# (the systemd user unit scriptlets, which the %%post and %%preun of this spec provide). There is no
+# fedora-review/ directory and no rpmlint output on epel-10, and none for the build 11084376 (no such
+# directory in any of its chroots).
 # NOT run: mock by hand, rpmlint and fedora-review on epel-10, an install of the RPM on a Fedora or EL
 # machine, the test suite (--with tests), a real GNOME session. The review.txt says "[x]: Package
 # installs properly" because fedora-review installed the built package in a mock root of COPR (the log
@@ -47,7 +48,9 @@
 # the log.
 #
 # Prerequisites that are not in this file:
-#   - The tag v1.0.0 does not exist yet, so Source0 cannot be downloaded before it does. A protected
+#   - The tag v1.0.1 does not exist yet [M: git ls-remote --tags origin lists v1.0.0 only, 2026-10-07], so
+#     Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before it does. The tag is
+#     made at the release, after the maintainer's approval (docs/RELEASING.md). A protected
 #     or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release has to
 #     be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
 #   - The files this spec installs are in the repository and must stay there:
@@ -100,8 +103,8 @@
 
 Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
-Version:        1.0.0
-# [K] pyproject.toml says version = "1.0.0"
+Version:        1.0.1
+# [K] pyproject.toml says version = "1.0.1"
 Release:        1%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
@@ -113,7 +116,8 @@ License:        GPL-3.0-or-later
 URL:            https://github.com/sakkmesterke/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
-# The tag v1.0.0 does not exist yet (see the prerequisites at the top).
+# The tag v1.0.1 does not exist yet; it is made at the release, after the maintainer's approval (see the
+# prerequisites at the top).
 
 BuildArch:      noarch
 # [K] pure Python: slideshow_lock/*.py only, no extension module
@@ -335,5 +339,17 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 %{_datadir}/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg
 
 %changelog
+* Wed Oct 07 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.1-1
+- Add the slideshowlock command, which starts the service and opens the settings window
+- Start the service at login through an XDG autostart entry, and open the settings window once on the
+  first start
+- Close the shell's overview before the idle slideshow opens and when the Preview button is pressed
+- Refuse an oversized picture also when the picture loader announces its size only when it is closed
+- On EL10, require gdk-pixbuf2-modules (TIFF and GIF) and recommend webp-pixbuf-loader and
+  gdk-pixbuf2-modules-extra (BMP and WebP, from EPEL 10)
+- Add 35 translations of the interface, 40 languages in all; the 35 are AI-assisted and not reviewed by
+  a native speaker
+- Add a usage section to the README
+
 * Tue Oct 06 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.0-1
 - Initial package

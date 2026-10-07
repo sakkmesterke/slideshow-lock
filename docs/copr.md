@@ -13,8 +13,9 @@ claim, not a fact.
 
 ## 1. Source of the build
 
-The spec's `Source0` is the GitHub tarball of the tag `v%{version}`. The tag does not exist yet, so
-COPR cannot download it. Options:
+The spec's `Source0` is the GitHub tarball of the tag `v%{version}`. The tag of the next release,
+`v1.0.1`, does not exist yet (`git ls-remote --tags origin` lists `v1.0.0` only, 2026-10-07), so COPR
+cannot download it. Options:
 
 | | Source | Risk |
 |---|---|---|
@@ -28,7 +29,7 @@ is downloaded. It needs git, gzip, rpmbuild, sed, grep and head only and uses no
 
 Limits of (a):
 
-- The version in a build before the release is `1.0.0-1`, built from whatever commit COPR checked
+- The version in a build before the release is `1.0.1-1`, built from whatever commit COPR checked
   out. Such a build must not be mistaken for the release.
 - A `git archive` tarball and the GitHub tag tarball hold the same files but are not the same
   bytes. A checksum recorded for the release belongs to one of the two (section 5).
@@ -65,10 +66,11 @@ Limits of (a):
   with an error: the recipes quote the paths, and `$(abspath)` splits them at a space, which would
   write the tarball to a different place without a word.
 
-Measured (a container with git, GNU make 4.3, gzip and tar; no rpmbuild): `make -f .copr/Makefile
-tarball outdir=DIR` writes `DIR/sources/slideshow-lock-1.0.0.tar.gz` with 123 entries (106 files and
-17 directories), all under `slideshow-lock-1.0.0/` and none of them `.git`, also when started from
-a subdirectory, with a relative or an absolute spec path, and inside `unshare -rn` (no network).
+Measured on the tree of 1.0.0, not repeated for 1.0.1 (a container with git, GNU make 4.3, gzip and
+tar; no rpmbuild): `make -f .copr/Makefile tarball outdir=DIR` writes
+`DIR/sources/slideshow-lock-1.0.0.tar.gz` with 123 entries (106 files and 17 directories), all under
+`slideshow-lock-1.0.0/` and none of them `.git`, also when started from a subdirectory, with a relative
+or an absolute spec path, and inside `unshare -rn` (no network).
 These stop with a non-zero exit: a missing spec, a directory that is not a git checkout, a path
 with a space or a quote, and a `Version:` or `Name:` with a quote or a macro (a `Version:` that
 closes the quote and runs a command made no marker file). A `tar.tar.gz.command` in the checkout's
@@ -132,13 +134,13 @@ One step for the owner of the Fedora account, nothing is stored in the repositor
 
 These are open and are not part of this change:
 
-- the tag `v1.0.0`, and the maintainer's approval of it;
+- the tag `v1.0.1`, and the maintainer's approval of it;
 - a protected or signed tag, so that it cannot be moved later;
 - the SHA-512 of the release tarball (which of the two tarballs of section 1 is meant, decided
   first);
 - the release date in the AppStream metainfo, when that file exists;
 - a COPR build in each chroot (section 2) that succeeded, and `rpmlint` on the result;
-- the version of a test build and of the release: both are `1.0.0-1`, so a machine that installed
+- the version of a test build and of the release: both are `1.0.1-1`, so a machine that installed
   the test build is not offered the release as an update. Which is chosen (a lower version for the
   test builds, or a higher `Release` at the release) is decided at the release; the spec is not
   changed by this change.
