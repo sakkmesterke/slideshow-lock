@@ -68,7 +68,8 @@
 #     preset --global" on the first install [M: systemd-update-helper.in of systemd v256, read], so
 #     the unit is enabled for everybody only if a preset of the distribution says so; no preset is
 #     shipped here; the on/off toggle that the settings window is meant to get (docs/service.md,
-#     section 7) would enable it.
+#     section 7) would enable it. The service is started at login by the XDG autostart entry below
+#     ("slideshowlock autostart" starts the unit through the user's systemd), not by an enable.
 #   - %%systemd_user_postun is empty in systemd v256 [M: macros.systemd.in, read]; the upgrade does not
 #     restart the running service (%%systemd_user_postun_with_restart would). Whether it should is a
 #     decision, not taken here.
@@ -239,7 +240,8 @@ interface follows the language of the session.
 # or .preview_app (the sub-commands of run.sh). The unit and the .desktop file call it.
 install -Dpm 0755 packaging/%{name} %{buildroot}%{_bindir}/%{name}
 # The short command. [K] packaging/slideshowlock is a small sh launcher: "slideshowlock" is
-# "slideshow-lock settings" (the settings window); a separate file, no symlink, no argv0 test.
+# "slideshow-lock control" (start the service, open the settings window); a separate file, no
+# symlink, no argv0 test.
 install -Dpm 0755 packaging/slideshowlock %{buildroot}%{_bindir}/slideshowlock
 
 # The settings schema. [K] data/%%{app_id}.gschema.xml, run.sh compiles the same file into a cache
@@ -251,6 +253,15 @@ install -Dpm 0644 data/%{app_id}.gschema.xml \
 install -Dpm 0644 data/%{name}.service %{buildroot}%{_userunitdir}/%{name}.service
 # [M] %%{_userunitdir} is set from USER_DATA_UNIT_DIR, which is prefixdir / 'lib/systemd/user' in
 # meson.build of systemd v256 (read): /usr/lib/systemd/user; [H] the same value on the target distributions
+
+# The autostart entry. [K] data/%%{app_id}.autostart.desktop runs "/usr/bin/slideshowlock autostart"
+# at login (GNOME only, NoDisplay): the service is started, and the settings window opens the first
+# time, while no picture folder is chosen. It goes to /etc/xdg/autostart under the name of the
+# app id. [H] %%config(noreplace) so that an edit of the administrator stays; a user turns it off
+# with an entry of the same name in ~/.config/autostart that says Hidden=true or
+# X-GNOME-Autostart-enabled=false (not measured here).
+install -Dpm 0644 data/%{app_id}.autostart.desktop \
+    %{buildroot}%{_sysconfdir}/xdg/autostart/%{app_id}.desktop
 
 # The desktop entry, the AppStream metainfo and the icons. [K] the app id names all four files.
 # [K] the .desktop file and the metainfo are generated from data/<app id>.desktop.in and
@@ -287,6 +298,7 @@ bash tools/i18n.sh build %{buildroot}%{_datadir}/locale
 glib-compile-schemas --strict --dry-run %{buildroot}%{_datadir}/glib-2.0/schemas
 # [H] the validators of the files that were installed (the installed paths, not the source tree)
 desktop-file-validate %{buildroot}%{_datadir}/applications/%{app_id}.desktop
+desktop-file-validate %{buildroot}%{_sysconfdir}/xdg/autostart/%{app_id}.desktop
 appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xml
 %if %{with tests}
 %pytest
@@ -317,6 +329,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 %{_datadir}/glib-2.0/schemas/%{app_id}.gschema.xml
 %{_userunitdir}/%{name}.service
 %{_datadir}/applications/%{app_id}.desktop
+%config(noreplace) %{_sysconfdir}/xdg/autostart/%{app_id}.desktop
 %{_metainfodir}/%{app_id}.metainfo.xml
 %{_datadir}/icons/hicolor/scalable/apps/%{app_id}.svg
 %{_datadir}/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg
