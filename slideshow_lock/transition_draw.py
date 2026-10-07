@@ -17,6 +17,12 @@ appears and carried by the picture through every transition, as the outgoing pic
 incoming one. A ``Draw`` carries it as ``pose``; the window applies it inside the picture's own
 place, so every transition cuts, slides and fades that moving picture as it would a still one.
 
+Two ways of drawing exist (``slideshow_lock.effects`` decides which one a machine gets): the full
+one above, for a machine that is known to draw with a GPU, and the plain one (``compose_plain``),
+which is what 1.0.1 drew: hard edges, a picture that stands still (only Ken Burns moves, and only
+inside its own transition) and the weaker Ken Burns zoom. The plain one is the choice whenever the
+GPU is not known to be there.
+
 ``TransitionChooser`` picks the transition for every change of picture from the stored list.
 """
 
@@ -92,6 +98,13 @@ SOFT_EDGE_SHARE = 0.12
 SOFT_CLIP = "clip"
 SOFT_PICTURE = "picture"
 SOFT_CIRCLE = "circle"
+
+#: The plain drawing's Ken Burns picture comes in enlarged by this much and over the whole run
+#: shrinks to its own size, and starts shifted to the left by ``PLAIN_KEN_BURNS_DRIFT`` of the
+#: window's width and drifts back to the middle: the last frame of the run is the picture as the
+#: plain drawing shows it, so nothing jumps when the run ends.
+PLAIN_KEN_BURNS_ZOOM = 0.08
+PLAIN_KEN_BURNS_DRIFT = 0.02
 
 Rect = Tuple[float, float, float, float]  # x, y, width, height in window pixels
 
@@ -326,6 +339,73 @@ def compose(name: str, progress: float, width: float, height: float) -> List[Dra
     return []
 
 
+def compose_plain(
+    name: str, progress: float, width: float, height: float, fade_share: float = 1.0
+) -> List[Draw]:
+    """What ``compose`` is for a machine that is not known to draw with a GPU: the transitions as
+    they were drawn before the soft edges and the slow move (1.0.1). No soft edge, no outgoing
+    picture drawn in towards the incoming one, no ``pose``; the cuts are hard.
+
+    ``fade_share`` only matters for Ken Burns, whose slow move lasts for the whole run (its last
+    frame is the picture as it is) while the cross fade into it takes this share of that time
+    (0 to 1). An empty list for a name that is not one of the ten."""
+    p = min(1.0, max(0.0, float(progress)))
+    e = ease(p)
+    w, h = float(width), float(height)
+    window: Rect = (0.0, 0.0, w, h)
+
+    if name == CROSSFADE:
+        return [Draw(OLD), Draw(NEW, opacity=e)]
+    if name == FADE_BLACK:
+        if e < 0.5:
+            return [Draw(OLD, opacity=1.0 - 2.0 * e)]
+        return [Draw(NEW, opacity=2.0 * e - 1.0)]
+    if name == SLIDE_IN:
+        return [Draw(OLD), Draw(NEW, dx=w * (1.0 - e), clip=window)]
+    if name == PUSH:
+        return [
+            Draw(OLD, dx=-w * e, clip=window),
+            Draw(NEW, dx=w * (1.0 - e), clip=window),
+        ]
+    if name == KEN_BURNS:
+        share = min(1.0, max(1e-6, float(fade_share)))
+        fade = ease(min(1.0, p / share))
+        left = 1.0 - p  # the part of the slow move still to go: 1 at the start, 0 at the end
+        return [
+            Draw(OLD),
+            Draw(
+                NEW,
+                opacity=fade,
+                scale=1.0 + PLAIN_KEN_BURNS_ZOOM * left,
+                dx=-w * PLAIN_KEN_BURNS_DRIFT * left,
+            ),
+        ]
+    if name == ZOOM:
+        return [
+            Draw(OLD, scale=1.0 + ZOOM_OUT * e),
+            Draw(NEW, opacity=e, scale=(1.0 - ZOOM_IN) + ZOOM_IN * e),
+        ]
+    if name == WIPE:
+        return [Draw(OLD), Draw(NEW, clip=(0.0, 0.0, w * e, h))]
+    if name == CIRCLE:
+        return [Draw(OLD), Draw(NEW, circle=(w / 2.0, h / 2.0, e * math.hypot(w, h) / 2.0))]
+    if name == BLUR:
+        radius = BLUR_RADIUS * math.sin(math.pi * e)
+        radius = radius if radius > 1e-9 else 0.0
+        return [Draw(OLD, blur=radius)] if e < 0.5 else [Draw(NEW, blur=radius)]
+    if name == ROTATE:
+        return [
+            Draw(OLD),
+            Draw(
+                NEW,
+                opacity=e,
+                angle=-ROTATE_DEGREES * (1.0 - e),
+                scale=1.0 + ROTATE_SCALE * (1.0 - e),
+            ),
+        ]
+    return []
+
+
 def with_poses(draws: Sequence[Draw], old: Pose = STILL, new: Pose = STILL) -> List[Draw]:
     """*draws* with the slow move of the outgoing picture (*old*) and the incoming one (*new*)."""
     posed = []
@@ -339,10 +419,16 @@ def with_poses(draws: Sequence[Draw], old: Pose = STILL, new: Pose = STILL) -> L
     return posed
 
 
-def first_frame(name: str, width: float, height: float) -> List[Draw]:
-    """The frame drawn before the transition's clock starts: ``compose`` at 0 with the new picture
-    added at a single pixel and almost no opacity, so that it is drawn, hence uploaded, here."""
-    draws = compose(name, 0.0, width, height)
+def first_frame(
+    name: str, width: float, height: float, plain: bool = False, fade_share: float = 1.0
+) -> List[Draw]:
+    """The frame drawn before the transition's clock starts: ``compose`` (``compose_plain`` if
+    *plain*) at 0 with the new picture added at a single pixel and almost no opacity, so that it is
+    drawn, hence uploaded, here."""
+    if plain:
+        draws = compose_plain(name, 0.0, width, height, fade_share)
+    else:
+        draws = compose(name, 0.0, width, height)
     if not draws and name not in ALL_TRANSITIONS:
         return draws
     return draws + [Draw(NEW, opacity=UPLOAD_OPACITY, clip=(0.0, 0.0, 1.0, 1.0))]
@@ -372,7 +458,8 @@ def software_renderer(renderer_class: str, environ=None) -> bool:
     ``GSK_RENDERER=cairo``), or Mesa told to use its software rasteriser (``LIBGL_ALWAYS_SOFTWARE``
     set, ``GALLIUM_DRIVER`` ``llvmpipe`` or ``softpipe``). Not known to be: everything else. GTK
     does not say which OpenGL driver draws, so a machine whose Mesa falls back to ``llvmpipe`` by
-    itself (a virtual machine without a GPU) is not recognised here."""
+    itself (a virtual machine without a GPU) is not recognised here; ``slideshow_lock.effects``
+    reads the OpenGL renderer string too, and the blur does not use it (yet)."""
     environ = environ if environ is not None else {}
     if "cairo" in renderer_class.lower() or environ.get("GSK_RENDERER", "").lower() == "cairo":
         return True
@@ -420,11 +507,18 @@ class TransitionRun:
     Its end is a moment (``seconds`` after its clock started), not a number of frames, so a slow
     machine draws fewer frames and not a longer transition. The first tick only shows the first
     frame (``first_frame``: the old picture, the new texture uploaded out of sight) and starts no
-    clock; the clock starts at the second tick, so the upload is not counted in the time."""
+    clock; the clock starts at the second tick, so the upload is not counted in the time.
 
-    def __init__(self, name: str, seconds: float) -> None:
+    *plain* runs ``compose_plain`` (the drawing of a machine not known to have a GPU) instead of
+    ``compose``; *fade_share* is for its Ken Burns (see ``compose_plain``)."""
+
+    def __init__(
+        self, name: str, seconds: float, plain: bool = False, fade_share: float = 1.0
+    ) -> None:
         self.name = name
         self.seconds = float(seconds)
+        self.plain = plain
+        self.fade_share = fade_share
         self.progress = 0.0
         self._ticks = 0
         self._t0: Optional[int] = None
@@ -453,7 +547,11 @@ class TransitionRun:
         self, width: float, height: float, old: Pose = STILL, new: Pose = STILL
     ) -> List[Draw]:
         """The pictures to paint now, the outgoing one with the slow move *old*, the incoming one
-        with *new* (see ``with_poses``)."""
+        with *new* (see ``with_poses``). The plain drawing has no slow move: it ignores both."""
+        if self.plain:
+            if self.first:
+                return first_frame(self.name, width, height, True, self.fade_share)
+            return compose_plain(self.name, self.progress, width, height, self.fade_share)
         if self.first:
             return with_poses(first_frame(self.name, width, height), old, new)
         return with_poses(compose(self.name, self.progress, width, height), old, new)
