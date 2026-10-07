@@ -1,4 +1,4 @@
-# Fedora and EL spec for slideshow-lock 1.0.1.
+# Fedora and EL spec for slideshow-lock 1.0.2.
 #
 # Legend for the comments in this file:
 #   [K]  known: read from this repository (the file is named) or from a source named in the comment
@@ -6,8 +6,8 @@
 #        COPR build, are named in the comment
 #   [H]  background knowledge about RPM, systemd and the Fedora packaging guidelines, NOT verified
 #
-# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1 is not covered
-# by them): built in COPR (project trensoft/slideshow-lock) in all four chroots, in two builds:
+# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1 and 1.0.2 are not
+# covered by them): built in COPR (project trensoft/slideshow-lock) in all four chroots, in two builds:
 # 11084376 of main 0ac5c23 before the fix of the cairo typelib, which failed on the three Fedora
 # chroots, and 11084605 of main 2f45728 (the committish in the log of the SRPM build) after the fix,
 # which succeeded on all four. COPR runs rpmbuild in one mock build root per chroot. [M] read from the
@@ -48,11 +48,11 @@
 # the log.
 #
 # Prerequisites that are not in this file:
-#   - The tag v1.0.1 does not exist yet [M: git ls-remote --tags origin lists v1.0.0 only, 2026-10-07], so
-#     Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before it does. The tag is
-#     made at the release, after the maintainer's approval (docs/RELEASING.md). A protected
-#     or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release has to
-#     be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
+#   - The tag v1.0.2 does not exist yet [M: git ls-remote --tags origin lists v1.0.0 and v1.0.1 only,
+#     2026-10-07], so Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before
+#     it does. The tag is made at the release, after the maintainer's approval (docs/RELEASING.md). A
+#     protected or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release
+#     has to be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
 #   - The files this spec installs are in the repository and must stay there:
 #     data/io.github.trensoft.slideshowlock.desktop.in,
 #     data/io.github.trensoft.slideshowlock.metainfo.xml.in (the only copies in git: the installed
@@ -100,8 +100,8 @@
 
 Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
-Version:        1.0.1
-# [K] pyproject.toml says version = "1.0.1"
+Version:        1.0.2
+# [K] pyproject.toml says version = "1.0.2"
 Release:        1%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
@@ -117,7 +117,7 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 URL:            https://github.com/trensoft/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
-# The tag v1.0.1 does not exist yet; it is made at the release, after the maintainer's approval (see the
+# The tag v1.0.2 does not exist yet; it is made at the release, after the maintainer's approval (see the
 # prerequisites at the top).
 
 BuildArch:      noarch
@@ -398,6 +398,15 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # owner of both folders and removes them with the files
 
 %changelog
+* Wed Oct 07 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.2-1
+- Restart the running user service after the package is updated, so that the new version runs without
+  a new login
+- Soft edges on the circle, wipe, slide-in, push, zoom and rotate transitions, instead of a hard line
+- Ken Burns: a stronger zoom
+- A picture that does not scroll keeps moving slowly for as long as it is on screen, also under the
+  transitions, so there is no still moment before or after a transition
+- Settings window: the Save button sits next to the Preview button
+
 * Wed Oct 07 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.1-1
 - Add the slideshowlock command, which starts the service and opens the settings window
 - Start the service at login through an XDG autostart entry, and open the settings window once on the

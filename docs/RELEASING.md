@@ -1,9 +1,9 @@
 # Releasing
 
 The standing procedure for a release. It is a rule for the project; except for the dry run below,
-nothing here has been run for 1.0.1 yet: the tag `v1.0.1` does not exist (`git ls-remote --tags origin`
-lists `v1.0.0` only, 2026-10-07), so no step after "go" has run. What is known of the COPR builds of 1.0.0
-is in the STATUS at the top of the spec.
+nothing here has been run for 1.0.2 yet: the tag `v1.0.2` does not exist (`git ls-remote --tags origin`
+lists `v1.0.0` and `v1.0.1` only, 2026-10-07), so no step after "go" has run. What is known of the
+COPR builds of 1.0.0 is in the STATUS at the top of the spec.
 `[H]` marks background knowledge or a claim about a server that was not measured.
 
 "The releaser" below is the person who runs the release: they write the report, push the tag and
