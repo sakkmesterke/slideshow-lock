@@ -53,6 +53,7 @@ KEY_FIRST_RUN_DONE = "first-run-done"
 KEY_TRANSITIONS = "transitions"
 KEY_TRANSITION_ORDER = "transition-order"
 KEY_TRANSITION_DURATION = "transition-duration"
+KEY_HARDWARE_ACCELERATION = "hardware-acceleration"
 
 
 def default_picture_folder() -> str:
@@ -220,6 +221,14 @@ class Settings:
                 self.get_transition_duration(),
             )
         return ok
+
+    # -- hardware-acceleration (the effects of 1.0.2 on, or the plain animation of 1.0.1) ----
+
+    def get_hardware_acceleration(self) -> bool:
+        return self._settings.get_boolean(KEY_HARDWARE_ACCELERATION)
+
+    def set_hardware_acceleration(self, value: bool) -> bool:
+        return self._set_boolean(KEY_HARDWARE_ACCELERATION, value)
 
     # -- picture-folder (acceptance criterion 4 / D25 / brief 3.7) ----------
 

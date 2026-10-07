@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Maltese\n"
@@ -163,6 +163,10 @@ msgid "seconds"
 msgstr "sekondi"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Aċċelerazzjoni tal-ħardwer"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Tranżizzjonijiet"
 
@@ -200,12 +204,12 @@ msgid "Timing"
 msgstr "Ħinijiet"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Issejvja"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Previżjoni"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Issejvja"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -222,6 +226,22 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr ""
+"Moviment bil-mod u truf artab fit-tranżizzjonijiet. Itfih għall-animazzjoni "
+"sempliċi."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"Mhux disponibbli: dan il-kompjuter ma jpinġix bil-karta grafika, għalhekk "
+"tintuża l-animazzjoni sempliċi."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

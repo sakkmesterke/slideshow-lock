@@ -175,5 +175,20 @@
       </description>
     </key>
 
+    <key name="hardware-acceleration" type="b">
+      <default>true</default>
+      <summary>Draw the effects with hardware acceleration</summary>
+      <description>
+        When true (the default) the slideshow draws its effects where the
+        computer is known to draw with a graphics card (GPU): the slow move
+        of the pictures and the soft edges of the transitions. When false it
+        draws the plain animation of version 1.0.1: hard edges, and only the
+        Ken Burns picture moves, for the first nine seconds. On a computer
+        without hardware acceleration, or where that cannot be found out, the
+        plain animation is drawn whatever this key says; the stored value is
+        not changed then. A change applies from the next picture.
+      </description>
+    </key>
+
   </schema>
 </schemalist>

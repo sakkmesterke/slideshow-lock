@@ -950,3 +950,107 @@ def test_the_folder_field_that_still_shows_the_folder_in_effect_keeps_and_says_n
     window.folder_row = SimpleNamespace(get_text=lambda: f"  {tmp_path}  ")
     PreferencesWindow._commit_folder(window)
     assert window.log == [] and window.labels == []  # the same folder, only whitespace around it
+
+
+# -- the hardware acceleration switch ------------------------------------------------------------
+
+
+class _Recorder:
+    """What the switch and the row were told, in place of the widgets."""
+
+    def __init__(self):
+        self.active = None
+        self.sensitive = None
+        self.subtitle = None
+        self.refreshed = 0
+
+
+def acceleration_window(available, draft=None):
+    recorder = _Recorder()
+    draft = draft if draft is not None else Draft(PreferencesModel(Settings()))
+    window = SimpleNamespace(
+        _acceleration_available=available,
+        _draft=draft,
+        _updating=False,
+        acceleration_switch=SimpleNamespace(
+            set_property=lambda name, value: setattr(recorder, name, value),
+            set_sensitive=lambda value: setattr(recorder, "sensitive", value),
+            get_active=lambda: recorder.active,
+        ),
+        acceleration_row=SimpleNamespace(
+            set_subtitle=lambda text: setattr(recorder, "subtitle", text)
+        ),
+        refresh=lambda: setattr(recorder, "refreshed", recorder.refreshed + 1),
+    )
+    return window, recorder
+
+
+def test_with_a_gpu_the_switch_is_on_by_default_and_can_be_used():
+    window, shown = acceleration_window(True)
+    PreferencesWindow._show_acceleration(window)
+    assert shown.active is True and shown.sensitive is True
+    assert shown.subtitle == PreferencesWindow._acceleration_text(True)
+
+
+def test_with_a_gpu_the_switch_shows_the_value_in_effect():
+    window, shown = acceleration_window(True)
+    assert window._draft.edit_hardware_acceleration(False).ok
+    PreferencesWindow._show_acceleration(window)
+    assert shown.active is False and shown.sensitive is True
+
+
+@pytest.mark.parametrize("stored", [True, False])
+def test_without_a_gpu_the_switch_is_greyed_out_and_off_and_says_why(stored):
+    assert Settings().set_hardware_acceleration(stored)
+    window, shown = acceleration_window(False)
+    PreferencesWindow._show_acceleration(window)
+    assert shown.active is False and shown.sensitive is False
+    assert shown.subtitle == PreferencesWindow._acceleration_text(False)
+    assert shown.subtitle != PreferencesWindow._acceleration_text(True)
+
+
+def test_showing_the_switch_off_without_a_gpu_is_no_edit_and_leaves_the_stored_value():
+    """The switch looks off on a machine without a GPU, but the stored choice is kept and the Save
+    button has nothing to save: nothing the window shows there is an edit."""
+    window, _shown = acceleration_window(False)
+    PreferencesWindow._show_acceleration(window)
+    assert not window._draft.dirty
+    assert Settings().get_hardware_acceleration() is True
+
+
+def test_until_the_machine_is_known_the_switch_is_greyed_out_and_keeps_its_text():
+    window, shown = acceleration_window(None)
+    PreferencesWindow._show_acceleration(window)
+    assert shown.active is False and shown.sensitive is False
+    assert shown.subtitle is None  # not the "not available" text before anyone asked
+
+
+def test_the_map_asks_the_machine_once_and_shows_the_answer(monkeypatch):
+    asked = []
+    monkeypatch.setattr(
+        preferences, "acceleration_available", lambda widget: asked.append(widget) or True
+    )
+    window, shown = acceleration_window(None)
+    PreferencesWindow._on_map(window)
+    PreferencesWindow._on_map(window)  # a second map: no second question
+    assert asked == [window] and window._acceleration_available is True
+    assert shown.refreshed == 1
+
+
+def test_a_use_of_the_switch_is_an_edit_that_save_stores():
+    window, shown = acceleration_window(True)
+    window._report = lambda result: setattr(shown, "result", result)
+    shown.active = False
+    PreferencesWindow._on_acceleration(window)
+    assert shown.result.ok and window._draft.pending == {"hardware-acceleration": False}
+    assert window._draft.save().ok
+    assert Settings().get_hardware_acceleration() is False
+
+
+def test_the_fields_being_set_from_the_values_in_effect_are_no_edit():
+    window, shown = acceleration_window(True)
+    window._report = lambda result: setattr(shown, "result", result)
+    window._updating = True
+    shown.active = False
+    PreferencesWindow._on_acceleration(window)
+    assert not window._draft.dirty and not hasattr(shown, "result")

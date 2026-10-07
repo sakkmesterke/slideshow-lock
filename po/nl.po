@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:57+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Dutch\n"
@@ -165,6 +165,10 @@ msgid "seconds"
 msgstr "seconden"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Hardwareversnelling"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Overgangen"
 
@@ -201,12 +205,12 @@ msgid "Timing"
 msgstr "Tijden"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Opslaan"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Voorbeeld"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Opslaan"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -223,6 +227,22 @@ msgstr "1 u"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 u"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr ""
+"Langzame beweging en zachte randen in de overgangen. Zet dit uit voor de "
+"eenvoudige animatie."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"Niet beschikbaar: deze computer tekent niet met een videokaart, dus de "
+"eenvoudige animatie wordt gebruikt."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

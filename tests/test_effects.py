@@ -363,3 +363,106 @@ def test_nothing_is_measured_before_the_renderer_is_known():
     run_frames(effects, 100.0, 20)
     assert effects.tripped is None and effects.decision is None
     assert effects.full(reader(GPU)) is True  # the frames before the decision did not count
+
+
+# -- the user's switch: it can only take the effects away, and applies from the next picture ------
+
+
+class Switch:
+    """The user's choice as the settings give it: a value that can be changed, or that fails."""
+
+    def __init__(self, value=True):
+        self.value = value
+        self.reads = 0
+
+    def __call__(self):
+        self.reads += 1
+        if isinstance(self.value, Exception):
+            raise self.value
+        return self.value
+
+
+@pytest.mark.parametrize(
+    "machine, wanted, expected",
+    [
+        (GPU, True, True),
+        (GPU, False, False),
+        (CPU, True, False),  # no GPU: the switch cannot give the effects back
+        (CPU, False, False),
+    ],
+    ids=["gpu-on", "gpu-off", "cpu-on", "cpu-off"],
+)
+def test_the_effects_are_drawn_only_on_a_gpu_with_the_switch_on(machine, wanted, expected):
+    effects = Effects({})
+    effects.follow(Switch(wanted))
+    assert effects.full(reader(machine)) is expected
+
+
+def test_the_switch_is_on_until_something_follows():
+    assert Effects({}).full(reader(GPU)) is True
+
+
+def test_a_change_of_the_switch_applies_when_it_is_read_again_not_before():
+    switch = Switch(True)
+    effects = Effects({})
+    effects.follow(switch)
+    assert effects.full(reader(GPU)) is True
+    switch.value = False
+    assert effects.full(reader(GPU)) is True  # the picture on screen goes on moving
+    assert effects.apply_switch() is False  # the next picture reads it
+    assert effects.full(reader(GPU)) is False
+    switch.value = True
+    effects.apply_switch()
+    assert effects.full(reader(GPU)) is True
+
+
+def test_a_switch_that_cannot_be_read_leaves_the_last_value():
+    switch = Switch(False)
+    effects = Effects({})
+    effects.follow(switch)
+    switch.value = RuntimeError("settings gone")
+    assert effects.apply_switch() is False
+    switch.value = True
+    effects.apply_switch()
+    switch.value = RuntimeError("settings gone")
+    assert effects.apply_switch() is True
+
+
+def test_the_switch_does_not_decide_the_machine(caplog):
+    """Switched off, the renderer is still read and the decision logged: the settings window asks
+    ``available`` whatever the switch says."""
+    effects = Effects({})
+    effects.follow(Switch(False))
+    with caplog.at_level(logging.INFO, logger="slideshow_lock.effects"):
+        assert effects.available(reader(GPU)) is True
+        assert effects.full(reader(GPU)) is False
+    assert "full effects" in caplog.text
+    assert Effects({}).available(reader(CPU)) is False
+
+
+def test_available_is_false_until_the_renderer_can_be_read_and_asks_again():
+    answers = iter([None, GPU])
+    effects = Effects({})
+    assert effects.available(lambda: next(answers)) is False
+    assert effects.decision is None
+    assert effects.available(lambda: next(answers)) is True
+
+
+def test_available_ignores_the_guard():
+    effects = Effects({}, budget_ms=25.0, frames=10)
+    assert effects.available(reader(GPU))
+    run_frames(effects, 60.0, 10)
+    assert effects.tripped is not None and effects.full(reader(GPU)) is False
+    assert effects.available(reader(GPU)) is True
+
+
+def test_the_switch_changing_is_logged(caplog):
+    switch = Switch(True)
+    effects = Effects({})
+    effects.follow(switch)
+    switch.value = False
+    with caplog.at_level(logging.INFO, logger="slideshow_lock.effects"):
+        effects.apply_switch()
+        effects.apply_switch()  # no change, no second line
+    assert caplog.text.count("switched off") == 1
+    assert "1.0.1" in caplog.text

@@ -234,6 +234,9 @@ class FakeSettings:
     def get_transition_duration(self):
         return self.values[KEY_TRANSITION_DURATION]
 
+    def get_hardware_acceleration(self):
+        return True
+
     def connect_changed(self, callback):
         self._callbacks.append(callback)
 

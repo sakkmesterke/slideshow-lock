@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Vietnamese\n"
@@ -166,6 +166,10 @@ msgid "seconds"
 msgstr "giây"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Tăng tốc phần cứng"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Hiệu ứng chuyển"
 
@@ -202,12 +206,12 @@ msgid "Timing"
 msgstr "Thời gian"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Lưu"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Xem trước"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Lưu"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -224,6 +228,22 @@ msgstr "1 giờ"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 giờ"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr ""
+"Chuyển động chậm và viền mềm trong các hiệu ứng chuyển tiếp. Tắt để dùng "
+"hoạt ảnh đơn giản."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"Không khả dụng: máy tính này không vẽ bằng card đồ họa nên hoạt ảnh đơn giản "
+"được sử dụng."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"
