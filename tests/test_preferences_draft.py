@@ -337,3 +337,115 @@ def test_the_duration_edit_is_rounded_to_a_tenth_before_it_is_kept(draft):
     assert draft.edit_duration(1.2345).ok
     assert draft.value(KEY_TRANSITION_DURATION) == 1.2
     assert draft.preview_values()[KEY_TRANSITION_DURATION] == 1.2
+
+
+# -- when there is something to save (the state of the Save button is ``dirty``) ------------------
+
+#: Per key: how to change the field, and how to bring it back to what is stored (the defaults of
+#: the schema; the first test below checks that the stored values are those).
+SAVE_STATE_CASES = {
+    KEY_IDLE_TIMEOUT_SECONDS: (
+        lambda d, tmp: d.edit_int(KEY_IDLE_TIMEOUT_SECONDS, 300),
+        lambda d, tmp: d.edit_int(KEY_IDLE_TIMEOUT_SECONDS, 120),
+    ),
+    KEY_LOCK_GRACE_PERIOD_SECONDS: (
+        lambda d, tmp: d.edit_int(KEY_LOCK_GRACE_PERIOD_SECONDS, 7),
+        lambda d, tmp: d.edit_int(KEY_LOCK_GRACE_PERIOD_SECONDS, 0),
+    ),
+    KEY_SLIDE_INTERVAL_SECONDS: (
+        lambda d, tmp: d.edit_interval_position(INTERVAL_POSITIONS[INTERVAL_STOPS.index(30)]),
+        lambda d, tmp: d.edit_interval_position(INTERVAL_POSITIONS[INTERVAL_STOPS.index(10)]),
+    ),
+    KEY_ORDER: (
+        lambda d, tmp: d.edit_choice(KEY_ORDER, "name"),
+        lambda d, tmp: d.edit_choice(KEY_ORDER, "random"),
+    ),
+    KEY_SCALING: (
+        lambda d, tmp: d.edit_choice(KEY_SCALING, "fit"),
+        lambda d, tmp: d.edit_choice(KEY_SCALING, "fill"),
+    ),
+    KEY_PAN_PORTRAIT_IMAGES: (
+        lambda d, tmp: d.edit_pan_portrait_images(True),
+        lambda d, tmp: d.edit_pan_portrait_images(False),
+    ),
+    KEY_SHOW_SCREENSHOTS: (
+        lambda d, tmp: d.edit_show_screenshots(True),
+        lambda d, tmp: d.edit_show_screenshots(False),
+    ),
+    KEY_TRANSITIONS: (
+        lambda d, tmp: d.edit_transition("zoom"),
+        lambda d, tmp: d.edit_transition("ken-burns"),
+    ),
+    KEY_TRANSITION_DURATION: (
+        lambda d, tmp: d.edit_duration(2.5),
+        lambda d, tmp: d.edit_duration(1.0),
+    ),
+    KEY_PICTURE_FOLDER: (
+        lambda d, tmp: d.edit_folder(str(tmp)),
+        lambda d, tmp: d.edit_folder(""),
+    ),
+}
+
+
+def test_the_save_state_cases_cover_every_key_a_draft_can_hold():
+    assert set(SAVE_STATE_CASES) == set(SAVE_ORDER)
+
+
+def test_the_save_state_cases_start_from_the_stored_defaults(draft):
+    """The way back in the cases is the stored value: if a default of the schema moved, the cases
+    would test an edit, not a way back."""
+    for key, (_change, restore) in SAVE_STATE_CASES.items():
+        assert restore(draft, None).ok, key
+        assert not draft.dirty, key
+
+
+def test_there_is_nothing_to_save_when_the_window_opens(draft):
+    assert not draft.dirty
+    assert draft.pending == {}
+
+
+@pytest.mark.parametrize("key", SAVE_ORDER)
+def test_one_changed_field_is_something_to_save(draft, key, tmp_path):
+    change, _restore = SAVE_STATE_CASES[key]
+    assert change(draft, tmp_path).ok
+    assert draft.dirty
+    assert set(draft.pending) == {key}
+
+
+@pytest.mark.parametrize("key", SAVE_ORDER)
+def test_there_is_nothing_to_save_after_a_save(draft, key, tmp_path):
+    change, _restore = SAVE_STATE_CASES[key]
+    assert change(draft, tmp_path).ok
+    assert draft.save().ok
+    assert not draft.dirty
+    assert draft.pending == {}
+
+
+@pytest.mark.parametrize("key", SAVE_ORDER)
+def test_a_field_put_back_to_what_is_stored_is_nothing_to_save(draft, key, tmp_path):
+    change, restore = SAVE_STATE_CASES[key]
+    assert change(draft, tmp_path).ok
+    assert draft.dirty
+    assert restore(draft, tmp_path).ok
+    assert not draft.dirty
+    assert draft.pending == {}
+
+
+def test_putting_one_field_back_leaves_the_other_edits_to_save(draft, tmp_path):
+    """Only a draft with no edit left is clean: one field put back does not clear the rest."""
+    edit_everything(draft, tmp_path)
+    _change, restore = SAVE_STATE_CASES[KEY_ORDER]
+    assert restore(draft, tmp_path).ok
+    assert draft.dirty
+    assert KEY_ORDER not in draft.pending
+    assert len(draft.pending) == len(SAVE_ORDER) - 1
+
+
+def test_a_field_changed_after_a_save_is_measured_against_the_new_stored_value(draft):
+    assert draft.edit_choice(KEY_ORDER, "name").ok
+    assert draft.save().ok
+    assert not draft.dirty
+    assert draft.edit_choice(KEY_ORDER, "random").ok  # no longer the stored value
+    assert draft.dirty
+    assert draft.edit_choice(KEY_ORDER, "name").ok  # the stored one now
+    assert not draft.dirty
