@@ -28,6 +28,10 @@ X-GNOME-Autostart-enabled=false
 
 The interface is available in 40 languages besides English. The 35 languages added in 1.0.1 were translated with AI assistance and have not been reviewed by a native speaker (the header of each catalog says so). Corrections are welcome: open an issue, or a pull request on `po/<lang>.po`; see `docs/translations.md`.
 
+## Licence
+
+The program is GPL-3.0-or-later (`LICENSE`). The seven sample pictures in `data/pictures` are released under CC BY-SA 4.0 (`packaging/licenses/CC-BY-SA-4.0.txt`); the credit is in `data/pictures/CREDITS.txt`: "Fraktálképek: TrenSoft, CC BY-SA 4.0". The package carries both licences. At the first login the pictures are copied once into `Pictures/trensoft` (see `docs/logging-and-lifecycle.md`, section 6); the files are JPEG with the metadata taken out losslessly by `tools/strip_jpeg_metadata.py`, but for the author and the licence, which each picture carries in its Exif (Artist, Copyright) and XMP (creator, rights, web statement); `tests/test_pictures_clean.py` keeps it that way.
+
 ## Commands
 
 `slideshowlock` starts the service and opens the settings window (the same as `slideshow-lock control`). `slideshow-lock` starts the programs one by one: `slideshow-lock service`, `slideshow-lock settings` (the window alone), `slideshow-lock preview`; `slideshow-lock --help` lists them.

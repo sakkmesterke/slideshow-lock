@@ -19,11 +19,16 @@ from pathlib import Path
 
 import pytest
 
+from slideshow_lock import sample_pictures
+
 REPO = Path(__file__).resolve().parent.parent
 LAUNCHER = REPO / "packaging" / "slideshow-lock"
 SHORT_LAUNCHER = REPO / "packaging" / "slideshowlock"
 SPEC = REPO / "packaging" / "fedora" / "slideshow-lock.spec"
 UNIT = REPO / "data" / "slideshow-lock.service"
+METAINFO = REPO / "data" / "io.github.trensoft.slideshowlock.metainfo.xml.in"
+CC_LICENSE = REPO / "packaging" / "licenses" / "CC-BY-SA-4.0.txt"
+LICENSE_EXPRESSION = "GPL-3.0-or-later AND CC-BY-SA-4.0"
 SH = shutil.which("sh") or "/bin/sh"
 EXEC_LINE = 'exec /usr/bin/python3 -P -m "$module" "$@"'
 SHORT_EXEC_LINE = 'exec /usr/bin/slideshow-lock control "$@"'
@@ -333,3 +338,100 @@ def test_the_conditions_helper_sees_an_unconditional_line_and_a_nested_one(tmp_p
         ("nested", ["0%{?rhel}", "%{with tests}"]),
         ("after", []),
     ]
+
+
+# -- the sample pictures in the package (the pictures themselves: test_pictures_clean.py) ----------
+
+
+def _tag(text: str, name: str) -> str:
+    [value] = re.findall(rf"^{name}:\s+(.*?)\s*$", text, re.MULTILINE)
+    return value
+
+
+def _section(text: str, name: str) -> list:
+    """The lines of the spec section that starts with ``%name`` (up to the next section)."""
+    lines, inside = [], False
+    for line in text.splitlines():
+        head = re.match(r"%([a-z_]+)\b", line)
+        if head and head.group(1) in SECTIONS:
+            inside = head.group(1) == name
+            continue
+        if inside:
+            lines.append(line)
+    return lines
+
+
+SECTIONS = {
+    "description", "prep", "build", "install", "check", "files", "changelog", "package",
+    "generate_buildrequires", "pre", "post", "preun", "postun", "pretrans", "posttrans",
+}  # fmt: skip
+
+
+def scriptlet_problems(text: str) -> list:
+    """Scriptlet lines that name a home directory: the package must not touch a user's files."""
+    problems = []
+    for name in ("pre", "post", "preun", "postun", "pretrans", "posttrans"):
+        for line in _section(text, name):
+            code = line.split("#", 1)[0]
+            if re.search(r"\$\{?HOME\b|~|/home\b", code):
+                problems.append(f"%{name}: {line.strip()}")
+    return problems
+
+
+def test_the_scriptlets_name_no_home_directory():
+    """FR-10: the pictures reach a user's folder through the program at login, never through the
+    package (a scriptlet runs as root, for every user, and must not write into a home)."""
+    assert _section(SPEC.read_text(), "post"), "the section reader finds no %post"
+    assert scriptlet_problems(SPEC.read_text()) == []
+
+
+@pytest.mark.parametrize(
+    "line", ["cp x $HOME/Pictures", "cp x ${HOME}/y", "cp x ~/y", "cp x /home/u/y"]
+)
+@pytest.mark.parametrize("section", ["pre", "post", "preun", "postun"])
+def test_the_scriptlet_check_sees_a_home_directory_in_every_scriptlet(section, line):
+    text = SPEC.read_text().replace(f"\n%{section}\n", f"\n%{section}\n{line}\n", 1)
+    if section == "pre":  # the spec has no %pre: the control adds one
+        text = text.replace("\n%post\n", f"\n%pre\n{line}\n\n%post\n", 1)
+    assert scriptlet_problems(text), (section, line)
+
+
+def test_the_pictures_are_installed_and_listed_where_the_program_looks_for_them():
+    """The spec and ``sample_pictures`` name one folder: ``<datadir>/slideshow-lock/pictures``."""
+    text = SPEC.read_text()
+    assert _tag(text, "Name") == sample_pictures.APP_DIR
+    folder = f"%{{_datadir}}/%{{name}}/{sample_pictures.DATA_SUBDIR}"
+    assert re.search(rf"^install -d -m 0755 %\{{buildroot\}}{re.escape(folder)}$", text, re.M)
+    assert re.search(
+        rf"^install -pm 0644 data/pictures/\* %\{{buildroot\}}{re.escape(folder)}/$", text, re.M
+    )
+    files = _section(text, "files")
+    assert "%dir %{_datadir}/%{name}" in files  # nothing else owns /usr/share/slideshow-lock
+    assert f"%dir {folder}" in files
+    assert f"{folder}/*" in files
+    assert sample_pictures.DATA_DIRS == ("/usr/local/share", "/usr/share")
+
+
+def test_the_licence_of_the_package_is_the_code_and_the_pictures_in_the_spec_and_the_metainfo():
+    assert _tag(SPEC.read_text(), "License") == LICENSE_EXPRESSION
+    meta = METAINFO.read_text()
+    assert f"<project_license>{LICENSE_EXPRESSION}</project_license>" in meta
+    assert "<metadata_license>CC0-1.0</metadata_license>" in meta
+
+
+def test_the_licence_text_is_listed_once_and_matches_no_default_pattern_of_setuptools():
+    files = _section(SPEC.read_text(), "files")
+    assert files.count("%license packaging/licenses/CC-BY-SA-4.0.txt") == 1
+    assert len([line for line in files if line.startswith("%license")]) == 1
+    text = CC_LICENSE.read_text(encoding="utf-8")
+    assert text.startswith("Attribution-ShareAlike 4.0 International")
+    assert "Creative Commons" in text and "ShareAlike" in text
+    assert not (REPO / CC_LICENSE.name).exists()  # not in the root, where setuptools looks
+    for pattern in ("LICEN[CS]E*", "COPYING*", "NOTICE*", "AUTHORS*"):
+        assert not CC_LICENSE.match(pattern)
+    assert "license-files" not in (REPO / "pyproject.toml").read_text()
+
+
+def test_the_changelog_names_the_pictures_and_their_licence():
+    entry = SPEC.read_text().split("\n%changelog\n", 1)[1].split("\n\n", 1)[0]
+    assert "CC BY-SA 4.0" in entry and "License tag" in entry
