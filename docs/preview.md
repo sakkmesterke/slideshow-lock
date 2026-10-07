@@ -141,8 +141,8 @@ transitions (section 2, "Transitions").
   are drawn, each over black, the new picture over the old one: `crossfade`, `fade-black`
   (the old picture to black, black to the new one), `slide-in` (the new picture slides in
   from the right over the still old one), `push` (the new picture pushes the old one out to
-  the left), `ken-burns` (a cross-fade into the new picture enlarged by 8 % and shifted
-  left by 2 % of the window width, which over the run shrinks and drifts back to its own size
+  the left), `ken-burns` (a cross-fade into the new picture enlarged by 14 % and shifted
+  left by 3.5 % of the window width, which over the run shrinks and drifts back to its own size
   and place: the last frame is the plain picture, so nothing jumps when the run ends; the run
   lasts 90 % of the picture time), `zoom` (the old picture grows by 15 %
   and fades while the new one comes in from 85 %), `wipe` (the new picture is uncovered from

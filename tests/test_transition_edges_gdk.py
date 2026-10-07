@@ -27,7 +27,14 @@ from gi.repository import Gdk, GLib, Graphene, Gsk, Gtk  # noqa: E402
 
 from slideshow_lock import preview_window  # noqa: E402
 from slideshow_lock import transition_draw as td  # noqa: E402
-from slideshow_lock.transitions import CIRCLE, PUSH, ROTATE, SLIDE_IN, WIPE, ZOOM  # noqa: E402
+from slideshow_lock.transitions import (  # noqa: E402
+    CIRCLE,
+    PUSH,
+    ROTATE,
+    SLIDE_IN,
+    WIPE,
+    ZOOM,
+)
 from tests import soft_edge_model as model  # noqa: E402
 
 pytestmark = pytest.mark.skipif(
@@ -146,3 +153,11 @@ def test_the_first_and_the_last_frame_are_the_plain_pictures(renderer, name):
     assert max(max(row) for row in first) <= 0.01, name
     last = render(renderer, td.compose(name, 1.0, W, H))
     assert min(min(row) for row in last) >= 0.99, name
+
+
+def test_a_rendered_ken_burns_picture_covers_the_window_the_whole_run(renderer):
+    """The enlarged, shifted picture of Ken Burns, fully faded in (the old picture is red and
+    would show at an edge it does not cover): all green, to the last pixel of every border."""
+    for p in (1e-4, 0.25, 0.5, 0.75, 1.0):  # not 0: the picture is not faded in at the very start
+        rows = render(renderer, td.compose("ken-burns", p, W, H, fade_share=1e-6))
+        assert min(min(row) for row in rows) >= 0.99, p
