@@ -14,8 +14,8 @@ claim, not a fact.
 ## 1. Source of the build
 
 The spec's `Source0` is the GitHub tarball of the tag `v%{version}`. The tag of the next release,
-`v1.0.1`, does not exist yet (`git ls-remote --tags origin` lists `v1.0.0` only, 2026-10-07), so COPR
-cannot download it. Options:
+`v1.0.2`, does not exist yet (`git ls-remote --tags origin` lists `v1.0.0` and `v1.0.1` only,
+2026-10-07), so COPR cannot download it. Options:
 
 | | Source | Risk |
 |---|---|---|
@@ -31,7 +31,7 @@ Limits of (a):
 
 - A build before the release is a test build. It is not made in the release project
   (`docs/RELEASING.md`, "What may be built in the COPR project"), and it has a lower `Release` than
-  the release, such as `1.0.1-0.1.test`.
+  the release, such as `1.0.2-0.1.test`.
 - A `git archive` tarball and the GitHub tag tarball hold the same files but are not the same
   bytes. A checksum recorded for the release belongs to one of the two (section 5).
 - `rpmbuild -bs` reads the whole spec in a chroot where the build dependencies are not installed:
@@ -136,12 +136,12 @@ One step for the owner of the Fedora account, nothing is stored in the repositor
 
 These are open and are not part of this change:
 
-- the tag `v1.0.1`, and the maintainer's approval of it;
+- the tag `v1.0.2`, and the maintainer's approval of it;
 - a protected or signed tag, so that it cannot be moved later;
 - the SHA-512 of the release tarball (which of the two tarballs of section 1 is meant, decided
   first);
 - the release date in the AppStream metainfo, when that file exists;
 - a COPR build in each chroot (section 2) that succeeded, and `rpmlint` on the result;
 - the version of a test build and of the release: decided, see `docs/RELEASING.md`, "What may be
-  built in the COPR project". The release is `1.0.1-1`; a test build is lower and is not made in
+  built in the COPR project". The release is `1.0.2-1`; a test build is lower and is not made in
   this project.
