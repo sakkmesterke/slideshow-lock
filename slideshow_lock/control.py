@@ -21,6 +21,14 @@ that does not appear because of the bus is worse than one that appears next to a
 not running. The exit status is the window's; without a window (the login start with nothing to
 show) it is 1 when the service could not be started and 0 otherwise.
 
+The sample pictures. After the window is decided (and before it opens), ``ensure_sample_pictures``
+copies the pictures of the package into ``Pictures/sakkmesterke`` on a thread of its own, once
+(``slideshow_lock.sample_pictures``): from the login start and from the menu, when the user has
+not chosen another picture folder. It is no part of the service and never changes the exit status
+or the window: a copy that fails is a ``[samples]`` warning. The login start without a window waits
+for it for a while before it ends, the one with a window leaves it to the thread, which stops when
+the window is closed.
+
 The first start. The login start opens the window while ``first-run-done`` is false and the user has
 stored no picture folder (``Gio.Settings.get_user_value``, so the default does not count), and sets
 the key before it opens the window: the window appears once, also when it is closed without a
@@ -32,6 +40,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+import threading
 from typing import List, Optional
 
 import gi
@@ -40,8 +49,15 @@ gi.require_version("Gio", "2.0")
 
 from gi.repository import Gio  # noqa: E402
 
-from slideshow_lock import APP_ID, _, dbus_adapters, i18n, settings_app  # noqa: E402
-from slideshow_lock.settings import Settings  # noqa: E402
+from slideshow_lock import (  # noqa: E402
+    APP_ID,
+    _,
+    dbus_adapters,
+    i18n,
+    sample_pictures,
+    settings_app,
+)
+from slideshow_lock.settings import Settings, default_picture_folder  # noqa: E402
 
 _LOG = logging.getLogger(__name__)
 
@@ -49,6 +65,9 @@ _LOG = logging.getLogger(__name__)
 SERVICE_UNIT = "slideshow-lock.service"
 
 AUTOSTART = "autostart"
+
+#: How long the login start without a window waits for the copy of the sample pictures.
+COPY_JOIN_TIMEOUT_SECONDS = 120.0
 
 
 def _one_line(text: str) -> str:
@@ -89,11 +108,17 @@ def start_service() -> bool:
     return True
 
 
+def schema_installed() -> bool:
+    """Is the settings schema there? ``Gio.Settings`` aborts the process (it does not raise) when it
+    is not, so every use of ``Settings`` outside the window asks first."""
+    schema = Gio.SettingsSchemaSource.get_default()
+    return schema is not None and schema.lookup(APP_ID, True) is not None
+
+
 def first_run_window_wanted() -> bool:
     """Is this the first login, with no picture folder chosen? Sets ``first-run-done`` when it is
     (the window is about to open), so the answer is yes once. Never raises."""
-    schema = Gio.SettingsSchemaSource.get_default()
-    if schema is None or schema.lookup(APP_ID, True) is None:
+    if not schema_installed():
         # the window says so itself (exit status 2); at login there is nothing to open it for
         _LOG.warning("[config] the settings schema is not installed: no first-run window")
         return False
@@ -103,6 +128,62 @@ def first_run_window_wanted() -> bool:
     if not settings.set_first_run_done(True):
         _LOG.warning("[config] first-run-done cannot be stored: the window opens at every login")
     return True
+
+
+def _copy_samples(
+    source_dir: str, pictures_dir: str, state_file: str, stop: threading.Event
+) -> None:
+    """The body of the copy thread: nothing it does reaches the caller."""
+    try:
+        sample_pictures.install(source_dir, pictures_dir, state_file, should_stop=stop.is_set)
+    except Exception as exc:
+        _LOG.warning("[samples] the sample pictures were not copied (%s)", type(exc).__name__)
+
+
+def ensure_sample_pictures(stop: Optional[threading.Event] = None) -> Optional[threading.Thread]:
+    """Start the copy of the sample pictures on a daemon thread; the thread, or ``None`` when there
+    is nothing to start (no schema, another picture folder chosen, no pictures in the package).
+
+    Everything that needs Gio or GLib is done here, on the calling thread; the thread gets plain
+    strings. The ``picture-folder`` key is never written (``sample_pictures`` module doc)."""
+    if not schema_installed():  # the warning is the caller's (first_run_window_wanted, the window)
+        return None
+    settings = Settings()
+    if not settings.uses_default_picture_folder():
+        _LOG.debug("[samples] a picture folder was chosen, no sample pictures")
+        return None
+    source_dir = sample_pictures.find_source_dir()
+    if source_dir is None:
+        _LOG.debug("[samples] no sample pictures in the package")
+        return None
+    thread = threading.Thread(
+        target=_copy_samples,
+        args=(
+            source_dir,
+            default_picture_folder(),
+            sample_pictures.state_path(),
+            stop if stop is not None else threading.Event(),
+        ),
+        name="sample-pictures",
+        daemon=True,
+    )
+    thread.start()
+    return thread
+
+
+def _wait_for_copy(thread: Optional[threading.Thread], stop: threading.Event) -> None:
+    """Let a copy that was started finish before the process ends (a daemon thread would be cut
+    in the middle), for ``COPY_JOIN_TIMEOUT_SECONDS`` at most. The exit status does not depend
+    on it."""
+    if thread is None:
+        return
+    thread.join(COPY_JOIN_TIMEOUT_SECONDS)
+    if thread.is_alive():
+        stop.set()
+        _LOG.warning(
+            "[samples] the copy is still running after %d s, leaving it (the next start cleans up)",
+            COPY_JOIN_TIMEOUT_SECONDS,
+        )
 
 
 def _parse(argv: Optional[List[str]]) -> argparse.Namespace:
@@ -128,9 +209,20 @@ def main(argv: Optional[List[str]] = None) -> int:
         format="%(asctime)s %(levelname)s %(message)s",
     )
     started = start_service()
-    if args.mode == AUTOSTART and not first_run_window_wanted():
+    window = args.mode != AUTOSTART or first_run_window_wanted()  # decided before the copy starts
+    stop = threading.Event()
+    try:
+        copying = ensure_sample_pictures(stop)
+    except Exception as exc:  # the copy never changes the exit status or the window
+        _LOG.warning("[samples] the sample pictures were not copied (%s)", type(exc).__name__)
+        copying = None
+    if not window:
+        _wait_for_copy(copying, stop)
         return 0 if started else 1
-    return settings_app.main(["--debug"] if args.debug else [])
+    try:
+        return settings_app.main(["--debug"] if args.debug else [])
+    finally:
+        stop.set()  # the window is closed: a copy in progress stops at the next chunk
 
 
 if __name__ == "__main__":

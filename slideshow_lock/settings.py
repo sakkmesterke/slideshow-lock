@@ -249,6 +249,13 @@ class Settings:
         one who chose."""
         return self._settings.get_user_value(KEY_PICTURE_FOLDER) is not None
 
+    def uses_default_picture_folder(self) -> bool:
+        """True if the folder in use is the default one: the key is empty, or holds the default's
+        own path (compared as written, normalised, so a trailing slash does not matter). Does not
+        go through ``get_picture_folder()``, so a missing folder is not a warning here."""
+        raw = self._settings.get_string(KEY_PICTURE_FOLDER)
+        return not raw or os.path.normpath(raw) == os.path.normpath(default_picture_folder())
+
     # -- shared validation plumbing ------------------------------------------
 
     def _set_uint(self, key: str, value: int) -> bool:
