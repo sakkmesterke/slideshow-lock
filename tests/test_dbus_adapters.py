@@ -597,3 +597,35 @@ def test_the_overview_adapter_does_not_raise_whatever_the_connection_is(caplog):
     with caplog.at_level(logging.WARNING, logger="slideshow_lock.dbus_adapters"):
         overview.close_if_open()
     assert len(_warnings(caplog)) == 1
+
+
+# -- the user's systemd (the unit start of ``control``) --------------------------------------------
+
+
+def test_the_unit_is_reset_and_started_on_the_manager_interface_in_replace_mode(desktop):
+    manager = adapters.SystemdUserManager(desktop.session)
+    manager.reset_failed("slideshow-lock.service")
+    job = manager.start("slideshow-lock.service")
+    assert desktop.systemd_calls == [
+        ("ResetFailedUnit", ("slideshow-lock.service",)),
+        ("StartUnit", ("slideshow-lock.service", "replace")),
+    ]
+    assert job == "/org/freedesktop/systemd1/job/1"
+
+
+@pytest.mark.parametrize(
+    "method, call", [("ResetFailedUnit", "reset_failed"), ("StartUnit", "start")]
+)
+def test_a_refused_unit_call_raises_the_bus_error_for_the_caller_to_judge(desktop, method, call):
+    desktop.systemd_errors[method] = "org.freedesktop.systemd1.NoSuchUnit"
+    manager = adapters.SystemdUserManager(desktop.session)
+    with pytest.raises(GLib.Error) as raised:
+        getattr(manager, call)("slideshow-lock.service")
+    assert "NoSuchUnit" in raised.value.message or Gio.DBusError.is_remote_error(raised.value)
+
+
+def test_without_systemd_on_the_bus_the_call_raises_and_is_not_probed_at_construction():
+    with Desktop(systemd=False) as d:
+        manager = adapters.SystemdUserManager(d.session)  # nothing is probed when it is made
+        with pytest.raises(GLib.Error):
+            manager.start("slideshow-lock.service")
