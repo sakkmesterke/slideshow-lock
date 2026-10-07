@@ -1,0 +1,355 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 21:00+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Korean\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "슬라이드쇼 서비스를 시작하고 설정 창을 엽니다."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "로그인 시: 서비스를 시작하고 창은 처음에만 엽니다"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "무작위"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "파일 이름순"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "화면 채우기 (사진이 잘림)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "맞추기 (사진 전체를 표시)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Slideshow Lock 설정"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "찾아보기…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "사진"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "사진 폴더"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "사진 순서"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "크기 조정"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "세로로 긴 사진 스크롤"
+
+#: slideshow_lock/preferences.py
+msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
+msgstr "가로 화면에서 세로 사진이 위에서 아래로 천천히 움직입니다 (“화면 채우기”에서만). 기본값은 꺼짐: 배터리를 더 많이 사용합니다."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "슬라이드쇼 시작"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "유휴 시간"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "슬라이드쇼가 시작되기까지 입력이 없는 시간입니다."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "초"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "타이밍"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "사진당 표시 시간"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "잠금 유예 시간"
+
+#: slideshow_lock/preferences.py
+msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
+msgstr "슬라이드쇼가 시작된 후 이 시간보다 일찍 입력해도 세션이 잠기지 않습니다 (엄밀히 이보다 일찍인 경우만, 0이면 모든 입력으로 잠김)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "미리 보기"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10초"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1분"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1시간"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24시간"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "사진 폴더 선택"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "선택"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "취소"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "미리 보기를 시작할 수 없습니다. 로그를 확인하세요."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "미리 보기를 표시할 모니터가 없습니다."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "미리 보기 실행 중: 아무 키나 누르거나 마우스를 움직이면 종료됩니다."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "슬라이드쇼 설정을 변경합니다."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "모든 단계를 기록"
+
+#: slideshow_lock/preferences.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr "설정 스키마가 설치되어 있지 않습니다. 컴파일하여 GSettings가 가리키게 하세요:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "저장했습니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "가장 긴"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d초"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d분"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d시간"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "사용 중: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "사용 중: %s (폴더가 아직 없으므로 아무것도 표시되지 않습니다)"
+
+#: slideshow_lock/preferences_model.py
+msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
+msgstr "슬라이더의 단계가 아닙니다. 가장 가까운 단계가 표시됩니다. 저장된 값은 슬라이더를 움직일 때까지 유지됩니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "초 단위의 정수를 입력하세요."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "값은 %(low)d에서 %(high)d 사이여야 합니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "슬라이더 위치를 정수로 입력하세요."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "이 위치는 슬라이더에 없습니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "이 선택은 사용할 수 없습니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "켜짐 또는 꺼짐이어야 합니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "폴더 경로를 입력하세요."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "경로에 허용되지 않는 문자가 있습니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "절대 경로를 입력하세요 (/ 또는 ~로 시작)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "이 경로는 폴더가 아니라 파일입니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "값이 받아들여지지 않아 이전 값을 유지합니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "값을 저장할 수 없습니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "폴더가 받아들여지지 않아 이전 폴더를 유지합니다."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "폴더를 저장할 수 없습니다."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "표시할 사진이 없습니다"
+
+#: slideshow_lock/preview_app.py
+msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "슬라이드쇼 미리 보기를 표시합니다. 아무 입력이나 하면 종료됩니다. 세션을 잠그지 않습니다."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "사진 폴더 (이번 실행에만 적용)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "사진당 초 (이번 실행에만 적용)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "사진 순서"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "모니터에 맞추거나 채우기"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "세로 사진을 천천히 스크롤 (채우기 모드)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "간격은 %d초에서 %d초 사이여야 합니다."
+
+#: slideshow_lock/preview_app.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr "설정 스키마가 설치되어 있지 않습니다. 컴파일하여 GSettings가 가리키게 하세요:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Slideshow Lock 미리 보기"
+
+#: slideshow_lock/service.py
+msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
+msgstr "세션이 유휴 상태이면 슬라이드쇼를 시작하고, 유예 시간 이후 첫 입력에서 잠그며, 컴퓨터가 절전 모드로 들어가기 전에도 잠급니다."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "슬라이드쇼 전 유휴 시간(초)"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "이 초 이내의 입력에는 잠그지 않음"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "유휴 시간 제한은 1초에서 86400초 사이여야 합니다."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "유예 시간은 0초에서 86400초 사이여야 합니다."
+
+#: slideshow_lock/service.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr "설정 스키마가 설치되어 있지 않습니다. 컴파일하여 GSettings가 가리키게 하세요:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "유휴 슬라이드쇼와 세션 잠금을 설정합니다"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "입력 시 잠기는 유휴 슬라이드쇼 화면 보호기"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
+msgstr "Slideshow Lock은 세션이 일정 시간 유휴 상태가 되면 각 모니터에서 전체 화면 사진 슬라이드쇼를 시작합니다."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
+msgstr "첫 키 입력, 클릭 또는 마우스 움직임이 슬라이드쇼를 끝냅니다. 슬라이드쇼가 유예 시간 이상 표시되었다면 세션도 잠깁니다."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
+msgstr "사진은 사용자가 선택한 폴더에서 가져옵니다. 설정 창에서 폴더, 유휴 시간, 유예 시간, 각 사진의 표시 시간, 순서, 크기 조정을 설정합니다."

@@ -1,0 +1,11 @@
+# Slideshow Lock translation glossary, ru. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	слайд-шоу	\bslideshow\b
+lock	блокир|блокировк	\block(s|ed|ing)?\b
+preview	предпросмотр	\bpreview\b
+settings	настройк|настроек	\bsettings?\b
+idle	бездейств	\bidle\b
+folder	папк	\bfolders?\b
+picture	изображени	\bpictures?\b
+fullscreen	весь экран|на весь экран	\bfull-?screen\b
+monitor	монитор	\bmonitors?\b

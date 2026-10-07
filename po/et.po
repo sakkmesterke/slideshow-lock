@@ -1,0 +1,343 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 20:50+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Estonian\n"
+"Language: et\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Käivita slaidiesitluse teenus ja ava seadete aken."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "sisselogimisel: käivita teenus, ava aken ainult esimesel korral"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Juhuslik"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Failinime järgi"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Täida ekraan (pilti kärbitakse)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Sobita (kogu pilt on nähtav)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Slideshow Locki seaded"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Sirvi…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Pildid"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Piltide kaust"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Piltide järjekord"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Skaleerimine"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Kõrgete piltide kerimine"
+
+#: slideshow_lock/preferences.py
+msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
+msgstr "Püstformaadis pildid horisontaalsel ekraanil liiguvad aeglaselt ülalt alla (ainult režiimis „Täida“). Vaikimisi välja lülitatud: see kasutab rohkem akut."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Slaidiesitluse käivitamine"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Tegevusetuse aeg"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Kui kaua ei ole sisendit, enne kui slaidiesitlus algab."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundit"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Ajastus"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Iga pildi näitamise aeg"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Lukustamise armuaeg"
+
+#: slideshow_lock/preferences.py
+msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
+msgstr "Sisend varem kui selle aja jooksul pärast slaidiesitluse algust ei lukusta seanssi (rangelt varem; 0 tähendab, et iga sisend lukustab)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Eelvaade"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 h"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Vali piltide kaust"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Vali"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Loobu"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Eelvaadet ei õnnestunud käivitada, vaata logi."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Eelvaate kuvamiseks pole monitori."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "Eelvaade töötab: selle lõpetamiseks vajuta suvalist klahvi või liiguta hiirt."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Muuda slaidiesitluse seadeid."
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "logi iga samm"
+
+#: slideshow_lock/preferences.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr "Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle peale:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Salvestatud."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "pikim"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d h"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Kasutusel: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Kasutusel: %s (kausta pole veel olemas, midagi ei kuvata)"
+
+#: slideshow_lock/preferences_model.py
+msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
+msgstr "See pole liuguri samm: kuvatakse lähim. Salvestatud väärtus jääb kehtima, kuni liigutad liugurit."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Sisesta täisarv sekundites."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Väärtus peab olema vahemikus %(low)d kuni %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Sisesta liuguri asukoha täisarv."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "See asukoht ei ole liuguril."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "See valik pole saadaval."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "See peab olema sees või väljas."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Sisesta kausta tee."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Tee sisaldab keelatud märki."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Sisesta absoluutne tee (see algab märgiga / või ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "See tee on fail, mitte kaust."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Väärtust ei aktsepteeritud, vana jääb alles."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Väärtust ei õnnestunud salvestada."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Kausta ei aktsepteeritud, vana jääb alles."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Kausta ei õnnestunud salvestada."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Pole pilte, mida näidata"
+
+#: slideshow_lock/preview_app.py
+msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "Näita slaidiesitluse eelvaadet. Iga sisend lõpetab selle. See ei lukusta kunagi seanssi."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "piltide kaust (ainult selle käivituse jaoks)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "sekundit pildi kohta (ainult selle käivituse jaoks)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "piltide järjekord"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "sobita monitorile või täida monitor"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "kerib püstformaadis pilte aeglaselt (täitmisrežiim)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Intervall peab olema vahemikus %d kuni %d sekundit."
+
+#: slideshow_lock/preview_app.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr "Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle peale:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Slideshow Locki eelvaade"
+
+#: slideshow_lock/service.py
+msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
+msgstr "Käivita slaidiesitlus, kui seanss on tegevusetu, lukusta see esimese sisendi peale pärast armuaega ja lukusta enne, kui arvuti läheb ooterežiimi."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "tegevusetuse sekundid enne slaidiesitlust"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "sisendi korral nii mitme sekundi jooksul lukustamist ei toimu"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Tegevusetuse aeg peab olema vahemikus 1 kuni 86400 sekundit."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Armuaeg peab olema vahemikus 0 kuni 86400 sekundit."
+
+#: slideshow_lock/service.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr "Seadete skeemi pole paigaldatud. Kompileeri see ja suuna GSettings selle peale:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Seadista tegevusetuse slaidiesitlus ja seansi lukustamine"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "Tegevusetuse slaidiesitlusega ekraanisäästja, mis sisendi peale lukustab"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
+msgstr "Slideshow Lock käivitab täisekraanil piltide slaidiesitluse igal ekraanil, kui seanss on olnud määratud aja tegevusetu."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
+msgstr "Esimene klahvivajutus, klõps või hiireliigutus lõpetab slaidiesitluse. Kui slaidiesitlus on olnud nähtaval vähemalt armuaja jooksul, lukustatakse ka seanss."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
+msgstr "Pildid pärinevad sinu valitud kaustast. Seadete aken määrab kausta, tegevusetuse aja, armuaja, kui kaua iga pilt on nähtaval, järjekorra ja skaleerimise."

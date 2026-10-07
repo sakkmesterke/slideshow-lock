@@ -1,0 +1,405 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"PO-Revision-Date: 2026-10-06 20:55+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Maltese\n"
+"Language: mt\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n==1 ? 0 : n==0 || (n%100>1 && n%100<11) ? "
+"1 : (n%100>10 && n%100<20) ? 2 : 3);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Ibda s-servizz tal-preżentazzjoni u iftaħ it-tieqa tal-issettjar."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "meta tidħol: ibda s-servizz, iftaħ it-tieqa biss l-ewwel darba"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "irreġistra kull pass"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Każwali"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Skont isem il-fajl"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Imla l-iskrin (jaqta’ l-immaġni)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Adatta (turi l-immaġni kollha)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Issettjar ta’ Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Fittex…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Immaġnijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Folder tal-immaġnijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Ordni tal-immaġnijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Skalar"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Scrolla immaġnijiet għoljin"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"L-immaġnijiet vertikali fuq skrin orizzontali jiċċaqalqu bil-mod minn fuq "
+"għal isfel (biss b’“Imla”). Mitfi awtomatikament: juża aktar batterija."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Ibda l-preżentazzjoni tas-slajds"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Ħin ta’ inattività"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Kemm iddum mingħajr input qabel tibda l-preżentazzjoni tas-slajds."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekondi"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Ħinijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Uri kull immaġni għal"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Perjodu ta’ grazzja tal-qfil"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Input aktar kmieni minn dan wara li tibda l-preżentazzjoni tas-slajds ma "
+"jaqfilx is-sessjoni (strettament aktar kmieni; 0 tfisser li kull input "
+"jaqfel)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Previżjoni"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 h"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Agħżel il-folder tal-immaġnijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Agħżel"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Ikkanċella"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Il-previżjoni ma setgħetx tinbeda, ara r-reġistru."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "M’hemm l-ebda monitor biex turi l-previżjoni fuqu."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Previżjoni għaddejja: agħfas kwalunkwe tast jew mexxi l-maws biex tagħlaqha."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Biddel l-issettjar tal-preżentazzjoni tas-slajds."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"L-iskema tal-issettjar mhijiex installata. Ikkompilaha u indika lil "
+"GSettings lejha:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Salvat."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "l-itwal"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d h"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Fl-użu: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Fl-użu: %s (il-folder għadu ma jeżistix, ma jintwera xejn)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Mhuwiex pass tas-slider: jintwera l-eqreb wieħed. Il-valur salvat jibqa’ "
+"sakemm tmexxi s-slider."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Daħħal numru sħiħ ta’ sekondi."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Il-valur irid ikun bejn %(low)d u %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Daħħal numru sħiħ għall-pożizzjoni tas-slider."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Din il-pożizzjoni mhijiex fuq is-slider."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Din l-għażla mhijiex disponibbli."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Dan irid ikun mixgħul jew mitfi."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Daħħal mogħdija ta’ folder."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Il-mogħdija fiha karattru li mhuwiex permess."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Daħħal mogħdija assoluta (tibda bi / jew ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Din il-mogħdija hija fajl, mhux folder."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Il-valur ma ġiex aċċettat, qed jinżamm il-qadim."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Il-valur ma setax jiġi salvat."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Il-folder ma ġiex aċċettat, qed jinżamm il-qadim."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Il-folder ma setax jiġi salvat."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "L-ebda immaġni biex turi"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Uri l-previżjoni tal-preżentazzjoni tas-slajds. Kwalunkwe input itemmha. "
+"Qatt ma taqfel is-sessjoni."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "folder tal-immaġnijiet (din it-tmexxija biss)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "sekondi għal kull immaġni (din it-tmexxija biss)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "ordni tal-immaġnijiet"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "adatta jew imla l-monitor"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "scrolla bil-mod l-immaġnijiet vertikali (modalità Imla)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "L-intervall irid ikun bejn %d u %d sekondi."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"L-iskema tal-issettjar mhijiex installata. Ikkompilaha u indika lil "
+"GSettings lejha:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Previżjoni ta’ Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Ibda l-preżentazzjoni tas-slajds meta s-sessjoni tkun inattiva, aqfel is-"
+"sessjoni fl-ewwel input wara l-perjodu ta’ grazzja u aqfel qabel ma l-magna "
+"tissospendi."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "sekondi ta’ inattività qabel il-preżentazzjoni tas-slajds"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "l-ebda qfil għal input f’dan l-għadd ta’ sekondi"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Il-limitu tal-ħin ta’ inattività irid ikun bejn 1 u 86400 sekonda."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Il-perjodu ta’ grazzja jrid ikun bejn 0 u 86400 sekonda."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"L-iskema tal-issettjar mhijiex installata. Ikkompilaha u indika lil "
+"GSettings lejha:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr ""
+"Issettja l-preżentazzjoni tas-slajds fl-inattività u l-qfil tas-sessjoni"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr ""
+"Screensaver tal-preżentazzjoni tas-slajds fl-inattività li jaqfel fuq input"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock tibda preżentazzjoni tas-slajds tal-immaġnijiet fuq skrin "
+"sħiħ fuq kull skrin meta s-sessjoni tkun ilha inattiva għal ħin issettjat."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"L-ewwel agħfsa ta’ tast, klikk jew moviment tal-maws itemm il-preżentazzjoni "
+"tas-slajds. Jekk il-preżentazzjoni tkun ilha turi għall-inqas il-perjodu ta’ "
+"grazzja, is-sessjoni tiġi wkoll maqfula."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"L-immaġnijiet jiġu minn folder li tagħżel. Tieqa tal-issettjar tistabbilixxi "
+"l-folder, il-ħin ta’ inattività, il-perjodu ta’ grazzja, kemm turi kull "
+"immaġni, l-ordni u l-iskalar."

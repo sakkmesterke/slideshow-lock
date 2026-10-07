@@ -1,0 +1,406 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"PO-Revision-Date: 2026-10-06 20:55+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Lithuanian\n"
+"Language: lt\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"(n%100<10 || n%100>=20) ? 1 : 2;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Paleisti skaidrių rodymo tarnybą ir atverti nustatymų langą."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "prisijungiant: paleisti tarnybą, langą atverti tik pirmą kartą"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "registruoti kiekvieną žingsnį"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Atsitiktinė"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Pagal failo pavadinimą"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Užpildyti ekraną (apkarpo paveikslėlį)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Pritaikyti (rodo visą paveikslėlį)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "„Slideshow Lock“ nustatymai"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Naršyti…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Paveikslėliai"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Paveikslėlių aplankas"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Paveikslėlių tvarka"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Mastelio keitimas"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Slinkti aukštus paveikslėlius"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Stačiai orientuoti paveikslėliai gulsčiame ekrane lėtai juda iš viršaus į "
+"apačią (tik su parinktimi „Užpildyti“). Pagal numatytuosius nustatymus "
+"išjungta: naudoja daugiau akumuliatoriaus energijos."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Paleisti skaidrių rodymą"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Neaktyvumo laikas"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Kiek laiko be įvesties, kol prasidės skaidrių rodymas."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundės"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Trukmė"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Rodyti kiekvieną paveikslėlį"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Užrakinimo atidėjimo laikas"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Įvestis, atsiradusi anksčiau nei per šį laiką po skaidrių rodymo pradžios, "
+"neužrakina seanso (griežtai anksčiau; 0 reiškia, kad kiekviena įvestis "
+"užrakina)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Peržiūra"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 val."
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 val."
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Pasirinkite paveikslėlių aplanką"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Pasirinkti"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Atšaukti"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Nepavyko paleisti peržiūros, žr. žurnalą."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Nėra monitoriaus, kuriame būtų galima rodyti peržiūrą."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Vyksta peržiūra: paspauskite bet kurį klavišą arba pajudinkite pelę, kad ją "
+"baigtumėte."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Pakeisti skaidrių rodymo nustatymus."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Nustatymų schema neįdiegta. Sukompiliuokite ją ir nukreipkite GSettings į "
+"ją:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Išsaugota."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "ilgiausias"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d val."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "Naudojamas: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "Naudojamas: %s (aplanko dar nėra, nieko nebus rodoma)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Tai ne slankiklio žingsnis: rodomas artimiausias. Išsaugota reikšmė išlieka, "
+"kol nepajudinsite slankiklio."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Įveskite sveikąjį sekundžių skaičių."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Reikšmė turi būti nuo %(low)d iki %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Įveskite sveikąjį skaičių slankiklio padėčiai."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Šios padėties slankiklyje nėra."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Šis pasirinkimas nepasiekiamas."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Tai turi būti įjungta arba išjungta."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Įveskite aplanko kelią."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Kelyje yra neleidžiamas simbolis."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Įveskite absoliutųjį kelią (jis prasideda / arba ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Šis kelias yra failas, o ne aplankas."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Reikšmė nepriimta, paliekama sena."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Nepavyko išsaugoti reikšmės."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Aplankas nepriimtas, paliekamas senas."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Nepavyko išsaugoti aplanko."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Nėra paveikslėlių, kuriuos būtų galima rodyti"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Rodyti skaidrių rodymo peržiūrą. Bet kokia įvestis ją baigia. Ji niekada "
+"neužrakina seanso."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "paveikslėlių aplankas (tik šis paleidimas)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "sekundės vienam paveikslėliui (tik šis paleidimas)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "paveikslėlių tvarka"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "pritaikyti arba užpildyti monitorių"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "lėtai slinkti stačiai orientuotus paveikslėlius (užpildymo režimas)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Intervalas turi būti nuo %d iki %d sekundžių."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Nustatymų schema neįdiegta. Sukompiliuokite ją ir nukreipkite GSettings į "
+"ją:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "„Slideshow Lock“ peržiūra"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Paleisti skaidrių rodymą, kai seansas neaktyvus, užrakinti jį pirmą kartą "
+"įvedus po atidėjimo laiko ir užrakinti prieš kompiuteriui pereinant į miego "
+"režimą."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "neaktyvumo sekundės prieš skaidrių rodymą"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "neužrakinti, jei įvestis per tiek sekundžių"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Neaktyvumo skirtasis laikas turi būti nuo 1 iki 86400 sekundžių."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Atidėjimo laikas turi būti nuo 0 iki 86400 sekundžių."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Nustatymų schema neįdiegta. Sukompiliuokite ją ir nukreipkite GSettings į "
+"ją:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Nustatyti skaidrių rodymą esant neaktyvumui ir seanso užraktą"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr ""
+"Ekrano užsklanda su skaidrių rodymu esant neaktyvumui, kuri užrakina įvedus"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"„Slideshow Lock“ paleidžia viso ekrano paveikslėlių skaidrių rodymą "
+"kiekviename ekrane, kai seansas tam tikrą laiką buvo neaktyvus."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Pirmas klavišo paspaudimas, spustelėjimas arba pelės pajudinimas baigia "
+"skaidrių rodymą. Jei skaidrių rodymas buvo rodomas bent atidėjimo laiką, "
+"seansas taip pat užrakinamas."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Paveikslėliai imami iš jūsų pasirinkto aplanko. Nustatymų langas nustato "
+"aplanką, neaktyvumo laiką, atidėjimo laiką, kiek laiko rodomas kiekvienas "
+"paveikslėlis, tvarką ir mastelio keitimą."

@@ -1,0 +1,355 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"PO-Revision-Date: 2026-10-06 21:00+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Chinese (traditional)\n"
+"Language: zh_TW\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "啟動投影片放映服務並開啟設定視窗。"
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "登入時：啟動服務，僅在第一次開啟視窗"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "隨機"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "依檔案名稱"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "填滿螢幕（裁切圖片）"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "符合螢幕（顯示完整圖片）"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Slideshow Lock 設定"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "瀏覽…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "圖片"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "圖片資料夾"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "圖片順序"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "縮放"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "捲動較高的圖片"
+
+#: slideshow_lock/preferences.py
+msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
+msgstr "在橫向螢幕上，直式圖片會由上而下緩慢移動（僅限「填滿」模式）。預設為關閉：會消耗較多電力。"
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "啟動投影片放映"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "閒置時間"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "在投影片放映開始之前，多久沒有任何輸入。"
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "秒"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "時間設定"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "每張圖片顯示時間"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "鎖定寬限期"
+
+#: slideshow_lock/preferences.py
+msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
+msgstr "投影片放映開始後，早於此時間的輸入不會鎖定工作階段（嚴格早於；0 表示任何輸入都會鎖定）。"
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "預覽"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 秒"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 分鐘"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 小時"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 小時"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "選擇圖片資料夾"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "選擇"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "取消"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "無法啟動預覽，請查看記錄檔。"
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "沒有可顯示預覽的顯示器。"
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr "預覽執行中：按下任意鍵或移動滑鼠即可結束。"
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "變更投影片放映設定。"
+
+#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
+#: slideshow_lock/service.py
+msgid "log every step"
+msgstr "記錄每個步驟"
+
+#: slideshow_lock/preferences.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr "未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "已儲存。"
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "最長"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d 秒"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d 分鐘"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d 小時"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "使用中：%s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "使用中：%s（此資料夾尚不存在，不會顯示任何內容）"
+
+#: slideshow_lock/preferences_model.py
+msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
+msgstr "不是滑桿的刻度：顯示的是最接近的刻度。已儲存的值會保留，直到您移動滑桿。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "請輸入整數秒數。"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "數值必須介於 %(low)d 與 %(high)d 之間。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "請輸入滑桿位置的整數。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "此位置不在滑桿上。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "無法使用此選項。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "必須為開或關。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "請輸入資料夾路徑。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "路徑包含不允許的字元。"
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "請輸入絕對路徑（以 / 或 ~ 開頭）。"
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "此路徑是檔案，不是資料夾。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "未接受此數值，保留原值。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "無法儲存此數值。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "未接受此資料夾，保留原資料夾。"
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "無法儲存此資料夾。"
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "沒有可顯示的圖片"
+
+#: slideshow_lock/preview_app.py
+msgid "Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr "顯示投影片放映預覽。任何輸入都會結束預覽。它絕不會鎖定工作階段。"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "圖片資料夾（僅限此次執行）"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "每張圖片的秒數（僅限此次執行）"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "圖片順序"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "符合或填滿顯示器"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "緩慢捲動直式圖片（填滿模式）"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "間隔必須介於 %d 與 %d 秒之間。"
+
+#: slideshow_lock/preview_app.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr "未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Slideshow Lock 預覽"
+
+#: slideshow_lock/service.py
+msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
+msgstr "工作階段閒置時開始投影片放映，在寬限期之後的第一次輸入時鎖定工作階段，並在電腦進入暫停狀態前鎖定。"
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "投影片放映前的閒置秒數"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "在此秒數內的輸入不會鎖定"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "閒置逾時必須介於 1 與 86400 秒之間。"
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "寬限期必須介於 0 與 86400 秒之間。"
+
+#: slideshow_lock/service.py
+msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr "未安裝設定結構描述。請編譯它並讓 GSettings 指向它：\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "設定閒置投影片放映與工作階段鎖定"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr "在有輸入時鎖定的閒置投影片放映螢幕保護程式"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
+msgstr "當工作階段閒置達設定時間後，Slideshow Lock 會在每個顯示器上啟動全螢幕圖片投影片放映。"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
+msgstr "第一次按鍵、點擊或移動滑鼠會結束投影片放映。若投影片放映已顯示至少一個寬限期，也會同時鎖定工作階段。"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
+msgstr "圖片來自您選擇的資料夾。設定視窗可設定資料夾、閒置時間、寬限期、每張圖片的顯示時間、順序與縮放。"

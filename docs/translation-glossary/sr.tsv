@@ -1,0 +1,11 @@
+# Slideshow Lock translation glossary, sr. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	приказ слајдова|приказа слајдова|приказом слајдова|приказу слајдова	\bslideshow\b
+lock	закључава|закључај	\block(s|ed|ing)?\b
+preview	преглед	\bpreview\b
+settings	подешавањ	\bsettings?\b
+idle	мировањ	\bidle\b
+folder	фасцикл	\bfolders?\b
+picture	слик|слици	\bpictures?\b
+fullscreen	цео екран|целог екрана|преко целог	\bfull-?screen\b
+monitor	монитор	\bmonitors?\b

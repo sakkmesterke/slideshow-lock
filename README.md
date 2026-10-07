@@ -24,6 +24,10 @@ X-GNOME-Autostart-enabled=false
 
 `systemctl --user disable --now slideshow-lock` alone does not do this: the autostart entry starts the service again at the next login (and every time `slideshowlock` is run). `systemctl --user enable slideshow-lock` is not needed.
 
+## Translations
+
+The interface is available in 40 languages besides English. The 35 languages added in 1.0.1 were translated with AI assistance and have not been reviewed by a native speaker (the header of each catalog says so). Corrections are welcome: open an issue, or a pull request on `po/<lang>.po`; see `docs/translations.md`.
+
 ## Commands
 
 `slideshowlock` starts the service and opens the settings window (the same as `slideshow-lock control`). `slideshow-lock` starts the programs one by one: `slideshow-lock service`, `slideshow-lock settings` (the window alone), `slideshow-lock preview`; `slideshow-lock --help` lists them.

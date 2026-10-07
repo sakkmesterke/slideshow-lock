@@ -1,0 +1,410 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"PO-Revision-Date: 2026-10-06 20:55+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Romanian\n"
+"Language: ro\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
+"20)) ? 1 : 2;\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Pornește serviciul de prezentare și deschide fereastra de setări."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "la autentificare: pornește serviciul, deschide fereastra doar prima dată"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "înregistrează fiecare pas"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Aleatoriu"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "După numele fișierului"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Umple ecranul (decupează imaginea)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Potrivește (arată imaginea întreagă)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Setări Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Răsfoiește…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Imagini"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Dosarul cu imagini"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Ordinea imaginilor"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Scalare"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Derulează imaginile înalte"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Imaginile în format portret pe un ecran în format peisaj se mișcă lent de "
+"sus în jos (doar cu Umple). Dezactivat implicit: consumă mai multă baterie."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Pornește prezentarea de diapozitive"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Timp de inactivitate"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Cât timp fără intrare înainte de pornirea prezentării de diapozitive."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "secunde"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Temporizare"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Afișează fiecare imagine timp de"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Perioadă de grație pentru blocare"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"O intrare mai devreme decât acest timp după pornirea prezentării nu "
+"blochează sesiunea (strict mai devreme; 0 înseamnă că orice intrare "
+"blochează)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Previzualizare"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 h"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Alege dosarul cu imagini"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Alege"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Anulează"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Previzualizarea nu a putut fi pornită, vezi jurnalul."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Nu există niciun monitor pe care să fie afișată previzualizarea."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Previzualizare în curs: apasă orice tastă sau mișcă mouse-ul pentru a o "
+"încheia."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Schimbă setările prezentării de diapozitive."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Schema de setări nu este instalată. Compilează-o și indică GSettings către "
+"ea:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Salvat."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "cel mai lung"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d h"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "În uz: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "În uz: %s (dosarul nu există încă, nu va fi afișat nimic)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Nu este un pas al glisorului: este afișat cel mai apropiat. Valoarea salvată "
+"rămâne până când muți glisorul."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Introdu un număr întreg de secunde."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Valoarea trebuie să fie între %(low)d și %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Introdu un număr întreg pentru poziția glisorului."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Această poziție nu se află pe glisor."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Această alegere nu este disponibilă."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Aceasta trebuie să fie activată sau dezactivată."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Introdu o cale de dosar."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Calea conține un caracter care nu este permis."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Introdu o cale absolută (începe cu / sau ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Această cale este un fișier, nu un dosar."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Valoarea nu a fost acceptată, cea veche este păstrată."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Valoarea nu a putut fi salvată."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Dosarul nu a fost acceptat, cel vechi este păstrat."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Dosarul nu a putut fi salvat."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Nicio imagine de afișat"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Arată previzualizarea prezentării de diapozitive. Orice intrare o încheie. "
+"Nu blochează niciodată sesiunea."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "dosarul cu imagini (doar pentru această rulare)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "secunde pentru fiecare imagine (doar pentru această rulare)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "ordinea imaginilor"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "potrivește sau umple monitorul"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "derulează lent imaginile în format portret (modul de umplere)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Intervalul trebuie să fie între %d și %d secunde."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Schema de setări nu este instalată. Compilează-o și indică GSettings către "
+"ea:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Previzualizare Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Pornește prezentarea de diapozitive când sesiunea este inactivă, blochează "
+"sesiunea la prima intrare după perioada de grație și blochează înainte ca "
+"aparatul să intre în repaus."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "secunde de inactivitate înainte de prezentare"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "nicio blocare pentru intrare în acest număr de secunde"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr ""
+"Timpul de expirare pentru inactivitate trebuie să fie între 1 și 86400 de "
+"secunde."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Perioada de grație trebuie să fie între 0 și 86400 de secunde."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Schema de setări nu este instalată. Compilează-o și indică GSettings către "
+"ea:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.sakkmesterke.SlideshowLock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr ""
+"Configurează prezentarea de diapozitive la inactivitate și blocarea sesiunii"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr ""
+"Economizor de ecran cu prezentare de diapozitive la inactivitate, care "
+"blochează la intrare"
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock pornește o prezentare de diapozitive cu imagini pe ecran "
+"complet, pe fiecare ecran, când sesiunea a fost inactivă o perioadă "
+"stabilită."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Prima apăsare de tastă, clic sau mișcare a mouse-ului încheie prezentarea de "
+"diapozitive. Dacă prezentarea a fost afișată cel puțin perioada de grație, "
+"sesiunea este blocată și ea."
+
+#: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Imaginile provin dintr-un dosar pe care îl alegi. O fereastră de setări "
+"stabilește dosarul, timpul de inactivitate, perioada de grație, cât timp "
+"este afișată fiecare imagine, ordinea și scalarea."
