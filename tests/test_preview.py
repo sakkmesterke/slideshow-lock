@@ -36,6 +36,7 @@ from slideshow_lock.settings import (
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
     KEY_TRANSITION_ORDER,
     KEY_TRANSITIONS,
 )
@@ -202,13 +203,16 @@ class FakeScaler:
 
 
 class FakeSettings:
-    def __init__(self, interval=10, scaling="fill", pan=False, transitions=(), order="random"):
+    def __init__(
+        self, interval=10, scaling="fill", pan=False, transitions=(), order="random", duration=1.0
+    ):
         self.values = {
             KEY_SLIDE_INTERVAL_SECONDS: interval,
             KEY_SCALING: scaling,
             KEY_PAN_PORTRAIT_IMAGES: pan,
             KEY_TRANSITIONS: list(transitions),  # none: the tests of the cut are the older ones
             KEY_TRANSITION_ORDER: order,
+            KEY_TRANSITION_DURATION: duration,
         }
         self._callbacks = []
 
@@ -226,6 +230,9 @@ class FakeSettings:
 
     def get_transition_order(self):
         return self.values[KEY_TRANSITION_ORDER]
+
+    def get_transition_duration(self):
+        return self.values[KEY_TRANSITION_DURATION]
 
     def connect_changed(self, callback):
         self._callbacks.append(callback)
@@ -1108,6 +1115,7 @@ ALLOWED_CALLS = {
     ("settings", "get_slide_interval_seconds"),
     ("settings", "get_transitions"),
     ("settings", "get_transition_order"),
+    ("settings", "get_transition_duration"),
     ("settings", "connect_changed"),
     ("window", "device_size"),
     ("window", "show_frame"),
@@ -1717,12 +1725,12 @@ def test_ac8_no_monitor_means_no_preview_and_a_warning(tmp_path, backends, caplo
 
 
 def transition_rig(
-    tmp_path, backends, chosen=("crossfade",), interval=10, order="random", **kwargs
+    tmp_path, backends, chosen=("crossfade",), interval=10, order="random", duration=1.0, **kwargs
 ):
     kwargs.setdefault("windows", 2)
     kwargs.setdefault("files", ("a.png", "b.png", "c.png"))
     files = kwargs.pop("files")
-    settings = FakeSettings(interval=interval, transitions=chosen, order=order)
+    settings = FakeSettings(interval=interval, transitions=chosen, order=order, duration=duration)
     return rig(tmp_path, backends, files, settings=settings, **kwargs)
 
 
@@ -1740,21 +1748,36 @@ def test_the_next_picture_comes_in_with_the_chosen_transition_on_every_monitor(t
         assert window.transitions == [None, ("crossfade", 1.0), ("crossfade", 1.0)]
 
 
-def test_each_transition_has_its_own_length(tmp_path, backends):
-    r = transition_rig(tmp_path, backends, chosen=("fade-black",))
-    r.tick(10)
-    assert r.windows[0].transitions[-1] == ("fade-black", 1.2)
+def test_every_transition_has_the_one_stored_length(tmp_path, backends):
+    for name in ("crossfade", "fade-black", "wipe"):
+        r = transition_rig(tmp_path, backends, chosen=(name,), duration=2.5)
+        r.tick(10)
+        assert r.windows[0].transitions[-1] == (name, 2.5)
 
 
-def test_a_short_interval_cuts_the_transition_to_a_quarter_of_it(tmp_path, backends):
-    r = transition_rig(tmp_path, backends, interval=2)
-    r.tick(2)
+def test_a_short_interval_cuts_the_transition_to_half_of_it(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, interval=1)
+    r.tick(1)
     assert r.windows[0].transitions[-1] == ("crossfade", 0.5)
 
 
+def test_a_duration_longer_than_half_the_interval_is_cut_to_half_of_it(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, interval=6, duration=5.0)
+    r.tick(6)
+    assert r.windows[0].transitions[-1] == ("crossfade", 3.0)
+
+
+def test_a_duration_changed_while_it_shows_applies_to_the_next_change(tmp_path, backends):
+    r = transition_rig(tmp_path, backends)
+    r.tick(10)
+    r.settings.set(KEY_TRANSITION_DURATION, 0.4)
+    r.tick(10)
+    assert [t[1] for t in r.windows[0].transitions[1:]] == [1.0, 0.4]
+
+
 def test_an_interval_too_short_for_a_transition_is_a_cut(tmp_path, backends):
-    r = transition_rig(tmp_path, backends, interval=0.5)
-    r.tick(0.5)
+    r = transition_rig(tmp_path, backends, interval=0.3)  # half of it is under 0.2 s
+    r.tick(0.3)
     assert r.windows[0].shown() == ["a.png", "b.png"]
     assert r.windows[0].transitions == [None, None]
 
@@ -1769,7 +1792,7 @@ def test_no_chosen_transition_is_a_cut(tmp_path, backends, chosen):
 def test_a_name_that_is_not_a_transition_is_passed_over_for_one_that_is(tmp_path, backends):
     r = transition_rig(tmp_path, backends, chosen=("sparkle", "fade-black"))
     r.tick(10)
-    assert r.windows[0].transitions[-1] == ("fade-black", 1.2)
+    assert r.windows[0].transitions[-1] == ("fade-black", 1.0)
 
 
 def test_a_single_picture_shown_again_is_not_a_change_and_has_no_transition(tmp_path, backends):
@@ -1827,7 +1850,7 @@ def test_a_change_of_the_setting_applies_to_the_next_change_of_picture(tmp_path,
     r.tick(10)
     r.settings.set(KEY_TRANSITIONS, [])  # no transition: the cut
     r.tick(10)
-    assert r.windows[0].transitions == [None, ("crossfade", 1.0), ("fade-black", 1.2), None]
+    assert r.windows[0].transitions == [None, ("crossfade", 1.0), ("fade-black", 1.0), None]
 
 
 def test_a_window_with_nothing_on_screen_yet_shows_the_picture_without_a_transition(

@@ -138,18 +138,21 @@ transitions (section 2, "Transitions").
 - **Transitions** (`transitions`, default the cross-fade; `slideshow_lock/transitions.py` names
   and times them, `slideshow_lock/transition_draw.py` says what each looks like and which comes
   next): when the interval ends, the next picture comes in with a transition instead of a cut. Ten
-  are drawn, each over black, the new picture over the old one: `crossfade` (1.0 s), `fade-black`
-  (the old picture to black, black to the new one, 1.2 s), `slide-in` (the new picture slides in
-  from the right over the still old one, 0.8 s), `push` (the new picture pushes the old one out to
-  the left, 0.8 s), `ken-burns` (a 0.8 s cross-fade, then the new picture grows by 8 % and drifts
+  are drawn, each over black, the new picture over the old one: `crossfade`, `fade-black`
+  (the old picture to black, black to the new one), `slide-in` (the new picture slides in
+  from the right over the still old one), `push` (the new picture pushes the old one out to
+  the left), `ken-burns` (a cross-fade, then the new picture grows by 8 % and drifts
   left by 2 % of the window width for as long as it is shown), `zoom` (the old picture grows by 15 %
-  and fades while the new one comes in from 85 %, 1.0 s), `wipe` (the new picture is uncovered from
-  the left, 0.8 s), `circle` (from the centre in a growing circle that ends past the corners, 1.0 s),
-  `blur` (the old picture blurs, at the middle the new one takes over and sharpens, 1.2 s) and
+  and fades while the new one comes in from 85 %), `wipe` (the new picture is uncovered from
+  the left), `circle` (from the centre in a growing circle that ends past the corners),
+  `blur` (the old picture blurs, at the middle the new one takes over and sharpens) and
   `rotate` (the new picture turns in from -12 degrees, enlarged by 25 %, while it fades in over
-  the old one, 1.0 s). Progress is eased (smoothstep). An empty list, or a list with no valid name,
-  is the cut. A transition never takes more than a quarter of the interval (a 2 s interval
-  cross-fades for 0.5 s) and under 0.2 s it is a cut. **No transition** for: the first picture, a
+  the old one). Progress is eased (smoothstep). An empty list, or a list with no valid name,
+  is the cut. One setting, `transition-duration` (0.2 to 5.0 s, default 1.0 s), is the length of
+  every transition. A transition never takes more than half of the interval (a 1 s interval
+  cross-fades for 0.5 s; the default 10 s interval leaves the whole 1.0 s) and under 0.2 s it is a
+  cut. The stored value is not changed by that cut: the settings window shows the stored one.
+  **No transition** for: the first picture, a
   redo after a settings or window size change, the same picture shown again (a folder of one), and
   when the desktop's animations are off (`gtk-enable-animations`, asked for every change of picture
   like the pan; whether the GNOME setting reaches it was not measured). A window that had no
@@ -506,8 +509,9 @@ RHEL 10.2 versions**; MEAS-1's stack is GTK 4.16 and gdk-pixbuf 2.42.12.
   frames of a prepared picture that is deleted are not shown under its follower's name (the
   reset in the source-changed handler; the two resets of the prepared frames in `_prefetch` and
   `_swap` cover each other, so each alone can be taken out unseen, both together cannot).
-- Transitions: `tests/test_transitions.py` (no GTK: the ten names, the lengths, the
-  quarter-of-the-interval cap), `tests/test_transition_draw.py` (no GTK: for each of the ten what is
+- Transitions: `tests/test_transitions.py` (no GTK: the ten names, the one length, the
+  half-of-the-interval cap and the range of the duration), `tests/test_transition_draw.py` (no GTK:
+  for each of the ten what is
   painted at progress 0 and 1, that the new picture only comes in, ranges, the first frame, which
   transition is really drawn, the clock of a run and its end by time, and the choice: random never
   twice in a row, sequence order, one name, none, unknown names), the rules of when a picture comes

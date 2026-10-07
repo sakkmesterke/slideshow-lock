@@ -37,7 +37,7 @@ gi.require_version("GLib", "2.0")
 from gi.repository import Gio, GLib  # noqa: E402
 
 from slideshow_lock import APP_ID  # noqa: E402
-from slideshow_lock.transitions import clean, is_valid  # noqa: E402
+from slideshow_lock.transitions import clamp_duration, clean, is_valid  # noqa: E402
 
 _LOG = logging.getLogger(__name__)
 
@@ -51,6 +51,7 @@ KEY_PAN_PORTRAIT_IMAGES = "pan-portrait-images"
 KEY_FIRST_RUN_DONE = "first-run-done"
 KEY_TRANSITIONS = "transitions"
 KEY_TRANSITION_ORDER = "transition-order"
+KEY_TRANSITION_DURATION = "transition-duration"
 
 
 def default_picture_folder() -> str:
@@ -187,6 +188,29 @@ class Settings:
 
     def set_transition_order(self, value: str) -> bool:
         return self._set_string(KEY_TRANSITION_ORDER, value)
+
+    def get_transition_duration(self) -> float:
+        """Seconds a transition takes, from 0.2 to 5.0. A stored value outside the range (or not a
+        number) is brought into it and logged once, like an unknown transition name."""
+        return clamp_duration(self._settings.get_double(KEY_TRANSITION_DURATION))
+
+    def set_transition_duration(self, value: float) -> bool:
+        # A bool is a number to Python but not a duration, and GSettings accepts NaN into a range
+        # (measured), so the number is checked here; the schema's range does the rest.
+        ok = (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and value == value
+            and self._settings.set_double(KEY_TRANSITION_DURATION, float(value))
+        )
+        if not ok:
+            _LOG.warning(
+                "[config] invalid value '%s' for key '%s' rejected, keeping '%s'",
+                value,
+                KEY_TRANSITION_DURATION,
+                self.get_transition_duration(),
+            )
+        return ok
 
     # -- picture-folder (acceptance criterion 4 / D25 / brief 3.7) ----------
 
