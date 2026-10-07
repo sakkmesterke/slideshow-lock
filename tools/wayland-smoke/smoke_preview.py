@@ -116,6 +116,13 @@ def check_transitions(args, shown, per_picture) -> None:
         len(later) > 0 and len(names) == len(later) and set(names) <= allowed,
         str(names[:6]),
     )
+    expected = min(args.duration, 0.5 * args.interval)
+    check(
+        f"transition {args.transition}: every one runs for min(duration, half the interval) "
+        f"= {expected} s",
+        all(t[1] == expected for t in later if t),
+        str([t[1] for t in later if t][:6]),
+    )
     if args.transition == "random":
         check(
             "transition random: never the same one twice in a row",
@@ -288,6 +295,12 @@ def main() -> int:
     parser.add_argument("--pan", action="store_true")
     parser.add_argument("--interval", type=int, default=2)
     parser.add_argument(
+        "--duration",
+        type=float,
+        default=1.0,
+        help="the transition-duration setting (seconds); the run is cut to half of the interval",
+    )
+    parser.add_argument(
         "--transition",
         choices=("none", "random", *ALL_TRANSITIONS),
         help="the stored transition: a name, random (the eight, never twice in a row) or none",
@@ -311,6 +324,7 @@ def main() -> int:
             [
                 settings.set_picture_folder(folder),
                 settings.set_slide_interval_seconds(args.interval),
+                settings.set_transition_duration(args.duration),
                 settings.set_order("name"),
                 settings.set_scaling(args.scaling),
                 settings.set_pan_portrait_images(args.pan),
