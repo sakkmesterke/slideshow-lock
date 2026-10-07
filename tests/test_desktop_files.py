@@ -94,8 +94,8 @@ def metainfo_problems(text: str) -> list[str]:
     launchable = root.find("launchable[@type='desktop-id']")
     if launchable is None or launchable.text != f"{APP_ID}.desktop":
         problems.append("launchable is not the desktop file")
-    if root.findtext("project_license") != "GPL-3.0-or-later":
-        problems.append("project_license is not GPL-3.0-or-later")
+    if root.findtext("project_license") != "GPL-3.0-or-later AND CC-BY-SA-4.0":
+        problems.append("project_license is not the code and the pictures licence")
     if [binary.text for binary in root.findall("provides/binary")] != [COMMAND, SHORT_COMMAND]:
         problems.append("provides is not the two commands")
     for release in root.iterfind("releases/release"):
