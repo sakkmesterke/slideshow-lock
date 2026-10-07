@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Latvian\n"
@@ -24,7 +24,8 @@ msgstr "Palaist slaidrādes pakalpojumu un atvērt iestatījumu logu."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "pieteikšanās brīdī: palaist pakalpojumu, logu atvērt tikai pirmajā reizē"
+msgstr ""
+"pieteikšanās brīdī: palaist pakalpojumu, logu atvērt tikai pirmajā reizē"
 
 #: slideshow_lock/control.py slideshow_lock/preferences.py
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
@@ -48,20 +49,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Pielāgot (rāda visu attēlu)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Nav (mainīt uzreiz)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Plūstoša pāreja"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Pāreja caur melnu"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Iebīdīšana"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Izstumšana"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Tuvināšana"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Noslaucīšana"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Apļveida atklāšana"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Izpludināšana"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Pagriešana"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Nejaušs sajaukums"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Slideshow Lock iestatījumi"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Pārlūkot…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Attēli"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Attēlu mape"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Pārlūkot…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -85,8 +130,42 @@ msgstr ""
 "patērē vairāk akumulatora enerģijas."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Sākt slaidrādi"
+msgid "Pictures"
+msgstr "Attēli"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Starp attēliem"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Kā viens attēls pāriet nākamajā. \"Nejaušs sajaukums\" katrā maiņā izvēlas "
+"vienu no astoņiem (neietver Izpludināšanu un Ken Burns). Bez darbvirsmas "
+"animācijām attēli mainās uzreiz."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Pārejas ilgums"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Cik ilgi ilgst viena maiņa, vienādi katrai pārejai. Tā nekad nav ilgāka par "
+"pusi no laika, cik ilgi tiek rādīts attēls."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundes"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Pārejas"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -97,12 +176,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Cik ilgi bez ievades, pirms sākas slaidrāde."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekundes"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Ilgumi"
+msgid "Start the slideshow"
+msgstr "Sākt slaidrādi"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -119,6 +194,14 @@ msgid ""
 msgstr ""
 "Ievade, kas notiek agrāk nekā šajā laikā pēc slaidrādes sākuma, nebloķē "
 "sesiju (stingri agrāk; 0 nozīmē, ka katra ievade bloķē)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Ilgumi"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Saglabāt"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -309,6 +392,10 @@ msgstr "pielāgot vai aizpildīt monitoru"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "lēni ritināt portreta orientācijas attēlus (aizpildīšanas režīms)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "kā viens attēls pāriet nākamajā vai nekā (tikai šajā palaišanā)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

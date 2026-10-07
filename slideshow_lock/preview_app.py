@@ -5,8 +5,8 @@
 
 One fullscreen window per monitor, the pictures of the folder, any key press, mouse
 movement, click or scroll ends it. It never locks the session (D11) and does not touch
-the stored settings: ``--interval``, ``--order``, ``--scaling`` and ``--pan`` only apply
-to this run. Without ``--folder`` and the other options the stored settings are used; the
+the stored settings: ``--interval``, ``--order``, ``--scaling``, ``--pan`` and ``--transition``
+only apply to this run. Without ``--folder`` and the other options the stored settings are used; the
 stored folder, if none was chosen, is the system's pictures folder itself, read
 recursively (``~/Képek`` on a Hungarian system; ``~/Pictures`` if none is configured or it is
 the home directory itself).
@@ -60,7 +60,17 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
+    KEY_TRANSITION_ORDER,
+    KEY_TRANSITIONS,
     Settings,
+)
+from slideshow_lock.transitions import (  # noqa: E402
+    ALL_TRANSITIONS,
+    NONE,
+    ORDER_RANDOM,
+    RANDOM,
+    RANDOM_POOL,
 )
 
 _LOG = logging.getLogger(__name__)
@@ -146,6 +156,15 @@ class SessionSettings:
     def get_pan_portrait_images(self) -> bool:
         return self._get(KEY_PAN_PORTRAIT_IMAGES, self._settings.get_pan_portrait_images)
 
+    def get_transitions(self) -> List[str]:
+        return self._get(KEY_TRANSITIONS, self._settings.get_transitions)
+
+    def get_transition_order(self) -> str:
+        return self._get(KEY_TRANSITION_ORDER, self._settings.get_transition_order)
+
+    def get_transition_duration(self) -> float:
+        return self._get(KEY_TRANSITION_DURATION, self._settings.get_transition_duration)
+
 
 def build_source(settings) -> ImageSource:
     """The image source for a preview: not started, and with the loader probe in place, so a
@@ -215,6 +234,11 @@ def _parse(argv: Optional[List[str]]) -> argparse.Namespace:
     parser.add_argument(
         "--pan", action="store_true", help=_("scroll portrait pictures slowly (fill mode)")
     )
+    parser.add_argument(
+        "--transition",
+        choices=(NONE, RANDOM, *ALL_TRANSITIONS),
+        help=_("how a picture changes into the next, or none (this run only)"),
+    )
     parser.add_argument("--debug", action="store_true", help=_("log every step"))
     return parser.parse_args(argv)
 
@@ -238,6 +262,16 @@ def overrides_from_args(args: argparse.Namespace) -> dict:
         overrides[KEY_SCALING] = args.scaling
     if args.pan:
         overrides[KEY_PAN_PORTRAIT_IMAGES] = True
+    transition = getattr(args, "transition", None)  # the service's command line has no such option
+    if transition == NONE:
+        overrides[KEY_TRANSITIONS] = []
+    elif (
+        transition == RANDOM
+    ):  # the same eight, in the same order, as the settings window's "random"
+        overrides[KEY_TRANSITIONS] = list(RANDOM_POOL)
+        overrides[KEY_TRANSITION_ORDER] = ORDER_RANDOM
+    elif transition is not None:
+        overrides[KEY_TRANSITIONS] = [transition]
     return overrides
 
 

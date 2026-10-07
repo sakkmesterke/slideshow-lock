@@ -15,12 +15,18 @@ from gi.repository import Gio
 from slideshow_lock import APP_ID
 from slideshow_lock.preferences_model import (
     CHOICES,
+    DURATION_MAX_SECONDS,
+    DURATION_MIN_SECONDS,
+    DURATION_STEP_SECONDS,
     INT_RANGES,
     INTERVAL_MAX_SECONDS,
     INTERVAL_MIN_SECONDS,
     INTERVAL_POSITIONS,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
+    RANDOM_POOL,
+    TRANSITION_CHOICES,
+    TRANSITION_ORDER_CHOICES,
     PreferencesModel,
     describe_interval,
     format_hms,
@@ -39,9 +45,13 @@ from slideshow_lock.settings import (
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
+    KEY_TRANSITION_ORDER,
+    KEY_TRANSITIONS,
     Settings,
     default_picture_folder,
 )
+from slideshow_lock.transitions import ALL_TRANSITIONS
 from tests.conftest import _ALL_SETTINGS_KEYS
 
 
@@ -66,15 +76,30 @@ def test_the_ranges_and_choices_are_the_ones_of_the_schema():
         assert (kind, sorted(value)) == ("enum", sorted(values)), key
 
 
+def test_the_transition_order_choices_are_the_ones_of_the_schema():
+    kind, value = _schema_key(KEY_TRANSITION_ORDER).get_range().unpack()
+    assert (kind, sorted(value)) == ("enum", sorted(TRANSITION_ORDER_CHOICES))
+
+
 def test_every_key_of_the_schema_has_a_field(model):
-    bound = set(INT_RANGES) | set(CHOICES) | {KEY_PAN_PORTRAIT_IMAGES, KEY_PICTURE_FOLDER}
+    bound = (
+        set(INT_RANGES)
+        | set(CHOICES)
+        | {
+            KEY_PAN_PORTRAIT_IMAGES,
+            KEY_PICTURE_FOLDER,
+            KEY_TRANSITIONS,
+            KEY_TRANSITION_ORDER,
+            KEY_TRANSITION_DURATION,
+        }
+    )
     assert bound == set(_ALL_SETTINGS_KEYS)
 
 
 def test_the_window_starts_from_the_stored_values(model):
     assert model.get(KEY_IDLE_TIMEOUT_SECONDS) == 120
     assert model.get(KEY_LOCK_GRACE_PERIOD_SECONDS) == 0
-    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 5
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 10
     assert model.get(KEY_ORDER) == "random"
     assert model.get(KEY_SCALING) == "fill"
     assert model.get(KEY_PAN_PORTRAIT_IMAGES) is False  # off unless switched on
@@ -116,6 +141,57 @@ def test_something_that_is_not_a_whole_number_is_refused(model, value):
     before = model.get(KEY_SLIDE_INTERVAL_SECONDS)
     assert not model.set_int(KEY_SLIDE_INTERVAL_SECONDS, value).ok
     assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == before
+
+
+# -- the transition length --------------------------------------------------------------------
+
+
+def test_the_duration_limits_are_the_ones_of_the_schema():
+    kind, value = _schema_key(KEY_TRANSITION_DURATION).get_range().unpack()
+    assert (kind, tuple(value)) == ("range", (DURATION_MIN_SECONDS, DURATION_MAX_SECONDS))
+    assert (DURATION_MIN_SECONDS, DURATION_MAX_SECONDS, DURATION_STEP_SECONDS) == (0.2, 5.0, 0.1)
+    assert _schema_key(KEY_TRANSITION_DURATION).get_default_value().unpack() == 1.0
+
+
+def test_the_duration_limits_themselves_are_saved(model):
+    for value in (DURATION_MIN_SECONDS, DURATION_MAX_SECONDS, 1.0):
+        result = model.set_duration(value)
+        assert result.ok, result
+        assert model.get(KEY_TRANSITION_DURATION) == value
+
+
+def test_a_fresh_window_has_one_second_and_looking_writes_nothing(model):
+    assert model.get(KEY_TRANSITION_DURATION) == 1.0
+
+
+@pytest.mark.parametrize("value", [0.19, 0.0, -1, 5.01, 6, 10**9, float("inf"), float("nan")])
+def test_a_duration_outside_the_range_is_refused_and_the_stored_one_stays(model, value):
+    assert model.set_duration(2.5).ok
+    result = model.set_duration(value)
+    assert not result.ok
+    assert result.message not in ("Saved.", "")
+    assert model.get(KEY_TRANSITION_DURATION) == 2.5
+
+
+@pytest.mark.parametrize("value", ["2", None, True, False, [2.0], b"2"])
+def test_something_that_is_not_a_number_is_no_duration(model, value):
+    assert not model.set_duration(value).ok
+    assert model.get(KEY_TRANSITION_DURATION) == 1.0
+
+
+@pytest.mark.parametrize(
+    ("value", "stored"), [(1.25, 1.2), (0.3000000001, 0.3), (2, 2.0), (4.96, 5.0)]
+)
+def test_a_duration_is_rounded_to_the_step_of_the_slider(model, value, stored):
+    assert model.set_duration(value).ok
+    assert model.get(KEY_TRANSITION_DURATION) == stored
+
+
+def test_a_stored_duration_that_is_not_a_step_is_shown_and_left_alone(model):
+    stub = Settings()
+    stub._settings.set_double(KEY_TRANSITION_DURATION, 1.25)
+    assert PreferencesModel(stub).get(KEY_TRANSITION_DURATION) == 1.25  # looking changes nothing
+    assert Settings().get_transition_duration() == 1.25
 
 
 def test_the_idle_timeout_cannot_be_zero_but_the_grace_period_can(model):
@@ -357,22 +433,22 @@ def test_a_stored_value_that_is_not_a_step_is_shown_at_the_nearest_and_not_chang
     assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 100
 
 
-def test_the_default_interval_is_5_seconds_and_a_step():
-    assert Settings().get_slide_interval_seconds() == 5  # the schema's default
-    assert 5 in INTERVAL_STOPS
+def test_the_default_interval_is_10_seconds_and_a_step():
+    assert Settings().get_slide_interval_seconds() == 10  # the schema's default
+    assert 10 in INTERVAL_STOPS
 
 
-def test_a_fresh_window_shows_the_default_5_seconds_on_the_scale(model):
+def test_a_fresh_window_shows_the_default_10_seconds_on_the_scale(model):
     view = model.interval_view()
-    assert (view.seconds, view.text, view.caption, view.on_scale) == (5, "00:00:05", "5 s", True)
-    assert view.position == INTERVAL_POSITIONS[4] == 280
-    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 5  # looking wrote nothing
+    assert (view.seconds, view.text, view.caption, view.on_scale) == (10, "00:00:10", "10 s", True)
+    assert view.position == INTERVAL_POSITIONS[9] == 630
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 10  # looking wrote nothing
 
 
 def test_a_stored_zero_or_a_full_day_cannot_exist_so_the_slider_never_sees_them(model):
     assert not model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 0).ok
     assert not model.set_int(KEY_SLIDE_INTERVAL_SECONDS, 86400).ok
-    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 5  # the stored default stays
+    assert model.get(KEY_SLIDE_INTERVAL_SECONDS) == 10  # the stored default stays
 
 
 def test_the_slide_interval_in_seconds_takes_one_second_and_a_day_less_one_second_only(model):
@@ -427,6 +503,22 @@ def test_the_chooser_opens_in_the_home_directory_only_when_no_pictures_folder_ex
     assert model.chooser_start_folder() == os.path.expanduser("~")
 
 
+def test_the_chooser_opens_in_the_folder_of_the_field_not_in_the_stored_one(
+    model, tmp_path, monkeypatch
+):
+    """The field holds an edit that is not saved yet: that is where the user is looking."""
+    stored = tmp_path / "stored"
+    typed = tmp_path / "typed"
+    system = tmp_path / "Képek"
+    for folder in (stored, typed, system):
+        folder.mkdir()
+    _with_default(monkeypatch, str(system))
+    model.set_folder(str(stored))
+    assert model.chooser_start_folder(str(typed)) == str(typed)
+    assert model.chooser_start_folder(str(tmp_path / "gone")) == str(system)
+    assert model.chooser_start_folder("") == str(system)  # the field empty: the default folder
+
+
 # -- choices and the pan switch ----------------------------------------------------------------
 
 
@@ -456,6 +548,116 @@ def test_pan_is_saved_on_and_off(model):
 def test_pan_takes_only_a_real_on_or_off(model, value):
     assert not model.set_pan_portrait_images(value).ok
     assert model.get(KEY_PAN_PORTRAIT_IMAGES) is False
+
+
+# -- transitions -----------------------------------------------------------------------------------
+
+
+def test_the_transition_drop_down_offers_none_the_ten_transitions_and_the_random_mix():
+    assert TRANSITION_CHOICES == (
+        "none",
+        "crossfade",
+        "fade-black",
+        "slide-in",
+        "push",
+        "ken-burns",
+        "zoom",
+        "wipe",
+        "circle",
+        "blur",
+        "rotate",
+        "random",
+    )
+
+
+def test_the_random_mix_is_the_eight_without_blur_and_ken_burns():
+    assert RANDOM_POOL == (
+        "crossfade",
+        "fade-black",
+        "slide-in",
+        "push",
+        "zoom",
+        "wipe",
+        "circle",
+        "rotate",
+    )
+
+
+def test_the_window_starts_at_the_stored_transition(model):
+    assert model.transition_choice() == "crossfade"  # the default: the random mix is not
+    assert model.get(KEY_TRANSITIONS) == ["crossfade"]
+    assert model.get(KEY_TRANSITION_ORDER) == "random"  # the default of the order key
+
+
+@pytest.mark.parametrize("value", TRANSITION_CHOICES)
+def test_every_listed_transition_is_saved_and_read_back(model, value):
+    assert model.set_transition(value).ok
+    assert model.transition_choice() == value
+
+
+def test_none_is_saved_as_the_empty_list_and_is_not_the_default_again(model):
+    assert model.set_transition("none").ok
+    assert model.get(KEY_TRANSITIONS) == []
+    assert model.transition_choice() == "none"
+
+
+@pytest.mark.parametrize("value", [t for t in TRANSITION_CHOICES if t not in ("none", "random")])
+def test_a_transition_choice_is_saved_as_a_list_of_one_name(model, value):
+    assert model.set_transition(value).ok
+    assert model.get(KEY_TRANSITIONS) == [value]
+
+
+def test_a_single_transition_leaves_the_order_key_as_it_was(model):
+    assert model.set_transition_order("sequence").ok
+    assert model.set_transition("zoom").ok
+    assert model.get(KEY_TRANSITION_ORDER) == "sequence"
+
+
+def test_the_random_mix_stores_the_pool_and_the_order_random(model):
+    assert model.set_transition_order("sequence").ok
+    assert model.set_transition("random").ok
+    assert model.get(KEY_TRANSITIONS) == list(RANDOM_POOL)
+    assert model.get(KEY_TRANSITION_ORDER) == "random"
+    assert model.transition_choice() == "random"
+
+
+@pytest.mark.parametrize("value", ["Crossfade", "", None, 1, ["crossfade"], "circle-reveal"])
+def test_a_transition_that_is_not_offered_is_refused_and_the_stored_one_stays(model, value):
+    before = model.get(KEY_TRANSITIONS)
+    assert not model.set_transition(value).ok
+    assert model.get(KEY_TRANSITIONS) == before
+
+
+def test_a_stored_list_of_two_or_more_names_shows_as_the_random_mix(model):
+    """Reading never writes: the stored list stays as it is, whatever it holds."""
+    model._settings._settings.set_strv("transitions", ["wipe", "fade-black"])
+    assert model.transition_choice() == "random"
+    assert model.get(KEY_TRANSITIONS) == ["wipe", "fade-black"]
+    model._settings._settings.set_strv("transitions", list(ALL_TRANSITIONS))
+    assert model.transition_choice() == "random"
+
+
+def test_a_stored_list_of_one_name_shows_that_name_also_when_it_cannot_be_drawn_yet(model):
+    model._settings._settings.set_strv("transitions", ["blur"])
+    assert model.transition_choice() == "blur"
+
+
+def test_a_stored_list_with_only_unknown_names_shows_none(model):
+    model._settings._settings.set_strv("transitions", ["no-such-one"])
+    assert model.transition_choice() == "none"
+
+
+@pytest.mark.parametrize("value", TRANSITION_ORDER_CHOICES)
+def test_every_listed_transition_order_is_saved(model, value):
+    assert model.set_transition_order(value).ok
+    assert model.get(KEY_TRANSITION_ORDER) == value
+
+
+@pytest.mark.parametrize("value", ["shuffle", "", "Random", None, 1])
+def test_a_transition_order_that_is_not_listed_is_refused(model, value):
+    before = model.get(KEY_TRANSITION_ORDER)
+    assert not model.set_transition_order(value).ok
+    assert model.get(KEY_TRANSITION_ORDER) == before
 
 
 # -- the picture folder (D25) ---------------------------------------------------------------
@@ -548,7 +750,7 @@ def test_a_setter_that_says_no_is_not_reported_as_saved():
     result = PreferencesModel(stub).set_int(KEY_SLIDE_INTERVAL_SECONDS, 20)
     assert not result.ok
     assert result.message != "Saved."
-    assert stub.get_slide_interval_seconds() == 5
+    assert stub.get_slide_interval_seconds() == 10
 
 
 def test_a_setter_that_says_yes_but_stores_nothing_is_not_reported_as_saved():

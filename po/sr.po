@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 21:00+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Serbian\n"
@@ -10,7 +10,8 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
 #: slideshow_lock/__init__.py
 #: data/io.github.trensoft.slideshowlock.desktop.in
@@ -25,6 +26,11 @@ msgstr "Покрени сервис приказа слајдова и отво�
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
 msgstr "при пријави: покрени сервис, отвори прозор само први пут"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "бележи сваки корак"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -43,20 +49,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Прилагоди (приказује целу слику)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Ништа (промена одмах)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Преливање"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Претапање кроз црно"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Уклизавање"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Потискивање"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Зум"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Брисање"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Кружно откривање"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Замагљивање"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Ротација"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Насумична мешавина"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Подешавања за Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Прегледај…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Слике"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Фасцикла са сликама"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Прегледај…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +121,50 @@ msgid "Scroll tall pictures"
 msgstr "Померај високе слике"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Портретне слике на широком екрану споро се померају од врха ка дну (само уз „Попуни“). Подразумевано је искључено: троши више батерије."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Портретне слике на широком екрану споро се померају од врха ка дну (само уз "
+"„Попуни“). Подразумевано је искључено: троши више батерије."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Покретање приказа слајдова"
+msgid "Pictures"
+msgstr "Слике"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Између слика"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Како се једна слика мења у следећу. „Насумична мешавина“ при свакој промени "
+"бира једну од осам (не бира Замагљивање и Ken Burns). Без анимација радне "
+"површи слике се мењају одмах."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Трајање прелаза"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Колико траје једна промена, исто за сваки прелаз. Никада није дуже од "
+"половине времена током ког се приказује слика."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "секунди"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Прелази"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +175,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Колико дуго без уноса пре почетка приказа слајдова."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "секунди"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Време приказа"
+msgid "Start the slideshow"
+msgstr "Покретање приказа слајдова"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +187,20 @@ msgid "Lock grace period"
 msgstr "Период одлагања закључавања"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Унос раније од овог времена након почетка приказа слајдова не закључава сесију (строго раније; 0 значи да сваки унос закључава)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Унос раније од овог времена након почетка приказа слајдова не закључава "
+"сесију (строго раније; 0 значи да сваки унос закључава)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Време приказа"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Сачувај"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -148,22 +244,22 @@ msgstr "Нема монитора на коме би се приказао пр�
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Преглед је покренут: притисните било који тастер или померите миша да га прекинете."
+msgstr ""
+"Преглед је покренут: притисните било који тастер или померите миша да га "
+"прекинете."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Измените подешавања приказа слајдова."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "бележи сваки корак"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "Шема подешавања није инсталирана. Компајлирајте је и усмерите GSettings на њу:\n"
+msgstr ""
+"Шема подешавања није инсталирана. Компајлирајте је и усмерите GSettings на "
+"њу:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
@@ -201,8 +297,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "У употреби: %s (фасцикла још не постоји, ништа неће бити приказано)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Није корак клизача: приказује се најближи. Сачувана вредност остаје док не померите клизач."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Није корак клизача: приказује се најближи. Сачувана вредност остаје док не "
+"померите клизач."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -266,8 +366,11 @@ msgid "No pictures to show"
 msgstr "Нема слика за приказ"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Прикажи преглед приказа слајдова. Сваки унос га завршава. Никада не закључава сесију."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Прикажи преглед приказа слајдова. Сваки унос га завршава. Никада не "
+"закључава сесију."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -290,15 +393,22 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "споро помери портретне слике (режим попуњавања)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "како се једна слика мења у следећу, или никако (само за ово покретање)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Интервал мора бити између %d и %d секунди."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "Шема подешавања није инсталирана. Компајлирајте је и усмерите GSettings на њу:\n"
+msgstr ""
+"Шема подешавања није инсталирана. Компајлирајте је и усмерите GSettings на "
+"њу:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
@@ -307,8 +417,12 @@ msgid "Slideshow Lock preview"
 msgstr "Преглед за Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Покрени приказ слајдова када је сесија у мировању, закључај је при првом уносу након периода одлагања и закључај је пре него што се рачунар успава."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Покрени приказ слајдова када је сесија у мировању, закључај је при првом "
+"уносу након периода одлагања и закључај је пре него што се рачунар успава."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -327,10 +441,13 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "Период одлагања мора бити између 0 и 86400 секунди."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "Шема подешавања није инсталирана. Компајлирајте је и усмерите GSettings на њу:\n"
+msgstr ""
+"Шема подешавања није инсталирана. Компајлирајте је и усмерите GSettings на "
+"њу:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
@@ -343,13 +460,29 @@ msgid "Idle slideshow screensaver that locks on input"
 msgstr "Чувар екрана са приказом слајдова у мировању који закључава при уносу"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock покреће приказ слајдова са сликама преко целог екрана на сваком монитору када је сесија одређено време у мировању."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock покреће приказ слајдова са сликама преко целог екрана на "
+"сваком монитору када је сесија одређено време у мировању."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "Први притисак тастера, клик или померање миша завршава приказ слајдова. Ако је приказ трајао најмање колико и период одлагања, сесија се такође закључава."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Први притисак тастера, клик или померање миша завршава приказ слајдова. Ако "
+"је приказ трајао најмање колико и период одлагања, сесија се такође "
+"закључава."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Слике долазе из фасцикле коју изаберете. Прозор са подешавањима одређује фасциклу, време мировања, период одлагања, колико дуго се приказује свака слика, редослед и скалирање."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Слике долазе из фасцикле коју изаберете. Прозор са подешавањима одређује "
+"фасциклу, време мировања, период одлагања, колико дуго се приказује свака "
+"слика, редослед и скалирање."

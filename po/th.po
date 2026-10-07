@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Thai\n"
@@ -52,20 +52,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "พอดี (แสดงรูปภาพทั้งภาพ)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "ไม่มี (เปลี่ยนทันที)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "เฟดข้าม"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "เฟดผ่านสีดำ"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "เลื่อนเข้า"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "ผลัก"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "ซูม"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "ปัด"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "เผยเป็นวงกลม"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "เบลอ"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "หมุน"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "สุ่มผสม"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "การตั้งค่า Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "เรียกดู…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "รูปภาพ"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "โฟลเดอร์รูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "เรียกดู…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -88,8 +132,41 @@ msgstr ""
 "ปิดไว้เป็นค่าเริ่มต้น: ใช้แบตเตอรี่มากขึ้น"
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "เริ่มสไลด์โชว์"
+msgid "Pictures"
+msgstr "รูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "ระหว่างรูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"รูปภาพเปลี่ยนไปเป็นรูปถัดไปอย่างไร \"สุ่มผสม\" จะเลือกหนึ่งในแปดแบบทุกครั้งที่เปลี่ยน "
+"(ไม่รวมเบลอและ Ken Burns) หากไม่มีแอนิเมชันเดสก์ท็อป รูปภาพจะเปลี่ยนทันที"
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "ระยะเวลาการเปลี่ยนภาพ"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"ใช้เวลานานแค่ไหนในการเปลี่ยนหนึ่งครั้ง เท่ากันสำหรับทุกการเปลี่ยนภาพ "
+"และจะไม่นานเกินครึ่งหนึ่งของเวลาที่แสดงรูปภาพ"
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "วินาที"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "การเปลี่ยนภาพ"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -100,12 +177,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "ระยะเวลาที่ไม่มีการป้อนข้อมูลก่อนที่สไลด์โชว์จะเริ่ม"
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "วินาที"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "การกำหนดเวลา"
+msgid "Start the slideshow"
+msgstr "เริ่มสไลด์โชว์"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -122,6 +195,14 @@ msgid ""
 msgstr ""
 "การป้อนข้อมูลที่เกิดขึ้นก่อนช่วงเวลานี้หลังสไลด์โชว์เริ่มจะไม่ล็อกเซสชัน (ก่อนอย่างเคร่งครัด; 0 "
 "หมายความว่าการป้อนข้อมูลทุกครั้งจะล็อก)"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "การกำหนดเวลา"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "บันทึก"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -305,6 +386,10 @@ msgstr "ปรับให้พอดีหรือเต็มจอภาพ
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "เลื่อนรูปภาพแนวตั้งช้า ๆ (โหมดเต็มหน้าจอ)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "รูปภาพเปลี่ยนไปเป็นรูปถัดไปอย่างไร หรือไม่มี (เฉพาะการรันครั้งนี้)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

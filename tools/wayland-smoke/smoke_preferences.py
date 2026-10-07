@@ -5,7 +5,8 @@ What it exercises: the real ``PreferencesWindow`` (real GTK widgets on headless 
 ``Settings`` (memory backend), the real GLib main loop, and the real preview started from the
 "Preview" button (one fullscreen window per virtual monitor). Fields are driven by calling the
 widgets' own setters (``set_value``, ``set_selected``, ``set_active``, ``set_text`` + the
-``activate`` signal), which fires the same handlers a user's change fires.
+``entry-activated`` signal), which fires the same handlers a user's change fires. An edit is kept
+in the window's draft and reaches the settings through the Save button (or the close).
 
 What it does not prove: how the window looks (a human judgement on the real monitor: use
 ``--screenshot DIR`` to get a picture of the window as GTK draws it here), real keyboard and
@@ -26,10 +27,11 @@ import tempfile
 
 import gi
 
+gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, GLib, Gtk  # noqa: E402
 from smoke_preview import RESULTS, check, make_pictures  # noqa: E402
 
 from slideshow_lock.preferences import PreferencesWindow  # noqa: E402
@@ -38,6 +40,8 @@ from slideshow_lock.preferences_model import (  # noqa: E402
     INTERVAL_POSITIONS,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
+    RANDOM_POOL,
+    TRANSITION_CHOICES,
     interval_position_for_seconds,
 )
 from slideshow_lock.settings import (  # noqa: E402
@@ -48,6 +52,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
     Settings,
     default_picture_folder,
 )
@@ -127,6 +132,7 @@ def main() -> int:
     args = parser.parse_args()
 
     Gtk.init()
+    Adw.init()
     stored = Settings()  # a second handle on the same store: what the service would read
     folder = tempfile.mkdtemp(prefix="slideshow-smoke-prefs-")
     make_pictures(folder)
@@ -151,14 +157,28 @@ def main() -> int:
             window.order_drop.get_selected(),
             window.scaling_drop.get_selected(),
             window.pan_switch.get_active(),
+            window.duration_scale.get_value(),
         )
-        == (120, 0, interval_position_for_seconds(5), 0, 0, False),
+        == (120, 0, interval_position_for_seconds(10), 0, 0, False, 1.0),
+    )
+    check(
+        "the transition drop-down starts at the cross-fade, the stored default",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("crossfade"),
+        str(window.transition_drop.get_selected()),
     )
     check(
         "the slide interval shows as a big HH:MM:SS and a short text above one slider",
-        window.interval_total.get_label() == "00:00:05"
-        and window.interval_caption.get_label() == "5 s",
+        window.interval_total.get_label() == "00:00:10"
+        and window.interval_caption.get_label() == "10 s",
         f"{window.interval_total.get_label()!r} {window.interval_caption.get_label()!r}",
+    )
+    duration = window.duration_scale.get_adjustment()
+    check(
+        "the transition length is a slider from 0.2 to 5.0 s, a tenth of a second a step",
+        (duration.get_lower(), duration.get_upper(), round(duration.get_step_increment(), 3))
+        == (0.2, 5.0, 0.1)
+        and window.duration_scale.get_digits() == 1,
+        f"{duration.get_lower()}..{duration.get_upper()}",
     )
     check(
         "the slider runs over the whole scale",
@@ -176,58 +196,115 @@ def main() -> int:
         and window.grace_spin.get_adjustment().get_upper() == 86400,
     )
     check(
-        "the folder field is empty and hints at the XDG default (D25)",
-        window.folder_entry.get_text() == ""
-        and window.folder_entry.get_placeholder_text() == default_picture_folder(),
-        window.folder_entry.get_placeholder_text(),
+        "the folder field is empty and the group says the XDG default is in use (D25)",
+        window.folder_row.get_text() == ""
+        and default_picture_folder() in window.pictures_group.get_description(),
+        window.pictures_group.get_description(),
     )
     check(
         "a missing default folder is a note, not an error",
-        "does not exist yet" in window.folder_note.get_label(),
-        window.folder_note.get_label(),
+        "does not exist yet" in window.pictures_group.get_description(),
+        window.pictures_group.get_description(),
     )
+    check("Save is off while there is nothing to save", not window.save_button.get_sensitive())
     if args.screenshot:
         os.makedirs(args.screenshot, exist_ok=True)
         screenshot(window, os.path.join(args.screenshot, "window.png"))
 
-    # -- every field reaches the settings --------------------------------------------------
+    # -- every field is kept in the draft, and Save writes it -----------------------------------
     window.idle_spin.set_value(300)
     window.grace_spin.set_value(5)
     window.interval_scale.set_value(interval_position_for_seconds(20))
-    check(
-        "the two number fields and the slide interval slider are saved",
-        (
+    window.order_drop.set_selected(CHOICES[KEY_ORDER].index("name"))
+    window.scaling_drop.set_selected(CHOICES[KEY_SCALING].index("fit"))
+    window.pan_switch.set_active(True)
+    window.transition_drop.set_selected(TRANSITION_CHOICES.index("fade-black"))
+    window.duration_scale.set_value(2.5)
+    window.folder_row.set_text(folder)
+    window.folder_row.emit("entry-activated")
+
+    def stored_values():
+        return (
             stored.get_idle_timeout_seconds(),
             stored.get_lock_grace_period_seconds(),
             stored.get_slide_interval_seconds(),
+            stored.get_order(),
+            stored.get_scaling(),
+            stored.get_pan_portrait_images(),
+            stored.get_transitions(),
+            stored.get_transition_duration(),
+            stored.get_picture_folder(),
         )
-        == (300, 5, 20),
+
+    check(
+        "the edits are kept: nothing is stored before Save",
+        stored_values()
+        == (120, 0, 10, "random", "fill", False, ["crossfade"], 1.0, default_picture_folder()),
+        str(stored_values()),
     )
+    check("Save is on", window.save_button.get_sensitive())
     check("the HH:MM:SS line follows", window.interval_total.get_label() == "00:00:20")
-    check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
-    window.order_drop.set_selected(CHOICES[KEY_ORDER].index("name"))
-    window.scaling_drop.set_selected(CHOICES[KEY_SCALING].index("fit"))
+    window.save_button.emit("clicked")
     check(
-        "order and scaling are saved", (stored.get_order(), stored.get_scaling()) == ("name", "fit")
+        "Save writes every field",
+        stored_values() == (300, 5, 20, "name", "fit", True, ["fade-black"], 2.5, folder),
+        str(stored_values()),
     )
-    window.pan_switch.set_active(True)
-    check("the pan switch is saved", stored.get_pan_portrait_images() is True)
-    window.folder_entry.set_text(folder)
-    window.folder_entry.emit("activate")
+    check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
+    check("Save is off again", not window.save_button.get_sensitive())
+    window.transition_drop.set_selected(TRANSITION_CHOICES.index("none"))
+    window.save_button.emit("clicked")
     check(
-        "a typed folder is saved and shown as in use",
-        stored.get_picture_folder() == folder
-        and window.folder_note.get_label() == f"In use: {folder}",
-        window.folder_note.get_label(),
+        "none is saved as the empty list, not as the default",
+        stored.get_transitions() == [] and window.status.get_label() == "Saved.",
+        str(stored.get_transitions()),
+    )
+    window.transition_drop.set_selected(TRANSITION_CHOICES.index("random"))
+    check("the random mix is kept, not stored", stored.get_transitions() == [])
+    window.save_button.emit("clicked")
+    check(
+        "the random mix is saved as the eight, with the order random",
+        stored.get_transitions() == list(RANDOM_POOL) and stored.get_transition_order() == "random",
+        str(stored.get_transitions()),
+    )
+    window.transition_drop.set_selected(TRANSITION_CHOICES.index("blur"))
+    window.save_button.emit("clicked")
+    check("any of the ten is saved as a list of its name", stored.get_transitions() == ["blur"])
+    stored.set_transitions(["crossfade"])
+    pump(0.3)
+    check(
+        "a transition set elsewhere shows up in the window",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("crossfade"),
+    )
+    stored._settings.set_strv("transitions", ["wipe"])  # one name: shows as that name
+    pump(0.3)
+    check(
+        "a stored single name shows as that transition and stays stored",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("wipe")
+        and stored._settings.get_strv("transitions") == ["wipe"],
+    )
+    stored._settings.set_strv("transitions", ["wipe", "push"])  # a list written by hand
+    pump(0.3)
+    check(
+        "a stored list of several names shows as the random mix and stays stored",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("random")
+        and stored._settings.get_strv("transitions") == ["wipe", "push"]
+        and not window.save_button.get_sensitive(),
+    )
+    stored.set_transitions(["crossfade"])
+    check(
+        "the saved folder is shown as in use",
+        window.pictures_group.get_description() == f"In use: {folder}",
+        window.pictures_group.get_description(),
     )
 
     # -- what is refused is not saved, and not shown ----------------------------------------
-    window.folder_entry.set_text("relative/dir")
-    window.folder_entry.emit("activate")
+    window.folder_row.set_text("relative/dir")
+    window.folder_row.emit("entry-activated")
     check(
-        "a relative folder is refused: not stored, the field goes back, the status says why",
+        "a relative folder is refused: not kept, the field goes back, the status says why",
         stored.get_picture_folder() == folder
-        and window.folder_entry.get_text() == folder
+        and window.folder_row.get_text() == folder
         and "absolute" in window.status.get_label(),
         window.status.get_label(),
     )
@@ -236,29 +313,37 @@ def main() -> int:
         window.idle_spin.update()
         check(
             f"{text!r} in a number field changes nothing, the old value stays",
-            stored.get_idle_timeout_seconds() == 300 and window.idle_spin.get_value_as_int() == 300,
+            stored.get_idle_timeout_seconds() == 300
+            and window.idle_spin.get_value_as_int() == 300
+            and not window.save_button.get_sensitive(),
             f"stored {stored.get_idle_timeout_seconds()}, field {window.idle_spin.get_text()!r}",
         )
     window.grace_spin.set_text("")  # known corner: an emptied grace field reads as 0, its minimum
     window.grace_spin.update()
     check(
-        "an emptied grace period field shows what is stored (0, its minimum)",
-        stored.get_lock_grace_period_seconds() == window.grace_spin.get_value_as_int() == 0,
-        f"stored {stored.get_lock_grace_period_seconds()}",
+        "an emptied grace period field is kept as 0, its minimum, and shows it",
+        window._draft.value(KEY_LOCK_GRACE_PERIOD_SECONDS)
+        == window.grace_spin.get_value_as_int()
+        == 0
+        and stored.get_lock_grace_period_seconds() == 5,
+        f"kept {window._draft.value(KEY_LOCK_GRACE_PERIOD_SECONDS)}",
     )
     window.grace_spin.set_value(5)
     scale = window.interval_scale
     keys = window._interval_keys
 
+    def kept():
+        return window._draft.interval_view().seconds
+
     def press(key):
         return keys.emit("key-pressed", key, 0, Gdk.ModifierType(0))
 
     def show(*_a):
-        return f"{stored.get_slide_interval_seconds()} {window.interval_total.get_label()}"
+        return f"{kept()} {window.interval_total.get_label()}"
 
     check(
         "the slider on a step: stored seconds, big text and caption agree",
-        stored.get_slide_interval_seconds() == 20
+        kept() == 20
         and window.interval_total.get_label() == "00:00:20"
         and window.interval_caption.get_label() == "20 s",
         show(),
@@ -267,7 +352,7 @@ def main() -> int:
     press(Gdk.KEY_Right)
     check(
         "an arrow moves one step of the scale: 1 min -> 2 min",
-        stored.get_slide_interval_seconds() == 120
+        kept() == 120
         and window.interval_total.get_label() == "00:02:00"
         and window.interval_caption.get_label() == "2 min",
         show(),
@@ -276,7 +361,7 @@ def main() -> int:
     press(Gdk.KEY_Right)
     check(
         "up and right are steps too: 3 min, 5 min",
-        stored.get_slide_interval_seconds() == 300,
+        kept() == 300,
         show(),
     )
     press(Gdk.KEY_Left)
@@ -284,94 +369,93 @@ def main() -> int:
     press(Gdk.KEY_Left)
     check(
         "left and down go back: 3 min, 2 min, 1 min",
-        stored.get_slide_interval_seconds() == 60,
+        kept() == 60,
         show(),
     )
     press(Gdk.KEY_Left)
     check(
         "below a minute the steps are 5 s apart: 55 s",
-        stored.get_slide_interval_seconds() == 55,
+        kept() == 55,
         show(),
     )
     scale.set_value(interval_position_for_seconds(10))
     press(Gdk.KEY_Right)
     check(
         "an arrow from 10 s goes to 15 s (the 5-second quarter)",
-        stored.get_slide_interval_seconds() == 15 and window.interval_caption.get_label() == "15 s",
+        kept() == 15 and window.interval_caption.get_label() == "15 s",
         show(),
     )
     press(Gdk.KEY_Left)
-    check("and back to 10 s", stored.get_slide_interval_seconds() == 10, show())
+    check("and back to 10 s", kept() == 10, show())
     scale.set_value(interval_position_for_seconds(3600))
     press(Gdk.KEY_Right)
     check(
         "an arrow from 1 h goes to 2 h (the hours quarter)",
-        stored.get_slide_interval_seconds() == 7200
-        and window.interval_caption.get_label() == "2 h",
+        kept() == 7200 and window.interval_caption.get_label() == "2 h",
         show(),
     )
     press(Gdk.KEY_Left)
     check(
         "and back to 1 h",
-        stored.get_slide_interval_seconds() == 3600
-        and window.interval_caption.get_label() == "1 h",
+        kept() == 3600 and window.interval_caption.get_label() == "1 h",
         show(),
     )
     press(Gdk.KEY_End)
     check(
         "End is the longest interval, 23:59:59 (86399 s), not 24 hours",
-        stored.get_slide_interval_seconds() == 86399
+        kept() == 86399
         and window.interval_total.get_label() == "23:59:59"
         and "24" not in window.interval_caption.get_label()
         and scale.get_value() == INTERVAL_SLIDER_MAX,
         f"{show()} {window.interval_caption.get_label()!r}",
     )
     press(Gdk.KEY_Right)
-    check(
-        "an arrow at the end stays at the end", stored.get_slide_interval_seconds() == 86399, show()
-    )
+    check("an arrow at the end stays at the end", kept() == 86399, show())
     press(Gdk.KEY_Left)
-    check(
-        "one step back from the end is 12 h", stored.get_slide_interval_seconds() == 43200, show()
-    )
+    check("one step back from the end is 12 h", kept() == 43200, show())
     press(Gdk.KEY_Home)
     check(
         "Home is the shortest interval, 00:00:01",
-        stored.get_slide_interval_seconds() == 1
-        and window.interval_total.get_label() == "00:00:01"
-        and scale.get_value() == 0,
+        kept() == 1 and window.interval_total.get_label() == "00:00:01" and scale.get_value() == 0,
         show(),
     )
     press(Gdk.KEY_Left)
     check(
         "an arrow at the start stays at 1 s (0 is not possible)",
-        stored.get_slide_interval_seconds() == 1,
+        kept() == 1,
         show(),
     )
     window._interval_wheel.emit("scroll", 0.0, -1.0)
-    check("the wheel moves one step too", stored.get_slide_interval_seconds() == 2, show())
+    check("the wheel moves one step too", kept() == 2, show())
     scale.set_value(1290)  # between 1 min (1260) and 2 min (1330): snaps to the nearer one
     pump(0.3)  # a slider set from its own handler is announced after the handler ended
     check(
-        "a position between two steps snaps to the nearest and saves it",
-        scale.get_value() == 1260 and stored.get_slide_interval_seconds() == 60,
+        "a position between two steps snaps to the nearest and keeps it",
+        scale.get_value() == 1260 and kept() == 60,
         f"{scale.get_value()} {show()}",
     )
     check(
-        "the status still says Saved. after the echo",
-        window.status.get_label() == "Saved.",
+        "the status stays empty after the echo: no message replaced",
+        window.status.get_label() == "",
         window.status.get_label(),
     )
     walked = []
     for position in INTERVAL_POSITIONS:
         scale.set_value(position)
-        walked.append(stored.get_slide_interval_seconds())
+        walked.append(kept())
     check(
-        "every step of the scale, set one by one, is saved as its seconds",
+        "every step of the scale, set one by one, is kept as its seconds",
         walked == list(INTERVAL_STOPS),
         f"{sum(a != b for a, b in zip(walked, INTERVAL_STOPS))} differ",
     )
     # -- a stored value that is not a step: shown at the nearest, never written back -------------
+    window.save_button.emit("clicked")  # the walk above left the last step kept
+    check(
+        "Save writes the last step of the walk and is off again",
+        stored.get_slide_interval_seconds() == INTERVAL_STOPS[-1]
+        and not window.save_button.get_sensitive(),
+        str(stored.get_slide_interval_seconds()),
+    )
     stored.set_slide_interval_seconds(100)
     pump(1.0, until=lambda: window.interval_total.get_label() == "00:01:40")
     pump(0.5)
@@ -394,25 +478,59 @@ def main() -> int:
     )
     press(Gdk.KEY_Right)
     check(
-        "an arrow from there goes one step on: 3 min",
-        stored.get_slide_interval_seconds() == 180,
+        "an arrow from there goes one step on, to 3 min, kept and not stored",
+        kept() == 180 and stored.get_slide_interval_seconds() == 100,
         show(),
     )
     stored.set_slide_interval_seconds(77)  # another process changes a value, off the scale
+    pump(0.5)
+    check(
+        "a stored change elsewhere does not take away an edit that is not saved: 3 min stays",
+        kept() == 180 and window.interval_total.get_label() == "00:03:00",
+        f"{scale.get_value()} {show()}",
+    )
+    window.save_button.emit("clicked")
+    check(
+        "and Save writes it over the other process's value",
+        stored.get_slide_interval_seconds() == 180,
+    )
+    stored.set_slide_interval_seconds(77)
     pump(1.0, until=lambda: window.interval_total.get_label() == "00:01:17")
     pump(0.5)
     check(
-        "a value set elsewhere shows at the nearest step and stays 77",
+        "with nothing kept, a value set elsewhere shows at the nearest step and stays 77",
         scale.get_value() == interval_position_for_seconds(60)
         and stored.get_slide_interval_seconds() == 77,
         f"{scale.get_value()} {show()}",
     )
     window.idle_spin.set_text("86400")
     window.idle_spin.update()
-    check("the idle time still takes 86400", stored.get_idle_timeout_seconds() == 86400)
+    check(
+        "the idle time still takes 86400 (kept)",
+        window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 86400,
+    )
     window.idle_spin.set_text("20")
     window.idle_spin.update()
-    check("a typed number is saved", stored.get_idle_timeout_seconds() == 20)
+    check(
+        "a typed number is kept and not stored",
+        window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 20
+        and stored.get_idle_timeout_seconds() == 300,
+    )
+    window.idle_spin.set_text("99")
+    window.idle_spin.update()
+    stored.set_scaling("fill")  # another process changes another key: the window refreshes
+    pump(0.5)
+    check(
+        "a change elsewhere does not take an edit out of a number field that is not saved",
+        window.idle_spin.get_value_as_int() == 99
+        and window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 99
+        and window.scaling_drop.get_selected() == CHOICES[KEY_SCALING].index("fill"),
+        str(window.idle_spin.get_value_as_int()),
+    )
+    window.idle_spin.set_text("20")
+    window.idle_spin.update()
+    window.save_button.emit("clicked")
+    check("and Save stores it", stored.get_idle_timeout_seconds() == 20)
     stored.set_idle_timeout_seconds(77)
     pump(1.0, until=lambda: window.idle_spin.get_value_as_int() == 77)
     check(
@@ -420,21 +538,41 @@ def main() -> int:
         window.idle_spin.get_value_as_int() == 77,
     )
 
+    stored.set_transition_duration(3.7)  # another process changes the transition length
+    pump(1.0, until=lambda: abs(window.duration_scale.get_value() - 3.7) < 1e-6)
+    check(
+        "a transition length set elsewhere shows up in the slider, and the Save button stays off",
+        abs(window.duration_scale.get_value() - 3.7) < 1e-6
+        and not window.save_button.get_sensitive(),
+        str(window.duration_scale.get_value()),
+    )
+    window.duration_scale.set_value(0.2)
+    window.duration_scale.set_value(9.0)  # the scale itself stops at its end
+    check(
+        "the slider stops at 5.0 s and keeps what it shows",
+        window.duration_scale.get_value() == 5.0
+        and window._draft.value(KEY_TRANSITION_DURATION) == 5.0
+        and stored.get_transition_duration() == 3.7,
+        str(window.duration_scale.get_value()),
+    )
+    window.save_button.emit("clicked")
+    check("and Save stores it", stored.get_transition_duration() == 5.0)
+
     # -- the folder chooser: only the paths a headless run can reach ------------------------
     window.browse_button.emit("clicked")
     pump(0.5)
     check("Browse opens a chooser", window._chooser is not None)
     start = window._chooser.get_current_folder()
     check(
-        "the chooser opens in the folder in use",
+        "the chooser opens in the folder of the field",
         start is not None and start.get_path() == folder,
         None if start is None else start.get_path(),
     )
     window._on_folder_chosen(window._chooser, Gtk.ResponseType.CANCEL)
     check("cancelling the chooser changes nothing", stored.get_picture_folder() == folder)
     missing = os.path.join(folder, "not-there")
-    window.folder_entry.set_text(missing)
-    window.folder_entry.emit("activate")
+    window.folder_row.set_text(missing)
+    window.folder_row.emit("entry-activated")
     window.browse_button.emit("clicked")
     pump(0.5)
     start = window._chooser.get_current_folder()
@@ -442,41 +580,59 @@ def main() -> int:
     if not os.path.isdir(expected):
         expected = os.path.expanduser("~")
     check(
-        "a missing folder in use: the chooser opens in the pictures folder, not in that folder",
+        "a missing folder in the field: the chooser opens in the pictures folder, not in it",
         start is not None and start.get_path() == expected,
         None if start is None else start.get_path(),
     )
     window._on_folder_chosen(window._chooser, Gtk.ResponseType.CANCEL)
-    window.folder_entry.set_text(folder)
-    window.folder_entry.emit("activate")
+    window.folder_row.set_text(folder)
+    window.folder_row.emit("entry-activated")
     other = tempfile.mkdtemp(prefix="slideshow-smoke-prefs-")
     window._on_folder_chosen(_Chosen(other), Gtk.ResponseType.ACCEPT)
     check(
-        "a folder chosen in the chooser is saved and shown",
-        stored.get_picture_folder() == other and window.folder_entry.get_text() == other,
+        "a folder chosen in the chooser is shown and kept, not stored yet",
+        stored.get_picture_folder() == folder
+        and window.folder_row.get_text() == other
+        and window.save_button.get_sensitive(),
     )
-    window.folder_entry.set_text("")
-    window.folder_entry.emit("activate")
+    window.save_button.emit("clicked")
+    check("and Save stores it", stored.get_picture_folder() == other)
+    window.folder_row.set_text("")
+    window.folder_row.emit("entry-activated")
+    window.save_button.emit("clicked")
     check(
-        "emptying the field goes back to the default folder",
+        "emptying the field and saving goes back to the default folder",
         stored.get_picture_folder() == default_picture_folder(),
     )
-    window.folder_entry.set_text(folder)
-    window.folder_entry.emit("activate")
+    window.folder_row.set_text(folder)
+    window.folder_row.emit("entry-activated")
+    window.save_button.emit("clicked")
 
     # -- the preview ---------------------------------------------------------------------------
+    window.order_drop.set_selected(CHOICES[KEY_ORDER].index("random"))  # kept, not saved
+    window.transition_drop.set_selected(TRANSITION_CHOICES.index("zoom"))
     before = {k: stored._settings.get_value(k).unpack() for k in KEYS}
+    before_transitions = stored._settings.get_strv("transitions")
     toplevels = fullscreen_windows()
     window.preview_button.emit("clicked")
     pump(2.0, until=lambda: fullscreen_windows() > toplevels)
     monitors = fullscreen_windows() - toplevels
     check("Preview opens one window per monitor", monitors == 2, f"{monitors} new windows")
     check("the button is off while it runs", not window.preview_button.get_sensitive())
-    check(
-        "the preview changed no stored setting",
-        before == {k: stored._settings.get_value(k).unpack() for k in KEYS},
-    )
     controller = window._preview[0]
+    check(
+        "the preview runs on the values of the window that are not saved: random, zoom",
+        controller._settings.get_order() == "random"
+        and controller._settings.get_transitions() == ["zoom"]
+        and stored.get_order() == "name",
+        f"{controller._settings.get_order()} {controller._settings.get_transitions()}",
+    )
+    check(
+        "the preview changed no stored setting, and the edits are still to be saved",
+        before == {k: stored._settings.get_value(k).unpack() for k in KEYS}
+        and stored._settings.get_strv("transitions") == before_transitions
+        and window.save_button.get_sensitive(),
+    )
     controller.stop("smoke")
     pump(1.0, until=lambda: window.preview_button.get_sensitive())
     check(
@@ -493,6 +649,11 @@ def main() -> int:
         "closing the window ends a running preview",
         fullscreen_windows() == 0,
         f"{fullscreen_windows()} windows left",
+    )
+    check(
+        "closing the window saves what was edited, without a question",
+        stored.get_order() == "random" and stored.get_transitions() == ["zoom"],
+        f"{stored.get_order()} {stored.get_transitions()}",
     )
 
     ok = all(RESULTS)

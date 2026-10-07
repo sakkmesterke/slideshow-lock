@@ -32,8 +32,11 @@ from slideshow_lock.settings import (
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_ORDER,
+    KEY_TRANSITIONS,
     Settings,
 )
+from slideshow_lock.transitions import ALL_TRANSITIONS, RANDOM_POOL
 from tests.test_image_source import FakeWatcher, ManualScheduler, make_image, started
 from tests.test_preview import FakeClock, FakeScaler, FakeSettings, FakeWindow, _pump
 from tests.timeout_guard import (
@@ -67,6 +70,35 @@ def test_every_option_replaces_its_own_setting_and_nothing_else():
         KEY_ORDER: "name",
         KEY_SCALING: "fit",
     }
+
+
+@pytest.mark.parametrize("name", ALL_TRANSITIONS)
+def test_a_transition_is_replaced_by_a_list_of_that_one_name(name):
+    assert overrides_from_args(parsed("--transition", name)) == {KEY_TRANSITIONS: [name]}
+
+
+def test_transition_none_replaces_the_setting_with_the_empty_list_the_cut():
+    assert overrides_from_args(parsed("--transition", "none")) == {KEY_TRANSITIONS: []}
+
+
+def test_transition_random_is_the_eight_in_random_order():
+    assert overrides_from_args(parsed("--transition", "random")) == {
+        KEY_TRANSITIONS: list(RANDOM_POOL),
+        KEY_TRANSITION_ORDER: "random",
+    }
+    assert "blur" not in RANDOM_POOL and "ken-burns" not in RANDOM_POOL and len(RANDOM_POOL) == 8
+
+
+def test_the_transition_is_replaced_only_when_asked_for():
+    assert KEY_TRANSITIONS not in overrides_from_args(parsed("--scaling", "fit"))
+
+
+@pytest.mark.parametrize("name", ["sparkle", "Crossfade", "random,wipe", ""])
+def test_a_name_that_is_not_a_transition_is_refused_by_the_command_line(name, capsys):
+    with pytest.raises(SystemExit) as stop:
+        parsed("--transition", name)
+    assert stop.value.code == 2
+    assert "--transition" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("interval", ["0", "-5", "86400", "100000"])
@@ -108,6 +140,9 @@ class Stored:
     def get_pan_portrait_images(self):
         return False
 
+    def get_transitions(self):
+        return ["stored-transition"]
+
     def connect_changed(self, callback):
         self.callback = callback
         return 7
@@ -122,6 +157,14 @@ def test_a_replaced_setting_wins_and_every_other_one_is_the_stored_one():
     assert settings.get_slide_interval_seconds() == 3
     assert settings.get_picture_folder() == "stored-folder"
     assert settings.get_order() == "stored-order"
+
+
+def test_a_replaced_transition_wins_and_an_empty_list_is_a_replacement_too():
+    assert SessionSettings(Stored(), {KEY_TRANSITIONS: ["fade-black"]}).get_transitions() == [
+        "fade-black"
+    ]
+    assert SessionSettings(Stored(), {KEY_TRANSITIONS: []}).get_transitions() == []
+    assert SessionSettings(Stored(), {}).get_transitions() == ["stored-transition"]
 
 
 def test_without_replacements_every_setting_is_the_stored_one():

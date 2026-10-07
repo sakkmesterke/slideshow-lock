@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:57+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Dutch\n"
@@ -20,11 +20,13 @@ msgstr "Slideshow Lock"
 
 #: slideshow_lock/control.py
 msgid "Start the slideshow service and open the settings window."
-msgstr "Start de dienst voor de diavoorstelling en open het instellingenvenster."
+msgstr ""
+"Start de dienst voor de diavoorstelling en open het instellingenvenster."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "bij het inloggen: de dienst starten, het venster alleen de eerste keer openen"
+msgstr ""
+"bij het inloggen: de dienst starten, het venster alleen de eerste keer openen"
 
 #: slideshow_lock/control.py slideshow_lock/preferences.py
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
@@ -48,20 +50,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Passend maken (toont de hele afbeelding)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Geen (direct wisselen)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Overvloeien"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Via zwart vervagen"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Inschuiven"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Wegduwen"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoomen"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Wegvegen"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Cirkelvormig onthullen"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Wazig maken"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Draaien"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Willekeurige mix"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Instellingen van Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Bladeren…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Afbeeldingen"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Afbeeldingenmap"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Bladeren…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -85,8 +131,42 @@ msgstr ""
 "batterij."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "De diavoorstelling starten"
+msgid "Pictures"
+msgstr "Afbeeldingen"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Tussen afbeeldingen"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Hoe de ene afbeelding in de volgende overgaat. \"Willekeurige mix\" kiest "
+"bij elke wissel een van de acht (niet Wazig maken en Ken Burns). Zonder "
+"bureaubladanimaties wisselen de afbeeldingen direct."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Duur van de overgang"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Hoe lang één wissel duurt, voor elke overgang hetzelfde. Het is nooit langer "
+"dan de helft van de tijd dat een afbeelding getoond wordt."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "seconden"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Overgangen"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -97,12 +177,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Hoe lang zonder invoer voordat de diavoorstelling begint."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "seconden"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Tijden"
+msgid "Start the slideshow"
+msgstr "De diavoorstelling starten"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -119,6 +195,14 @@ msgid ""
 msgstr ""
 "Invoer eerder dan dit nadat de diavoorstelling is gestart vergrendelt de "
 "sessie niet (strikt eerder; 0 betekent dat elke invoer vergrendelt)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Tijden"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Opslaan"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -308,6 +392,11 @@ msgstr "het beeldscherm passend maken of vullen"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "staande afbeeldingen langzaam laten scrollen (vulmodus)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"hoe de ene afbeelding in de volgende overgaat, of geen (alleen deze keer)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

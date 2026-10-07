@@ -12,8 +12,21 @@ from types import SimpleNamespace
 import pytest
 
 from slideshow_lock import preferences
-from slideshow_lock.preferences import PreferencesWindow, _choice_labels
-from slideshow_lock.preferences_model import CHOICES
+from slideshow_lock.preferences import PreferencesWindow, _choice_labels, _transition_labels
+from slideshow_lock.preferences_model import (
+    CHOICES,
+    TRANSITION_CHOICES,
+    Draft,
+    PreferencesModel,
+    SaveResult,
+)
+from slideshow_lock.settings import (
+    KEY_IDLE_TIMEOUT_SECONDS,
+    KEY_ORDER,
+    KEY_PICTURE_FOLDER,
+    KEY_TRANSITION_DURATION,
+    Settings,
+)
 
 
 def test_every_choice_has_a_label_in_the_same_order():
@@ -22,6 +35,12 @@ def test_every_choice_has_a_label_in_the_same_order():
     for key, values in CHOICES.items():
         assert len(labels[key]) == len(values), key  # the drop-down index is the choice's index
         assert len(set(labels[key])) == len(values), key  # two choices never look the same
+
+
+def test_every_transition_choice_has_a_label_in_the_same_order():
+    labels = _transition_labels()
+    assert len(labels) == len(TRANSITION_CHOICES)  # the drop-down index is the choice's index
+    assert len(set(labels)) == len(labels)
 
 
 def test_the_preview_button_hands_the_windows_application_to_start_preview(monkeypatch):
@@ -42,6 +61,7 @@ def test_the_preview_button_hands_the_windows_application_to_start_preview(monke
     stand_in = SimpleNamespace(
         _preview=None,
         _before_preview=None,
+        _draft=SimpleNamespace(preview_values=dict),
         _commit_folder=lambda: None,
         get_application=lambda: application,
         status=SimpleNamespace(set_label=lambda _text: None),
@@ -100,6 +120,7 @@ def _window_stand_in():
         _preview=None,
         _before_preview=None,
         _closed=False,
+        _draft=SimpleNamespace(preview_values=dict, save=lambda: SaveResult(True, "")),
         _commit_folder=lambda: None,
         get_application=lambda: None,
         status=SimpleNamespace(set_label=labels.append),
@@ -347,7 +368,7 @@ def test_the_window_keeps_the_callback_it_is_given_and_main_hands_it_on(monkeypa
 
     monkeypatch.setattr(preferences, "PreferencesWindow", FakeWindow)
     monkeypatch.setattr(preferences, "Settings", lambda: object())
-    monkeypatch.setattr(preferences.Gtk, "Application", FakeApplication)
+    monkeypatch.setattr(preferences.Adw, "Application", FakeApplication)
     monkeypatch.setattr(preferences.Gio, "SettingsSchemaSource", FakeSchemas)
     callback = object()
     assert preferences.main([], before_preview=callback) == 0
@@ -404,3 +425,237 @@ def test_the_constructor_check_tells_a_constructor_that_drops_the_callback_apart
     """Negative control of the check above, on constructors written out here (so it does not
     depend on the real one): only the first one keeps the callback."""
     assert _stores_before_preview(_CONSTRUCTOR.format(line=line)) is keeps
+
+
+# -- the edits are kept in the draft and written by Save and by the close -----------------------
+
+
+def _stored(key):
+    """What a process other than the window reads from the settings."""
+    other = Settings()
+    return {
+        KEY_IDLE_TIMEOUT_SECONDS: other.get_idle_timeout_seconds,
+        KEY_ORDER: other.get_order,
+        KEY_PICTURE_FOLDER: other.get_picture_folder,
+    }[key]()
+
+
+def _editing_stand_in(draft=None):
+    """What the edit handlers, ``_report``, ``save`` and ``_on_close_request`` read from the window,
+    on a real ``Draft`` over the real settings: they run, they are not mocked."""
+    log, labels = [], []
+    stand_in = SimpleNamespace(
+        _updating=False,
+        _closed=False,
+        _preview=None,
+        _draft=draft or Draft(PreferencesModel(Settings())),
+        status=SimpleNamespace(set_label=labels.append),
+        save_button=SimpleNamespace(set_sensitive=lambda value: log.append(("button", value))),
+        refresh=lambda: log.append("refresh"),
+        _show_folder=lambda: log.append("show_folder"),
+        _show_interval=lambda: log.append("show_interval"),
+        _move_interval_slider=lambda position: log.append(("move", position)),
+        log=log,
+        labels=labels,
+    )
+    stand_in._commit_folder = lambda: log.append("commit_folder")
+    stand_in._report = lambda result: PreferencesWindow._report(stand_in, result)
+    stand_in._update_save_button = lambda: PreferencesWindow._update_save_button(stand_in)
+    return stand_in
+
+
+def test_a_number_field_keeps_the_edit_and_stores_nothing():
+    window = _editing_stand_in()
+    spin = SimpleNamespace(get_value_as_int=lambda: 300)
+    PreferencesWindow._on_int(window, KEY_IDLE_TIMEOUT_SECONDS, spin)
+    assert window._draft.pending == {KEY_IDLE_TIMEOUT_SECONDS: 300}
+    assert _stored(KEY_IDLE_TIMEOUT_SECONDS) == 120
+    assert ("button", True) in window.log  # there is something to save now
+
+
+def test_a_number_field_set_by_the_window_itself_keeps_nothing():
+    window = _editing_stand_in()
+    window._updating = True
+    spin = SimpleNamespace(get_value_as_int=lambda: 300)
+    PreferencesWindow._on_int(window, KEY_IDLE_TIMEOUT_SECONDS, spin)
+    assert window._draft.pending == {}
+
+
+def test_the_transition_length_slider_keeps_the_edit_and_stores_nothing():
+    window = _editing_stand_in()
+    window.duration_scale = SimpleNamespace(get_value=lambda: 2.5)
+    PreferencesWindow._on_duration(window)
+    assert window._draft.pending == {KEY_TRANSITION_DURATION: 2.5}
+    assert Settings().get_transition_duration() == 1.0  # nothing stored
+    assert ("button", True) in window.log
+
+
+def test_the_transition_length_slider_set_by_the_window_itself_keeps_nothing():
+    window = _editing_stand_in()
+    window._updating = True
+    window.duration_scale = SimpleNamespace(get_value=lambda: 2.5)
+    PreferencesWindow._on_duration(window)
+    assert window._draft.pending == {}
+
+
+def test_a_drop_down_keeps_the_edit_and_stores_nothing():
+    window = _editing_stand_in()
+    window.order_drop = SimpleNamespace(get_selected=lambda: CHOICES[KEY_ORDER].index("name"))
+    PreferencesWindow._on_choice(window, KEY_ORDER)
+    assert window._draft.pending == {KEY_ORDER: "name"}
+    assert _stored(KEY_ORDER) == "random"
+
+
+def test_the_transition_drop_down_keeps_the_choice_of_its_index():
+    window = _editing_stand_in()
+    window.transition_drop = SimpleNamespace(
+        get_selected=lambda: TRANSITION_CHOICES.index("random")
+    )
+    PreferencesWindow._on_transition(window)
+    assert window._draft.value("transitions") == "random"
+    assert Settings().get_transitions() == ["crossfade"]  # nothing stored
+
+
+def test_the_folder_field_keeps_the_folder_and_stores_nothing(tmp_path):
+    window = _editing_stand_in()
+    window.folder_row = SimpleNamespace(get_text=lambda: str(tmp_path))
+    PreferencesWindow._commit_folder(window)
+    assert window._draft.pending == {KEY_PICTURE_FOLDER: str(tmp_path)}
+    assert _stored(KEY_PICTURE_FOLDER) != str(tmp_path)
+    assert "show_folder" in window.log  # the field shows it the way it would be stored
+
+
+def test_a_refused_edit_says_why_and_puts_the_fields_back():
+    window = _editing_stand_in()
+    spin = SimpleNamespace(get_value_as_int=lambda: 0)
+    PreferencesWindow._on_int(window, KEY_IDLE_TIMEOUT_SECONDS, spin)
+    assert window._draft.pending == {}
+    assert window.labels and window.labels[-1] != ""
+    assert "refresh" in window.log
+
+
+def test_the_save_button_follows_whether_there_is_something_to_save():
+    window = _editing_stand_in()
+    PreferencesWindow._update_save_button(window)
+    assert window.log[-1] == ("button", False)
+    window._draft.edit_choice(KEY_ORDER, "name")
+    PreferencesWindow._update_save_button(window)
+    assert window.log[-1] == ("button", True)
+
+
+def test_save_keeps_the_folder_field_then_writes_the_edits_and_says_so():
+    window = _editing_stand_in()
+    window._draft.edit_choice(KEY_ORDER, "name")
+    window._draft.edit_int(KEY_IDLE_TIMEOUT_SECONDS, 300)
+    assert PreferencesWindow.save(window) is True
+    assert window.log[0] == "commit_folder"  # a folder typed and not yet kept is kept first
+    assert (_stored(KEY_ORDER), _stored(KEY_IDLE_TIMEOUT_SECONDS)) == ("name", 300)
+    assert window.labels[-1] == "Saved."
+    assert not window._draft.dirty
+    assert "refresh" in window.log
+
+
+def test_save_that_cannot_store_a_value_says_so_and_keeps_it(monkeypatch):
+    monkeypatch.setattr(Settings, "set_order", lambda self, value: False)
+    window = _editing_stand_in()
+    window._draft.edit_choice(KEY_ORDER, "name")
+    assert PreferencesWindow.save(window) is False
+    assert window.labels[-1] not in ("", "Saved.")
+    assert window._draft.dirty
+
+
+def test_closing_the_window_writes_the_edits_without_a_question():
+    window = _editing_stand_in()
+    window._draft.edit_choice(KEY_ORDER, "name")
+    window._draft.edit_int(KEY_IDLE_TIMEOUT_SECONDS, 300)
+    assert PreferencesWindow._on_close_request(window, None) is False  # the window may close
+    assert window.log[0] == "commit_folder"
+    assert (_stored(KEY_ORDER), _stored(KEY_IDLE_TIMEOUT_SECONDS)) == ("name", 300)
+    assert window._closed is True
+
+
+def test_closing_the_window_without_edits_stores_nothing():
+    window = _editing_stand_in()
+    seen = []
+    listener = Settings()
+    listener.connect_changed(seen.append)
+    assert PreferencesWindow._on_close_request(window, None) is False
+    assert seen == []
+
+
+def test_closing_the_window_with_a_value_that_cannot_be_stored_logs_it_and_still_closes(
+    monkeypatch, caplog
+):
+    monkeypatch.setattr(Settings, "set_order", lambda self, value: False)
+    window = _editing_stand_in()
+    window._draft.edit_choice(KEY_ORDER, "name")
+    assert PreferencesWindow._on_close_request(window, None) is False
+    assert window._closed is True
+    assert any("could not be saved at close" in m for m in caplog.messages)
+
+
+def test_the_preview_runs_on_the_values_of_the_window_and_stores_none_of_them(
+    monkeypatch, tmp_path
+):
+    """The preview reads the edits that are not saved yet, through ``SessionSettings``; the
+    stored settings keep their values and the edits stay kept."""
+    seen = {}
+
+    class Controller:
+        running = True
+
+        def connect_stopped(self, _callback):
+            pass
+
+    def fake_build_source(settings):
+        seen["source_settings"] = settings
+        return SimpleNamespace(start=lambda: None)
+
+    def fake_start_preview(settings, _source, _app=None):
+        seen["preview_settings"] = settings
+        return Controller()
+
+    window = _window_stand_in()
+    window._draft = Draft(PreferencesModel(Settings()))
+    window._draft.edit_choice(KEY_ORDER, "name")
+    window._draft.edit_transition("zoom")
+    window._draft.edit_folder(str(tmp_path))
+    window._draft.edit_interval_position(0)
+    window._draft.edit_duration(2.5)
+    monkeypatch.setattr(preferences, "build_source", fake_build_source)
+    monkeypatch.setattr(preferences, "start_preview", fake_start_preview)
+    PreferencesWindow._start_preview(window)
+
+    shown = seen["preview_settings"]
+    assert seen["source_settings"] is shown  # the source and the preview read the same values
+    assert shown.get_order() == "name"
+    assert shown.get_transitions() == ["zoom"]
+    assert shown.get_picture_folder() == str(tmp_path)
+    assert shown.get_slide_interval_seconds() == 1
+    assert shown.get_transition_duration() == 2.5
+    assert shown.get_scaling() == "fill"  # not edited: the stored value
+    assert _stored(KEY_ORDER) == "random"  # nothing was stored
+    assert Settings().get_transitions() == ["crossfade"]
+    assert window._draft.dirty  # and the edits are still to be saved
+
+
+def test_the_preview_keeps_the_folder_field_before_it_reads_the_values(monkeypatch):
+    order = []
+    _preview_ready(monkeypatch, order)
+    window = _window_stand_in()
+    window._commit_folder = lambda: order.append("commit_folder")
+    PreferencesWindow._start_preview(window)
+    assert order == ["commit_folder", "start_preview"]
+
+
+def test_the_folder_field_that_still_shows_the_folder_in_effect_keeps_and_says_nothing(tmp_path):
+    """Leaving the field (focus) runs this each time: with nothing changed it must do nothing, not
+    clear the status line of an earlier message."""
+    window = _editing_stand_in()
+    window.folder_row = SimpleNamespace(get_text=lambda: "")  # the default folder in effect: ""
+    PreferencesWindow._commit_folder(window)
+    assert window.log == [] and window.labels == []
+    window._draft.edit_folder(str(tmp_path))
+    window.folder_row = SimpleNamespace(get_text=lambda: f"  {tmp_path}  ")
+    PreferencesWindow._commit_folder(window)
+    assert window.log == [] and window.labels == []  # the same folder, only whitespace around it

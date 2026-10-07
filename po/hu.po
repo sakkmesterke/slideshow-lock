@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 03:54+0000\n"
+"POT-Creation-Date: 2026-10-07 04:38+0000\n"
 "PO-Revision-Date: 2026-10-06 03:54+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: Hungarian\n"
@@ -21,11 +21,20 @@ msgstr "Slideshow Lock"
 
 #: slideshow_lock/control.py
 msgid "Start the slideshow service and open the settings window."
-msgstr "Elindítja a diavetítés háttérszolgáltatását, és megnyitja a beállítások ablakát."
+msgstr ""
+"Elindítja a diavetítés háttérszolgáltatását, és megnyitja a beállítások "
+"ablakát."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "bejelentkezéskor: elindítja a szolgáltatást, az ablakot csak első alkalommal nyitja meg"
+msgstr ""
+"bejelentkezéskor: elindítja a szolgáltatást, az ablakot csak első alkalommal "
+"nyitja meg"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "minden lépés naplózása"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -44,20 +53,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Illesztés (a teljes képet mutatja)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Nincs (azonnali váltás)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Áttűnés"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Elsötétítés"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Becsúszás"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Tolás"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Nagyítás"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Törlés"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Kör-feltárás"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Elmosás"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Forgatás"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Véletlen"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Slideshow Lock beállításai"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Tallózás…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Képek"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Képek mappája"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Tallózás…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -72,12 +125,51 @@ msgid "Scroll tall pictures"
 msgstr "Álló képek görgetése"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Az álló képek a fekvő képernyőn lassan fentről lefelé haladnak (csak Kitöltés mellett). Alapértelmezés szerint ki van kapcsolva: több akkumulátort fogyaszt."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Az álló képek a fekvő képernyőn lassan fentről lefelé haladnak (csak "
+"Kitöltés mellett). Alapértelmezés szerint ki van kapcsolva: több "
+"akkumulátort fogyaszt."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "A diavetítés indítása"
+msgid "Pictures"
+msgstr "Képek"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Képek között"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Hogyan vált át egy kép a következőre. A „Véletlen” minden váltásnál nyolc "
+"átmenet közül választ egyet (az Elmosás és a Ken Burns nélkül). Az asztali "
+"animációk nélkül a képek azonnal váltanak."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Átmenet hossza"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Egy váltás hossza, minden átmenetnél ugyanannyi. Soha nem hosszabb, "
+"mint a kép megjelenítési idejének fele."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "másodperc"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Átmenetek"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -88,12 +180,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Ennyi bevitel nélküli idő után indul a diavetítés."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "másodperc"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Időzítés"
+msgid "Start the slideshow"
+msgstr "A diavetítés indítása"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -104,8 +192,21 @@ msgid "Lock grace period"
 msgstr "Zárolási türelmi idő"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Ha a diavetítés indulása után ennél hamarabb érkezik bevitel, az nem zárolja a munkamenetet (szigorúan hamarabb; a 0 azt jelenti, hogy minden bevitel zárol)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Ha a diavetítés indulása után ennél hamarabb érkezik bevitel, az nem zárolja "
+"a munkamenetet (szigorúan hamarabb; a 0 azt jelenti, hogy minden bevitel "
+"zárol)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Időzítés"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Mentés"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -149,16 +250,13 @@ msgstr "Nincs monitor az előnézet megjelenítéséhez."
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Az előnézet fut: nyomj meg egy billentyűt vagy mozdítsd meg az egeret a befejezéséhez."
+msgstr ""
+"Az előnézet fut: nyomj meg egy billentyűt vagy mozdítsd meg az egeret a "
+"befejezéséhez."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "A diavetítés beállításainak módosítása."
-
-#: slideshow_lock/control.py slideshow_lock/preferences.py
-#: slideshow_lock/preview_app.py slideshow_lock/service.py
-msgid "log every step"
-msgstr "minden lépés naplózása"
 
 #: slideshow_lock/preferences.py
 msgid ""
@@ -204,8 +302,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "Használatban: %s (a mappa még nem létezik, nem jelenik meg semmi)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Nem a csúszka egyik állása: a legközelebbit mutatja. A mentett érték addig marad, amíg el nem mozdítod a csúszkát."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Nem a csúszka egyik állása: a legközelebbit mutatja. A mentett érték addig "
+"marad, amíg el nem mozdítod a csúszkát."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -269,8 +371,11 @@ msgid "No pictures to show"
 msgstr "Nincs megjeleníthető kép"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "A diavetítés előnézetének megjelenítése. Bármilyen bevitel befejezi. Soha nem zárolja a munkamenetet."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"A diavetítés előnézetének megjelenítése. Bármilyen bevitel befejezi. Soha "
+"nem zárolja a munkamenetet."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -293,6 +398,10 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "az álló képek lassú görgetése (kitöltés módban)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "hogyan vált a kép a következőre, vagy none (csak erre a futtatásra)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Az időköznek %d és %d másodperc között kell lennie."
@@ -312,8 +421,12 @@ msgid "Slideshow Lock preview"
 msgstr "Slideshow Lock előnézet"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Elindítja a diavetítést, ha a munkamenet tétlen; a türelmi idő utáni első bevitelnél zárol, és zárol a gép felfüggesztése előtt."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Elindítja a diavetítést, ha a munkamenet tétlen; a türelmi idő utáni első "
+"bevitelnél zárol, és zárol a gép felfüggesztése előtt."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"

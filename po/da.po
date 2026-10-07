@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:51+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Danish\n"
@@ -26,6 +26,11 @@ msgstr "Start diasshow-tjenesten og åbn indstillingsvinduet."
 msgid "at login: start the service, open the window only the first time"
 msgstr "ved login: start tjenesten, åbn vinduet kun første gang"
 
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "log hvert trin"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Tilfældig"
@@ -43,20 +48,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Tilpas (hele billedet vises)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Ingen (skift med det samme)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Overtoning"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Toning via sort"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Glid ind"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Skub"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoom"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Aftørring"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Cirkelafsløring"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Sløring"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Rotation"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Tilfældig blanding"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Indstillinger for Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Gennemse…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Billeder"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Billedmappe"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Gennemse…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +120,50 @@ msgid "Scroll tall pictures"
 msgstr "Rul høje billeder"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Højformatbilleder på en bredformatskærm bevæger sig langsomt fra top til bund (kun med Fyld). Slået fra som standard: det bruger mere batteri."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Højformatbilleder på en bredformatskærm bevæger sig langsomt fra top til "
+"bund (kun med Fyld). Slået fra som standard: det bruger mere batteri."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Start diasshowet"
+msgid "Pictures"
+msgstr "Billeder"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Mellem billeder"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Hvordan et billede skifter til det næste. »Tilfældig blanding« vælger én af "
+"otte ved hvert skift (ikke Sløring og Ken Burns). Uden "
+"skrivebordsanimationer skifter billederne med det samme."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Overgangens længde"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Hvor lang tid ét skift tager, ens for alle overgange. Det er aldrig længere "
+"end halvdelen af den tid, et billede vises."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekunder"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Overgange"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +174,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Hvor længe uden input, før diasshowet starter."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekunder"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Tidsindstilling"
+msgid "Start the slideshow"
+msgstr "Start diasshowet"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +186,20 @@ msgid "Lock grace period"
 msgstr "Henstandsperiode for låsning"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Input tidligere end dette efter diasshowets start låser ikke sessionen (strengt tidligere; 0 betyder, at ethvert input låser)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Input tidligere end dette efter diasshowets start låser ikke sessionen "
+"(strengt tidligere; 0 betyder, at ethvert input låser)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Tidsindstilling"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Gem"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -148,20 +243,24 @@ msgstr "Der er ingen skærm at vise forhåndsvisningen på."
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Forhåndsvisning kører: tryk på en vilkårlig tast, eller bevæg musen for at afslutte den."
+msgstr ""
+"Forhåndsvisning kører: tryk på en vilkårlig tast, eller bevæg musen for at "
+"afslutte den."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Skift indstillingerne for diasshowet."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "log hvert trin"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "Indstillingsskemaet er ikke installeret. Kompilér det, og peg GSettings på det:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Indstillingsskemaet er ikke installeret. Kompilér det, og peg GSettings på "
+"det:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
 #: slideshow_lock/preferences_model.py
 msgid "Saved."
@@ -197,8 +296,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "I brug: %s (mappen findes ikke endnu, der vises ingenting)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Ikke et trin på skyderen: den viser det nærmeste. Den gemte værdi bevares, indtil du flytter skyderen."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Ikke et trin på skyderen: den viser det nærmeste. Den gemte værdi bevares, "
+"indtil du flytter skyderen."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -262,8 +365,11 @@ msgid "No pictures to show"
 msgstr "Ingen billeder at vise"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Vis forhåndsvisning af diasshowet. Ethvert input afslutter den. Den låser aldrig sessionen."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Vis forhåndsvisning af diasshowet. Ethvert input afslutter den. Den låser "
+"aldrig sessionen."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -286,21 +392,37 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "rul højformatbilleder langsomt (fyldtilstand)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"hvordan et billede skifter til det næste, eller ingen (kun denne kørsel)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Intervallet skal være mellem %d og %d sekunder."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "Indstillingsskemaet er ikke installeret. Kompilér det, og peg GSettings på det:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Indstillingsskemaet er ikke installeret. Kompilér det, og peg GSettings på "
+"det:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
 #: slideshow_lock/preview_window.py
 msgid "Slideshow Lock preview"
 msgstr "Forhåndsvisning af Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Start diasshowet, når sessionen er inaktiv, lås den ved det første input efter henstandsperioden, og lås, før maskinen går i dvale."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Start diasshowet, når sessionen er inaktiv, lås den ved det første input "
+"efter henstandsperioden, og lås, før maskinen går i dvale."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -319,8 +441,15 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "Henstandsperioden skal være mellem 0 og 86400 sekunder."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "Indstillingsskemaet er ikke installeret. Kompilér det, og peg GSettings på det:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Indstillingsskemaet er ikke installeret. Kompilér det, og peg GSettings på "
+"det:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
 #: data/io.github.trensoft.slideshowlock.desktop.in
 msgid "Set up the idle slideshow and the session lock"
@@ -331,13 +460,29 @@ msgid "Idle slideshow screensaver that locks on input"
 msgstr "Pauseskærm med diasshow ved inaktivitet, der låser ved input"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock starter et diasshow med billeder i fuld skærm på hver skærm, når sessionen har været inaktiv i en indstillet tid."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock starter et diasshow med billeder i fuld skærm på hver skærm, "
+"når sessionen har været inaktiv i en indstillet tid."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "Det første tryk på en tast, klik eller musebevægelse afslutter diasshowet. Hvis diasshowet har været vist i mindst henstandsperioden, bliver sessionen også låst."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Det første tryk på en tast, klik eller musebevægelse afslutter diasshowet. "
+"Hvis diasshowet har været vist i mindst henstandsperioden, bliver sessionen "
+"også låst."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Billederne kommer fra en mappe, du vælger. Et indstillingsvindue angiver mappen, inaktivitetstiden, henstandsperioden, hvor længe hvert billede vises, rækkefølgen og skaleringen."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Billederne kommer fra en mappe, du vælger. Et indstillingsvindue angiver "
+"mappen, inaktivitetstiden, henstandsperioden, hvor længe hvert billede "
+"vises, rækkefølgen og skaleringen."

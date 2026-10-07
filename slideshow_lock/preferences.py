@@ -1,18 +1,21 @@
-"""The settings window (UI-1): the stored settings in one GTK 4 window, in titled groups of rows.
+"""The settings window (UI-1): the settings in one libadwaita window, in titled groups of rows.
 
     glib-compile-schemas data/
     GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 
-One field per setting, saved the moment it is changed (the service picks changes up live, so
-there is no "Apply"). What the fields accept and what counts as saved is decided in
-``slideshow_lock.preferences_model``, which has no GTK in it and is tested by the CI; this
-module only puts that on the screen. The window shows a value as saved only when the model
-said so: a refused value puts the field back to the stored one and says why.
+One field per setting. A change is checked when it is made and kept in a draft
+(``preferences_model.Draft``); it reaches the settings when the user presses "Save" and when the
+window is closed, without a question. Until then the window shows the draft, and the service
+keeps running on what is stored. What the fields accept and what counts as saved is decided in
+``slideshow_lock.preferences_model``, which has no GTK in it and is tested by the CI; this module
+only puts that on the screen. A refused value puts the field back to the value in effect and says
+why; a save says "Saved." only for what read back.
 
-The "Preview" button runs the slideshow preview of CORE-2 (``preview_app.start_preview``) on
-the stored settings, in this process. It never locks the session (D11); any key, click, scroll
-or mouse movement ends it. There is no on/off switch here: that goes through the systemd user
-unit (D4), which is not part of this window.
+The "Preview" button runs the slideshow preview of CORE-2 (``preview_app.start_preview``) on the
+values in the window, saved or not: the preview reads them through ``SessionSettings``, which
+replaces some values for that run and writes nothing. It never locks the session (D11); any key,
+click, scroll or mouse movement ends it. There is no on/off switch here: that goes through the
+systemd user unit (D4), which is not part of this window.
 
 The slide interval is one slider and a big HH:MM:SS line above it; it is stored in seconds in
 the same key as before, from 00:00:01 to 23:59:59. The slider is four equal quarters: every second
@@ -21,13 +24,14 @@ from 1 to 10, every 5 seconds from 10 to 60, round minutes from 1 to 60, round h
 step is shown at the nearest one and stays stored until the user moves the slider. The idle time
 and the lock grace period are plain number fields.
 
-Plain Gtk widgets, not libadwaita: the CI has no libadwaita typelib and the spec lists no
-libadwaita package for the CI, so the groups are drawn with a few CSS rules of this module
-(``_CSS``) instead of ``Adw.PreferencesGroup``. The folder chooser is
-``Gtk.FileChooserNative``, which exists in every GTK 4 (``Gtk.FileDialog`` needs 4.10; the
-GTK 4.8 this was built and measured on has none). Not covered by the tests of the CI: what
-this module draws (checked with ``tools/wayland-smoke/smoke_preferences.py``, and by eye on
-the reference machine).
+libadwaita, and only what exists in libadwaita 1.2 (``Adw.ApplicationWindow``, ``HeaderBar``,
+``PreferencesPage`` and ``PreferencesGroup``, ``ActionRow``, ``ComboRow``, ``EntryRow``): that is
+what the window was run with, and what EL10's libadwaita (1.6) has as well. Newer rows
+(``SwitchRow``, ``SpinRow``) and ``Adw.PreferencesDialog`` are not used. The folder chooser is
+``Gtk.FileChooserNative``, which exists in every GTK 4 (``Gtk.FileDialog`` needs 4.10; the GTK 4.8
+this was built and measured on has none). Not covered by the tests of the CI: what this module
+draws (checked with ``tools/wayland-smoke/smoke_preferences.py``, and by eye on the reference
+machine).
 """
 
 from __future__ import annotations
@@ -39,63 +43,51 @@ from typing import Callable, List, Optional
 
 import gi
 
+gi.require_version("Adw", "1")
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gio", "2.0")
 gi.require_version("GLib", "2.0")
 gi.require_version("Gtk", "4.0")
 
-from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
 from slideshow_lock import APP_ID, _, i18n  # noqa: E402
 from slideshow_lock.preferences_model import (  # noqa: E402
     CHOICES,
+    DURATION_MAX_SECONDS,
+    DURATION_MIN_SECONDS,
+    DURATION_STEP_SECONDS,
     INT_RANGES,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
+    TRANSITION_CHOICES,
+    Draft,
     PreferencesModel,
-    format_hms,
     interval_position_for_seconds,
     snap_interval_position,
     step_interval_position,
 )
-from slideshow_lock.preview_app import build_source, start_preview  # noqa: E402
+from slideshow_lock.preview_app import (  # noqa: E402
+    SessionSettings,
+    build_source,
+    start_preview,
+)
 from slideshow_lock.settings import (  # noqa: E402
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_ORDER,
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_SCALING,
+    KEY_TRANSITION_DURATION,
+    KEY_TRANSITIONS,
     Settings,
 )
 
 _LOG = logging.getLogger(__name__)
 
-MARGIN = 18  # the window's edge and the inside of a row
-GROUP_SPACING = 24  # between the groups
+MARGIN = 18  # the window's edge
 ROW_SPACING = 8
-ROW_PADDING = 12  # above and below the content of a row
-
-_CSS = b"""
-.sl-group { border: 1px solid alpha(currentColor, 0.18); border-radius: 12px; }
-.sl-group-title { font-weight: bold; }
-.sl-subtitle { font-size: 0.9em; }
-.sl-time-big { font-size: 2.6em; font-weight: bold; font-feature-settings: "tnum"; }
-"""
-_css_installed = False
-
-
-def _install_css() -> None:
-    """Load the few style rules of the window, once per process, for the whole display."""
-    global _css_installed
-    display = Gdk.Display.get_default()
-    if _css_installed or display is None:
-        return
-    provider = Gtk.CssProvider()
-    provider.load_from_data(_CSS)
-    Gtk.StyleContext.add_provider_for_display(
-        display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-    )
-    _css_installed = True
+DURATION_SCALE_WIDTH = 260  # the transition-length slider, in pixels
 
 
 def _choice_labels():
@@ -106,9 +98,28 @@ def _choice_labels():
     }
 
 
-class PreferencesWindow(Gtk.Window):
+def _transition_labels():
+    """What the transition drop-down lists, in the order of ``TRANSITION_CHOICES``: none, the ten
+    transitions, the random mix."""
+    return (
+        _("None (change at once)"),
+        _("Cross-fade"),
+        _("Fade through black"),
+        _("Slide in"),
+        _("Push"),
+        _("Ken Burns"),
+        _("Zoom"),
+        _("Wipe"),
+        _("Circle reveal"),
+        _("Blur"),
+        _("Rotate"),
+        _("Random mix"),
+    )
+
+
+class PreferencesWindow(Adw.ApplicationWindow):
     """The settings window. *settings* is a ``Settings``; the window reads and writes only through
-    ``PreferencesModel``."""
+    ``PreferencesModel`` and its ``Draft``."""
 
     def __init__(
         self,
@@ -120,122 +131,154 @@ class PreferencesWindow(Gtk.Window):
         self._settings = settings
         self._before_preview = before_preview  # run by the Preview button, given by the caller
         self._model = PreferencesModel(settings)
-        self._updating = False  # True while the fields are being set from the stored values
+        self._draft = Draft(self._model)  # the edits that are not saved yet
+        self._updating = False  # True while the fields are being set from the values in effect
         self._preview = None  # (controller, source, settings) while the preview runs
         self._chooser = None
         self._closed = False
-        self.set_default_size(620, -1)
-        _install_css()
-
-        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=GROUP_SPACING)
-        page.set_margin_top(MARGIN)
-        page.set_margin_bottom(MARGIN)
-        page.set_margin_start(MARGIN)
-        page.set_margin_end(MARGIN)
+        self.set_default_size(620, 780)
 
         # -- pictures: folder, order, scaling, pan -----------------------------------------
-        self.folder_entry = Gtk.Entry(hexpand=True)
-        self.folder_entry.connect("activate", lambda _entry: self._commit_folder())
+        self.folder_row = Adw.EntryRow(title=_("Picture folder"))
+        self.folder_row.connect("entry-activated", lambda _row: self._commit_folder())
         focus = Gtk.EventControllerFocus()
-        focus.connect("leave", lambda _controller: self._commit_folder())
-        self.folder_entry.add_controller(focus)
-        self.browse_button = Gtk.Button(label=_("Browse..."))
+        focus.connect("notify::contains-focus", self._on_folder_focus)
+        self.folder_row.add_controller(focus)
+        self.browse_button = Gtk.Button(label=_("Browse..."), valign=Gtk.Align.CENTER)
         self.browse_button.connect("clicked", lambda _button: self._browse())
-        entry_line = Gtk.Box(spacing=ROW_SPACING)
-        entry_line.append(self.folder_entry)
-        entry_line.append(self.browse_button)
-        self.folder_note = self._subtitle("")
-        folder_body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        folder_body.append(entry_line)
-        folder_body.append(self.folder_note)
+        self.folder_row.add_suffix(self.browse_button)
 
         labels = _choice_labels()
-        self.order_drop = Gtk.DropDown.new_from_strings(list(labels[KEY_ORDER]))
+        self.order_drop = self._combo(_("Picture order"), labels[KEY_ORDER])
         self.order_drop.connect("notify::selected", lambda *_a: self._on_choice(KEY_ORDER))
-        self.scaling_drop = Gtk.DropDown.new_from_strings(list(labels[KEY_SCALING]))
+        self.scaling_drop = self._combo(_("Scaling"), labels[KEY_SCALING])
         self.scaling_drop.connect("notify::selected", lambda *_a: self._on_choice(KEY_SCALING))
         self.pan_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         self.pan_switch.connect("notify::active", lambda *_a: self._on_pan())
-
-        page.append(
-            self._group(
-                _("Pictures"),
-                [
-                    self._stacked_row(_("Picture folder"), folder_body),
-                    self._row(_("Picture order"), control=self.order_drop),
-                    self._row(_("Scaling"), control=self.scaling_drop),
-                    self._row(
-                        _("Scroll tall pictures"),
-                        _(
-                            "Portrait pictures on a landscape screen move slowly from top to "
-                            "bottom (only with Fill). Off by default: it uses more battery."
-                        ),
-                        control=self.pan_switch,
-                    ),
-                ],
-            )
+        pan_row = Adw.ActionRow(
+            title=_("Scroll tall pictures"),
+            subtitle=_(
+                "Portrait pictures on a landscape screen move slowly from top to "
+                "bottom (only with Fill). Off by default: it uses more battery."
+            ),
         )
+        pan_row.add_suffix(self.pan_switch)
+        pan_row.set_activatable_widget(self.pan_switch)
+
+        self.pictures_group = Adw.PreferencesGroup(title=_("Pictures"))
+        for row in (self.folder_row, self.order_drop, self.scaling_drop, pan_row):
+            self.pictures_group.add(row)
+
+        # -- transitions: how one picture changes into the next ---------------------------------
+        self.transition_drop = self._combo(
+            _("Between pictures"),
+            _transition_labels(),
+            _(
+                'How a picture changes into the next. "Random mix" picks one of eight at each '
+                "change (not Blur and Ken Burns). Without desktop animations the pictures change "
+                "at once."
+            ),
+        )
+        self.transition_drop.connect("notify::selected", lambda *_a: self._on_transition())
+        # The length of a change: one value for every transition. The engine cuts it to half of the
+        # slide interval at most; the slider always shows the stored value (docs/preferences.md).
+        self.duration_scale = Gtk.Scale.new_with_range(
+            Gtk.Orientation.HORIZONTAL,
+            DURATION_MIN_SECONDS,
+            DURATION_MAX_SECONDS,
+            DURATION_STEP_SECONDS,
+        )
+        self.duration_scale.set_digits(1)
+        self.duration_scale.set_round_digits(1)
+        self.duration_scale.set_draw_value(True)
+        self.duration_scale.set_value_pos(Gtk.PositionType.LEFT)
+        self.duration_scale.set_size_request(DURATION_SCALE_WIDTH, -1)
+        self.duration_scale.set_valign(Gtk.Align.CENTER)
+        self.duration_scale.connect("value-changed", lambda _scale: self._on_duration())
+        duration_row = Adw.ActionRow(
+            title=_("Transition length"),
+            subtitle=_(
+                "How long one change takes, the same for every transition. It is never longer "
+                "than half of the time a picture is shown."
+            ),
+        )
+        duration_row.add_suffix(self._with_unit(self.duration_scale, _("seconds")))
+        transitions_group = Adw.PreferencesGroup(title=_("Transitions"))
+        transitions_group.add(self.transition_drop)
+        transitions_group.add(duration_row)
 
         # -- start the slideshow: the idle time ---------------------------------------------
         self.idle_spin = self._spin(KEY_IDLE_TIMEOUT_SECONDS)
-        page.append(
-            self._group(
-                _("Start the slideshow"),
-                [
-                    self._row(
-                        _("Idle time"),
-                        _("How long without input before the slideshow starts."),
-                        control=self._with_unit(self.idle_spin, _("seconds")),
-                    )
-                ],
-            )
+        idle_row = Adw.ActionRow(
+            title=_("Idle time"), subtitle=_("How long without input before the slideshow starts.")
         )
+        idle_row.add_suffix(self._with_unit(self.idle_spin, _("seconds")))
+        idle_group = Adw.PreferencesGroup(title=_("Start the slideshow"))
+        idle_group.add(idle_row)
 
         # -- timing: the slide interval on one slider; the grace period -------------------------
-        self.interval_total = Gtk.Label(label=format_hms(1), halign=Gtk.Align.CENTER)
-        self.interval_total.add_css_class("sl-time-big")
-        self.interval_caption = self._subtitle("")
-        self.interval_caption.set_halign(Gtk.Align.CENTER)
-        self.interval_caption.set_justify(Gtk.Justification.CENTER)
-        self.interval_scale = self._interval_slider()
-        interval_body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ROW_SPACING)
-        interval_body.append(self.interval_total)
-        interval_body.append(self.interval_caption)
-        interval_body.append(self.interval_scale)
-        self.grace_spin = self._spin(KEY_LOCK_GRACE_PERIOD_SECONDS)
-        page.append(
-            self._group(
-                _("Timing"),
-                [
-                    self._stacked_row(_("Show each picture for"), interval_body),
-                    self._row(
-                        _("Lock grace period"),
-                        _(
-                            "Input sooner than this after the slideshow starts does not lock the "
-                            "session (strictly sooner; 0 means every input locks)."
-                        ),
-                        control=self._with_unit(self.grace_spin, _("seconds")),
-                    ),
-                ],
-            )
+        self.interval_total = Gtk.Label(label="00:00:01", halign=Gtk.Align.CENTER)
+        self.interval_total.add_css_class("title-1")
+        self.interval_total.add_css_class("numeric")
+        self.interval_caption = Gtk.Label(
+            halign=Gtk.Align.CENTER, justify=Gtk.Justification.CENTER, wrap=True
         )
+        self.interval_caption.add_css_class("dim-label")
+        self.interval_scale = self._interval_slider()
+        interval_title = Gtk.Label(label=_("Show each picture for"), xalign=0)
+        interval_title.add_css_class("heading")
+        interval_body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ROW_SPACING)
+        for margin in ("top", "bottom", "start", "end"):
+            getattr(interval_body, "set_margin_" + margin)(12)
+        for widget in (
+            interval_title,
+            self.interval_total,
+            self.interval_caption,
+            self.interval_scale,
+        ):
+            interval_body.append(widget)
+        interval_row = Adw.PreferencesRow(title=_("Show each picture for"), activatable=False)
+        interval_row.set_child(interval_body)
+        self.grace_spin = self._spin(KEY_LOCK_GRACE_PERIOD_SECONDS)
+        grace_row = Adw.ActionRow(
+            title=_("Lock grace period"),
+            subtitle=_(
+                "Input sooner than this after the slideshow starts does not lock the "
+                "session (strictly sooner; 0 means every input locks)."
+            ),
+        )
+        grace_row.add_suffix(self._with_unit(self.grace_spin, _("seconds")))
+        timing_group = Adw.PreferencesGroup(title=_("Timing"))
+        timing_group.add(interval_row)
+        timing_group.add(grace_row)
 
-        # -- preview and status ------------------------------------------------------------
+        page = Adw.PreferencesPage()
+        for group in (self.pictures_group, transitions_group, idle_group, timing_group):
+            page.add(group)
+        page.set_vexpand(True)
+
+        # -- the header bar (Save), the preview and the status ------------------------------
+        self.save_button = Gtk.Button(label=_("Save"), sensitive=False)
+        self.save_button.add_css_class("suggested-action")
+        self.save_button.connect("clicked", lambda _button: self.save())
+        header = Adw.HeaderBar()
+        header.pack_end(self.save_button)
+
         self.preview_button = Gtk.Button(label=_("Preview"), valign=Gtk.Align.CENTER)
-        self.preview_button.add_css_class("suggested-action")
         self.preview_button.connect("clicked", lambda _button: self._start_preview())
-        self.status = self._subtitle("")
-        self.status.set_hexpand(True)
+        self.status = Gtk.Label(xalign=0, wrap=True, hexpand=True)
+        self.status.add_css_class("dim-label")
         footer = Gtk.Box(spacing=ROW_SPACING)
+        for margin in ("top", "bottom", "start", "end"):
+            getattr(footer, "set_margin_" + margin)(MARGIN if margin in ("start", "end") else 12)
         footer.append(self.preview_button)
         footer.append(self.status)
-        page.append(footer)
 
-        scrolled = Gtk.ScrolledWindow(
-            hscrollbar_policy=Gtk.PolicyType.NEVER, propagate_natural_height=True
-        )
-        scrolled.set_child(page)
-        self.set_child(scrolled)
+        content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        content.append(header)
+        content.append(page)
+        content.append(footer)
+        self.set_content(content)
         self.connect("close-request", self._on_close_request)
         settings.connect_changed(lambda _key: self.refresh() if not self._closed else None)
         self.refresh()
@@ -243,66 +286,19 @@ class PreferencesWindow(Gtk.Window):
     # -- building blocks ---------------------------------------------------------------------
 
     @staticmethod
-    def _label(text: str) -> Gtk.Label:
-        return Gtk.Label(label=text, xalign=0, valign=Gtk.Align.CENTER)
-
-    @staticmethod
-    def _subtitle(text: str) -> Gtk.Label:
-        label = Gtk.Label(label=text, xalign=0, wrap=True, max_width_chars=60)
-        label.add_css_class("dim-label")
-        label.add_css_class("sl-subtitle")
-        return label
-
-    @staticmethod
-    def _padded(child: Gtk.Widget) -> Gtk.ListBoxRow:
-        row = Gtk.ListBoxRow(activatable=False, selectable=False)
-        child.set_margin_top(ROW_PADDING)
-        child.set_margin_bottom(ROW_PADDING)
-        child.set_margin_start(MARGIN)
-        child.set_margin_end(MARGIN)
-        row.set_child(child)
+    def _combo(title: str, labels, subtitle: str = "") -> Adw.ComboRow:
+        """A row with a drop-down of *labels*; the selected index is the index of the choice."""
+        row = Adw.ComboRow(title=title, model=Gtk.StringList.new(list(labels)))
+        if subtitle:
+            row.set_subtitle(subtitle)
         return row
 
-    def _row(self, title: str, subtitle: str = "", control: Optional[Gtk.Widget] = None):
-        """A row of a group: title (and a dimmed line under it) on the left, the control right."""
-        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2, hexpand=True)
-        text.set_valign(Gtk.Align.CENTER)
-        text.append(self._label(title))
-        if subtitle:
-            text.append(self._subtitle(subtitle))
-        box = Gtk.Box(spacing=MARGIN)
-        box.append(text)
-        if control is not None:
-            control.set_valign(Gtk.Align.CENTER)
-            box.append(control)
-        return self._padded(box)
-
-    def _stacked_row(self, title: str, body: Gtk.Widget):
-        """A row whose control needs the full width: the title on top, the control under it."""
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ROW_SPACING)
-        box.append(self._label(title))
-        box.append(body)
-        return self._padded(box)
-
-    def _with_unit(self, widget: Gtk.Widget, unit: str) -> Gtk.Box:
-        box = Gtk.Box(spacing=ROW_SPACING)
-        box.append(widget)
-        box.append(self._label(unit))
-        return box
-
     @staticmethod
-    def _group(title: str, rows) -> Gtk.Box:
-        """A titled group of rows in one rounded frame, like the groups of the GNOME settings."""
-        heading = Gtk.Label(label=title, xalign=0)
-        heading.add_css_class("sl-group-title")
-        frame = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, show_separators=True)
-        frame.add_css_class("sl-group")
-        for row in rows:
-            frame.append(row)
-        group = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=ROW_SPACING)
-        group.append(heading)
-        group.append(frame)
-        return group
+    def _with_unit(widget: Gtk.Widget, unit: str) -> Gtk.Box:
+        box = Gtk.Box(spacing=ROW_SPACING, valign=Gtk.Align.CENTER)
+        box.append(widget)
+        box.append(Gtk.Label(label=unit, xalign=0))
+        return box
 
     def _interval_slider(self) -> Gtk.Scale:
         """The slide-interval slider. Its position is not the seconds: it is four equal quarters of
@@ -337,80 +333,96 @@ class PreferencesWindow(Gtk.Window):
         low, high = INT_RANGES[key]
         spin = Gtk.SpinButton.new_with_range(low, high, 1)
         spin.set_numeric(True)
+        spin.set_valign(Gtk.Align.CENTER)
         # A number outside the range, or text that is no number, is thrown away and the old value
         # stays (GTK's default would clamp it to the nearest limit). Known corner: an emptied
         # field reads as 0, so it is thrown away for every field but the grace period, whose
-        # minimum is 0: there it becomes 0, which is shown and stored alike.
+        # minimum is 0: there it becomes 0, which is shown and kept alike.
         spin.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
         spin.connect("value-changed", lambda button: self._on_int(key, button))
         return spin
 
-    # -- showing the stored values -------------------------------------------------------------
+    # -- showing the values in effect: the draft's, otherwise the stored ones -----------------
 
     def refresh(self) -> None:
-        """Put every field to the stored value. Also called when another process changes one."""
+        """Put every field to the value in effect. Also called when another process changes a
+        stored value: an edit that is not saved yet stays."""
         self._updating = True
         try:
             view = self._model.folder_view()
-            self.folder_entry.set_text(view.text)
-            self.folder_entry.set_placeholder_text(view.default)
-            self.folder_note.set_label(view.note)
+            self.folder_row.set_text(self._draft.folder_text())
+            self.pictures_group.set_description(view.note)
             self._show_interval()
             for key, spin in (
                 (KEY_IDLE_TIMEOUT_SECONDS, self.idle_spin),
                 (KEY_LOCK_GRACE_PERIOD_SECONDS, self.grace_spin),
             ):
-                spin.set_value(self._model.get(key))
-            self.order_drop.set_selected(CHOICES[KEY_ORDER].index(self._model.get(KEY_ORDER)))
-            self.scaling_drop.set_selected(CHOICES[KEY_SCALING].index(self._model.get(KEY_SCALING)))
+                spin.set_value(self._draft.value(key))
+            self.order_drop.set_selected(CHOICES[KEY_ORDER].index(self._draft.value(KEY_ORDER)))
+            self.scaling_drop.set_selected(
+                CHOICES[KEY_SCALING].index(self._draft.value(KEY_SCALING))
+            )
             # set_property, not set_active: the D11 scan flags that name (a screensaver call too)
-            self.pan_switch.set_property("active", self._model.get(KEY_PAN_PORTRAIT_IMAGES))
+            self.pan_switch.set_property("active", self._draft.value(KEY_PAN_PORTRAIT_IMAGES))
+            self.transition_drop.set_selected(
+                TRANSITION_CHOICES.index(self._draft.value(KEY_TRANSITIONS))
+            )
+            self.duration_scale.set_value(self._draft.value(KEY_TRANSITION_DURATION))
         finally:
             self._updating = False
+        self._update_save_button()
 
     def _show_interval(self) -> None:
-        """Put the slider, the big HH:MM:SS line and the caption to the stored slide interval.
+        """Put the slider, the big HH:MM:SS line and the caption to the slide interval in effect.
         Only shows: a stored value that is not a step stays as it is (the slider sits at the
-        nearest step, and ``_updating`` keeps the signal this raises from saving it)."""
+        nearest step, and ``_updating`` keeps the signal this raises from keeping it)."""
         was_updating = self._updating
         self._updating = True
         try:
-            view = self._model.interval_view()
+            view = self._draft.interval_view()
             self.interval_scale.set_value(view.position)
             self.interval_total.set_label(view.text)
             self.interval_caption.set_label(view.caption)
         finally:
             self._updating = was_updating
 
+    def _update_save_button(self) -> None:
+        self.save_button.set_sensitive(self._draft.dirty)
+
     def _report(self, result) -> None:
-        """Say what happened to the last change; a refused one puts the fields back."""
+        """Say what happened to the last edit; a refused one puts the fields back."""
         self.status.set_label(result.message)
         if not result.ok:
             self.refresh()
+        self._update_save_button()
 
     # -- changes made in the window ------------------------------------------------------------
 
     def _on_int(self, key: str, spin: Gtk.SpinButton) -> None:
         if not self._updating:
-            self._report(self._model.set_int(key, spin.get_value_as_int()))
+            self._report(self._draft.edit_int(key, spin.get_value_as_int()))
+
+    def _on_duration(self) -> None:
+        if not self._updating:
+            self._report(self._draft.edit_duration(self.duration_scale.get_value()))
 
     def _on_interval(self) -> None:
-        """The slider moved (by the user): snap it to its step and save that step.
+        """The slider moved (by the user): snap it to its step and keep that step.
 
         A slider set from inside its own handler is announced again after the handler ended, when
         the ``_updating`` guard is down (measured). That echo sits on a step and the step is what
-        is stored by then, so it is dropped here: nothing is saved twice and "Saved." does not
-        replace a message."""
+        is kept by then, so it is dropped here: nothing is kept twice and a message is not
+        replaced."""
         if self._updating:
             return
         raw = int(round(self.interval_scale.get_value()))
         snapped = snap_interval_position(raw)
         if snapped != raw:
             self._move_interval_slider(snapped)
-        stored = self._model.interval_view()
-        if stored.on_scale and stored.position == snapped:
+        current = self._draft.interval_view()
+        if current.on_scale and current.position == snapped:
             return
-        self._report(self._model.set_interval_position(snapped))
+        self._report(self._draft.edit_interval_position(snapped))
         self._show_interval()
 
     def _move_interval_slider(self, position: int) -> None:
@@ -422,7 +434,7 @@ class PreferencesWindow(Gtk.Window):
             self._updating = was_updating
 
     def _step_interval(self, steps: int) -> None:
-        """Move the slider *steps* steps of the scale; this saves like a drag does."""
+        """Move the slider *steps* steps of the scale; this keeps the value like a drag does."""
         current = snap_interval_position(int(round(self.interval_scale.get_value())))
         self.interval_scale.set_value(step_interval_position(current, steps))
 
@@ -456,20 +468,42 @@ class PreferencesWindow(Gtk.Window):
         drop = self.order_drop if key == KEY_ORDER else self.scaling_drop
         index = drop.get_selected()
         if 0 <= index < len(CHOICES[key]):
-            self._report(self._model.set_choice(key, CHOICES[key][index]))
+            self._report(self._draft.edit_choice(key, CHOICES[key][index]))
+
+    def _on_transition(self) -> None:
+        if self._updating:
+            return
+        index = self.transition_drop.get_selected()
+        if 0 <= index < len(TRANSITION_CHOICES):
+            self._report(self._draft.edit_transition(TRANSITION_CHOICES[index]))
 
     def _on_pan(self) -> None:
         if not self._updating:
-            self._report(self._model.set_pan_portrait_images(self.pan_switch.get_active()))
+            self._report(self._draft.edit_pan_portrait_images(self.pan_switch.get_active()))
+
+    def _on_folder_focus(self, controller, _pspec) -> None:
+        if not controller.get_property("contains-focus"):
+            self._commit_folder()
 
     def _commit_folder(self) -> None:
-        """Save the folder field if it holds something other than what is stored."""
+        """Keep the folder field if it holds something other than the folder in effect."""
         if self._updating:
             return
-        text = self.folder_entry.get_text()
-        if text.strip() == self._model.folder_view().text:
+        text = self.folder_row.get_text()
+        if text.strip() == self._draft.folder_text():
             return
-        self._report(self._model.set_folder(text))
+        self._report(self._draft.edit_folder(text))
+        self._show_folder()
+
+    def _show_folder(self) -> None:
+        """The field shows the folder as it would be stored (``~`` expanded, a trailing slash
+        gone)."""
+        was_updating = self._updating
+        self._updating = True
+        try:
+            self.folder_row.set_text(self._draft.folder_text())
+        finally:
+            self._updating = was_updating
 
     def _browse(self) -> None:
         chooser = Gtk.FileChooserNative(
@@ -480,7 +514,9 @@ class PreferencesWindow(Gtk.Window):
             cancel_label=_("Cancel"),
         )
         try:
-            chooser.set_current_folder(Gio.File.new_for_path(self._model.chooser_start_folder()))
+            chooser.set_current_folder(
+                Gio.File.new_for_path(self._model.chooser_start_folder(self._draft.folder_text()))
+            )
         except GLib.Error:
             pass  # the chooser opens where it likes
         chooser.connect("response", self._on_folder_chosen)
@@ -493,10 +529,23 @@ class PreferencesWindow(Gtk.Window):
         self._chooser = None
 
     def choose_folder(self, path: Optional[str]) -> None:
-        """A folder was picked in the chooser: show it and save it."""
+        """A folder was picked in the chooser: show it and keep it (saved with the rest)."""
         if path:
-            self.folder_entry.set_text(path)
-            self._report(self._model.set_folder(path))
+            self.folder_row.set_text(path)
+            self._report(self._draft.edit_folder(path))
+            self._show_folder()
+
+    # -- saving ------------------------------------------------------------------------------
+
+    def save(self) -> bool:
+        """Write the kept edits to the settings (the Save button, and the close of the window).
+        True when nothing is left unsaved; a value that could not be stored stays in the draft and
+        the status says why."""
+        self._commit_folder()
+        result = self._draft.save()
+        self.status.set_label(result.message)
+        self.refresh()
+        return result.ok
 
     # -- the preview -----------------------------------------------------------------------------
 
@@ -512,11 +561,13 @@ class PreferencesWindow(Gtk.Window):
         settings = source = None  # what a failed start has to take down again
         try:
             # Its own Settings object: the source keeps a change listener on the one it is given,
-            # and it should not outlive the preview on the window's own.
+            # and it should not outlive the preview on the window's own. The values of the window
+            # that are not saved yet replace the stored ones for this run; nothing is written.
             settings = Settings()
-            source = build_source(settings)
+            run_settings = SessionSettings(settings, self._draft.preview_values())
+            source = build_source(run_settings)
             source.start()
-            controller = start_preview(settings, source, self.get_application())
+            controller = start_preview(run_settings, source, self.get_application())
         except Exception:
             _LOG.exception("[slideshow] the preview could not be started")
             self._release_preview(source, settings)
@@ -556,9 +607,16 @@ class PreferencesWindow(Gtk.Window):
         return GLib.SOURCE_REMOVE
 
     def _on_close_request(self, _window) -> bool:
+        """Closing saves what was edited, without a question. A value that cannot be stored is
+        logged: the window closes all the same (it cannot ask, and a window that will not close
+        is worse)."""
         if self._preview is not None:
             self._preview[0].stop("settings window closed")
             self._preview_finished()
+        self._commit_folder()
+        result = self._draft.save()
+        if not result.ok:
+            _LOG.warning("[config] the changes could not be saved at close: %s", result.message)
         self._closed = True  # the settings listener stays, but does nothing from now on
         return False
 
@@ -596,7 +654,7 @@ def main(
         )
         return 2
 
-    app = Gtk.Application(application_id=APP_ID + ".Preferences")
+    app = Adw.Application(application_id=APP_ID + ".Preferences")
 
     def on_activate(application: Gtk.Application) -> None:
         window = PreferencesWindow(Settings(), application, before_preview)
