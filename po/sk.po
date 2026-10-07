@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Slovak\n"
@@ -48,20 +48,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Prispôsobiť (zobrazí celý obrázok)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Žiadny (zmeniť hneď)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Prelínanie"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Stmievanie cez čiernu"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Vsunutie"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Vytlačenie"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Priblíženie"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Stieranie"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Kruhové odhalenie"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Rozmazanie"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Otočenie"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Náhodný mix"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Nastavenia Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Prehľadávať…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Obrázky"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Priečinok s obrázkami"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Prehľadávať…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -84,8 +128,42 @@ msgstr ""
 "možnosťou Vyplniť). Predvolene vypnuté: spotrebúva viac batérie."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Spustiť prezentáciu"
+msgid "Pictures"
+msgstr "Obrázky"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Medzi obrázkami"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Ako sa jeden obrázok mení na ďalší. \"Náhodný mix\" pri každej zmene vyberie "
+"jeden z ôsmich (okrem Rozmazania a Ken Burns). Bez animácií pracovného "
+"prostredia sa obrázky menia hneď."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Dĺžka prechodu"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Ako dlho trvá jedna zmena, rovnako pri každom prechode. Nikdy nie je dlhšia "
+"ako polovica času, počas ktorého sa zobrazuje obrázok."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundy"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Prechody"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -96,12 +174,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Ako dlho bez vstupu, kým sa prezentácia spustí."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekundy"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Časovanie"
+msgid "Start the slideshow"
+msgstr "Spustiť prezentáciu"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -118,6 +192,14 @@ msgid ""
 msgstr ""
 "Vstup skôr, než uplynie táto doba od spustenia prezentácie, reláciu "
 "neuzamkne (striktne skôr; 0 znamená, že každý vstup uzamkne)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Časovanie"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Uložiť"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -307,6 +389,11 @@ msgstr "prispôsobiť alebo vyplniť monitor"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "pomaly posúvať obrázky na výšku (režim vyplnenia)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"ako sa jeden obrázok mení na ďalší, alebo vôbec (len pri tomto spustení)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

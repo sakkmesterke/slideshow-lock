@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 21:00+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Catalan\n"
@@ -24,7 +24,14 @@ msgstr "Inicia el servei de la presentació i obre la finestra de configuració.
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "a l'inici de la sessió: inicia el servei, obre la finestra només la primera vegada"
+msgstr ""
+"a l'inici de la sessió: inicia el servei, obre la finestra només la primera "
+"vegada"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "registra cada pas"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -43,20 +50,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Ajusta (mostra la imatge sencera)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Cap (canvi immediat)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Fosa creuada"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Fosa a negre"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Lliscament d'entrada"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Empenta"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoom"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Cortineta"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Revelació circular"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Desenfocament"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Rotació"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Mescla aleatòria"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Configuració de Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Navega…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Imatges"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Carpeta d'imatges"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Navega…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +122,50 @@ msgid "Scroll tall pictures"
 msgstr "Desplaça les imatges altes"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Les imatges verticals en una pantalla horitzontal es desplacen lentament de dalt a baix (només amb Omple). Desactivat per defecte: gasta més bateria."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Les imatges verticals en una pantalla horitzontal es desplacen lentament de "
+"dalt a baix (només amb Omple). Desactivat per defecte: gasta més bateria."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Inici de la presentació"
+msgid "Pictures"
+msgstr "Imatges"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Entre imatges"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Com una imatge canvia a la següent. «Mescla aleatòria» tria un dels vuit "
+"efectes a cada canvi (no Desenfocament ni Ken Burns). Sense animacions de "
+"l'escriptori, les imatges canvien de cop."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Durada de la transició"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Quant triga un canvi, igual per a totes les transicions. Mai dura més de la "
+"meitat del temps que es mostra una imatge."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "segons"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Transicions"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +176,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Quant de temps sense cap entrada abans que s'iniciï la presentació."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "segons"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Temporització"
+msgid "Start the slideshow"
+msgstr "Inici de la presentació"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +188,21 @@ msgid "Lock grace period"
 msgstr "Període de gràcia del bloqueig"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Una entrada anterior a aquest temps després d'iniciar-se la presentació no bloqueja la sessió (estrictament anterior; 0 vol dir que cada entrada bloqueja)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Una entrada anterior a aquest temps després d'iniciar-se la presentació no "
+"bloqueja la sessió (estrictament anterior; 0 vol dir que cada entrada "
+"bloqueja)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Temporització"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Desa"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -148,22 +246,22 @@ msgstr "No hi ha cap monitor on mostrar la vista prèvia."
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Vista prèvia en execució: premeu qualsevol tecla o moveu el ratolí per acabar-la."
+msgstr ""
+"Vista prèvia en execució: premeu qualsevol tecla o moveu el ratolí per "
+"acabar-la."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Canvia la configuració de la presentació."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "registra cada pas"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a GSettings:\n"
+msgstr ""
+"L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a "
+"GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
@@ -201,8 +299,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "En ús: %s (la carpeta encara no existeix, no es mostrarà res)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "No és un pas del control lliscant: es mostra el més proper. El valor desat es manté fins que moveu el control lliscant."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"No és un pas del control lliscant: es mostra el més proper. El valor desat "
+"es manté fins que moveu el control lliscant."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -266,8 +368,11 @@ msgid "No pictures to show"
 msgstr "No hi ha imatges per mostrar"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Mostra la vista prèvia de la presentació. Qualsevol entrada l'acaba. Mai bloqueja la sessió."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Mostra la vista prèvia de la presentació. Qualsevol entrada l'acaba. Mai "
+"bloqueja la sessió."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -290,15 +395,22 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "desplaça lentament les imatges verticals (mode d'emplenament)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "com una imatge canvia a la següent, o cap (només en aquesta execució)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "L'interval ha d'estar entre %d i %d segons."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a GSettings:\n"
+msgstr ""
+"L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a "
+"GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
@@ -307,8 +419,13 @@ msgid "Slideshow Lock preview"
 msgstr "Vista prèvia de Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Inicia la presentació quan la sessió està inactiva, bloqueja-la a la primera entrada després del període de gràcia i bloqueja-la abans que la màquina se suspengui."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Inicia la presentació quan la sessió està inactiva, bloqueja-la a la primera "
+"entrada després del període de gràcia i bloqueja-la abans que la màquina se "
+"suspengui."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -327,10 +444,13 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "El període de gràcia ha d'estar entre 0 i 86400 segons."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a GSettings:\n"
+msgstr ""
+"L'esquema de configuració no està instal·lat. Compileu-lo i indiqueu-lo a "
+"GSettings:\n"
 "  glib-compile-schemas data/\n"
 "  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
@@ -340,16 +460,34 @@ msgstr "Configura la presentació en inactivitat i el bloqueig de la sessió"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Salvapantalles de presentació d'imatges en inactivitat que bloqueja en detectar una entrada"
+msgstr ""
+"Salvapantalles de presentació d'imatges en inactivitat que bloqueja en "
+"detectar una entrada"
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Slideshow Lock inicia una presentació d'imatges a pantalla completa a cada monitor quan la sessió ha estat inactiva durant un temps determinat."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock inicia una presentació d'imatges a pantalla completa a cada "
+"monitor quan la sessió ha estat inactiva durant un temps determinat."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "La primera pulsació de tecla, clic o moviment del ratolí acaba la presentació. Si la presentació s'ha mostrat almenys durant el període de gràcia, la sessió també es bloqueja."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"La primera pulsació de tecla, clic o moviment del ratolí acaba la "
+"presentació. Si la presentació s'ha mostrat almenys durant el període de "
+"gràcia, la sessió també es bloqueja."
 
 #: data/io.github.trensoft.slideshowlock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Les imatges provenen d'una carpeta que trieu. Una finestra de configuració en defineix la carpeta, el temps d'inactivitat, el període de gràcia, durant quant de temps es mostra cada imatge, l'ordre i l'escalat."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Les imatges provenen d'una carpeta que trieu. Una finestra de configuració "
+"en defineix la carpeta, el temps d'inactivitat, el període de gràcia, durant "
+"quant de temps es mostra cada imatge, l'ordre i l'escalat."

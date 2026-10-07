@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Lithuanian\n"
@@ -49,20 +49,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Pritaikyti (rodo visą paveikslėlį)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Nėra (keisti iškart)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Persiliejimas"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Pereiti per juodą"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Įslinkimas"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Stūmimas"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Artinimas"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Nubraukimas"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Apskritimo atvėrimas"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Suliejimas"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Sukimas"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Atsitiktinis rinkinys"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "„Slideshow Lock“ nustatymai"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Naršyti…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Paveikslėliai"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Paveikslėlių aplankas"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Naršyti…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -86,8 +130,42 @@ msgstr ""
 "išjungta: naudoja daugiau akumuliatoriaus energijos."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Paleisti skaidrių rodymą"
+msgid "Pictures"
+msgstr "Paveikslėliai"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Tarp paveikslėlių"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Kaip vienas paveikslėlis pereina į kitą. \"Atsitiktinis rinkinys\" kiekvieną "
+"kartą parenka vieną iš aštuonių (be Suliejimo ir Ken Burns). Be darbalaukio "
+"animacijų paveikslėliai keičiasi iškart."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Perėjimo trukmė"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Kiek trunka vienas pakeitimas, vienodai kiekvienam perėjimui. Jis niekada "
+"nėra ilgesnis nei pusė laiko, kurį rodomas paveikslėlis."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundės"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Perėjimai"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -98,12 +176,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Kiek laiko be įvesties, kol prasidės skaidrių rodymas."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekundės"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Trukmė"
+msgid "Start the slideshow"
+msgstr "Paleisti skaidrių rodymą"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -121,6 +195,14 @@ msgstr ""
 "Įvestis, atsiradusi anksčiau nei per šį laiką po skaidrių rodymo pradžios, "
 "neužrakina seanso (griežtai anksčiau; 0 reiškia, kad kiekviena įvestis "
 "užrakina)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Trukmė"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Įrašyti"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -311,6 +393,11 @@ msgstr "pritaikyti arba užpildyti monitorių"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "lėtai slinkti stačiai orientuotus paveikslėlius (užpildymo režimas)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"kaip vienas paveikslėlis pereina į kitą arba jokio perėjimo (tik šį kartą)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

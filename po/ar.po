@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Arabic\n"
@@ -53,20 +53,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "ملاءمة (تُعرض الصورة كاملة)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "بلا انتقال (تغيير فوري)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "تلاشٍ متداخل"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "تلاشٍ عبر الأسود"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "انزلاق للداخل"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "دفع"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "تكبير"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "مسح"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "كشف دائري"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "تمويه"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "تدوير"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "مزيج عشوائي"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "إعدادات Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "استعراض…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "الصور"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "مجلد الصور"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "استعراض…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -89,8 +133,41 @@ msgstr ""
 "فقط). معطّل افتراضيًا: يستهلك مزيدًا من البطارية."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "بدء عرض الشرائح"
+msgid "Pictures"
+msgstr "الصور"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "بين الصور"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"كيف تتحول صورة إلى التالية. يختار \"مزيج عشوائي\" واحدًا من ثمانية عند كل "
+"تغيير (ليس التمويه ولا Ken Burns). بدون حركات سطح المكتب تتغير الصور فورًا."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "مدة الانتقال"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"المدة التي يستغرقها تغيير واحد، وهي نفسها لكل انتقال. لا تزيد أبدًا على نصف "
+"مدة عرض الصورة."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "ثوانٍ"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "الانتقالات"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -101,12 +178,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "المدة بلا إدخال قبل أن يبدأ عرض الشرائح."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "ثوانٍ"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "التوقيت"
+msgid "Start the slideshow"
+msgstr "بدء عرض الشرائح"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -123,6 +196,14 @@ msgid ""
 msgstr ""
 "أي إدخال يحدث قبل انقضاء هذه المدة منذ بدء عرض الشرائح لا يقفل الجلسة (قبلها "
 "تمامًا؛ القيمة 0 تعني أن كل إدخال يقفل الجلسة)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "التوقيت"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "حفظ"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -312,6 +393,10 @@ msgstr "ملاءمة الشاشة أو ملؤها"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "تمرير الصور الطولية ببطء (وضع الملء)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "كيف تتحول صورة إلى التالية، أو بلا انتقال (لهذا التشغيل فقط)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Romanian\n"
@@ -25,7 +25,8 @@ msgstr "Pornește serviciul de prezentare și deschide fereastra de setări."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "la autentificare: pornește serviciul, deschide fereastra doar prima dată"
+msgstr ""
+"la autentificare: pornește serviciul, deschide fereastra doar prima dată"
 
 #: slideshow_lock/control.py slideshow_lock/preferences.py
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
@@ -49,20 +50,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Potrivește (arată imaginea întreagă)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Fără (schimbă imediat)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Estompare încrucișată"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Estompare prin negru"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Glisare"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Împingere"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Mărire"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Ștergere"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Dezvăluire circulară"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Încețoșare"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Rotire"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Amestec aleatoriu"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Setări Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Răsfoiește…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Imagini"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Dosarul cu imagini"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Răsfoiește…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -85,8 +130,42 @@ msgstr ""
 "sus în jos (doar cu Umple). Dezactivat implicit: consumă mai multă baterie."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Pornește prezentarea de diapozitive"
+msgid "Pictures"
+msgstr "Imagini"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Între imagini"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Cum trece o imagine în următoarea. \"Amestec aleatoriu\" alege la fiecare "
+"schimbare una din opt (fără Încețoșare și Ken Burns). Fără animații ale "
+"desktopului, imaginile se schimbă imediat."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Durata tranziției"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Cât durează o schimbare, la fel pentru fiecare tranziție. Nu este niciodată "
+"mai lungă de jumătate din timpul cât este afișată o imagine."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "secunde"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Tranziții"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -97,12 +176,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Cât timp fără intrare înainte de pornirea prezentării de diapozitive."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "secunde"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Temporizare"
+msgid "Start the slideshow"
+msgstr "Pornește prezentarea de diapozitive"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -120,6 +195,14 @@ msgstr ""
 "O intrare mai devreme decât acest timp după pornirea prezentării nu "
 "blochează sesiunea (strict mai devreme; 0 înseamnă că orice intrare "
 "blochează)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Temporizare"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Salvează"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -310,6 +393,10 @@ msgstr "potrivește sau umple monitorul"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "derulează lent imaginile în format portret (modul de umplere)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "cum trece o imagine în următoarea, sau deloc (doar la această rulare)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

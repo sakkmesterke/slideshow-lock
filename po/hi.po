@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Hindi\n"
@@ -52,20 +52,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "फ़िट करें (पूरा चित्र दिखता है)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "कोई नहीं (तुरंत बदलें)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "क्रॉस-फ़ेड"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "काले से होकर फ़ेड"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "स्लाइड इन"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "पुश"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "ज़ूम"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "वाइप"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "गोलाकार प्रकटीकरण"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "धुंधला"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "घुमाएँ"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "यादृच्छिक मिश्रण"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Slideshow Lock की सेटिंग्स"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "ब्राउज़ करें…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "चित्र"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "चित्र फ़ोल्डर"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "ब्राउज़ करें…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -88,8 +132,41 @@ msgstr ""
 "डिफ़ॉल्ट रूप से बंद: इसमें अधिक बैटरी लगती है।"
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "स्लाइडशो शुरू करें"
+msgid "Pictures"
+msgstr "चित्र"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "चित्रों के बीच"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"एक चित्र अगले चित्र में कैसे बदलता है। \"यादृच्छिक मिश्रण\" हर बदलाव पर आठ में से एक चुनता "
+"है (धुंधला और Ken Burns नहीं)। डेस्कटॉप एनिमेशन के बिना चित्र तुरंत बदलते हैं।"
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "ट्रांज़िशन की अवधि"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"एक बदलाव में कितना समय लगता है, हर ट्रांज़िशन के लिए समान। यह चित्र दिखने के समय के आधे "
+"से कभी अधिक नहीं होता।"
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "सेकंड"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "ट्रांज़िशन"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -100,12 +177,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "स्लाइडशो शुरू होने से पहले बिना इनपुट के कितनी देर।"
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "सेकंड"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "समय-निर्धारण"
+msgid "Start the slideshow"
+msgstr "स्लाइडशो शुरू करें"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -122,6 +195,14 @@ msgid ""
 msgstr ""
 "स्लाइडशो शुरू होने के बाद इस समय से पहले हुआ इनपुट सत्र को लॉक नहीं करता (पूरी तरह पहले; "
 "0 का अर्थ है कि हर इनपुट लॉक करता है)।"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "समय-निर्धारण"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "सहेजें"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -309,6 +390,10 @@ msgstr "मॉनिटर पर फ़िट करें या भरें"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "पोर्ट्रेट चित्रों को धीरे-धीरे स्क्रॉल करें (भरने की विधि)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr "एक चित्र अगले चित्र में कैसे बदलता है, या कोई नहीं (केवल इस बार के लिए)"
 
 #: slideshow_lock/preview_app.py
 #, python-format
