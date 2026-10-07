@@ -58,7 +58,8 @@ new report is needed. No build is made in the COPR project before the tag, so th
 the release is the build of the tag, on the commit named in the report.
 
 The version in `pyproject.toml` and in `packaging/fedora/slideshow-lock.spec` is the tag without
-the `v`; check both before the report. The open points about the release version and the tarball
+the `v`; check both before the report. (The version shown in the settings window is read from
+`pyproject.toml` or the installed package at run time, so a release changes it nowhere else.) The open points about the release version and the tarball
 are in `docs/copr.md`, section 4.
 
 ## After "go"

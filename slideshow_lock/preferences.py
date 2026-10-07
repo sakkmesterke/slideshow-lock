@@ -83,6 +83,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_TRANSITIONS,
     Settings,
 )
+from slideshow_lock.version import program_version  # noqa: E402
 
 _LOG = logging.getLogger(__name__)
 
@@ -286,6 +287,13 @@ class PreferencesWindow(Adw.ApplicationWindow):
         footer.append(self.preview_button)
         footer.append(self.save_button)
         footer.append(self.status)
+        # The version, small and faint at the bottom right; it comes from the package itself.
+        self.version_label = Gtk.Label(
+            label=program_version(), xalign=1, valign=Gtk.Align.END, selectable=True
+        )
+        self.version_label.add_css_class("dim-label")
+        self.version_label.add_css_class("caption")
+        footer.append(self.version_label)
 
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         content.append(header)
