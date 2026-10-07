@@ -101,5 +101,17 @@
       </description>
     </key>
 
+    <key name="first-run-done" type="b">
+      <default>false</default>
+      <summary>The settings window was opened once at login</summary>
+      <description>
+        Set to true by the login start (slideshowlock autostart) when it opens
+        the settings window for the first time: it opens the window only while
+        this is false and no picture folder has been chosen, so that it
+        appears once, even if it is closed without choosing a folder. Not
+        shown in the settings window.
+      </description>
+    </key>
+
   </schema>
 </schemalist>
