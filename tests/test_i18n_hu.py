@@ -38,8 +38,9 @@ _spec = importlib.util.spec_from_file_location("i18n_catalog", REPO / "tools" / 
 catalog = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(catalog)
 
-#: Strings that are the same in Hungarian on purpose: the name of the program.
-SAME_AS_ENGLISH = {"Slideshow Lock"}
+#: Strings that are the same in Hungarian on purpose: the name of the program and the name of
+#: the transition that is a person's name.
+SAME_AS_ENGLISH = {"Slideshow Lock", "Ken Burns"}
 PLACEHOLDER = re.compile(r"%(?:\([A-Za-z_]+\))?[sdif]|%%")
 
 

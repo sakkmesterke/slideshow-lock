@@ -131,10 +131,13 @@ HUMAN_TRANSLATOR = "Slideshow Lock contributors"
 
 #: Strings that are the same as the English on purpose: the name of the program and the units
 #: (``10 s``, ``%d min``, ``1 h`` are written the same in all of these languages), and a word that
-#: is the same in French (``Transitions``).
+#: is the same in French (``Transitions``), the name of a transition that is a person's name
+#: (``Ken Burns``) or a loan word that most of these languages write as it is (``Zoom``).
 SAME_AS_ENGLISH = {
     "Slideshow Lock",
     "Transitions",
+    "Ken Burns",
+    "Zoom",
     "10 s",
     "1 min",
     "1 h",

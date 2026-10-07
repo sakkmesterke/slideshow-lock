@@ -21,6 +21,7 @@ from slideshow_lock.preferences_model import (
     INTERVAL_POSITIONS,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
+    RANDOM_POOL,
     TRANSITION_CHOICES,
     TRANSITION_ORDER_CHOICES,
     PreferencesModel,
@@ -46,6 +47,7 @@ from slideshow_lock.settings import (
     Settings,
     default_picture_folder,
 )
+from slideshow_lock.transitions import ALL_TRANSITIONS
 from tests.conftest import _ALL_SETTINGS_KEYS
 
 
@@ -440,6 +442,22 @@ def test_the_chooser_opens_in_the_home_directory_only_when_no_pictures_folder_ex
     assert model.chooser_start_folder() == os.path.expanduser("~")
 
 
+def test_the_chooser_opens_in_the_folder_of_the_field_not_in_the_stored_one(
+    model, tmp_path, monkeypatch
+):
+    """The field holds an edit that is not saved yet: that is where the user is looking."""
+    stored = tmp_path / "stored"
+    typed = tmp_path / "typed"
+    system = tmp_path / "Képek"
+    for folder in (stored, typed, system):
+        folder.mkdir()
+    _with_default(monkeypatch, str(system))
+    model.set_folder(str(stored))
+    assert model.chooser_start_folder(str(typed)) == str(typed)
+    assert model.chooser_start_folder(str(tmp_path / "gone")) == str(system)
+    assert model.chooser_start_folder("") == str(system)  # the field empty: the default folder
+
+
 # -- choices and the pan switch ----------------------------------------------------------------
 
 
@@ -474,13 +492,40 @@ def test_pan_takes_only_a_real_on_or_off(model, value):
 # -- transitions -----------------------------------------------------------------------------------
 
 
-def test_the_transition_drop_down_offers_none_and_what_this_version_draws():
-    assert TRANSITION_CHOICES == ("none", "crossfade", "fade-black")
+def test_the_transition_drop_down_offers_none_the_ten_transitions_and_the_random_mix():
+    assert TRANSITION_CHOICES == (
+        "none",
+        "crossfade",
+        "fade-black",
+        "slide-in",
+        "push",
+        "ken-burns",
+        "zoom",
+        "wipe",
+        "circle",
+        "blur",
+        "rotate",
+        "random",
+    )
+
+
+def test_the_random_mix_is_the_eight_without_blur_and_ken_burns():
+    assert RANDOM_POOL == (
+        "crossfade",
+        "fade-black",
+        "slide-in",
+        "push",
+        "zoom",
+        "wipe",
+        "circle",
+        "rotate",
+    )
 
 
 def test_the_window_starts_at_the_stored_transition(model):
-    assert model.transition_choice() == "crossfade"  # the default
+    assert model.transition_choice() == "crossfade"  # the default: the random mix is not
     assert model.get(KEY_TRANSITIONS) == ["crossfade"]
+    assert model.get(KEY_TRANSITION_ORDER) == "random"  # the default of the order key
 
 
 @pytest.mark.parametrize("value", TRANSITION_CHOICES)
@@ -495,31 +540,50 @@ def test_none_is_saved_as_the_empty_list_and_is_not_the_default_again(model):
     assert model.transition_choice() == "none"
 
 
-def test_a_transition_choice_is_saved_as_a_list_of_one_name(model):
-    assert model.set_transition("fade-black").ok
-    assert model.get(KEY_TRANSITIONS) == ["fade-black"]
+@pytest.mark.parametrize("value", [t for t in TRANSITION_CHOICES if t not in ("none", "random")])
+def test_a_transition_choice_is_saved_as_a_list_of_one_name(model, value):
+    assert model.set_transition(value).ok
+    assert model.get(KEY_TRANSITIONS) == [value]
 
 
-@pytest.mark.parametrize("value", ["wipe", "Crossfade", "", None, 1, ["crossfade"]])
+def test_a_single_transition_leaves_the_order_key_as_it_was(model):
+    assert model.set_transition_order("sequence").ok
+    assert model.set_transition("zoom").ok
+    assert model.get(KEY_TRANSITION_ORDER) == "sequence"
+
+
+def test_the_random_mix_stores_the_pool_and_the_order_random(model):
+    assert model.set_transition_order("sequence").ok
+    assert model.set_transition("random").ok
+    assert model.get(KEY_TRANSITIONS) == list(RANDOM_POOL)
+    assert model.get(KEY_TRANSITION_ORDER) == "random"
+    assert model.transition_choice() == "random"
+
+
+@pytest.mark.parametrize("value", ["Crossfade", "", None, 1, ["crossfade"], "circle-reveal"])
 def test_a_transition_that_is_not_offered_is_refused_and_the_stored_one_stays(model, value):
     before = model.get(KEY_TRANSITIONS)
     assert not model.set_transition(value).ok
     assert model.get(KEY_TRANSITIONS) == before
 
 
-def test_a_stored_list_with_a_name_this_version_cannot_draw_shows_what_is_drawn(model):
-    """Reading never writes: the stored list stays as it is, the drop-down shows what the
-    preview would really do."""
+def test_a_stored_list_of_two_or_more_names_shows_as_the_random_mix(model):
+    """Reading never writes: the stored list stays as it is, whatever it holds."""
     model._settings._settings.set_strv("transitions", ["wipe", "fade-black"])
-    assert model.transition_choice() == "fade-black"
+    assert model.transition_choice() == "random"
     assert model.get(KEY_TRANSITIONS) == ["wipe", "fade-black"]
-    model._settings._settings.set_strv("transitions", ["wipe"])
+    model._settings._settings.set_strv("transitions", list(ALL_TRANSITIONS))
+    assert model.transition_choice() == "random"
+
+
+def test_a_stored_list_of_one_name_shows_that_name_also_when_it_cannot_be_drawn_yet(model):
+    model._settings._settings.set_strv("transitions", ["blur"])
+    assert model.transition_choice() == "blur"
+
+
+def test_a_stored_list_with_only_unknown_names_shows_none(model):
+    model._settings._settings.set_strv("transitions", ["no-such-one"])
     assert model.transition_choice() == "none"
-
-
-def test_a_stored_list_with_several_names_shows_the_one_that_is_drawn(model):
-    model._settings._settings.set_strv("transitions", ["fade-black", "crossfade"])
-    assert model.transition_choice() == "crossfade"
 
 
 @pytest.mark.parametrize("value", TRANSITION_ORDER_CHOICES)
