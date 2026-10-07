@@ -76,8 +76,7 @@ def test_at_progress_one_the_new_picture_is_alone_and_untouched(name):
     draws = td.compose(name, 1.0, W, H, fade_share=0.1)
     assert draws, name
     assert draws[-1].layer == NEW and draws[-1].opacity == 1.0
-    if name != KEN_BURNS:  # Ken Burns ends zoomed: that is its point, the others end as they are
-        assert _new_whole(draws[-1])
+    assert _new_whole(draws[-1])  # Ken Burns too: its last frame is the plain picture, no jump
 
 
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
@@ -167,8 +166,26 @@ def test_ken_burns_fades_in_during_its_share_and_then_keeps_moving():
     end = td.compose(KEN_BURNS, 1.0, W, H, fade_share=0.1)[-1]
     assert 0.0 < early.opacity < 1.0
     assert late.opacity == 1.0 and end.opacity == 1.0
-    assert 1.0 < late.scale < end.scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM)
-    assert end.dx < late.dx < 0.0
+    start = td.compose(KEN_BURNS, 0.0, W, H, fade_share=0.1)[-1]
+    assert start.scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM) and start.dx < 0.0
+    assert start.scale > early.scale > late.scale > end.scale == 1.0
+    assert start.dx < early.dx < late.dx < end.dx == 0.0
+
+
+def test_ken_burns_last_frame_is_the_picture_the_plain_drawing_shows_after_it():
+    """The window draws the new picture plainly (scale 1, no shift, whole opacity) once the run is
+    over, so the last animated frame must be that: no jump when the run ends."""
+    plain = td.Draw(NEW)
+    for share in (0.0, 0.05, 0.1, 1.0):
+        assert td.compose(KEN_BURNS, 1.0, W, H, fade_share=share)[-1] == plain, share
+    run = td.TransitionRun(KEN_BURNS, 9.0, fade_share=0.1)
+    run.tick(0)  # the first frame
+    run.tick(1_000_000)  # the clock starts
+    assert run.tick(1_000_000 + 8_999_999)  # the last tick before the end still draws
+    almost = run.draws(W, H)[-1]
+    assert abs(almost.scale - 1.0) < 1e-5 and abs(almost.dx) < 1e-4 * W
+    assert run.tick(1_000_000 + 9_000_000) is False  # over: the window draws plainly
+    assert run.draws(W, H)[-1] == plain
 
 
 def test_ken_burns_with_a_zero_share_does_not_divide_by_zero():

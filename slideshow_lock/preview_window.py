@@ -209,7 +209,7 @@ class _Canvas(Gtk.Widget):
     ) -> None:
         """Start *name* from the old picture *outgoing* ``(texture, frame)`` to the one just set.
         *seconds* is how long it takes (for Ken Burns: how long its cross fade takes; its slow move
-        lasts as long as the picture is shown, *pan_seconds*)."""
+        lasts *pan_seconds*, the picture time without its rest, and ends on the plain picture)."""
         scale = self._scale()
         size = (round(self.get_width() * scale), round(self.get_height() * scale))
         frame = self._frame
