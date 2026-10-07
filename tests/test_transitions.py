@@ -10,15 +10,19 @@ import pytest
 from slideshow_lock import transitions
 from slideshow_lock.transitions import (
     ALL_TRANSITIONS,
-    BASE_SECONDS,
     CROSSFADE,
+    DEFAULT_DURATION,
     DEFAULT_TRANSITIONS,
     DRAWABLE,
     FADE_BLACK,
+    INTERVAL_SHARE,
+    MAX_DURATION,
+    MIN_DURATION,
     MIN_TRANSITION_SECONDS,
     ORDERS,
     RANDOM_POOL,
     choose,
+    clamp_duration,
     clean,
     is_valid,
     transition_seconds,
@@ -41,8 +45,10 @@ NAMES = (
 @pytest.fixture(autouse=True)
 def _forget_reported_names():
     transitions._reported.clear()
+    transitions._reported_durations.clear()
     yield
     transitions._reported.clear()
+    transitions._reported_durations.clear()
 
 
 # -- the identifiers are a contract --------------------------------------------------------------
@@ -77,10 +83,6 @@ def test_the_default_is_the_cross_fade_alone():
     assert ORDERS == ("random", "sequence")
 
 
-def test_every_identifier_has_a_length_and_nothing_else_does():
-    assert set(BASE_SECONDS) == set(ALL_TRANSITIONS)
-
-
 @pytest.mark.parametrize("name", NAMES)
 def test_every_identifier_is_valid(name):
     assert is_valid(name)
@@ -111,35 +113,78 @@ def test_clean_drops_an_unknown_name_and_says_so_once_per_name(caplog):
 # -- how long -------------------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(("name", "seconds"), [(CROSSFADE, 1.0), (FADE_BLACK, 1.2)])
-def test_on_a_long_interval_a_transition_takes_its_own_time(name, seconds):
-    assert transition_seconds(name, 10) == seconds
-    assert transition_seconds(name, 3600) == seconds
+def test_the_duration_is_one_value_for_all_with_these_limits():
+    assert (DEFAULT_DURATION, MIN_DURATION, MAX_DURATION) == (1.0, 0.2, 5.0)
+    assert INTERVAL_SHARE == 0.5
+    assert MIN_TRANSITION_SECONDS == 0.2
 
 
-@pytest.mark.parametrize("name", [CROSSFADE, FADE_BLACK])
-@pytest.mark.parametrize("interval", [1, 2, 3, 4, 5, 8])
-def test_a_transition_never_takes_more_than_a_quarter_of_the_interval(name, interval):
-    assert transition_seconds(name, interval) <= 0.25 * interval + 1e-9
+@pytest.mark.parametrize("name", NAMES)
+def test_every_transition_takes_the_same_stored_duration(name):
+    assert transition_seconds(name, 10) == 1.0  # the default
+    assert transition_seconds(name, 3600, 2.5) == 2.5
+    assert transition_seconds(name, 3600, 5.0) == 5.0
 
 
-def test_the_cap_is_a_quarter_of_the_interval():
-    assert transition_seconds(CROSSFADE, 2) == 0.5
-    assert transition_seconds(CROSSFADE, 1) == 0.25  # the shortest interval of the setting
-    assert transition_seconds(FADE_BLACK, 4) == 1.0
-    assert transition_seconds(FADE_BLACK, 4.8) == 1.2  # exactly where the own time takes over
+@pytest.mark.parametrize("duration", [0.2, 1.0, 3.0, 5.0])
+@pytest.mark.parametrize("interval", [1, 2, 3, 4, 5, 8, 10])
+def test_a_transition_never_takes_more_than_half_of_the_interval(duration, interval):
+    seconds = transition_seconds(CROSSFADE, interval, duration)
+    assert seconds <= 0.5 * interval + 1e-9
+    assert seconds == min(duration, 0.5 * interval)
+
+
+def test_the_cap_is_half_of_the_interval():
+    assert transition_seconds(CROSSFADE, 2) == 1.0  # exactly where the duration takes over
+    assert transition_seconds(CROSSFADE, 1) == 0.5  # the shortest interval of the setting
+    assert transition_seconds(CROSSFADE, 1.9) == 0.95
+    assert transition_seconds(CROSSFADE, 10, 5.0) == 5.0  # the default interval allows the maximum
+    assert transition_seconds(CROSSFADE, 9, 5.0) == 4.5
 
 
 def test_a_transition_shorter_than_two_tenths_of_a_second_is_a_cut():
-    assert MIN_TRANSITION_SECONDS == 0.2
-    assert transition_seconds(CROSSFADE, 0.8) == 0.2  # a quarter is exactly the shortest
-    assert transition_seconds(CROSSFADE, 0.79) == 0.0
+    assert transition_seconds(CROSSFADE, 0.4) == 0.2  # half is exactly the shortest
+    assert transition_seconds(CROSSFADE, 0.39) == 0.0
     assert transition_seconds(CROSSFADE, 0.1) == 0.0
+    assert transition_seconds(CROSSFADE, 10, 0.2) == 0.2  # the shortest the setting allows
 
 
 @pytest.mark.parametrize("name", ["", "none", "sparkle", None, 3])
 def test_a_name_that_is_not_a_transition_takes_no_time(name):
     assert transition_seconds(name, 10) == 0.0
+
+
+@pytest.mark.parametrize(
+    ("value", "kept"),
+    [(0.2, 0.2), (1.0, 1.0), (5.0, 5.0), (2, 2.0), (0.1, 0.2), (0.0, 0.2), (-3, 0.2)]
+    + [(5.01, 5.0), (60, 5.0), (float("inf"), 5.0), (float("-inf"), 0.2)],
+)
+def test_a_duration_is_brought_into_its_range(value, kept):
+    assert clamp_duration(value) == kept
+
+
+@pytest.mark.parametrize("value", [float("nan"), "1.0", None, True, [], "fast"])
+def test_what_is_not_a_number_becomes_the_default(value):
+    assert clamp_duration(value) == DEFAULT_DURATION
+
+
+def test_transition_seconds_clamps_the_duration_it_is_given():
+    assert transition_seconds(CROSSFADE, 3600, 99) == 5.0
+    assert transition_seconds(CROSSFADE, 3600, 0.01) == 0.2
+    assert transition_seconds(CROSSFADE, 3600, float("nan")) == 1.0
+
+
+def test_a_duration_out_of_range_is_said_once_per_value(caplog):
+    with caplog.at_level(logging.WARNING):
+        for _ in range(3):
+            clamp_duration(60)
+        clamp_duration(0.05)
+        clamp_duration(1.0)  # in range: nothing to say
+        clamp_duration("x")
+    messages = [r.getMessage() for r in caplog.records]
+    assert len(messages) == 3
+    assert all(m.startswith("[config]") for m in messages)
+    assert sum("60" in m for m in messages) == 1
 
 
 # -- which one -----------------------------------------------------------------------------------

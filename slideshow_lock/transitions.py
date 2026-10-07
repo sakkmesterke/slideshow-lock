@@ -9,9 +9,10 @@ written here. The slideshow draws all ten (``slideshow_lock.transition_draw`` sa
 like and which comes next, the preview window draws it); a name that is not one of them is dropped
 and logged once.
 
-A transition runs for ``transition_seconds`` from the moment the new picture appears, and never
-longer than a quarter of the slide interval, so a short interval does not turn into one long
-dissolve. Below ``MIN_TRANSITION_SECONDS`` a transition is not worth drawing: the picture is cut.
+A transition runs for ``transition_seconds`` from the moment the new picture appears: the one
+``transition-duration`` of the settings, for every transition, and never longer than half of the
+slide interval, so a short interval does not turn into one long dissolve. Below
+``MIN_TRANSITION_SECONDS`` a transition is not worth drawing: the picture is cut.
 """
 
 from __future__ import annotations
@@ -70,24 +71,15 @@ DEFAULT_ORDER = ORDER_RANDOM
 NONE = "none"
 RANDOM = "random"
 
-#: How long each transition takes, in seconds, before the limit of the slide interval.
-#: The Ken Burns figure is only its cross fade into the picture; the slow move that goes with it
-#: lasts for the whole time the picture is shown.
-BASE_SECONDS = {
-    CROSSFADE: 1.0,
-    FADE_BLACK: 1.2,
-    SLIDE_IN: 0.8,
-    PUSH: 0.8,
-    KEN_BURNS: 0.8,
-    ZOOM: 1.0,
-    WIPE: 0.8,
-    CIRCLE: 1.0,
-    BLUR: 1.2,
-    ROTATE: 1.0,
-}
+#: The length of a transition is one setting for all ten (``transition-duration``), in seconds:
+#: the default and the range the setting keeps to. The Ken Burns figure is only its cross fade into
+#: the picture; the slow move that goes with it lasts for the whole time the picture is shown.
+DEFAULT_DURATION = 1.0
+MIN_DURATION = 0.2
+MAX_DURATION = 5.0
 
 #: A transition may take at most this share of the slide interval.
-INTERVAL_SHARE = 0.25
+INTERVAL_SHARE = 0.5
 
 #: A transition shorter than this is not drawn: the new picture simply replaces the old one.
 MIN_TRANSITION_SECONDS = 0.2
@@ -126,14 +118,42 @@ def clean(names: Iterable) -> List[str]:
     return kept
 
 
-def transition_seconds(name: str, interval: float) -> float:
-    """How long *name* runs between two pictures shown *interval* seconds each: its own time, cut
-    to a quarter of the interval; 0.0 (no transition) when that is shorter than
-    ``MIN_TRANSITION_SECONDS`` or *name* is not a known transition."""
-    base = BASE_SECONDS.get(name) if isinstance(name, str) else None
-    if base is None:
+#: The values of ``transition-duration`` already reported as out of range, once each.
+_reported_durations: set = set()
+
+
+def clamp_duration(value) -> float:
+    """*value* as a ``transition-duration``: a number from ``MIN_DURATION`` to ``MAX_DURATION``.
+    A number outside the range is brought to the nearest end, anything else (not a number, NaN, a
+    bool) becomes ``DEFAULT_DURATION``; either is logged once per value, like an unknown
+    transition name, so the setting keeps working and the log says why it did not count as it
+    stood."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value != value:
+        kept = DEFAULT_DURATION
+    else:
+        kept = min(MAX_DURATION, max(MIN_DURATION, float(value)))
+    if kept != value:
+        shown = repr(value)
+        if shown not in _reported_durations:
+            _reported_durations.add(shown)
+            _LOG.warning(
+                "[config] the transition duration %s is not from %s to %s seconds, using %s",
+                shown,
+                MIN_DURATION,
+                MAX_DURATION,
+                kept,
+            )
+    return kept
+
+
+def transition_seconds(name: str, interval: float, duration: float = DEFAULT_DURATION) -> float:
+    """How long *name* runs between two pictures shown *interval* seconds each: *duration* (the
+    ``transition-duration``, brought into its range), cut to ``INTERVAL_SHARE`` of the interval;
+    0.0 (no transition) when that is shorter than ``MIN_TRANSITION_SECONDS`` or *name* is not a
+    known transition."""
+    if not is_valid(name):
         return 0.0
-    seconds = min(base, INTERVAL_SHARE * float(interval))
+    seconds = min(clamp_duration(duration), INTERVAL_SHARE * float(interval))
     return seconds if seconds >= MIN_TRANSITION_SECONDS else 0.0
 
 

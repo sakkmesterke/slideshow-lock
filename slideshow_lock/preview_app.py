@@ -60,6 +60,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
     KEY_TRANSITION_ORDER,
     KEY_TRANSITIONS,
     Settings,
@@ -160,6 +161,9 @@ class SessionSettings:
 
     def get_transition_order(self) -> str:
         return self._get(KEY_TRANSITION_ORDER, self._settings.get_transition_order)
+
+    def get_transition_duration(self) -> float:
+        return self._get(KEY_TRANSITION_DURATION, self._settings.get_transition_duration)
 
 
 def build_source(settings) -> ImageSource:
