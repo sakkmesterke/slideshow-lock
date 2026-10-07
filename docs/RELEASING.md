@@ -26,11 +26,16 @@ The maintainer's rule, set on 2026-10-07.
 4. The version of a release is always higher than that of any earlier build, test builds included.
    A test build gets a lower `Release` than the release, for example `1.0.1-0.1.test` against
    `1.0.1-1`, and never the `Release` of the release. The lower `Release` is set only in the build
-   that is tested, not on `main`: `main` has the `Release` of the release. Measured on 2026-10-07 by
-   the builder of the first EL10 test package, with `rpm --eval '%{lua:print(rpm.vercmp(...))}'` in a
-   CentOS Stream 10 build root: `1.0.1-0.1.test` against `1.0.1-1` gives -1, and with the dist tag
-   `1.0.1-0.1.test.el10` against `1.0.1-1.el10` gives -1, so the release updates the test build. Not
-   measured: a Fedora root.
+   that is tested, not on `main`: `main` has the `Release` of the release. Measured twice,
+   independently, on 2026-10-07 in a local, rootless CentOS Stream 10 build root (`rpm` 4.19.1.1),
+   not in the COPR project and not as a COPR build:
+
+   ```
+   rpm --eval '%{lua:print(rpm.vercmp("1.0.1-0.1.test","1.0.1-1"))}'
+   rpm --eval '%{lua:print(rpm.vercmp("1.0.1-0.1.test.el10","1.0.1-1.el10"))}'
+   ```
+
+   Both give -1, so the release updates the test build. Not measured: a Fedora root.
 
 1.0.0 had no such rule: its test builds and the release were all `1.0.0-1`, so the maintainer had to
 reinstall by hand.
@@ -114,13 +119,14 @@ measured.
 
 A push to a branch must not start a build; only the creation of a tag does. Measured: on
 2026-10-06 each merge into `main` (#52, #53, #54) started a build 2 seconds later (builds 11084437,
-11084605, 11084818). The COPR build list (`api_3/build/list`, read on 2026-10-07 at about 05:50
-CEST) ends with 11084848, version `1.0.0-1`, `succeeded`,
+11084605, 11084818). The COPR build list ends with 11084848, version `1.0.0-1`, `succeeded`,
 submitted at 12:56:08 UTC on 2026-10-06. It is the build of the tag `v1.0.0`: its source log shows
 `git checkout v1.0.0`, which is `f94b29d`, and the tag was made at 12:56:03 UTC (the tagger time in
-`git cat-file -p v1.0.0`), 5 seconds before. After it `main` got #55 (`ba5d30d`, merged at 15:59 CEST on 2026-10-06)
-and #56 to #63, and no build was submitted: #55 did not start a build, and neither did the later
-merges. `[H]` That the "Pushes" event is now off is a reading of this, not seen in the GitHub
+`git cat-file -p v1.0.0`), 5 seconds before. After it `main` got #55 (`ba5d30d`, merged at 15:59
+CEST on 2026-10-06) and #56 to #63, and no build was submitted: #55 did not start a build, and
+neither did the later merges. The list was read by the releaser from the COPR API
+(`api_3/build/list`) on 2026-10-07 at about 05:50 CEST; this cannot be reproduced from the
+repository. `[H]` That the "Pushes" event is now off is a reading of this, not seen in the GitHub
 settings.
 
 Any tag creation with the package name in the URL starts a build, whatever the tag is called, and
