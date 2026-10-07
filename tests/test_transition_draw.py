@@ -56,6 +56,7 @@ def _new_whole(draw: td.Draw) -> bool:
         and draw.dx == 0.0
         and draw.dy == 0.0
         and draw.blur == 0.0
+        and draw.soft is None  # no band of a soft edge left behind
         and clip_ok
         and circle_ok
     )
@@ -112,12 +113,15 @@ def _coverage(name: str, p: float) -> float:
     d = new[-1]
     if name in (CROSSFADE, FADE_BLACK, ZOOM, ROTATE):
         return d.opacity
-    if name in (SLIDE_IN, PUSH):
+    if name == SLIDE_IN:
         return 1.0 - d.dx / W
-    if name == WIPE:
-        return d.clip[2] / W
+    if name == PUSH:
+        return -td.compose(PUSH, p, W, H)[0].dx / W  # the old picture's move
+    soft = td.soft_width(W, H)
+    if name == WIPE:  # the soft front runs on past the window, and the last frame is the plain one
+        return 1.0 if d.clip is None else d.clip[2] / (W + soft)
     if name == CIRCLE:
-        return d.circle[2] / (math.hypot(W, H) / 2)
+        return 1.0 if d.circle is None else d.circle[2] / (math.hypot(W, H) / 2 + soft)
     if name == KEN_BURNS:
         return d.opacity
     if name == BLUR:
@@ -153,10 +157,15 @@ def test_slide_in_moves_the_new_picture_over_a_still_old_one_inside_the_window()
     assert new.dx == pytest.approx(W * 0.5) and new.clip == (0.0, 0.0, W, H)
 
 
-def test_push_moves_both_pictures_together():
+def test_push_moves_both_pictures_together_the_new_one_over_the_edge_of_the_old_one():
     for p in (0.1, 0.5, 0.9):
         old, new = td.compose(PUSH, p, W, H)
-        assert new.dx - old.dx == pytest.approx(W)  # always one window apart
+        e = td.ease(p)
+        assert old.dx == pytest.approx(-W * e)  # the old picture goes out as fast as ever
+        # the new one is one window behind it, less the overlap its soft edge dissolves over
+        overlap = W - (new.dx - old.dx)
+        assert 0.0 < overlap <= td.soft_width(W, H) + 1e-9
+        assert new.soft.width == pytest.approx(overlap)
         assert old.clip == new.clip == (0.0, 0.0, W, H)
 
 
@@ -200,12 +209,16 @@ def test_zoom_grows_the_old_picture_and_brings_the_new_one_in_from_smaller():
 
 
 def test_wipe_runs_left_to_right_and_the_circle_grows_from_the_centre():
-    assert td.compose(WIPE, 0.5, W, H)[-1].clip == (0.0, 0.0, W * 0.5, H)
+    soft = td.soft_width(W, H)
+    assert td.compose(WIPE, 0.5, W, H)[-1].clip == (0.0, 0.0, (W + soft) * 0.5, H)
     cx, cy, r = td.compose(CIRCLE, 0.5, W, H)[-1].circle
     assert (cx, cy) == (W / 2, H / 2)
-    assert r == pytest.approx(0.5 * math.hypot(W, H) / 2)
-    # the full circle covers the corners: the farthest point from the centre is half the diagonal
-    assert td.compose(CIRCLE, 1.0, W, H)[-1].circle[2] == pytest.approx(math.hypot(W, H) / 2)
+    # the soft rim runs on until its whole band is past the corners (the farthest point from the
+    # centre is half the diagonal): the circle ends a band's width larger than the corners need
+    assert r == pytest.approx(0.5 * (math.hypot(W, H) / 2 + soft))
+    assert td.compose(CIRCLE, 0.999, W, H)[-1].circle[2] > math.hypot(W, H) / 2
+    assert td.compose(CIRCLE, 1.0, W, H)[-1] == td.Draw(NEW)
+    assert td.compose(WIPE, 1.0, W, H)[-1] == td.Draw(NEW)
 
 
 def test_blur_peaks_at_the_cut_and_shows_the_old_picture_first_then_the_new_one():

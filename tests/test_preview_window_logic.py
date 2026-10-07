@@ -443,3 +443,109 @@ def test_the_first_frame_draws_both_pictures_and_the_second_draws_them_at_progre
     textures = [c[1] for c in snapshot.calls if c[0] == "append_texture"]
     assert window._old_texture in textures and window._texture in textures
     assert snapshot.calls[0][0] == "append_color"  # black comes first
+
+
+# -- the soft edges: the calls the canvas makes for them -----------------------------------------
+
+
+class _Texture:
+    def __init__(self, width, height):
+        self._size = (width, height)
+
+    def get_width(self):
+        return self._size[0]
+
+    def get_height(self):
+        return self._size[1]
+
+
+class _SnapshotWithoutMasks(_Snapshot):
+    """GTK before 4.10: no ``push_mask``."""
+
+    def __getattr__(self, name):
+        if name == "push_mask":
+            raise AttributeError(name)
+        return super().__getattr__(name)
+
+
+@pytest.fixture(autouse=False)
+def mask_mode(monkeypatch):
+    """``Gsk.MaskMode`` does not exist before GTK 4.10 (the tests of the calls run on any GTK)."""
+    import types
+
+    monkeypatch.setattr(
+        preview_window.Gsk, "MaskMode", types.SimpleNamespace(ALPHA="alpha"), raising=False
+    )
+
+
+def painting_canvas(width=64, height=36):
+    canvas = _Canvas.__new__(_Canvas)
+    canvas._scale = lambda: 1.0
+    canvas._old_texture, canvas._texture = _Texture(width, height), _Texture(width, height)
+    canvas._old_offset = canvas._offset = (0, 0)
+    canvas._reduced = {}
+    return canvas
+
+
+def paint_calls(name, progress, snapshot=None):
+    """The names of the calls the canvas makes to paint the new picture of *name* at *progress*."""
+    from slideshow_lock import transition_draw as td
+
+    snapshot = snapshot if snapshot is not None else _Snapshot()
+    draw = td.compose(name, progress, 64.0, 36.0)[-1]
+    painting_canvas()._paint(snapshot, draw, 64.0, 36.0)
+    return [call[0] for call in snapshot.calls]
+
+
+def test_a_soft_edge_is_a_mask_whose_gradient_comes_first_and_the_picture_after_it(mask_mode):
+    """GTK takes what is recorded before the first ``pop`` as the mask, the rest as the picture it
+    cuts: the other way round, the gradient would be painted, masked by the picture."""
+    names = paint_calls("slide-in", 0.5)
+    start = names.index("push_mask")
+    assert names[start : start + 5] == [
+        "push_mask",
+        "append_linear_gradient",
+        "pop",
+        "append_texture",
+        "pop",
+    ]
+    names = paint_calls("circle", 0.5)
+    start = names.index("push_mask")
+    assert names[start : start + 3] == ["push_mask", "append_radial_gradient", "pop"]
+    assert names.index("append_texture") > start + 2
+
+
+def test_an_edge_on_two_axes_is_two_masks_one_inside_the_other(mask_mode):
+    names = paint_calls("zoom", 0.25)
+    start = names.index("push_mask")
+    assert names[start : start + 9] == [
+        "push_mask",
+        "append_linear_gradient",
+        "pop",
+        "push_mask",
+        "append_linear_gradient",
+        "pop",
+        "append_texture",
+        "pop",
+        "pop",
+    ]
+
+
+@pytest.mark.parametrize("name", ("slide-in", "push", "wipe", "circle", "zoom", "rotate"))
+@pytest.mark.parametrize("progress", (0.0, 0.1, 0.5, 0.9, 1.0))
+def test_every_push_is_popped_with_or_without_masks(mask_mode, name, progress):
+    for snapshot in (_Snapshot(), _SnapshotWithoutMasks()):
+        names = paint_calls(name, progress, snapshot)
+        pushes = [n for n in names if n.startswith("push_")]
+        assert names.count("pop") == len(pushes) + names.count("push_mask")  # a mask ends twice
+        assert names.count("save") == names.count("restore")
+        for position, called in enumerate(names):
+            if called.endswith("_gradient"):
+                assert names[position - 1] == "push_mask"
+
+
+@pytest.mark.parametrize("name", ("slide-in", "push", "wipe", "circle", "zoom", "rotate"))
+def test_before_gtk_4_10_the_edges_stay_as_they_were_cut(name):
+    names = paint_calls(name, 0.5, _SnapshotWithoutMasks())
+    assert "push_mask" not in names and not any(n.endswith("_gradient") for n in names)
+    assert "append_texture" in names
