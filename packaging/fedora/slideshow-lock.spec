@@ -152,6 +152,16 @@ BuildRequires:  gtk4
 BuildRequires:  graphene
 BuildRequires:  gdk-pixbuf2
 BuildRequires:  glib2
+BuildRequires:  libadwaita
+# [M] the settings window is moving to libadwaita, which Python loads as gi.require_version("Adw", "1")
+# (the typelib Adw-1.typelib, a file of the package libadwaita itself, not of libadwaita-devel). The code
+# of this tree does not import Adw yet; the line is here for the %%check below: %%pyproject_check_import
+# imports every module, so the build root needs the typelib as soon as one of them does. [M] read in the
+# live repodata (primary.xml and filelists.xml) on 2026-10-07: CentOS Stream 10 AppStream has libadwaita
+# 1.6.10-1.el10 (and 1.6.0, 1.6.1, 1.6.6), Fedora 43 has 1.8.1-1.fc43 (release) and 1.8.8-1.fc43
+# (updates), EPEL 10 has none (it is not needed). [M] in a rootless CentOS Stream 10 root with the
+# libadwaita-1.6.10-1.el10 and appstream-1.0.2-5.el10 files unpacked (no scriptlets, no dnf),
+# gi.require_version("Adw", "1") loads Adw 1.6.10. NOT measured: the same on Fedora 43.
 BuildRequires:  gobject-introspection
 # [M] cairo-1.0.typelib is a file of the package gobject-introspection (the rpm of Fedora 43, 44 and
 # rawhide and the filelists of the Fedora 43 and CentOS Stream 10 repositories, read). No module of
@@ -184,6 +194,15 @@ BuildRequires:  dbus-daemon
 # or EL machine can (NOT run, see STATUS). The one typelib package that is listed by name,
 # gobject-introspection, is explained at its own line.
 Requires:       gtk4
+Requires:       libadwaita
+# [M] the same package as the BuildRequires above, for the run time: the typelib Adw-1 is in it. A
+# dependency on the typelib itself cannot be written: no primary.xml of CentOS Stream 10 (BaseOS,
+# AppStream, CRB), EPEL 10 or Fedora 43 (release, updates) has a typelib(...) provide, so the package
+# name is the dependency. [M] libadwaita 1.6.10-1.el10 requires gtk4 >= 4.15.2 (EL10 has 4.16.7-6.el10),
+# libadwaita 1.8.8-1.fc43 requires gtk4 >= 4.17.5 (Fedora 43 has 4.20.4-1.fc43); appstream, fribidi,
+# graphene and pango are in the same repositories. No version is required here: the window code is
+# meant to use only what libadwaita 1.2 (the development machine) and 1.6 (EL10) both have, a decision
+# relayed in the brief of this change, not read from this repository.
 Requires:       graphene
 Requires:       gdk-pixbuf2
 # [M] the cairo typelib is needed at run time as well: in a Fedora 43 root made of the requirements of
