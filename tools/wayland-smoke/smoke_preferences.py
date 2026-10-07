@@ -221,6 +221,17 @@ def main() -> int:
         and save_parent is window.preview_button.get_parent()
         and window.preview_button.get_next_sibling() is window.save_button,
     )
+    from slideshow_lock.version import program_version
+
+    label = window.version_label
+    check(
+        "the version is the last thing in the footer, faint, and the package's own",
+        label.get_parent() is save_parent
+        and label.get_next_sibling() is None
+        and label.has_css_class("dim-label")
+        and label.get_label() == program_version() != "",
+        label.get_label(),
+    )
     check(
         "Save is not in the header bar",
         not any(isinstance(widget, Adw.HeaderBar) for widget in ancestors),

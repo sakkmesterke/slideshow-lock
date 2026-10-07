@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Save button next to the Preview button at the bottom. Run it from a source checkout:
+A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Save button next to the Preview button at the bottom and the program's version, small and faint, at the bottom right. The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
