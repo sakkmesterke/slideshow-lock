@@ -1,18 +1,21 @@
 #!/bin/sh
-# The short command of the installed package: it opens the settings window.
-# "slideshowlock [args...]" is "slideshow-lock settings [args...]"; the other programs stay with
-# slideshow-lock (service, preview). Only -h and --help are answered here, so that they name this
-# command. Anything else goes on to the settings window, so "slideshowlock help" is an argparse
+# The short command of the installed package: it starts the background service and opens the
+# settings window. "slideshowlock [args...]" is "slideshow-lock control [args...]"; the other
+# programs stay with slideshow-lock (service, settings, preview). "slideshowlock autostart" is what
+# the autostart entry runs at login. Only -h and --help are answered here, so that they name this
+# command. Anything else goes on to slideshow_lock.control, so "slideshowlock help" is an argparse
 # error (exit status 2), whereas "slideshow-lock help" works.
 case "${1:-}" in
     -h | --help)
         printf '%s\n' \
-            'usage: slideshowlock [--debug]' \
+            'usage: slideshowlock [autostart] [--debug]' \
             '' \
-            'Opens the Slideshow Lock settings window. The same as: slideshow-lock settings' \
+            'Starts the Slideshow Lock service and opens the settings window. The same as:' \
+            'slideshow-lock control. "autostart" is for the login start: the service is started' \
+            'and the window opens only the first time, when no picture folder is chosen.' \
             '--debug logs every step. The service and the preview are started with' \
             'slideshow-lock service and slideshow-lock preview (slideshow-lock --help).'
         exit 0
         ;;
 esac
-exec /usr/bin/slideshow-lock settings "$@"
+exec /usr/bin/slideshow-lock control "$@"

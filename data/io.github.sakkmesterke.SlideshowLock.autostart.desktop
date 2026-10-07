@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Slideshow Lock
+Comment=Start the idle slideshow at login
+Exec=/usr/bin/slideshowlock autostart
+TryExec=/usr/bin/slideshowlock
+Terminal=false
+NoDisplay=true
+OnlyShowIn=GNOME;

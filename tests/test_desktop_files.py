@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from slideshow_lock import APP_ID
+from slideshow_lock import APP_ID, control
 
 REPO = Path(__file__).resolve().parent.parent
 DATA = REPO / "data"
@@ -27,7 +27,9 @@ METAINFO_IN = DATA / f"{APP_ID}.metainfo.xml.in"
 ICONS = DATA / "icons" / "hicolor"
 COLOR_ICON = ICONS / "scalable" / "apps" / f"{APP_ID}.svg"
 SYMBOLIC_ICON = ICONS / "symbolic" / "apps" / f"{APP_ID}-symbolic.svg"
+AUTOSTART_DESKTOP = DATA / f"{APP_ID}.autostart.desktop"
 PREFERENCES_PY = REPO / "slideshow_lock" / "preferences.py"
+SPEC = REPO / "packaging" / "fedora" / "slideshow-lock.spec"
 COMMAND = "slideshow-lock"
 SHORT_COMMAND = "slideshowlock"  # opens the settings window, packaging/slideshowlock
 
@@ -45,10 +47,10 @@ def desktop_problems(text: str, preferences_text: str) -> list[str]:
     problems = []
     if entry.get("Icon") != APP_ID:
         problems.append("Icon is not the application id")
-    if entry.get("Exec") != f"{COMMAND} settings":
-        problems.append("Exec does not start the settings window")
-    if entry.get("TryExec") != COMMAND:
-        problems.append("TryExec is not the command")
+    if entry.get("Exec") != SHORT_COMMAND:
+        problems.append("Exec does not start the short command")
+    if entry.get("TryExec") != SHORT_COMMAND:
+        problems.append("TryExec is not the short command")
     wm_class = entry.get("StartupWMClass", "")
     if f'application_id=APP_ID + "{wm_class.removeprefix(APP_ID)}"' not in preferences_text:
         problems.append("StartupWMClass is not the application id of the settings window")
@@ -58,6 +60,28 @@ def desktop_problems(text: str, preferences_text: str) -> list[str]:
         problems.append("Terminal is not false")
     if "Settings" not in entry.get("Categories", "").split(";"):
         problems.append("Categories has no Settings")
+    return problems
+
+
+def autostart_problems(text: str) -> list[str]:
+    """What is wrong with the autostart entry; an empty list when nothing is. It runs the short
+    command by its absolute path (no ``PATH`` search at login) with the one mode ``control``
+    knows for it, it is not shown anywhere, and it is for GNOME only."""
+    entry = desktop_entry(text)
+    problems = []
+    if entry.get("Exec") != f"/usr/bin/{SHORT_COMMAND} {control.AUTOSTART}":
+        problems.append("Exec is not the short command's login start")
+    if entry.get("TryExec") != f"/usr/bin/{SHORT_COMMAND}":
+        problems.append("TryExec is not the short command")
+    if entry.get("NoDisplay", "false").lower() != "true":
+        problems.append("NoDisplay does not hide the entry")
+    if entry.get("OnlyShowIn") != "GNOME;":
+        problems.append("OnlyShowIn is not GNOME")
+    if entry.get("Type") != "Application" or not entry.get("Name"):
+        problems.append("Type or Name is missing")
+    for key in ("Hidden", "X-GNOME-Autostart-enabled", "X-GNOME-Autostart-Phase"):
+        if key in entry:
+            problems.append(f"{key} is set: the entry would be off, or move in the login")
     return problems
 
 
@@ -96,6 +120,24 @@ def test_the_desktop_template_names_agree_with_the_code():
     )
 
 
+def test_the_autostart_entry_agrees_with_the_short_command():
+    assert autostart_problems(AUTOSTART_DESKTOP.read_text(encoding="utf-8")) == []
+
+
+def test_the_spec_installs_the_autostart_entry_under_the_application_id_as_config():
+    text = SPEC.read_text(encoding="utf-8")
+    assert re.search(
+        r"^install -Dpm 0644 data/%\{app_id\}\.autostart\.desktop \\\n"
+        r"    %\{buildroot\}%\{_sysconfdir\}/xdg/autostart/%\{app_id\}\.desktop$",
+        text,
+        re.MULTILINE,
+    )
+    files = text.split("\n%files", 1)[1].split("\n%changelog", 1)[0].splitlines()
+    assert "%config(noreplace) %{_sysconfdir}/xdg/autostart/%{app_id}.desktop" in files
+    # nothing is enabled or preset: the autostart entry is the one way the service starts
+    assert not re.search(r"^[^#\n]*(user-preset|systemctl[^\n]* enable)", text, re.MULTILINE)
+
+
 def test_the_metainfo_template_names_agree_with_the_desktop_file():
     assert metainfo_problems(METAINFO_IN.read_text(encoding="utf-8")) == []
 
@@ -130,11 +172,11 @@ def test_a_wrong_icon_name_is_reported():
 
 def test_a_wrong_exec_and_try_exec_are_reported():
     desktop, prefs = _desktop()
-    assert "Exec does not start the settings window" in desktop_problems(
-        desktop.replace("Exec=slideshow-lock settings", "Exec=slideshow-lock"), prefs
+    assert "Exec does not start the short command" in desktop_problems(
+        desktop.replace("Exec=slideshowlock", "Exec=slideshow-lock settings"), prefs
     )
-    assert "TryExec is not the command" in desktop_problems(
-        desktop.replace("TryExec=slideshow-lock", "TryExec=slideshow-lock-settings"), prefs
+    assert "TryExec is not the short command" in desktop_problems(
+        desktop.replace("TryExec=slideshowlock", "TryExec=slideshow-lock-settings"), prefs
     )
 
 
@@ -148,6 +190,41 @@ def test_a_window_class_that_is_not_the_settings_window_is_reported():
 def test_a_hidden_launcher_is_reported():
     desktop, prefs = _desktop()
     assert "NoDisplay hides the launcher" in desktop_problems(desktop + "NoDisplay=true\n", prefs)
+
+
+@pytest.mark.parametrize(
+    "old, new, problem",
+    [
+        (
+            "Exec=/usr/bin/slideshowlock autostart",
+            "Exec=slideshowlock autostart",
+            "Exec is not the short command's login start",
+        ),
+        (
+            "Exec=/usr/bin/slideshowlock autostart",
+            "Exec=/usr/bin/slideshowlock",
+            "Exec is not the short command's login start",
+        ),
+        (
+            "TryExec=/usr/bin/slideshowlock",
+            "TryExec=slideshowlock",
+            "TryExec is not the short command",
+        ),
+        ("NoDisplay=true", "NoDisplay=false", "NoDisplay does not hide the entry"),
+        ("OnlyShowIn=GNOME;", "OnlyShowIn=GNOME;KDE;", "OnlyShowIn is not GNOME"),
+        ("Type=Application\n", "", "Type or Name is missing"),
+    ],
+)
+def test_a_broken_autostart_entry_is_reported(old, new, problem):
+    text = AUTOSTART_DESKTOP.read_text(encoding="utf-8")
+    assert old in text
+    assert problem in autostart_problems(text.replace(old, new))
+
+
+@pytest.mark.parametrize("extra", ["Hidden=true", "X-GNOME-Autostart-enabled=false"])
+def test_an_autostart_entry_that_is_switched_off_is_reported(extra):
+    text = AUTOSTART_DESKTOP.read_text(encoding="utf-8") + extra + "\n"
+    assert autostart_problems(text)
 
 
 def test_a_wrong_metainfo_id_and_launchable_are_reported():
