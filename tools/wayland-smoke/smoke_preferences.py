@@ -255,8 +255,7 @@ def main() -> int:
     window.save_button.emit("clicked")
     check(
         "Save writes every field",
-        stored_values()
-        == (300, 5, 20, "name", "fit", True, True, ["fade-black"], 2.5, folder),
+        stored_values() == (300, 5, 20, "name", "fit", True, True, ["fade-black"], 2.5, folder),
         str(stored_values()),
     )
     check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
