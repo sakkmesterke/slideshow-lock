@@ -16,6 +16,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Iniciar el servicio de la presentación y abrir la ventana de preferencias."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "al iniciar sesión: iniciar el servicio y abrir la ventana solo la primera vez"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Aleatorio"
@@ -144,8 +152,8 @@ msgstr "Vista previa en curso: pulsar cualquier tecla o mover el ratón para ter
 msgid "Change the slideshow settings."
 msgstr "Cambiar las preferencias de la presentación."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "log every step"
 msgstr "registrar cada paso"
 

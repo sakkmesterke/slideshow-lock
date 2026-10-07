@@ -3,14 +3,26 @@ GNOME/Wayland screensaver that starts a fullscreen slideshow after idle and lock
 
 ## Using it
 
-After the installation the service is not running and not enabled (the package ships no preset for it). Switch it on and off from a terminal:
+After the installation, log out and in again, or start "Slideshow Lock" from the application menu: both start the service (the systemd user unit `slideshow-lock`). At the first login the settings window opens once, if no picture folder has been chosen. The package enables nothing and ships no preset; the start at login is an XDG autostart entry, `/etc/xdg/autostart/io.github.sakkmesterke.SlideshowLock.desktop`, which runs `slideshowlock autostart` (GNOME only).
+
+Stop the service until the next login:
 
 ```
-systemctl --user enable --now slideshow-lock
-systemctl --user disable --now slideshow-lock
+systemctl --user stop slideshow-lock
 ```
 
-The settings window opens from the application menu ("Slideshow Lock") or with `slideshow-lock settings`. In 1.0.0 the settings window has no on/off switch: only the two commands above switch the service.
+To keep it from starting at every login, override the autostart entry for your user: create `~/.config/autostart/io.github.sakkmesterke.SlideshowLock.desktop` with this content (the settings window has no switch for this yet):
+
+```
+[Desktop Entry]
+Type=Application
+Name=Slideshow Lock
+Exec=/usr/bin/slideshowlock autostart
+Hidden=true
+X-GNOME-Autostart-enabled=false
+```
+
+`systemctl --user disable --now slideshow-lock` alone does not do this: the autostart entry starts the service again at the next login (and every time `slideshowlock` is run). `systemctl --user enable slideshow-lock` is not needed.
 
 ## Translations
 
@@ -18,4 +30,4 @@ The interface is available in 40 languages besides English. The 35 languages add
 
 ## Commands
 
-`slideshowlock` opens the settings window (the same as `slideshow-lock settings`). `slideshow-lock` starts the other programs: `slideshow-lock service` and `slideshow-lock preview`; `slideshow-lock --help` lists them.
+`slideshowlock` starts the service and opens the settings window (the same as `slideshow-lock control`). `slideshow-lock` starts the programs one by one: `slideshow-lock service`, `slideshow-lock settings` (the window alone), `slideshow-lock preview`; `slideshow-lock --help` lists them.
