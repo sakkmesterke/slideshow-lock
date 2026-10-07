@@ -109,10 +109,14 @@ Release:        1%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
-License:        GPL-3.0-or-later
-# The maintainer's decision (2026-10-05), not read from the repository: LICENSE is the plain GPLv3
-# text, pyproject.toml says license = { file = "LICENSE" } and the source files carry no SPDX header
-# yet. [H] an SPDX expression in License: is what the guidelines ask for.
+License:        GPL-3.0-or-later AND CC-BY-SA-4.0
+# GPL-3.0-or-later is the maintainer's decision (2026-10-05), not read from the repository: LICENSE is
+# the plain GPLv3 text, pyproject.toml says license = { file = "LICENSE" } and the source files carry no
+# SPDX header yet. CC-BY-SA-4.0 is the licence of the seven sample pictures (data/pictures, [K] the
+# credit is data/pictures/CREDITS.txt, the text is packaging/licenses/CC-BY-SA-4.0.txt); the binary
+# package holds both, hence AND. [H] an SPDX expression in License: is what the guidelines ask for;
+# NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
+# build of this version, with its rpmlint run, will show).
 URL:            https://github.com/sakkmesterke/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
@@ -267,6 +271,16 @@ install -Dpm 0755 packaging/%{name} %{buildroot}%{_bindir}/%{name}
 # symlink, no argv0 test.
 install -Dpm 0755 packaging/slideshowlock %{buildroot}%{_bindir}/slideshowlock
 
+# The sample pictures. [K] data/pictures/ holds the seven JPEG files (the metadata taken out but the
+# author and the licence in Exif and XMP, see tools/strip_jpeg_metadata.py) and CREDITS.txt; slideshow_lock/sample_pictures.py copies them into
+# the user's pictures folder at the first login, from <datadir>/slideshow-lock/pictures (its
+# APP_DIR and DATA_SUBDIR; tests/test_packaging.py compares this line with the two constants).
+# [K] the folder is made here and not left to the file list, so that it is root:root 0755 whatever
+# the umask of the build is. -p keeps the time of the files, 0644 is the mode (no execute bit).
+install -d -m 0755 %{buildroot}%{_datadir}/%{name}/pictures
+install -pm 0644 data/pictures/* %{buildroot}%{_datadir}/%{name}/pictures/
+# [H] "install" fails without a file for the glob: a package without its pictures is not built
+
 # The settings schema. [K] data/%%{app_id}.gschema.xml, run.sh compiles the same file into a cache
 install -Dpm 0644 data/%{app_id}.gschema.xml \
     %{buildroot}%{_datadir}/glib-2.0/schemas/%{app_id}.gschema.xml
@@ -347,6 +361,12 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 
 %files -f %{pyproject_files} -f %{app_id}.lang
 %doc README.md
+%license packaging/licenses/CC-BY-SA-4.0.txt
+# [M] the wheel of setuptools 84.0.0 has License-File: LICENSE only (see %%install), so the licence of
+# the pictures is not claimed twice by %%pyproject_save_files; the name and the folder
+# packaging/licenses/ match no default licence-file pattern of setuptools (LICEN[CS]E*, COPYING*,
+# NOTICE*, AUTHORS*) [H: from memory, not measured for setuptools newer than 84.0.0]. NOT measured: the
+# "listed twice" check of rpmbuild and rpmlint on a build of this version.
 %{_bindir}/%{name}
 %{_bindir}/slideshowlock
 %{_datadir}/glib-2.0/schemas/%{app_id}.gschema.xml
@@ -356,6 +376,11 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 %{_metainfodir}/%{app_id}.metainfo.xml
 %{_datadir}/icons/hicolor/scalable/apps/%{app_id}.svg
 %{_datadir}/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg
+%dir %{_datadir}/%{name}
+%dir %{_datadir}/%{name}/pictures
+%{_datadir}/%{name}/pictures/*
+# [H] nothing else owned /usr/share/slideshow-lock/ before the pictures; %%dir makes the package the
+# owner of both folders and removes them with the files
 
 %changelog
 * Wed Oct 07 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.1-1
@@ -369,6 +394,8 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - Add 35 translations of the interface, 40 languages in all; the 35 are AI-assisted and not reviewed by
   a native speaker
 - Add a usage section to the README
+- Ship seven sample pictures (CC BY-SA 4.0) that are copied into Pictures/sakkmesterke at the first
+  login, and add their licence to the License tag
 
 * Tue Oct 06 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.0-1
 - Initial package
