@@ -91,6 +91,13 @@ catalogs of 1.0.1; the five of 1.0.0 do not hold them yet, so for German, Spanis
 Hungarian and Italian the generated files are English until they do (`WITHOUT_DATA_STRINGS` in
 `tests/i18n_catalogs.py` lists them). `check` also builds the two files.
 
+A string can be added to the source with its translation in some catalogs only (`HELD_BY` in
+`tests/i18n_catalogs.py`: the string, and the catalogs that hold it). The other catalogs then lack the
+entry, on purpose, and the interface shows the English text there (gettext's behaviour for a missing
+entry; a test builds the catalogs and checks it). `tools/i18n.sh update` adds such an entry empty to
+the catalogs, and the tests refuse an empty entry: translate it, or delete it from the catalog. At
+this time one string is held that way, "Show screenshots", by `hu`.
+
 ## 4. Rules for the source
 
 `tools/i18n.sh check` and `tests/test_i18n_source.py` enforce them:

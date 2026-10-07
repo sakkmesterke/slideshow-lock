@@ -36,6 +36,7 @@ gi.require_version("Gtk", "4.0")
 from slideshow_lock import APP_ID, _, i18n, preferences, preview_app, service  # noqa: E402
 from tests.i18n_catalogs import (  # noqa: E402
     FIRST_FIVE,
+    HELD_BY,
     WITHOUT_DATA_STRINGS,
     data_msgids,
     header_fields,
@@ -154,11 +155,13 @@ def source_msgids():
 
 
 def expected_msgids(lang):
-    """What the catalog of *lang* holds: the strings of the source and, for every catalog but the
-    first five (``WITHOUT_DATA_STRINGS``), the five of the launcher and the metadata."""
+    """What the catalog of *lang* holds: the strings of the source (without those that only some
+    catalogs hold yet, ``HELD_BY``) and, for every catalog but the first five
+    (``WITHOUT_DATA_STRINGS``), the five of the launcher and the metadata."""
+    own = source_msgids() - {msgid for msgid, langs in HELD_BY.items() if lang not in langs}
     if lang in WITHOUT_DATA_STRINGS:
-        return source_msgids()
-    return source_msgids() | data_msgids()
+        return own
+    return own | data_msgids()
 
 
 def expected_strings(lang):
@@ -217,6 +220,17 @@ def test_the_catalog_holds_exactly_the_strings_of_the_source_and_every_one_is_tr
     english = {msgid for msgid, msgstr in pairs if msgstr == msgid}
     assert english <= SAME_AS_ENGLISH, sorted(english - SAME_AS_ENGLISH)
     assert "Slideshow Lock" in english
+
+
+def test_a_string_held_by_some_catalogs_is_held_by_exactly_those():
+    """``HELD_BY`` names the catalogs that have a string: those have it, every other one lacks it
+    (a catalog that gets the translation must be added to ``HELD_BY``, not left out of it)."""
+    for msgid, holders in HELD_BY.items():
+        assert msgid in source_msgids(), "%r is not asked for by the source any more" % msgid
+        assert holders <= set(shipped()), sorted(holders - set(shipped()))
+        for lang in shipped():
+            has = msgid in {m for m, _s in entries(lang)[0]}
+            assert has == (lang in holders), "%s: %s" % (lang, "has it" if has else "lacks it")
 
 
 @pytest.mark.parametrize("lang", ALL_LANGUAGES)
@@ -323,6 +337,8 @@ def test_the_catalog_built_from_this_checkout_is_what_the_programs_show_in_its_l
     assert _("Preview") == expected["Preview"]
     assert _("In use: %s") % "x" == expected["In use: %s"] % "x"
     assert _("Cancel") != "Cancel"
+    # a string this catalog does not hold yet (HELD_BY) is the English text, not an error
+    assert _("Show screenshots") == "Show screenshots"
 
     for module, text in expected["help"]:
         with pytest.raises(SystemExit) as stopped:

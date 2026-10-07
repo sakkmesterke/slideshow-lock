@@ -51,6 +51,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
+    KEY_SHOW_SCREENSHOTS,
     KEY_SLIDE_INTERVAL_SECONDS,
     KEY_TRANSITION_DURATION,
     Settings,
@@ -64,6 +65,7 @@ KEYS = (
     KEY_ORDER,
     KEY_SCALING,
     KEY_PAN_PORTRAIT_IMAGES,
+    KEY_SHOW_SCREENSHOTS,
     KEY_PICTURE_FOLDER,
 )
 
@@ -157,9 +159,10 @@ def main() -> int:
             window.order_drop.get_selected(),
             window.scaling_drop.get_selected(),
             window.pan_switch.get_active(),
+            window.screenshots_switch.get_active(),
             window.duration_scale.get_value(),
         )
-        == (120, 0, interval_position_for_seconds(10), 0, 0, False, 1.0),
+        == (120, 0, interval_position_for_seconds(10), 0, 0, False, False, 1.0),
     )
     check(
         "the transition drop-down starts at Ken Burns, the stored default",
@@ -218,6 +221,7 @@ def main() -> int:
     window.order_drop.set_selected(CHOICES[KEY_ORDER].index("name"))
     window.scaling_drop.set_selected(CHOICES[KEY_SCALING].index("fit"))
     window.pan_switch.set_active(True)
+    window.screenshots_switch.set_active(True)
     window.transition_drop.set_selected(TRANSITION_CHOICES.index("fade-black"))
     window.duration_scale.set_value(2.5)
     window.folder_row.set_text(folder)
@@ -231,6 +235,7 @@ def main() -> int:
             stored.get_order(),
             stored.get_scaling(),
             stored.get_pan_portrait_images(),
+            stored.get_show_screenshots(),
             stored.get_transitions(),
             stored.get_transition_duration(),
             stored.get_picture_folder(),
@@ -239,7 +244,10 @@ def main() -> int:
     check(
         "the edits are kept: nothing is stored before Save",
         stored_values()
-        == (120, 0, 10, "random", "fill", False, ["ken-burns"], 1.0, default_picture_folder()),
+        == (
+            (120, 0, 10, "random", "fill", False, False)
+            + (["ken-burns"], 1.0, default_picture_folder())
+        ),
         str(stored_values()),
     )
     check("Save is on", window.save_button.get_sensitive())
@@ -247,7 +255,8 @@ def main() -> int:
     window.save_button.emit("clicked")
     check(
         "Save writes every field",
-        stored_values() == (300, 5, 20, "name", "fit", True, ["fade-black"], 2.5, folder),
+        stored_values()
+        == (300, 5, 20, "name", "fit", True, True, ["fade-black"], 2.5, folder),
         str(stored_values()),
     )
     check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())

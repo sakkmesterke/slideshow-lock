@@ -40,6 +40,14 @@ FIRST_FIVE = frozenset({"de", "es", "fr", "hu", "it"})
 WITHOUT_DATA_STRINGS = frozenset(FIRST_FIVE)
 
 
+#: Strings that only some catalogs hold yet: the msgid and the catalogs that have it. A string that
+#: is added without a translation for every language stays out of the other catalogs: gettext shows
+#: the English text for a missing entry (measured by the test that builds the catalogs), and the
+#: catalog needs no empty or copied-English entry that the tests would rightly refuse. A language
+#: gets the string by adding its translation and its name here.
+HELD_BY = {"Show screenshots": frozenset({"hu"})}
+
+
 def linguas(text: str) -> List[str]:
     return [name for line in text.splitlines() for name in line.split("#")[0].split()]
 

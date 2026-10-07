@@ -101,6 +101,9 @@ class CountingSettings:
     def get_order(self):
         return "name"
 
+    def get_show_screenshots(self):
+        return False
+
 
 class RecordingSource:
     def __init__(self):
