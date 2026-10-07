@@ -1,0 +1,404 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"PO-Revision-Date: 2026-10-06 20:55+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Polish\n"
+"Language: pl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
+"|| n%100>=20) ? 1 : 2);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.trensoft.slideshowlock.desktop.in
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Uruchom usługę pokazu slajdów i otwórz okno ustawień."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "przy logowaniu: uruchom usługę, otwórz okno tylko za pierwszym razem"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "zapisuj każdy krok w dzienniku"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Losowo"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Według nazwy pliku"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Wypełnij ekran (przycina obraz)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Dopasuj (pokazuje cały obraz)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Ustawienia Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Przeglądaj…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Obrazy"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Folder z obrazami"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Kolejność obrazów"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Skalowanie"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Przewijaj wysokie obrazy"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Obrazy w orientacji pionowej na ekranie poziomym przesuwają się powoli z "
+"góry na dół (tylko z opcją Wypełnij). Domyślnie wyłączone: zużywa więcej "
+"baterii."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "Uruchom pokaz slajdów"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Czas bezczynności"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Jak długo bez aktywności, zanim pokaz slajdów się rozpocznie."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundy"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Czasy"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Pokazuj każdy obraz przez"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Czas karencji blokady"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Aktywność wcześniejsza niż ten czas od rozpoczęcia pokazu slajdów nie "
+"blokuje sesji (ściśle wcześniejsza; 0 oznacza, że każda aktywność blokuje)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Podgląd"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 h"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "Wybierz folder z obrazami"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Wybierz"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Anuluj"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Nie udało się uruchomić podglądu, zobacz dziennik."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Brak monitora, na którym można wyświetlić podgląd."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Podgląd trwa: naciśnij dowolny klawisz lub porusz myszą, aby go zakończyć."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "Zmień ustawienia pokazu slajdów."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Schemat ustawień nie jest zainstalowany. Skompiluj go i wskaż go w "
+"GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Zapisano."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "najdłuższy"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d h"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "W użyciu: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr ""
+"W użyciu: %s (folder jeszcze nie istnieje, nic nie zostanie wyświetlone)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"To nie jest krok suwaka: pokazywany jest najbliższy. Zapisana wartość "
+"pozostaje, dopóki nie przesuniesz suwaka."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Wpisz całkowitą liczbę sekund."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "Wartość musi mieścić się między %(low)d a %(high)d."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Wpisz liczbę całkowitą jako położenie suwaka."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Tego położenia nie ma na suwaku."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Ten wybór jest niedostępny."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "To musi być włączone lub wyłączone."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Wpisz ścieżkę folderu."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Ścieżka zawiera niedozwolony znak."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Wpisz ścieżkę bezwzględną (zaczyna się od / lub ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Ta ścieżka to plik, a nie folder."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "Wartość nie została zaakceptowana, zachowano starą."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "Nie udało się zapisać wartości."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "Folder nie został zaakceptowany, zachowano stary."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "Nie udało się zapisać folderu."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Brak obrazów do wyświetlenia"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Pokaż podgląd pokazu slajdów. Każda aktywność go kończy. Nigdy nie blokuje "
+"sesji."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "folder z obrazami (tylko to uruchomienie)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "sekundy na obraz (tylko to uruchomienie)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "kolejność obrazów"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "dopasuj lub wypełnij monitor"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "powoli przewijaj obrazy w orientacji pionowej (tryb wypełniania)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Interwał musi mieścić się między %d a %d sekund."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Schemat ustawień nie jest zainstalowany. Skompiluj go i wskaż go w "
+"GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Podgląd Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Uruchom pokaz slajdów, gdy sesja jest bezczynna, zablokuj ją przy pierwszej "
+"aktywności po okresie karencji i zablokuj przed uśpieniem komputera."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "sekundy bezczynności przed pokazem slajdów"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "brak blokady przy aktywności w ciągu tylu sekund"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "Limit czasu bezczynności musi mieścić się między 1 a 86400 sekund."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "Czas karencji musi mieścić się między 0 a 86400 sekund."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Schemat ustawień nie jest zainstalowany. Skompiluj go i wskaż go w "
+"GSettings:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.trensoft.slideshowlock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr "Skonfiguruj pokaz slajdów w stanie bezczynności i blokadę sesji"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr ""
+"Wygaszacz ekranu z pokazem slajdów przy bezczynności, blokujący po aktywności"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock uruchamia pokaz slajdów z obrazami na pełnym ekranie na "
+"każdym ekranie, gdy sesja była bezczynna przez ustalony czas."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Pierwsze naciśnięcie klawisza, kliknięcie lub ruch myszy kończy pokaz "
+"slajdów. Jeśli pokaz był wyświetlany co najmniej przez czas karencji, sesja "
+"zostaje również zablokowana."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Obrazy pochodzą z wybranego folderu. Okno ustawień określa folder, czas "
+"bezczynności, czas karencji, jak długo wyświetlany jest każdy obraz, "
+"kolejność i skalowanie."

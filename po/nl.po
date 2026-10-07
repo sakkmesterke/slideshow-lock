@@ -1,0 +1,406 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: slideshow-lock\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"PO-Revision-Date: 2026-10-06 20:57+0000\n"
+"Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
+"Language-Team: Dutch\n"
+"Language: nl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: slideshow_lock/__init__.py
+#: data/io.github.trensoft.slideshowlock.desktop.in
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Slideshow Lock"
+msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Start de dienst voor de diavoorstelling en open het instellingenvenster."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "bij het inloggen: de dienst starten, het venster alleen de eerste keer openen"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "elke stap loggen"
+
+#: slideshow_lock/preferences.py
+msgid "Random"
+msgstr "Willekeurig"
+
+#: slideshow_lock/preferences.py
+msgid "By file name"
+msgstr "Op bestandsnaam"
+
+#: slideshow_lock/preferences.py
+msgid "Fill the screen (crops the picture)"
+msgstr "Scherm vullen (snijdt de afbeelding bij)"
+
+#: slideshow_lock/preferences.py
+msgid "Fit (shows the whole picture)"
+msgstr "Passend maken (toont de hele afbeelding)"
+
+#: slideshow_lock/preferences.py
+msgid "Slideshow Lock settings"
+msgstr "Instellingen van Slideshow Lock"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Bladeren…"
+
+#: slideshow_lock/preferences.py
+msgid "Pictures"
+msgstr "Afbeeldingen"
+
+#: slideshow_lock/preferences.py
+msgid "Picture folder"
+msgstr "Afbeeldingenmap"
+
+#: slideshow_lock/preferences.py
+msgid "Picture order"
+msgstr "Volgorde van de afbeeldingen"
+
+#: slideshow_lock/preferences.py
+msgid "Scaling"
+msgstr "Schaling"
+
+#: slideshow_lock/preferences.py
+msgid "Scroll tall pictures"
+msgstr "Hoge afbeeldingen laten scrollen"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Staande afbeeldingen op een liggend scherm bewegen langzaam van boven naar "
+"beneden (alleen met Scherm vullen). Standaard uitgeschakeld: het kost meer "
+"batterij."
+
+#: slideshow_lock/preferences.py
+msgid "Start the slideshow"
+msgstr "De diavoorstelling starten"
+
+#: slideshow_lock/preferences.py
+msgid "Idle time"
+msgstr "Inactiviteitstijd"
+
+#: slideshow_lock/preferences.py
+msgid "How long without input before the slideshow starts."
+msgstr "Hoe lang zonder invoer voordat de diavoorstelling begint."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "seconden"
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Tijden"
+
+#: slideshow_lock/preferences.py
+msgid "Show each picture for"
+msgstr "Elke afbeelding tonen gedurende"
+
+#: slideshow_lock/preferences.py
+msgid "Lock grace period"
+msgstr "Respijtperiode voor vergrendeling"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Invoer eerder dan dit nadat de diavoorstelling is gestart vergrendelt de "
+"sessie niet (strikt eerder; 0 betekent dat elke invoer vergrendelt)."
+
+#: slideshow_lock/preferences.py
+msgid "Preview"
+msgstr "Voorbeeld"
+
+#: slideshow_lock/preferences.py
+msgid "10 s"
+msgstr "10 s"
+
+#: slideshow_lock/preferences.py
+msgid "1 min"
+msgstr "1 min"
+
+#: slideshow_lock/preferences.py
+msgid "1 h"
+msgstr "1 u"
+
+#: slideshow_lock/preferences.py
+msgid "24 h"
+msgstr "24 u"
+
+#: slideshow_lock/preferences.py
+msgid "Choose the picture folder"
+msgstr "De afbeeldingenmap kiezen"
+
+#: slideshow_lock/preferences.py
+msgid "Select"
+msgstr "Kiezen"
+
+#: slideshow_lock/preferences.py
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: slideshow_lock/preferences.py
+msgid "The preview could not be started, see the log."
+msgstr "Het voorbeeld kon niet worden gestart, zie het logboek."
+
+#: slideshow_lock/preferences.py
+msgid "There is no monitor to show the preview on."
+msgstr "Er is geen beeldscherm om het voorbeeld op te tonen."
+
+#: slideshow_lock/preferences.py
+msgid "Preview running: press any key or move the mouse to end it."
+msgstr ""
+"Voorbeeld actief: druk op een toets of beweeg de muis om het te beëindigen."
+
+#: slideshow_lock/preferences.py
+msgid "Change the slideshow settings."
+msgstr "De instellingen van de diavoorstelling wijzigen."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Het instellingenschema is niet geïnstalleerd. Compileer het en wijs "
+"GSettings ernaar:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+
+#: slideshow_lock/preferences_model.py
+msgid "Saved."
+msgstr "Opgeslagen."
+
+#: slideshow_lock/preferences_model.py
+msgid "the longest"
+msgstr "de langste"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d s"
+msgstr "%d s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d min"
+msgstr "%d min"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "%d h"
+msgstr "%d u"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s"
+msgstr "In gebruik: %s"
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
+msgstr "In gebruik: %s (de map bestaat nog niet, er wordt niets getoond)"
+
+#: slideshow_lock/preferences_model.py
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Geen stap van de schuifregelaar: de dichtstbijzijnde wordt getoond. De "
+"opgeslagen waarde blijft staan totdat je de schuifregelaar verplaatst."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number of seconds."
+msgstr "Voer een geheel aantal seconden in."
+
+#: slideshow_lock/preferences_model.py
+#, python-format
+msgid "The value must be between %(low)d and %(high)d."
+msgstr "De waarde moet tussen %(low)d en %(high)d liggen."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a whole number for the slider position."
+msgstr "Voer een geheel getal in voor de positie van de schuifregelaar."
+
+#: slideshow_lock/preferences_model.py
+msgid "This position is not on the slider."
+msgstr "Deze positie staat niet op de schuifregelaar."
+
+#: slideshow_lock/preferences_model.py
+msgid "This choice is not available."
+msgstr "Deze keuze is niet beschikbaar."
+
+#: slideshow_lock/preferences_model.py
+msgid "This must be on or off."
+msgstr "Dit moet aan of uit zijn."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter a folder path."
+msgstr "Voer een mappad in."
+
+#: slideshow_lock/preferences_model.py
+msgid "The path contains a character that is not allowed."
+msgstr "Het pad bevat een teken dat niet is toegestaan."
+
+#: slideshow_lock/preferences_model.py
+msgid "Enter an absolute path (it starts with / or ~)."
+msgstr "Voer een absoluut pad in (het begint met / of ~)."
+
+#: slideshow_lock/preferences_model.py
+msgid "This path is a file, not a folder."
+msgstr "Dit pad is een bestand, geen map."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value was not accepted, the old one is kept."
+msgstr "De waarde is niet geaccepteerd, de oude blijft behouden."
+
+#: slideshow_lock/preferences_model.py
+msgid "The value could not be saved."
+msgstr "De waarde kon niet worden opgeslagen."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder was not accepted, the old one is kept."
+msgstr "De map is niet geaccepteerd, de oude blijft behouden."
+
+#: slideshow_lock/preferences_model.py
+msgid "The folder could not be saved."
+msgstr "De map kon niet worden opgeslagen."
+
+#: slideshow_lock/preview.py
+msgid "No pictures to show"
+msgstr "Geen afbeeldingen om te tonen"
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Toon het voorbeeld van de diavoorstelling. Elke invoer beëindigt het. Het "
+"vergrendelt de sessie nooit."
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture folder (this run only)"
+msgstr "afbeeldingenmap (alleen deze keer)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "seconds per picture (this run only)"
+msgstr "seconden per afbeelding (alleen deze keer)"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "picture order"
+msgstr "volgorde van de afbeeldingen"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "fit or fill the monitor"
+msgstr "het beeldscherm passend maken of vullen"
+
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "scroll portrait pictures slowly (fill mode)"
+msgstr "staande afbeeldingen langzaam laten scrollen (vulmodus)"
+
+#: slideshow_lock/preview_app.py
+#, python-format
+msgid "The interval must be between %d and %d seconds."
+msgstr "Het interval moet tussen %d en %d seconden liggen."
+
+#: slideshow_lock/preview_app.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Het instellingenschema is niet geïnstalleerd. Compileer het en wijs "
+"GSettings ernaar:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+
+#: slideshow_lock/preview_window.py
+msgid "Slideshow Lock preview"
+msgstr "Voorbeeld van Slideshow Lock"
+
+#: slideshow_lock/service.py
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Start de diavoorstelling wanneer de sessie inactief is, vergrendel de sessie "
+"bij de eerste invoer na de respijtperiode en vergrendel voordat de computer "
+"in de slaapstand gaat."
+
+#: slideshow_lock/service.py
+msgid "idle seconds before the slideshow"
+msgstr "seconden inactiviteit voor de diavoorstelling"
+
+#: slideshow_lock/service.py
+msgid "no lock for input within this many seconds"
+msgstr "niet vergrendelen bij invoer binnen zoveel seconden"
+
+#: slideshow_lock/service.py
+msgid "The idle timeout must be between 1 and 86400 seconds."
+msgstr "De time-out voor inactiviteit moet tussen 1 en 86400 seconden liggen."
+
+#: slideshow_lock/service.py
+msgid "The grace period must be between 0 and 86400 seconds."
+msgstr "De respijtperiode moet tussen 0 en 86400 seconden liggen."
+
+#: slideshow_lock/service.py
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Het instellingenschema is niet geïnstalleerd. Compileer het en wijs "
+"GSettings ernaar:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+
+#: data/io.github.trensoft.slideshowlock.desktop.in
+msgid "Set up the idle slideshow and the session lock"
+msgstr ""
+"De diavoorstelling bij inactiviteit en de vergrendeling van de sessie "
+"instellen"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid "Idle slideshow screensaver that locks on input"
+msgstr ""
+"Schermbeveiliging met een diavoorstelling bij inactiviteit, die vergrendelt "
+"bij invoer"
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Slideshow Lock start een diavoorstelling met afbeeldingen op volledig scherm "
+"op elk scherm wanneer de sessie een ingestelde tijd inactief is geweest."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"De eerste toetsaanslag, klik of muisbeweging beëindigt de diavoorstelling. "
+"Als de diavoorstelling ten minste de respijtperiode is getoond, wordt de "
+"sessie ook vergrendeld."
+
+#: data/io.github.trensoft.slideshowlock.metainfo.xml.in
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"De afbeeldingen komen uit een map die je kiest. Met een instellingenvenster "
+"stel je de map, de inactiviteitstijd, de respijtperiode, de tijd per "
+"afbeelding, de volgorde en de schaling in."

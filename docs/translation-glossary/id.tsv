@@ -1,0 +1,12 @@
+# Slideshow Lock translation glossary, id. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	tayangan slide|slideshow_lock	\bslideshow\b
+lock	kunci|mengunci|dikunci|penguncian|slideshow_lock	\block(s|ed|ing)?\b
+preview	pratinjau|preview_app	\bpreview\b
+settings	pengaturan	\bsettings?\b
+idle	tidak aktif	\bidle\b
+folder	folder	\bfolders?\b
+picture	gambar	\bpictures?\b
+fullscreen	layar penuh	\bfull-?screen\b
+monitor	monitor	\bmonitors?\b
+grace period	masa tenggang	\bgrace period\b

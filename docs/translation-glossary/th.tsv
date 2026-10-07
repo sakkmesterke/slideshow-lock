@@ -1,0 +1,12 @@
+# Slideshow Lock translation glossary, th. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	สไลด์โชว์|slideshow_lock	\bslideshow\b
+lock	ล็อก|slideshow_lock	\block(s|ed|ing)?\b
+preview	ตัวอย่าง|preview_app	\bpreview\b
+settings	การตั้งค่า	\bsettings?\b
+idle	ไม่ได้ใช้งาน	\bidle\b
+folder	โฟลเดอร์	\bfolders?\b
+picture	รูปภาพ	\bpictures?\b
+fullscreen	เต็มหน้าจอ	\bfull-?screen\b
+monitor	จอภาพ	\bmonitors?\b
+grace period	ช่วงผ่อนผัน	\bgrace period\b

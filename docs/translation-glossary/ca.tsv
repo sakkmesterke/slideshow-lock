@@ -1,0 +1,11 @@
+# Slideshow Lock translation glossary, ca. Columns: concept, translation (| separates accepted forms), English regex.
+product	Slideshow Lock	Slideshow Lock
+slideshow	presentaci	\bslideshow\b
+lock	bloqueig|bloquej	\block(s|ed|ing)?\b
+preview	vista prèvia	\bpreview\b
+settings	configuraci|ajust	\bsettings?\b
+idle	inactiv	\bidle\b
+folder	carpet	\bfolders?\b
+picture	imatge	\bpictures?\b
+fullscreen	pantalla completa	\bfull-?screen\b
+monitor	monitor	\bmonitors?\b
