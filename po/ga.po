@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:50+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Irish\n"
@@ -20,11 +20,19 @@ msgstr "Slideshow Lock"
 
 #: slideshow_lock/control.py
 msgid "Start the slideshow service and open the settings window."
-msgstr "Tosaigh seirbhís an taispeántais sleamhnán agus oscail fuinneog na socruithe."
+msgstr ""
+"Tosaigh seirbhís an taispeántais sleamhnán agus oscail fuinneog na socruithe."
 
 #: slideshow_lock/control.py
 msgid "at login: start the service, open the window only the first time"
-msgstr "ag logáil isteach: tosaigh an tseirbhís, oscail an fhuinneog ar an gcéad uair amháin"
+msgstr ""
+"ag logáil isteach: tosaigh an tseirbhís, oscail an fhuinneog ar an gcéad "
+"uair amháin"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "logáil gach céim"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -43,20 +51,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Oiriúnaigh (taispeántar an pictiúr iomlán)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Faic (athrú láithreach)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Trasdhílú"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Dílú trí dhubh"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Sleamhnú isteach"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Brú"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zúmáil"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Glanadh"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Nochtadh ciorclach"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Doiléiriú"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Rothlú"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Meascán randamach"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Socruithe Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Brabhsáil…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Pictiúir"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Fillteán pictiúr"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Brabhsáil…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -71,12 +123,51 @@ msgid "Scroll tall pictures"
 msgstr "Scrollaigh pictiúir arda"
 
 #: slideshow_lock/preferences.py
-msgid "Portrait pictures on a landscape screen move slowly from top to bottom (only with Fill). Off by default: it uses more battery."
-msgstr "Bogann pictiúir phortráid ar scáileán tírdhreacha go mall ó bharr go bun (leis an rogha “Líon” amháin). As de réir réamhshocraithe: úsáideann sé níos mó cumhachta ceallraí."
+msgid ""
+"Portrait pictures on a landscape screen move slowly from top to bottom (only "
+"with Fill). Off by default: it uses more battery."
+msgstr ""
+"Bogann pictiúir phortráid ar scáileán tírdhreacha go mall ó bharr go bun "
+"(leis an rogha “Líon” amháin). As de réir réamhshocraithe: úsáideann sé níos "
+"mó cumhachta ceallraí."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Tosaigh an taispeántas sleamhnán"
+msgid "Pictures"
+msgstr "Pictiúir"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Idir pictiúir"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Conas a athraíonn pictiúr go dtí an chéad cheann eile. Roghnaíonn “Meascán "
+"randamach” ceann amháin as ocht gach uair a athraíonn sé (gan Doiléiriú ná "
+"Ken Burns). Gan beochan an deisce, athraíonn na pictiúir láithreach."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Fad an aistrithe"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"An fhad a thógann athrú amháin, mar an gcéanna do gach aistriú. Ní bhíonn sé "
+"riamh níos faide ná leath den am a thaispeántar pictiúr."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "soicind"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Aistrithe"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -87,12 +178,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Cá fhad gan ionchur sula dtosaíonn an taispeántas sleamhnán."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "soicind"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Uainiú"
+msgid "Start the slideshow"
+msgstr "Tosaigh an taispeántas sleamhnán"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -103,8 +190,21 @@ msgid "Lock grace period"
 msgstr "Tréimhse ghrásta glasála"
 
 #: slideshow_lock/preferences.py
-msgid "Input sooner than this after the slideshow starts does not lock the session (strictly sooner; 0 means every input locks)."
-msgstr "Ní ghlasálann ionchur níos luaithe ná seo tar éis tús an taispeántais sleamhnán an seisiún (níos luaithe go docht; ciallaíonn 0 go nglasálann gach ionchur)."
+msgid ""
+"Input sooner than this after the slideshow starts does not lock the session "
+"(strictly sooner; 0 means every input locks)."
+msgstr ""
+"Ní ghlasálann ionchur níos luaithe ná seo tar éis tús an taispeántais "
+"sleamhnán an seisiún (níos luaithe go docht; ciallaíonn 0 go nglasálann gach "
+"ionchur)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Uainiú"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Sábháil"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -148,20 +248,24 @@ msgstr "Níl aon mhonatóir ann chun an réamhamharc a thaispeáint air."
 
 #: slideshow_lock/preferences.py
 msgid "Preview running: press any key or move the mouse to end it."
-msgstr "Réamhamharc ar siúl: brúigh aon eochair nó bog an luch chun deireadh a chur leis."
+msgstr ""
+"Réamhamharc ar siúl: brúigh aon eochair nó bog an luch chun deireadh a chur "
+"leis."
 
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "Athraigh socruithe an taispeántais sleamhnán."
 
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "logáil gach céim"
-
 #: slideshow_lock/preferences.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
-msgstr "Níl scéimre na socruithe suiteáilte. Tiomsaigh é agus pointeáil GSettings air:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
+msgstr ""
+"Níl scéimre na socruithe suiteáilte. Tiomsaigh é agus pointeáil GSettings "
+"air:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences"
 
 #: slideshow_lock/preferences_model.py
 msgid "Saved."
@@ -197,8 +301,12 @@ msgid "In use: %s (the folder does not exist yet, nothing will be shown)"
 msgstr "In úsáid: %s (níl an fillteán ann go fóill, ní thaispeánfar tada)"
 
 #: slideshow_lock/preferences_model.py
-msgid "Not a step of the slider: it shows the nearest one. The saved value stays until you move the slider."
-msgstr "Ní céim den sleamhnóir é seo: taispeántar an ceann is gaire. Fanann an luach sábháilte go dtí go mbogfaidh tú an sleamhnóir."
+msgid ""
+"Not a step of the slider: it shows the nearest one. The saved value stays "
+"until you move the slider."
+msgstr ""
+"Ní céim den sleamhnóir é seo: taispeántar an ceann is gaire. Fanann an luach "
+"sábháilte go dtí go mbogfaidh tú an sleamhnóir."
 
 #: slideshow_lock/preferences_model.py
 msgid "Enter a whole number of seconds."
@@ -262,8 +370,11 @@ msgid "No pictures to show"
 msgstr "Níl aon phictiúr le taispeáint"
 
 #: slideshow_lock/preview_app.py
-msgid "Show the slideshow preview. Any input ends it. It never locks the session."
-msgstr "Taispeáin réamhamharc an taispeántais sleamhnán. Cuireann aon ionchur deireadh leis. Ní ghlasálann sé an seisiún choíche."
+msgid ""
+"Show the slideshow preview. Any input ends it. It never locks the session."
+msgstr ""
+"Taispeáin réamhamharc an taispeántais sleamhnán. Cuireann aon ionchur "
+"deireadh leis. Ní ghlasálann sé an seisiún choíche."
 
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "picture folder (this run only)"
@@ -286,21 +397,39 @@ msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "scrollaigh pictiúir phortráid go mall (mód líonta)"
 
 #: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"conas a athraíonn pictiúr go dtí an chéad cheann eile, nó faic (don rith seo "
+"amháin)"
+
+#: slideshow_lock/preview_app.py
 #, python-format
 msgid "The interval must be between %d and %d seconds."
 msgstr "Caithfidh an t-eatramh a bheith idir %d agus %d soicind."
 
 #: slideshow_lock/preview_app.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
-msgstr "Níl scéimre na socruithe suiteáilte. Tiomsaigh é agus pointeáil GSettings air:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
+msgstr ""
+"Níl scéimre na socruithe suiteáilte. Tiomsaigh é agus pointeáil GSettings "
+"air:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preview_app"
 
 #: slideshow_lock/preview_window.py
 msgid "Slideshow Lock preview"
 msgstr "Réamhamharc Slideshow Lock"
 
 #: slideshow_lock/service.py
-msgid "Start the slideshow when the session is idle, lock it on the first input after the grace period, and lock before the machine suspends."
-msgstr "Tosaigh an taispeántas sleamhnán nuair a bhíonn an seisiún díomhaoin, glasáil é ar an gcéad ionchur tar éis na tréimhse grásta, agus glasáil é sula gcuirtear an meaisín ar fionraí."
+msgid ""
+"Start the slideshow when the session is idle, lock it on the first input "
+"after the grace period, and lock before the machine suspends."
+msgstr ""
+"Tosaigh an taispeántas sleamhnán nuair a bhíonn an seisiún díomhaoin, "
+"glasáil é ar an gcéad ionchur tar éis na tréimhse grásta, agus glasáil é "
+"sula gcuirtear an meaisín ar fionraí."
 
 #: slideshow_lock/service.py
 msgid "idle seconds before the slideshow"
@@ -319,8 +448,15 @@ msgid "The grace period must be between 0 and 86400 seconds."
 msgstr "Caithfidh an tréimhse ghrásta a bheith idir 0 agus 86400 soicind."
 
 #: slideshow_lock/service.py
-msgid "The settings schema is not installed. Compile it and point GSettings at it:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
-msgstr "Níl scéimre na socruithe suiteáilte. Tiomsaigh é agus pointeáil GSettings air:\n  glib-compile-schemas data/\n  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgid ""
+"The settings schema is not installed. Compile it and point GSettings at it:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
+msgstr ""
+"Níl scéimre na socruithe suiteáilte. Tiomsaigh é agus pointeáil GSettings "
+"air:\n"
+"  glib-compile-schemas data/\n"
+"  GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.service"
 
 #: data/io.github.sakkmesterke.SlideshowLock.desktop.in
 msgid "Set up the idle slideshow and the session lock"
@@ -328,16 +464,34 @@ msgstr "Socraigh an taispeántas sleamhnán díomhaoin agus glasáil an tseisiú
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Idle slideshow screensaver that locks on input"
-msgstr "Spárálaí scáileáin le taispeántas sleamhnán nuair a bhíonn an seisiún díomhaoin, a ghlasálann ar ionchur"
+msgstr ""
+"Spárálaí scáileáin le taispeántas sleamhnán nuair a bhíonn an seisiún "
+"díomhaoin, a ghlasálann ar ionchur"
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time."
-msgstr "Tosaíonn Slideshow Lock taispeántas pictiúr lánscáileáin ar gach scáileán nuair a bhíonn an seisiún díomhaoin ar feadh tréimhse socraithe."
+msgid ""
+"Slideshow Lock starts a fullscreen picture slideshow on every screen when "
+"the session has been idle for a set time."
+msgstr ""
+"Tosaíonn Slideshow Lock taispeántas pictiúr lánscáileáin ar gach scáileán "
+"nuair a bhíonn an seisiún díomhaoin ar feadh tréimhse socraithe."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well."
-msgstr "Cuireann an chéad bhrú eochrach, cliceáil nó gluaiseacht luiche deireadh leis an taispeántas sleamhnán. Má bhí an taispeántas sleamhnán ar taispeáint ar feadh na tréimhse grásta ar a laghad, glasáiltear an seisiún freisin."
+msgid ""
+"The first key press, click or mouse movement ends the slideshow. If the "
+"slideshow has been showing for at least the grace period, the session is "
+"locked as well."
+msgstr ""
+"Cuireann an chéad bhrú eochrach, cliceáil nó gluaiseacht luiche deireadh "
+"leis an taispeántas sleamhnán. Má bhí an taispeántas sleamhnán ar taispeáint "
+"ar feadh na tréimhse grásta ar a laghad, glasáiltear an seisiún freisin."
 
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
-msgid "The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling."
-msgstr "Tagann na pictiúir ó fhillteán a roghnaíonn tú. Socraíonn fuinneog socruithe an fillteán, an t-am díomhaoin, an tréimhse ghrásta, cá fhad a thaispeántar gach pictiúr, an t-ord agus an scálú."
+msgid ""
+"The pictures come from a folder you choose. A settings window sets the "
+"folder, the idle time, the grace period, how long each picture shows, the "
+"order and the scaling."
+msgstr ""
+"Tagann na pictiúir ó fhillteán a roghnaíonn tú. Socraíonn fuinneog socruithe "
+"an fillteán, an t-am díomhaoin, an tréimhse ghrásta, cá fhad a thaispeántar "
+"gach pictiúr, an t-ord agus an scálú."

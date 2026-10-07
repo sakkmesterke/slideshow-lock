@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Polish\n"
@@ -49,20 +49,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Dopasuj (pokazuje cały obraz)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Brak (zmień od razu)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Przenikanie"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Przez czerń"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Wsuwanie"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Wypychanie"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Powiększenie"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Wycieranie"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Odsłanianie kołem"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Rozmycie"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Obrót"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Losowa mieszanka"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Ustawienia Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Przeglądaj…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Obrazy"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Folder z obrazami"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Przeglądaj…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -86,8 +130,42 @@ msgstr ""
 "baterii."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Uruchom pokaz slajdów"
+msgid "Pictures"
+msgstr "Obrazy"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Między obrazami"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Jak jeden obraz zmienia się w następny. \"Losowa mieszanka\" wybiera przy "
+"każdej zmianie jeden z ośmiu (bez Rozmycia i Ken Burns). Bez animacji "
+"pulpitu obrazy zmieniają się od razu."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Czas trwania przejścia"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Jak długo trwa jedna zmiana, tak samo dla każdego przejścia. Nigdy nie jest "
+"dłuższa niż połowa czasu, przez jaki wyświetlany jest obraz."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekundy"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Przejścia"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -98,12 +176,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Jak długo bez aktywności, zanim pokaz slajdów się rozpocznie."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekundy"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Czasy"
+msgid "Start the slideshow"
+msgstr "Uruchom pokaz slajdów"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -120,6 +194,14 @@ msgid ""
 msgstr ""
 "Aktywność wcześniejsza niż ten czas od rozpoczęcia pokazu slajdów nie "
 "blokuje sesji (ściśle wcześniejsza; 0 oznacza, że każda aktywność blokuje)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Czasy"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Zapisz"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -310,6 +392,11 @@ msgstr "dopasuj lub wypełnij monitor"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "powoli przewijaj obrazy w orientacji pionowej (tryb wypełniania)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"jak jeden obraz zmienia się w następny, albo wcale (tylko to uruchomienie)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

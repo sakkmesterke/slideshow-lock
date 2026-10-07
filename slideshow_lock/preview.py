@@ -33,8 +33,19 @@ What it does:
   message, one line is logged, and the preview carries on by itself when a picture turns up.
 * Any input on any window ends the preview, and so does closing a window from outside.
   Nothing else does.
-* Live settings: the interval, ``scaling`` and ``pan-portrait-images`` take effect without a
-  restart (the folder and the order are handled by ``source_from_settings``).
+* A new picture comes in with a transition (``slideshow_lock.transitions``, one of the ten that
+  ``slideshow_lock.transition_draw`` describes, chosen from the stored list for every change with
+  ``TransitionChooser``: never the same one twice in a row in ``random`` order) when the interval
+  ends, and only then: not the first picture, not a redo after a settings or size change, not when
+  the same picture is shown again (a folder of one), not when the desktop's animations are off, and
+  not when half of the interval (or the ``transition-duration``) is under 0.2 s. A window that
+  had nothing on screen before just shows the picture. The window draws it and ends it by itself;
+  any later picture, message or close ends a running one at once (``show_frame`` and
+  ``show_message`` of the window).
+* Live settings: the interval, ``scaling``, ``pan-portrait-images``, ``transitions``,
+  ``transition-order`` and ``transition-duration`` take effect without a restart (the folder and
+  the order are handled by ``source_from_settings``); the transition is read for every change of
+  picture.
 
 The source cursor runs one picture ahead of the screen because of the prefetch. A picture
 that is shown stays on screen even if its file is deleted meanwhile (the pixels are in
@@ -51,6 +62,8 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from slideshow_lock import _
 from slideshow_lock.image_source import _BurstLog
 from slideshow_lock.scaling import Frame, ImageSkipped
+from slideshow_lock.transition_draw import TransitionChooser
+from slideshow_lock.transitions import transition_seconds
 
 _LOG = logging.getLogger(__name__)
 
@@ -97,9 +110,11 @@ class PreviewController:
     ``call_later(seconds, fn) -> cancel``; *worker* has ``submit(fn, done)`` where
     ``done(result, error)`` runs on the main loop; *animations* says whether the desktop
     allows animations (asked for every picture): without them a portrait picture is not
-    scrolled, so no tall panning frame is made for it.
+    scrolled, so no tall panning frame is made for it, and a picture comes in without a
+    transition.
 
-    A window has ``device_size()``, ``show_frame(frame, pan_seconds)``,
+    A window has ``device_size()``, ``show_frame(frame, pan_seconds)`` (with a third argument,
+    ``transition=(name, seconds)``, only when the picture comes in with one),
     ``show_message(text)``, ``connect_input(cb)``, ``connect_size_changed(cb)`` and
     ``close()``.
     """
@@ -114,6 +129,7 @@ class PreviewController:
         clock,
         worker,
         animations: Callable[[], bool] = lambda: True,
+        chooser: Optional[TransitionChooser] = None,
     ) -> None:
         self._source = source
         self._settings = settings
@@ -122,6 +138,7 @@ class PreviewController:
         self._clock = clock
         self._worker = worker
         self._animations = animations
+        self._chooser = chooser if chooser is not None else TransitionChooser()
 
         self._running = False
         self._windows: List[Any] = []
@@ -365,7 +382,11 @@ class PreviewController:
 
     # -- on screen ----------------------------------------------------------------------
 
-    def _display(self, path: str, frames: Dict[int, Frame], *, fresh: bool) -> None:
+    def _display(
+        self, path: str, frames: Dict[int, Frame], *, fresh: bool, transition=None
+    ) -> None:
+        """Put *frames* on the windows. *transition* is ``(name, seconds)`` for a picture that
+        replaces another at the end of the interval (``_swap``), None for every other case."""
         interval = self._interval()
         _LOG.debug(
             "[slideshow] showing %r (%s)",
@@ -376,6 +397,8 @@ class PreviewController:
             frame = frames.get(index)
             if frame is None:
                 window.show_message("")
+            elif transition is not None and self._comes_in_changed(index, frame):
+                window.show_frame(frame, interval * PAN_FRACTION, transition)
             else:
                 window.show_frame(frame, interval * PAN_FRACTION)
         self._shown_path = path
@@ -412,7 +435,28 @@ class PreviewController:
         self._next_frames = None
         self._swap_due = False
         if path is not None and frames is not None:
-            self._display(path, frames, fresh=True)
+            self._display(path, frames, fresh=True, transition=self._pick_transition())
+
+    def _pick_transition(self) -> Optional[Tuple[str, float]]:
+        """``(name, seconds)`` for the change of picture that is about to happen, or None for a
+        cut. Read from the settings every time, so a change applies to the next picture."""
+        if self._shown_path is None or not self._shown_frames or not self._animations():
+            return None
+        name = self._chooser.next(
+            self._settings.get_transitions(), self._settings.get_transition_order()
+        )
+        if name is None:
+            return None
+        seconds = transition_seconds(
+            name, self._interval(), self._settings.get_transition_duration()
+        )
+        return (name, seconds) if seconds > 0 else None
+
+    def _comes_in_changed(self, index: int, frame: Frame) -> bool:
+        """True if window *index* has another picture on screen than *frame*: a transition needs
+        an old picture, and the same one again (a folder of one) is not a change."""
+        old = self._shown_frames.get(index)
+        return old is not None and old is not frame
 
     # -- timer ---------------------------------------------------------------------------
 

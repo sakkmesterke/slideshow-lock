@@ -47,7 +47,7 @@
 
     <key name="slide-interval-seconds" type="u">
       <range min="1" max="86399"/>
-      <default>5</default>
+      <default>10</default>
       <summary>Slide interval</summary>
       <description>
         Seconds each image is shown before advancing to the next one. From
@@ -110,6 +110,52 @@
         this is false and no picture folder has been chosen, so that it
         appears once, even if it is closed without choosing a folder. Not
         shown in the settings window.
+      </description>
+    </key>
+
+    <key name="transitions" type="as">
+      <default>['crossfade']</default>
+      <summary>Transitions between pictures</summary>
+      <description>
+        How one picture changes into the next, as a list of names. The names are
+        crossfade, fade-black, slide-in, push, ken-burns, zoom, wipe, circle, blur
+        and rotate; with several names, "transition-order" says how one is chosen
+        for each change. An empty list means no transition: the pictures change
+        at once. How long a transition takes is "transition-duration", cut to
+        half of the slide interval; there is none when the desktop's animations
+        are off. On software
+        rendering the blur is drawn as a cross fade, and so is Ken Burns on a
+        picture that does not fill the window.
+        A name that is not in the list above is ignored (and logged once), so a
+        value written by another version never stops the slideshow. A schema key
+        of this type cannot list its choices, so the program checks the names.
+      </description>
+    </key>
+
+    <key name="transition-order" type="s">
+      <choices>
+        <choice value="random"/>
+        <choice value="sequence"/>
+      </choices>
+      <default>'random'</default>
+      <summary>How a transition is chosen from several</summary>
+      <description>
+        With more than one name in "transitions": "random" picks one for each
+        change, never the one just used; "sequence" goes through them in the
+        order of the list above, round and round.
+      </description>
+    </key>
+
+    <key name="transition-duration" type="d">
+      <range min="0.2" max="5.0"/>
+      <default>1.0</default>
+      <summary>How long a transition takes</summary>
+      <description>
+        Seconds a transition takes, the same for every transition, from 0.2 to
+        5.0. The slideshow never lets a transition take more than half of the
+        slide interval (a shorter time is used then, the stored value is not
+        changed), and a transition that would be shorter than 0.2 seconds is
+        not drawn: the picture changes at once.
       </description>
     </key>
 

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 02:49+0000\n"
+"POT-Creation-Date: 2026-10-07 05:10+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Maltese\n"
@@ -49,20 +49,64 @@ msgid "Fit (shows the whole picture)"
 msgstr "Adatta (turi l-immaġni kollha)"
 
 #: slideshow_lock/preferences.py
+msgid "None (change at once)"
+msgstr "Xejn (biddel minnufih)"
+
+#: slideshow_lock/preferences.py
+msgid "Cross-fade"
+msgstr "Tgħib inkroċjat"
+
+#: slideshow_lock/preferences.py
+msgid "Fade through black"
+msgstr "Tgħib permezz tal-iswed"
+
+#: slideshow_lock/preferences.py
+msgid "Slide in"
+msgstr "Żliq 'l ġewwa"
+
+#: slideshow_lock/preferences.py
+msgid "Push"
+msgstr "Dfigħ"
+
+#: slideshow_lock/preferences.py
+msgid "Ken Burns"
+msgstr "Ken Burns"
+
+#: slideshow_lock/preferences.py
+msgid "Zoom"
+msgstr "Zoom"
+
+#: slideshow_lock/preferences.py
+msgid "Wipe"
+msgstr "Tneħħija"
+
+#: slideshow_lock/preferences.py
+msgid "Circle reveal"
+msgstr "Kxif ċirkolari"
+
+#: slideshow_lock/preferences.py
+msgid "Blur"
+msgstr "Tċajpir"
+
+#: slideshow_lock/preferences.py
+msgid "Rotate"
+msgstr "Dawran"
+
+#: slideshow_lock/preferences.py
+msgid "Random mix"
+msgstr "Taħlita każwali"
+
+#: slideshow_lock/preferences.py
 msgid "Slideshow Lock settings"
 msgstr "Issettjar ta’ Slideshow Lock"
 
 #: slideshow_lock/preferences.py
-msgid "Browse..."
-msgstr "Fittex…"
-
-#: slideshow_lock/preferences.py
-msgid "Pictures"
-msgstr "Immaġnijiet"
-
-#: slideshow_lock/preferences.py
 msgid "Picture folder"
 msgstr "Folder tal-immaġnijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Browse..."
+msgstr "Fittex…"
 
 #: slideshow_lock/preferences.py
 msgid "Picture order"
@@ -85,8 +129,42 @@ msgstr ""
 "għal isfel (biss b’“Imla”). Mitfi awtomatikament: juża aktar batterija."
 
 #: slideshow_lock/preferences.py
-msgid "Start the slideshow"
-msgstr "Ibda l-preżentazzjoni tas-slajds"
+msgid "Pictures"
+msgstr "Immaġnijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Between pictures"
+msgstr "Bejn l-immaġnijiet"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How a picture changes into the next. \"Random mix\" picks one of eight at "
+"each change (not Blur and Ken Burns). Without desktop animations the "
+"pictures change at once."
+msgstr ""
+"Kif immaġni waħda tinbidel fl-oħra. \"Taħlita każwali\" tagħżel waħda minn "
+"tmienja f'kull bidla (mhux Tċajpir u Ken Burns). Mingħajr animazzjonijiet "
+"tad-desktop, l-immaġnijiet jinbidlu minnufih."
+
+#: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Tul tat-tranżizzjoni"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Kemm idum jieħu tibdil wieħed, l-istess għal kull tranżizzjoni. Qatt ma jkun "
+"itwal minn nofs iż-żmien li fih tintwera immaġni."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "sekondi"
+
+#: slideshow_lock/preferences.py
+msgid "Transitions"
+msgstr "Tranżizzjonijiet"
 
 #: slideshow_lock/preferences.py
 msgid "Idle time"
@@ -97,12 +175,8 @@ msgid "How long without input before the slideshow starts."
 msgstr "Kemm iddum mingħajr input qabel tibda l-preżentazzjoni tas-slajds."
 
 #: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "sekondi"
-
-#: slideshow_lock/preferences.py
-msgid "Timing"
-msgstr "Ħinijiet"
+msgid "Start the slideshow"
+msgstr "Ibda l-preżentazzjoni tas-slajds"
 
 #: slideshow_lock/preferences.py
 msgid "Show each picture for"
@@ -120,6 +194,14 @@ msgstr ""
 "Input aktar kmieni minn dan wara li tibda l-preżentazzjoni tas-slajds ma "
 "jaqfilx is-sessjoni (strettament aktar kmieni; 0 tfisser li kull input "
 "jaqfel)."
+
+#: slideshow_lock/preferences.py
+msgid "Timing"
+msgstr "Ħinijiet"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Issejvja"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"
@@ -309,6 +391,11 @@ msgstr "adatta jew imla l-monitor"
 #: slideshow_lock/preview_app.py slideshow_lock/service.py
 msgid "scroll portrait pictures slowly (fill mode)"
 msgstr "scrolla bil-mod l-immaġnijiet vertikali (modalità Imla)"
+
+#: slideshow_lock/preview_app.py
+msgid "how a picture changes into the next, or none (this run only)"
+msgstr ""
+"kif immaġni waħda tinbidel fl-oħra, jew xejn (għal din it-tħaddim biss)"
 
 #: slideshow_lock/preview_app.py
 #, python-format

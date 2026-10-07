@@ -16,7 +16,7 @@ import time
 import warnings
 
 import pytest
-from gi.repository import GLib
+from gi.repository import Gio, GLib
 
 from slideshow_lock import APP_ID
 from slideshow_lock.settings import (
@@ -60,11 +60,15 @@ def test_defaults_match_brief_section_5():
     settings = Settings()
     assert settings.get_idle_timeout_seconds() == 120
     assert settings.get_lock_grace_period_seconds() == 0
-    assert settings.get_slide_interval_seconds() == 5
+    assert settings.get_slide_interval_seconds() == 10
     assert settings.get_order() == "random"
     assert settings.get_scaling() == "fill"
     # Battery-sensitive animation: stays off until it is measured on the reference laptop.
     assert settings.get_pan_portrait_images() is False
+    # The cross-fade is the picture change out of the box (an empty list would be the cut).
+    assert settings.get_transitions() == ["crossfade"]
+    assert settings.get_transition_order() == "random"
+    assert settings.get_transition_duration() == 1.0
 
 
 # -- roundtrips -----------------------------------------------------------------
@@ -108,6 +112,36 @@ def test_pan_portrait_images_roundtrip():
     assert settings.get_pan_portrait_images() is True
     assert settings.set_pan_portrait_images(False) is True
     assert settings.get_pan_portrait_images() is False
+
+
+def test_transitions_roundtrip_in_the_order_given():
+    settings = Settings()
+    assert settings.set_transitions(["fade-black", "crossfade"]) is True
+    assert settings.get_transitions() == ["fade-black", "crossfade"]
+    assert settings.set_transitions(("push",)) is True  # a tuple is a list too
+    assert settings.get_transitions() == ["push"]
+
+
+def test_an_empty_list_of_transitions_is_a_real_choice_not_the_default():
+    settings = Settings()
+    assert settings.set_transitions([]) is True
+    assert settings.get_transitions() == []  # no transition: not the schema's default again
+
+
+def test_every_one_of_the_ten_names_can_be_stored():
+    from slideshow_lock.transitions import ALL_TRANSITIONS
+
+    settings = Settings()
+    assert settings.set_transitions(list(ALL_TRANSITIONS)) is True
+    assert settings.get_transitions() == list(ALL_TRANSITIONS)
+
+
+def test_transition_order_roundtrip():
+    settings = Settings()
+    assert settings.set_transition_order("sequence") is True
+    assert settings.get_transition_order() == "sequence"
+    assert settings.set_transition_order("random") is True
+    assert settings.get_transition_order() == "random"
 
 
 def test_picture_folder_roundtrip(tmp_path):
@@ -175,6 +209,51 @@ def test_pan_portrait_images_rejects_values_that_are_not_a_real_bool(caplog):
             assert settings.set_pan_portrait_images(bad) is False
         assert settings.get_pan_portrait_images() is False  # unchanged default
     assert any("pan-portrait-images" in record.message for record in caplog.records)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        ["sparkle"],
+        ["crossfade", "sparkle"],
+        ["crossfade", "crossfade"],  # one name twice
+        ["Crossfade"],
+        [""],
+        [None],
+        [1],
+        "crossfade",  # a string is not a list of names
+        None,
+        7,
+    ],
+)
+def test_transitions_rejects_what_is_not_a_list_of_known_names_once_each(bad, caplog):
+    settings = Settings()
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+        assert settings.set_transitions(bad) is False
+    assert settings.get_transitions() == ["crossfade"]  # unchanged default
+    assert any("transitions" in r.message and "[config]" in r.message for r in caplog.records)
+
+
+def test_transition_order_rejects_unknown_choice():
+    settings = Settings()
+    assert settings.set_transition_order("shuffle") is False
+    assert settings.get_transition_order() == "random"
+
+
+def test_a_stored_name_the_program_does_not_know_is_left_out_and_logged_once(caplog):
+    """Written by another version, or by hand: the setting still works, and the log says why a
+    choice did not count. The getter is read for every picture, so it must not log every time."""
+    from slideshow_lock import transitions
+
+    transitions._reported.clear()
+    settings = Settings()
+    settings._settings.set_strv("transitions", ["fade-black", "sparkle", "crossfade", "fade-black"])
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.transitions"):
+        for _ in range(3):
+            assert settings.get_transitions() == ["fade-black", "crossfade"]
+    assert [r.getMessage() for r in caplog.records].count(
+        "[config] ignoring the unknown transition name 'sparkle' in the setting"
+    ) == 1
 
 
 # -- acceptance criterion 1: no restart needed ---------------------------------
@@ -304,3 +383,34 @@ def test_the_default_picture_folder_is_not_a_chosen_one(first_run_keys):
 def test_a_stored_picture_folder_is_a_chosen_one_even_an_empty_one(first_run_keys, value):
     first_run_keys.set_picture_folder(value)
     assert first_run_keys.has_chosen_picture_folder() is True
+
+
+# -- transition-duration ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("value", [0.2, 0.5, 1.0, 2.75, 5.0, 3])
+def test_transition_duration_roundtrip(value):
+    settings = Settings()
+    assert settings.set_transition_duration(value) is True
+    assert settings.get_transition_duration() == float(value)
+
+
+@pytest.mark.parametrize(
+    "value", [0.19, 0.0, -1.0, 5.01, 60, float("nan"), float("inf"), "1.0", None, True, [1.0]]
+)
+def test_transition_duration_rejects_what_is_outside_its_range_or_not_a_number(value, caplog):
+    settings = Settings()
+    assert settings.set_transition_duration(2.0) is True
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+        assert settings.set_transition_duration(value) is False
+    assert settings.get_transition_duration() == 2.0  # unchanged
+    assert any(
+        "transition-duration" in r.message and "[config]" in r.message for r in caplog.records
+    )
+
+
+def test_the_schema_holds_the_duration_to_its_range():
+    schema = Gio.SettingsSchemaSource.get_default().lookup(APP_ID, True)
+    assert schema.get_key("transition-duration").get_range().unpack() == ("range", (0.2, 5.0))
+    assert schema.get_key("transition-duration").get_default_value().unpack() == 1.0
+    assert schema.get_key("slide-interval-seconds").get_default_value().unpack() == 10

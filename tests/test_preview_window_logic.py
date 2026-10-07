@@ -10,6 +10,7 @@ is what ``tools/wayland-smoke`` checks on a real compositor.
 from __future__ import annotations
 
 import pytest
+from gi.repository import GLib
 
 from slideshow_lock import preview_window
 from slideshow_lock.preview import (
@@ -21,6 +22,7 @@ from slideshow_lock.preview import (
 )
 from slideshow_lock.preview_window import MOTION_THRESHOLD_PIXELS, PreviewWindow, _Canvas
 from slideshow_lock.scaling import Frame
+from slideshow_lock.transitions import ALL_TRANSITIONS
 from tests.timeout_guard import (
     per_test_deadline,  # noqa: F401  (autouse fixture)
 )
@@ -124,10 +126,18 @@ def window_for_frames(monkeypatch):
     window._tick_id = 0
     window._pan_t0 = None
     window._offset = (0, 0)
+    window._old_texture = window._old_frame = window._run = None
+    window._old_offset = (0, 0)
+    window._reduced = {}
+    window._run_tick_id = 0
+    window._scale = lambda: 1.0
     calls = []
     monkeypatch.setattr(_Canvas, "add_tick_callback", lambda self, fn: calls.append("tick") or 7)
     monkeypatch.setattr(_Canvas, "remove_tick_callback", lambda self, id_: calls.append("untick"))
     monkeypatch.setattr(_Canvas, "queue_draw", lambda self: None)
+    monkeypatch.setattr(_Canvas, "get_width", lambda self: 4)  # the window is the frames' size
+    monkeypatch.setattr(_Canvas, "get_height", lambda self: 3)
+    monkeypatch.setattr(preview_window, "software_gl", lambda widget: False)
     return window, calls
 
 
@@ -195,3 +205,241 @@ def test_animations_are_read_again_for_every_call_so_a_change_takes_effect_with_
 def test_animations_stay_on_when_there_is_no_default_gtk_settings_object(monkeypatch):
     monkeypatch.setattr(preview_window.Gtk.Settings, "get_default", staticmethod(lambda: None))
     assert preview_window.animations_enabled() is True
+
+
+# -- a transition: when it starts, when it ends, what is drawn -----------------------------------
+
+
+def flat_frame(name="f.png"):
+    return Frame(name, 4, 3, 12, bytes(12 * 3), "fake", (0, 0))
+
+
+class _Clock:
+    def __init__(self, seconds):
+        self.us = int(seconds * 1_000_000)
+
+    def get_frame_time(self):
+        return self.us
+
+
+def canvas_with_a_picture(monkeypatch):
+    """A canvas that shows one frame already (the old one), and records its tick calls."""
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame("old.png"), 0.0)
+    calls.clear()
+    return window, calls
+
+
+def test_a_new_frame_with_a_transition_keeps_the_old_texture_and_starts_a_tick(monkeypatch):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    old = window._texture
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    assert calls == ["tick"]
+    assert window._old_texture is old and window._texture is not old
+    assert window._run.name == "crossfade" and window._run.seconds == 1.0
+
+
+def test_a_new_frame_without_a_transition_is_a_cut_and_forgets_the_old_texture(monkeypatch):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0)
+    assert calls == [] and window._old_texture is None and window._run is None
+
+
+def test_the_first_picture_has_nothing_to_change_from(monkeypatch):
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame(), 0.0, ("crossfade", 1.0))
+    assert calls == [] and window._old_texture is None and window._run is None
+
+
+def test_the_same_frame_again_is_not_a_change(monkeypatch):
+    window, calls = window_for_frames(monkeypatch)
+    frame = flat_frame()
+    window.set_frame(frame, 0.0)
+    calls.clear()
+    window.set_frame(frame, 0.0, ("crossfade", 1.0))
+    assert calls == [] and window._run is None
+
+
+@pytest.mark.parametrize("name,seconds", [("sparkle", 1.0), ("crossfade", 0.0)])
+def test_a_transition_that_cannot_be_drawn_is_a_cut(monkeypatch, name, seconds):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, (name, seconds))
+    assert calls == [] and window._run is None and window._old_texture is None
+
+
+@pytest.mark.parametrize("name", ALL_TRANSITIONS)
+def test_every_one_of_the_ten_starts_a_run(monkeypatch, name):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    monkeypatch.setattr(preview_window, "_reduced_texture", lambda frame, factor: object())
+    window.set_frame(flat_frame("new.png"), 4.0, (name, 0.8))
+    assert calls == ["tick"] and window._run is not None
+    assert window._run.name == name  # the frames fill the window, so Ken Burns stays Ken Burns
+
+
+def test_ken_burns_runs_as_long_as_the_picture_is_shown_and_fades_in_during_its_own_time(
+    monkeypatch,
+):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 9.0, ("ken-burns", 0.8))
+    assert window._run.name == "ken-burns" and window._run.seconds == 9.0
+    assert window._run.fade_share == pytest.approx(0.8 / 9.0)
+
+
+def test_ken_burns_on_a_short_picture_time_is_not_shorter_than_its_fade(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.3, ("ken-burns", 0.8))
+    assert window._run.seconds == 0.8 and window._run.fade_share == 1.0
+
+
+def test_ken_burns_on_a_picture_that_does_not_fill_the_window_is_a_cross_fade(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    small = Frame("s.png", 2, 3, 6, bytes(6 * 3), "fake", (0, 0))
+    window.set_frame(small, 9.0, ("ken-burns", 0.8))
+    assert window._run.name == "crossfade" and window._run.seconds == 0.8
+
+
+def test_the_blur_is_a_cross_fade_on_software_rendering_and_nothing_is_reduced(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    monkeypatch.setattr(preview_window, "software_gl", lambda widget: True)
+
+    def never(frame, factor):
+        raise AssertionError("no reduced picture is needed")
+
+    monkeypatch.setattr(preview_window, "_reduced_texture", never)
+    window.set_frame(flat_frame("new.png"), 0.0, ("blur", 1.2))
+    assert window._run.name == "crossfade" and window._reduced == {}
+
+
+def test_the_blur_reduces_both_pictures_and_forgets_them_at_the_end(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    made = []
+    monkeypatch.setattr(
+        preview_window,
+        "_reduced_texture",
+        lambda frame, factor: made.append((frame.path, factor)) or object(),
+    )
+    window.set_frame(flat_frame("new.png"), 0.0, ("blur", 1.2))
+    assert window._run.name == "blur"
+    assert sorted(made) == [("new.png", 4), ("old.png", 4)]
+    assert set(window._reduced) == {"old", "new"}
+    window._end_transition()
+    assert window._reduced == {}
+
+
+def test_a_blur_that_cannot_make_its_pictures_is_a_cross_fade_and_says_so(monkeypatch, caplog):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+
+    def fails(frame, factor):
+        raise ValueError("no pixbuf")
+
+    monkeypatch.setattr(preview_window, "_reduced_texture", fails)
+    with caplog.at_level("WARNING"):
+        window.set_frame(flat_frame("new.png"), 0.0, ("blur", 1.2))
+    assert window._run.name == "crossfade"
+    assert "blur transition not possible" in caplog.text
+
+
+@pytest.mark.parametrize("transition", [None, ("crossfade", 1.0)], ids=["cut", "another"])
+def test_any_call_of_set_frame_ends_a_running_transition_at_once(monkeypatch, transition):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("b.png"), 0.0, ("fade-black", 1.2))
+    calls.clear()
+    window.set_frame(flat_frame("c.png"), 0.0, transition)
+    assert calls[0] == "untick"  # the running one is stopped first
+    assert (window._run.name if window._run else None) == (transition[0] if transition else None)
+
+
+def test_a_message_or_a_close_ends_a_running_transition_and_drops_both_textures(monkeypatch):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("b.png"), 0.0, ("crossfade", 1.0))
+    calls.clear()
+    window.set_frame(None, 0.0)  # what show_message and close do
+    assert calls == ["untick"]
+    assert window._run is None and window._old_texture is None and window._texture is None
+
+
+def test_the_old_picture_stands_where_it_stopped_and_the_new_one_starts_at_the_top(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, _calls = window_for_frames(monkeypatch)
+    window.set_frame(tall_frame((0, 600)), 5.0)
+    window._offset = (0, 600)  # the pan of the old picture has run to its end
+    window.set_frame(tall_frame((0, 600)), 5.0, ("crossfade", 1.0))
+    assert window._old_offset == (0, 600) and window._offset == (0, 0)
+
+
+def run_ticks(window, times):
+    """Deliver a tick at each of *times* (seconds); the list of what each returned."""
+    return [window._on_transition_tick(None, _Clock(t)) for t in times]
+
+
+def test_the_clock_starts_at_the_second_tick_and_the_first_frame_is_at_progress_zero(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    run_ticks(window, [100.0])  # the first tick: the new texture is uploaded
+    assert window._run.first and window._run.progress == 0.0
+    run_ticks(window, [100.2])  # the second tick: this is where the time starts
+    assert not window._run.first and window._run.progress == 0.0
+
+
+def test_the_progress_follows_the_frame_clock_not_the_number_of_frames(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 2.0))
+    run_ticks(window, [10.0, 10.0])
+    assert run_ticks(window, [10.5]) == [GLib.SOURCE_CONTINUE]
+    assert window._run.progress == pytest.approx(0.25)
+    run_ticks(window, [11.0])
+    assert window._run.progress == pytest.approx(0.5)  # one frame later, a longer jump
+    run_ticks(window, [11.9])
+    assert window._run.progress == pytest.approx(0.95)
+
+
+@pytest.mark.parametrize("frames", [[10.0, 10.0, 11.0], [10.0, 10.0, 10.5, 11.4]])
+def test_the_transition_ends_when_the_time_is_up_whatever_the_number_of_frames(monkeypatch, frames):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    calls.clear()
+    results = run_ticks(window, frames)
+    assert results[-1] == GLib.SOURCE_REMOVE and GLib.SOURCE_REMOVE not in results[:-1]
+    assert window._run is None and window._old_texture is None
+    assert calls == []  # the tick returned SOURCE_REMOVE: it is not removed a second time
+
+
+class _Snapshot:
+    """Records the drawing calls ``_Canvas`` makes."""
+
+    def __init__(self):
+        self.calls = []
+
+    def __getattr__(self, name):
+        def record(*args):
+            self.calls.append((name, *args))
+
+        return record
+
+
+def test_after_the_end_the_canvas_draws_the_one_picture_plainly(monkeypatch):
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("crossfade", 1.0))
+    run_ticks(window, [5.0, 5.0, 5.5])
+    during = _Snapshot()
+    window.do_snapshot(during)
+    assert "push_opacity" in [c[0] for c in during.calls]  # while it runs: the new one fades in
+    run_ticks(window, [6.5])
+    after = _Snapshot()
+    window.do_snapshot(after)
+    assert [c[0] for c in after.calls] == ["append_color", "append_texture"]
+    assert after.calls[1][1] is window._texture  # 1:1, not a filtered last frame
+
+
+def test_the_first_frame_draws_both_pictures_and_the_second_draws_them_at_progress_zero(
+    monkeypatch,
+):
+    """Where the new texture is uploaded, out of sight: even the fade through black, which has
+    no new picture in its first half, draws it then (at one pixel, with almost no opacity)."""
+    window, _calls = canvas_with_a_picture(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 0.0, ("fade-black", 1.2))
+    snapshot = _Snapshot()
+    window.do_snapshot(snapshot)
+    textures = [c[1] for c in snapshot.calls if c[0] == "append_texture"]
+    assert window._old_texture in textures and window._texture in textures
+    assert snapshot.calls[0][0] == "append_color"  # black comes first
