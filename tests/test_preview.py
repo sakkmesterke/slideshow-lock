@@ -1330,12 +1330,14 @@ def _package_file(module: str) -> str:
     return os.path.join(os.path.dirname(preview_module.__file__), module)
 
 
-#: The modules of the service (CORE-1), which lock, talk to the session and use the bus on
-#: purpose. Every other module of the package, the preview's, is scanned below. A module goes on
+#: The modules that may use the word ``lock`` on purpose: the service (CORE-1) locks, talks to the
+#: session and uses the bus, and ``sample_pictures`` takes a ``flock`` that the scan for the word
+#: would find. Every other module of the package, the preview's, is scanned below. A module goes on
 #: this list only by a decision made here: a new module is in the scan from the start.
 LOCK_SIDE_MODULES = {
     "control.py",
     "dbus_adapters.py",
+    "sample_pictures.py",
     "service.py",
     "settings_app.py",
     "session.py",
