@@ -18,6 +18,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "슬라이드쇼 서비스를 시작하고 설정 창을 엽니다."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "로그인 시: 서비스를 시작하고 창은 처음에만 엽니다"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "무작위"
