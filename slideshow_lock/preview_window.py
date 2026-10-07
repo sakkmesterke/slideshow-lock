@@ -12,11 +12,14 @@ own pixel size, on a device pixel boundary, is not filtered again. A frame talle
 the window (a panning portrait picture) is scrolled by whole pixels from a frame-clock
 tick, which only runs while there is something to scroll.
 
-A picture that does not scroll is never still while it is on screen: from the frame it appears on
+On a machine that is known to draw with a GPU (``full_effects``, ``slideshow_lock.effects``) a
+picture that does not scroll is never still while it is on screen: from the frame it appears on
 until the transition that takes it away has finished it moves slowly (``_Move``,
 ``transition_draw.base_pose``: a Ken Burns zoom and drift if it fills the window, a gentle zoom if
 it does not), also under a transition, as the incoming and as the outgoing picture. So it is
 always drawn through the transform and not 1:1; the move is redrawn ``MOTION_FPS`` times a second.
+Anywhere else, or once the frame clock's ticks have shown that the machine does not keep up, the
+drawing is the plain one of 1.0.1: no move, hard edges (``transition_draw.compose_plain``).
 
 A transition (``slideshow_lock.transitions``, ``slideshow_lock.transition_draw``) keeps the old
 picture's texture next to the new one for its short time. What each of the ten looks like at a
@@ -59,6 +62,8 @@ gi.require_version("Gsk", "4.0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Graphene, Gsk, Gtk  # noqa: E402
 
 from slideshow_lock import _  # noqa: E402
+from slideshow_lock.effects import Effects, renderer_is_gpu  # noqa: E402
+from slideshow_lock.gl_probe import read_gl_renderer  # noqa: E402
 from slideshow_lock.preview import (  # noqa: E402
     INPUT_BUTTON,
     INPUT_CLOSE,
@@ -85,7 +90,7 @@ from slideshow_lock.transition_draw import (  # noqa: E402
     rim_stops,
     software_renderer,
 )
-from slideshow_lock.transitions import BLUR, CROSSFADE, NEW, OLD  # noqa: E402
+from slideshow_lock.transitions import BLUR, CROSSFADE, KEN_BURNS, NEW, OLD  # noqa: E402
 
 _LOG = logging.getLogger(__name__)
 
@@ -153,6 +158,35 @@ def software_gl(widget) -> bool:
             "software, so no blur transition" if _software_gl_cache else "not known to be software",
         )
     return _software_gl_cache
+
+
+_effects: Optional[Effects] = None
+
+
+def effects() -> Effects:
+    """Whether the effects are drawn, for the whole process (see ``slideshow_lock.effects``)."""
+    global _effects
+    if _effects is None:
+        _effects = Effects(os.environ)
+    return _effects
+
+
+def _read_renderer(widget) -> Optional[Tuple[str, Optional[str]]]:
+    """GTK's renderer class and the OpenGL renderer string of *widget*'s display, None while the
+    widget has no renderer yet (it is not realized). The string is only asked for when the class
+    is one that draws with a GPU: for the Cairo renderer there is nothing to ask."""
+    native = widget.get_native()
+    renderer = native.get_renderer() if native is not None else None
+    if renderer is None:
+        return None
+    name = renderer.__gtype__.name
+    return name, read_gl_renderer(widget.get_display()) if renderer_is_gpu(name) else None
+
+
+def full_effects(widget) -> bool:
+    """True if *widget* may draw the effects: its machine is known to draw with a GPU and has kept
+    up so far. Asks for the renderer at the first call that can (``effects().full``)."""
+    return effects().full(lambda: _read_renderer(widget))
 
 
 def _color_stops(stops) -> List[Gsk.ColorStop]:
@@ -272,6 +306,7 @@ class _Canvas(Gtk.Widget):
         a picture already on screen, the old one goes out through the transition; any call, with
         or without one, first ends a transition that is still running."""
         pan_seconds = seconds * PAN_FRACTION
+        full = full_effects(self)
         self._stop_pan()
         previous_move = self._move
         same_frame = frame is not None and frame is self._frame
@@ -292,7 +327,7 @@ class _Canvas(Gtk.Widget):
             )
             self._frame = frame
         self._offset = (0, 0)
-        self._start_move(frame, seconds, previous_move if same_frame else None)
+        self._start_move(frame, seconds, previous_move if same_frame else None, full)
         if frame is not None and frame.pan_range != (0, 0):
             if pan_seconds > 0 and animations_enabled():
                 self._pan_seconds = pan_seconds
@@ -301,7 +336,14 @@ class _Canvas(Gtk.Widget):
             else:  # animations are off: the middle of the picture, like the centre crop
                 self._offset = (frame.pan_range[0] // 2, frame.pan_range[1] // 2)
         if outgoing is not None and outgoing[0] is not None and self._texture is not None:
-            self._begin_transition(outgoing, old_offset, previous_move, *transition)
+            self._begin_transition(
+                outgoing,
+                old_offset,
+                previous_move if full else None,
+                pan_seconds,
+                full,
+                *transition,
+            )
         self.queue_draw()
 
     def _stop_pan(self) -> None:
@@ -310,26 +352,40 @@ class _Canvas(Gtk.Widget):
             self._tick_id = 0
 
     def _start_move(
-        self, frame: Optional[Frame], seconds: float, old_move: Optional[_Move]
+        self, frame: Optional[Frame], seconds: float, old_move: Optional[_Move], full: bool
     ) -> None:
         """Give *frame* its slow move: every picture that does not scroll has one, while the
-        desktop allows animations. The very same frame again (a folder of one) keeps the one it
-        has, so nothing jumps back (*old_move* is that one, None for any other frame)."""
-        if old_move is not None:  # the very same frame
+        desktop allows animations and the machine draws the effects (*full*). The very same frame
+        again (a folder of one) keeps the one it has, so nothing jumps back (*old_move* is that
+        one, None for any other frame)."""
+        if old_move is not None and full:  # the very same frame
             self._move = old_move
             return
+        self._stop_move()
+        if (
+            full
+            and frame is not None
+            and frame.pan_range == (0, 0)
+            and seconds > 0
+            and animations_enabled()
+        ):
+            self._move = _Move(picture_seconds(seconds), (frame.width, frame.height))
+            self._move_tick_id = self.add_tick_callback(self._on_move_tick)
+
+    def _stop_move(self) -> None:
         if self._move_tick_id:
             self.remove_tick_callback(self._move_tick_id)
             self._move_tick_id = 0
         self._move = None
-        if frame is not None and frame.pan_range == (0, 0) and seconds > 0 and animations_enabled():
-            self._move = _Move(picture_seconds(seconds), (frame.width, frame.height))
-            self._move_tick_id = self.add_tick_callback(self._on_move_tick)
 
     def _on_move_tick(self, _widget, clock) -> bool:
         """Keeps the clock of the slow move and redraws it ``MOTION_FPS`` times a second; while a
         transition runs it redraws at every frame itself."""
         self._sync(clock)
+        if self._move is None:  # the guard of the drawing time took the effects away
+            self._move_tick_id = 0
+            self.queue_draw()
+            return GLib.SOURCE_REMOVE
         if self._run is None and self._now - self._drawn_at >= 1_000_000 // MOTION_FPS - 4_000:
             self._drawn_at = self._now
             self.queue_draw()
@@ -337,6 +393,9 @@ class _Canvas(Gtk.Widget):
 
     def _sync(self, clock) -> None:
         self._now = clock.get_frame_time()
+        effects().frame(self._now)  # the guard of the drawing time
+        if self._move is not None and not full_effects(self):
+            self._move = None  # the guard took the effects away: the picture stands still
         for move in (self._move, self._old_move):
             if move is not None and move.born is None:
                 move.born = self._now
@@ -348,9 +407,14 @@ class _Canvas(Gtk.Widget):
         window = (round(width * scale), round(self.get_height() * scale))
         return move.pose(self._now, width, window)
 
-    def _begin_transition(self, outgoing, offset, old_move, name: str, seconds: float) -> None:
+    def _begin_transition(
+        self, outgoing, offset, old_move, pan_seconds: float, full: bool, name: str, seconds: float
+    ) -> None:
         """Start *name* from the old picture *outgoing* ``(texture, frame)``, which moves on with
-        *old_move*, to the one just set. *seconds* is how long it takes."""
+        *old_move*, to the one just set. *seconds* is how long it takes. Without the effects
+        (*full* false) it is the plain drawing, as in 1.0.1: nothing moves except Ken Burns, whose
+        move lasts *pan_seconds*, the picture time without its rest, and ends on the plain
+        picture; *seconds* is then how long its cross fade takes."""
         scale = self._scale()
         size = (round(self.get_width() * scale), round(self.get_height() * scale))
         frame = self._frame
@@ -361,7 +425,10 @@ class _Canvas(Gtk.Widget):
             frame.pan_range,
             software_gl(self) if name == BLUR else False,
         )
-        run_seconds = seconds
+        run_seconds, fade_share = seconds, 1.0
+        if not full and name == KEN_BURNS:
+            run_seconds = max(seconds, pan_seconds)
+            fade_share = seconds / run_seconds
         reduced: Dict[str, Gdk.Texture] = {}
         if name == BLUR:
             try:
@@ -380,7 +447,7 @@ class _Canvas(Gtk.Widget):
         )
         self._old_move = old_move
         self._reduced = reduced
-        self._run = TransitionRun(name, run_seconds)
+        self._run = TransitionRun(name, run_seconds, plain=not full, fade_share=fade_share)
         self._run_tick_id = self.add_tick_callback(self._on_transition_tick)
 
     def _end_transition(self) -> None:

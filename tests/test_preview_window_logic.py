@@ -14,6 +14,7 @@ from gi.repository import GLib
 
 from slideshow_lock import preview_window
 from slideshow_lock import transition_draw as td
+from slideshow_lock.effects import Effects
 from slideshow_lock.preview import (
     INPUT_BUTTON,
     INPUT_CLOSE,
@@ -120,8 +121,13 @@ def test_every_listener_hears_every_input(callbacks):
 # -- a panning frame, and the desktop's animation choice at the moment it is shown -----------
 
 
-def window_for_frames(monkeypatch):
-    """A canvas that records what it is asked to do instead of drawing."""
+_UNSET = object()
+
+
+def window_for_frames(monkeypatch, full=True, reading=_UNSET):
+    """A canvas that records what it is asked to do instead of drawing. *full*: the machine is one
+    that draws the effects (``preview_window.full_effects``); false is the plain drawing. With
+    *reading* (renderer class, GL string) ``full_effects`` is the real one, deciding on that."""
     window = _Canvas.__new__(_Canvas)
     window._frame = window._texture = None
     window._tick_id = 0
@@ -143,6 +149,11 @@ def window_for_frames(monkeypatch):
     monkeypatch.setattr(_Canvas, "get_width", lambda self: 4)  # the window is the frames' size
     monkeypatch.setattr(_Canvas, "get_height", lambda self: 3)
     monkeypatch.setattr(preview_window, "software_gl", lambda widget: False)
+    monkeypatch.setattr(preview_window, "_effects", Effects({}, budget_ms=25.0, frames=10))
+    if reading is _UNSET:
+        monkeypatch.setattr(preview_window, "full_effects", lambda widget: full)
+    else:
+        monkeypatch.setattr(preview_window, "_read_renderer", lambda widget: reading)
     return window, calls
 
 
@@ -637,3 +648,237 @@ def test_a_picture_smaller_than_the_window_only_grows_and_is_not_shifted(monkeyp
     window._on_move_tick(None, _Clock(10.0))
     pose = window._pose(window._move, 4.0)
     assert pose.dx == 0.0 and 1.0 < pose.scale <= 1.0 + td.SMALL_ZOOM
+
+
+# -- without the effects: the plain drawing of 1.0.1 ---------------------------------------------
+
+
+def plain_canvas(monkeypatch, seconds=20.0):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, calls = window_for_frames(monkeypatch, full=False)
+    window.set_frame(flat_frame("old.png"), seconds)
+    return window, calls
+
+
+def test_without_the_effects_a_picture_stands_still_and_nothing_ticks(monkeypatch):
+    window, calls = plain_canvas(monkeypatch)
+    assert window._move is None and window._move_tick_id == 0 and calls == []
+    snapshot = _Snapshot()
+    window.do_snapshot(snapshot)
+    assert [c[0] for c in snapshot.calls] == ["append_color", "append_texture"]  # 1:1, as 1.0.1
+
+
+def test_without_the_effects_the_same_frame_again_gets_no_move_either(monkeypatch):
+    window, calls = plain_canvas(monkeypatch)
+    window.set_frame(window._frame, 20.0)
+    assert window._move is None and calls == []
+
+
+@pytest.mark.parametrize("name", ALL_TRANSITIONS)
+def test_without_the_effects_every_transition_runs_plain_with_no_move(monkeypatch, name):
+    window, calls = plain_canvas(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 20.0, (name, 1.0))
+    assert window._run is not None and window._run.plain is True
+    assert window._move is None and window._old_move is None
+    assert calls == ["tick"]  # the transition's own tick only
+
+
+def test_without_the_effects_ken_burns_is_1_0_1s_run_with_its_fade_share(monkeypatch):
+    """1.0.1: the run lasts as long as the picture's pan time (90 % of the interval) and the cross
+    fade is the share of it that the transition's own time makes."""
+    window, _calls = plain_canvas(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 10.0, ("ken-burns", 1.0))
+    assert window._run.plain is True
+    assert window._run.seconds == pytest.approx(9.0)
+    assert window._run.fade_share == pytest.approx(1.0 / 9.0)
+
+
+def test_without_the_effects_a_transition_longer_than_the_pan_time_is_its_own_length(monkeypatch):
+    window, _calls = plain_canvas(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 1.0, ("ken-burns", 4.0))
+    assert window._run.seconds == 4.0 and window._run.fade_share == 1.0
+
+
+def test_with_the_effects_ken_burns_is_the_cross_fade_over_its_own_time(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, _calls = window_for_frames(monkeypatch, full=True)
+    window.set_frame(flat_frame("old.png"), 10.0)
+    window.set_frame(flat_frame("new.png"), 10.0, ("ken-burns", 1.0))
+    assert window._run.plain is False and window._run.seconds == 1.0
+
+
+def test_a_plain_run_paints_without_poses_even_if_a_move_is_left_over(monkeypatch):
+    window, _calls = plain_canvas(monkeypatch)
+    window.set_frame(flat_frame("new.png"), 20.0, ("push", 1.0))
+    window._move = window._old_move = preview_window._Move(30.0, (4, 3))
+    for t in (1.0, 1.0, 1.4):
+        window._on_transition_tick(None, _Clock(t))
+    snapshot = _Snapshot()
+    window.do_snapshot(snapshot)
+    names = [c[0] for c in snapshot.calls]
+    assert "push_mask" not in names and "push_clip" in names  # hard cuts: a clip, no mask
+
+
+PLAIN_ROWS = [
+    row
+    for row in __import__("json").loads(
+        __import__("pathlib").Path(__file__).with_name("compose_1_0_1.json").read_text()
+    )
+    if row["name"] in ALL_TRANSITIONS and row["size"] == [320.0, 180.0] and row["fade_share"] == 1.0
+]
+
+
+@pytest.mark.parametrize(
+    "row", PLAIN_ROWS, ids=["%s-%s" % (row["name"], row["progress"]) for row in PLAIN_ROWS]
+)
+def test_the_plain_draws_make_the_same_snapshot_calls_as_1_0_1(row):
+    """The names of the calls 1.0.1's canvas made for these moments (``compose_1_0_1.json``)."""
+    width, height = row["size"]
+    if row["progress"] == "first":
+        draws = td.first_frame(row["name"], width, height, True)
+    else:
+        draws = td.compose_plain(row["name"], row["progress"], width, height)
+    snapshot = _Snapshot()
+    canvas = painting_canvas(int(width), int(height))
+    for draw in draws:
+        canvas._paint(snapshot, draw, width, height)
+    assert [call[0] for call in snapshot.calls] == row["calls"]
+
+
+# -- the decision and the guard, on the canvas ----------------------------------------------------
+
+GPU_READING = ("GskNglRenderer", "Mesa Intel(R) UHD Graphics 620 (KBL GT2)")
+CPU_READING = ("GskNglRenderer", "llvmpipe (LLVM 15.0.6, 256 bits)")
+
+
+def test_a_gpu_machine_gets_the_move_and_a_cpu_machine_does_not(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, _calls = window_for_frames(monkeypatch, reading=GPU_READING)
+    window.set_frame(flat_frame("a.png"), 20.0)
+    assert window._move is not None
+    window, _calls = window_for_frames(monkeypatch, reading=CPU_READING)
+    window.set_frame(flat_frame("a.png"), 20.0)
+    assert window._move is None
+
+
+def test_a_window_that_has_no_renderer_yet_gets_no_move_and_the_next_picture_decides(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    answers = [None]
+    window, _calls = window_for_frames(monkeypatch, reading=None)
+    monkeypatch.setattr(preview_window, "_read_renderer", lambda widget: answers[0])
+    window.set_frame(flat_frame("a.png"), 20.0)
+    assert window._move is None
+    answers[0] = GPU_READING
+    window.set_frame(flat_frame("b.png"), 20.0)
+    assert window._move is not None
+
+
+def guarded_canvas(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, calls = window_for_frames(monkeypatch, reading=GPU_READING)
+    window.set_frame(flat_frame("a.png"), 20.0)
+    assert window._move is not None
+    return window, calls
+
+
+def test_frames_that_keep_up_leave_the_move_alone(monkeypatch):
+    window, _calls = guarded_canvas(monkeypatch)
+    for frame in range(120):
+        assert window._on_move_tick(None, _Clock(frame / 60.0)) == GLib.SOURCE_CONTINUE
+    assert window._move is not None and preview_window.effects().tripped is None
+
+
+def test_frames_that_do_not_keep_up_stop_the_move_and_its_tick(monkeypatch):
+    window, _calls = guarded_canvas(monkeypatch)
+    results = [window._on_move_tick(None, _Clock(frame * 0.08)) for frame in range(14)]
+    assert results[-1] == GLib.SOURCE_REMOVE  # 80 ms frames: over the 25 ms budget
+    assert window._move is None and window._move_tick_id == 0
+    assert preview_window.effects().tripped is not None
+    snapshot = _Snapshot()
+    window.do_snapshot(snapshot)
+    assert [c[0] for c in snapshot.calls] == ["append_color", "append_texture"]  # standing still
+
+
+def test_after_the_guard_the_next_picture_is_plain(monkeypatch):
+    window, _calls = guarded_canvas(monkeypatch)
+    for frame in range(14):
+        window._on_move_tick(None, _Clock(frame * 0.08))
+    window.set_frame(flat_frame("b.png"), 20.0, ("circle", 1.0))
+    assert window._move is None and window._run.plain is True
+
+
+def test_the_transitions_ticks_feed_the_guard_too(monkeypatch):
+    window, _calls = guarded_canvas(monkeypatch)
+    window.set_frame(flat_frame("b.png"), 20.0, ("wipe", 5.0))
+    assert window._run.plain is False
+    for frame in range(14):
+        window._on_transition_tick(None, _Clock(frame * 0.08))
+    assert preview_window.effects().tripped is not None
+
+
+# -- reading the renderer from a widget ------------------------------------------------------------
+
+
+class _Type:
+    def __init__(self, name):
+        self.name = name
+
+
+class _Renderer:
+    def __init__(self, name):
+        self.__gtype__ = _Type(name)
+
+
+class _Native:
+    def __init__(self, renderer):
+        self._renderer = renderer
+
+    def get_renderer(self):
+        return self._renderer
+
+
+class _Widget:
+    def __init__(self, native):
+        self._native = native
+
+    def get_native(self):
+        return self._native
+
+    def get_display(self):
+        return "the display"
+
+
+def test_the_renderer_of_a_widget_that_is_not_realized_is_not_read_yet(monkeypatch):
+    for native in (None, _Native(None)):
+        assert preview_window._read_renderer(_Widget(native)) is None
+
+
+def test_a_gpu_renderer_class_is_read_with_the_gl_string_of_the_widgets_display(monkeypatch):
+    asked = []
+    monkeypatch.setattr(preview_window, "read_gl_renderer", lambda d: asked.append(d) or "Mesa X")
+    widget = _Widget(_Native(_Renderer("GskNglRenderer")))
+    assert preview_window._read_renderer(widget) == ("GskNglRenderer", "Mesa X")
+    assert asked == ["the display"]
+
+
+def test_the_cairo_renderer_is_not_asked_for_a_gl_string(monkeypatch):
+    monkeypatch.setattr(preview_window, "read_gl_renderer", lambda d: pytest.fail("asked"))
+    widget = _Widget(_Native(_Renderer("GskCairoRenderer")))
+    assert preview_window._read_renderer(widget) == ("GskCairoRenderer", None)
+
+
+def test_when_the_effects_go_away_the_same_frame_and_the_next_transition_are_plain(monkeypatch):
+    """A canvas that had the move when the guard took the effects away: the folder of one picture
+    shown again does not get the move back, and the outgoing picture of the next transition has
+    none."""
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, _calls = window_for_frames(monkeypatch, full=True)
+    window.set_frame(flat_frame("a.png"), 20.0)
+    assert window._move is not None
+    monkeypatch.setattr(preview_window, "full_effects", lambda widget: False)
+    window.set_frame(window._frame, 20.0)  # the very same frame again
+    assert window._move is None and window._move_tick_id == 0
+    window.set_frame(flat_frame("b.png"), 20.0)
+    window._move = preview_window._Move(30.0, (4, 3))  # a move left over from before
+    window.set_frame(flat_frame("c.png"), 20.0, ("slide-in", 1.0))
+    assert window._old_move is None and window._run.plain is True
