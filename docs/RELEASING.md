@@ -26,8 +26,11 @@ The maintainer's rule, set on 2026-10-07.
 4. The version of a release is always higher than that of any earlier build, test builds included.
    A test build gets a lower `Release` than the release, for example `1.0.1-0.1.test` against
    `1.0.1-1`, and never the `Release` of the release. The lower `Release` is set only in the build
-   that is tested, not on `main`: `main` has the `Release` of the release. `[H]` `rpm` sorts
-   `0.1.test` below `1`; this is not measured here.
+   that is tested, not on `main`: `main` has the `Release` of the release. Measured on 2026-10-07 by
+   the builder of the first EL10 test package, with `rpm --eval '%{lua:print(rpm.vercmp(...))}'` in a
+   CentOS Stream 10 build root: `1.0.1-0.1.test` against `1.0.1-1` gives -1, and with the dist tag
+   `1.0.1-0.1.test.el10` against `1.0.1-1.el10` gives -1, so the release updates the test build. Not
+   measured: a Fedora root.
 
 1.0.0 had no such rule: its test builds and the release were all `1.0.0-1`, so the maintainer had to
 reinstall by hand.
@@ -102,7 +105,7 @@ This is the setting, read from the COPR source (`fedora-copr/copr`, the frontend
 `commits_belong_to_package`). `[H]` That the live COPR server behaves as that source says is not
 measured.
 
-- GitHub webhook: only the event "Branch or tag creation". "Pushes" is off.
+- GitHub webhook: only the event "Branch or tag creation". "Pushes" is off. `[H]`
 - URL: the COPR GitHub webhook address of the project, with `slideshow-lock/` added at the end.
   Without the package name a tag such as `v1.0.0` does not match. The address contains a secret
   (a uuid), so it is not written in the repository.
@@ -111,9 +114,11 @@ measured.
 
 A push to a branch must not start a build; only the creation of a tag does. Measured: on
 2026-10-06 each merge into `main` (#52, #53, #54) started a build 2 seconds later (builds 11084437,
-11084605, 11084818). On 2026-10-07 the COPR build list has no build after 11084848 although `main`
-got #56 to #63 since. `[H]` That the "Pushes" event is now off is a reading of this, not seen in the
-GitHub settings.
+11084605, 11084818). The newest build in the COPR list on 2026-10-07 is 11084848: it is the build of
+the tag `v1.0.0` (its source log shows `git checkout v1.0.0`, which is `f94b29d`), submitted at
+14:56 CEST on 2026-10-06. After it `main` got #55 (`ba5d30d`, merged at 15:59 CEST on 2026-10-06) and
+#56 to #63, and no build was submitted: #55 did not start a build, and neither did the later merges.
+`[H]` That the "Pushes" event is now off is a reading of this, not seen in the GitHub settings.
 
 Any tag creation with the package name in the URL starts a build, whatever the tag is called, and
 a tag is not deleted (see "A failed step"), so a tag is never pushed to test the webhook. The

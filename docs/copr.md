@@ -121,10 +121,11 @@ One step for the owner of the Fedora account, nothing is stored in the repositor
 1. Project name `slideshow-lock`, owned by the maintainer's Fedora account.
 2. Chroots: the list of section 2.
 3. Package source type: SCM (git), clone URL `https://github.com/sakkmesterke/slideshow-lock.git`,
-   committish `main`, subdirectory empty, spec file `packaging/fedora/slideshow-lock.spec`, build
-   method "Make srpm" (the file is `.copr/Makefile`).
-4. Webhook: none for now. Automatic rebuilds: off. Every build is started by hand until this is
-   decided otherwise.
+   subdirectory empty, spec file `packaging/fedora/slideshow-lock.spec`, build method "Make srpm"
+   (the file is `.copr/Makefile`). The committish is not `main`: a build is of the tag that started
+   it (the source log of build 11084848 shows `'committish': 'v1.0.0'`).
+4. Webhook: only the creation of a tag (`docs/RELEASING.md`, "The webhook (tag only)"). No build is
+   started by hand (`docs/RELEASING.md`, "What may be built in the COPR project").
 5. Internet access during the build: off (the default). `[H]` The build then needs none, because
    `Source0` is the tarball the Makefile made and is in the source RPM. Measured is only that the
    Makefile itself works without a network (section 1); what COPR does with this setting is not.
