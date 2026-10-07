@@ -138,7 +138,7 @@ def test_the_new_picture_never_goes_back(name):
 
 def test_crossfade_is_the_new_picture_over_the_old_at_the_eased_opacity():
     old, new = td.compose(CROSSFADE, 0.25, W, H)
-    assert old == td.Draw(OLD)
+    assert old == td.Draw(OLD, settle=td.Settle(td.ease(0.25)))
     assert new == td.Draw(NEW, opacity=td.ease(0.25))
 
 
@@ -153,7 +153,7 @@ def test_fade_black_dips_to_black_in_the_middle_and_never_shows_both():
 
 def test_slide_in_moves_the_new_picture_over_a_still_old_one_inside_the_window():
     old, new = td.compose(SLIDE_IN, 0.5, W, H)
-    assert old == td.Draw(OLD)
+    assert old == td.Draw(OLD, settle=td.Settle(td.ease(0.5)))
     assert new.dx == pytest.approx(W * 0.5) and new.clip == (0.0, 0.0, W, H)
 
 

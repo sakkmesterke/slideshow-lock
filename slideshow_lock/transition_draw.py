@@ -119,12 +119,24 @@ class Soft(NamedTuple):
     sides: str = ""
 
 
+class Settle(NamedTuple):
+    """How far the outgoing picture's visible area has been drawn in towards the area the incoming
+    picture ends in: *share* 0 is the outgoing picture's own area, 1 is the incoming picture's
+    (with its slow move *to*, which ``with_poses`` fills in). Without it a picture that does not
+    fill the window, moving on under the incoming one, would stick out of it at the end of the
+    transition and vanish with the plain frame that follows."""
+
+    share: float
+    to: Pose = STILL
+
+
 class Draw(NamedTuple):
     """One picture to paint. ``scale``, ``angle`` (degrees, clockwise) and the translation
     ``dx, dy`` (window pixels, applied after them) work around the centre of the window; ``clip``
     and ``circle`` (centre x, centre y, radius) cut the result; ``soft`` makes one of the cuts, or
     the picture's own edge, a gradient; ``blur`` is a radius in pixels; ``pose`` is the picture's
-    slow move inside its own place, done before everything else."""
+    slow move inside its own place, done before everything else; ``settle`` (the outgoing picture
+    only) cuts it to an area that goes from its own to the incoming picture's."""
 
     layer: str
     opacity: float = 1.0
@@ -137,6 +149,7 @@ class Draw(NamedTuple):
     blur: float = 0.0
     soft: Optional[Soft] = None
     pose: Pose = STILL
+    settle: Optional[Settle] = None
 
 
 def ease(progress: float) -> float:
@@ -238,9 +251,10 @@ def compose(name: str, progress: float, width: float, height: float) -> List[Dra
     w, h = float(width), float(height)
     window: Rect = (0.0, 0.0, w, h)
     soft = soft_width(w, h)
+    settle = Settle(e)  # the outgoing picture that stays under the incoming one to the end
 
     if name in (CROSSFADE, KEN_BURNS):
-        return [Draw(OLD), Draw(NEW, opacity=e)]
+        return [Draw(OLD, settle=settle), Draw(NEW, opacity=e)]
     if name == FADE_BLACK:
         if e < 0.5:
             return [Draw(OLD, opacity=1.0 - 2.0 * e)]
@@ -249,7 +263,7 @@ def compose(name: str, progress: float, width: float, height: float) -> List[Dra
         dx = w * (1.0 - e)
         edge = min(soft, dx) if dx < w else 0.0  # narrower as the edge nears the window's border
         return [
-            Draw(OLD),
+            Draw(OLD, settle=settle),
             Draw(NEW, dx=dx, clip=window, soft=Soft(SOFT_PICTURE, edge, "l") if edge > 0 else None),
         ]
     if name == PUSH:
@@ -269,7 +283,7 @@ def compose(name: str, progress: float, width: float, height: float) -> List[Dra
     if name == ZOOM:
         edge = soft * (1.0 - e)
         return [
-            Draw(OLD, scale=1.0 + ZOOM_OUT * e),
+            Draw(OLD, scale=1.0 + ZOOM_OUT * e, settle=settle),
             Draw(
                 NEW,
                 opacity=e,
@@ -280,17 +294,17 @@ def compose(name: str, progress: float, width: float, height: float) -> List[Dra
     if name == WIPE:
         # The front runs *soft* pixels past the window, so that the last of the band leaves it.
         if e >= 1.0:
-            return [Draw(OLD), Draw(NEW)]
+            return [Draw(OLD, settle=settle), Draw(NEW)]
         return [
-            Draw(OLD),
+            Draw(OLD, settle=settle),
             Draw(NEW, clip=(0.0, 0.0, (w + soft) * e, h), soft=Soft(SOFT_CLIP, soft, "r")),
         ]
     if name == CIRCLE:
         if e >= 1.0:
-            return [Draw(OLD), Draw(NEW)]
+            return [Draw(OLD, settle=settle), Draw(NEW)]
         radius = (math.hypot(w, h) / 2.0 + soft) * e  # the same: the band ends past the corners
         return [
-            Draw(OLD),
+            Draw(OLD, settle=settle),
             Draw(NEW, circle=(w / 2.0, h / 2.0, radius), soft=Soft(SOFT_CIRCLE, soft)),
         ]
     if name == BLUR:
@@ -300,7 +314,7 @@ def compose(name: str, progress: float, width: float, height: float) -> List[Dra
     if name == ROTATE:
         edge = soft * (1.0 - e)
         return [
-            Draw(OLD),
+            Draw(OLD, settle=settle),
             Draw(
                 NEW,
                 opacity=e,
@@ -314,7 +328,15 @@ def compose(name: str, progress: float, width: float, height: float) -> List[Dra
 
 def with_poses(draws: Sequence[Draw], old: Pose = STILL, new: Pose = STILL) -> List[Draw]:
     """*draws* with the slow move of the outgoing picture (*old*) and the incoming one (*new*)."""
-    return [draw._replace(pose=old if draw.layer == OLD else new) for draw in draws]
+    posed = []
+    for draw in draws:
+        if draw.layer == OLD:
+            settle = None if draw.settle is None else draw.settle._replace(to=new)
+            draw = draw._replace(pose=old, settle=settle)
+        else:
+            draw = draw._replace(pose=new)
+        posed.append(draw)
+    return posed
 
 
 def first_frame(name: str, width: float, height: float) -> List[Draw]:
