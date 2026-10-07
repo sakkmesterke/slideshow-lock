@@ -16,11 +16,12 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Picture folder (text, "Browse...") | `picture-folder` | an absolute path, `~/...`, or empty for the default |
 | Start the slideshow after | `idle-timeout-seconds` | 1 to 86400 |
 | Lock grace period | `lock-grace-period-seconds` | 0 to 86400 (input sooner than this does not lock, strictly sooner: D16) |
-| Show each picture for (one slider, big HH:MM:SS above it) | `slide-interval-seconds` | 1 to 86399 seconds, shown as 00:00:01 to 23:59:59 |
+| Show each picture for (one slider, big HH:MM:SS above it) | `slide-interval-seconds` | 1 to 86399 seconds, shown as 00:00:01 to 23:59:59 (10 s by default) |
 | Picture order | `order` | random, name |
 | Scaling | `scaling` | fill, fit |
 | Scroll tall pictures | `pan-portrait-images` | on, off (off by default) |
 | Between pictures (drop-down, in the Transitions group) | `transitions`, `transition-order` | none (an empty list); one of the ten: cross-fade (`crossfade`, the default), fade through black (`fade-black`), slide in (`slide-in`), push (`push`), Ken Burns (`ken-burns`), zoom (`zoom`), wipe (`wipe`), circle reveal (`circle`), blur (`blur`), rotate (`rotate`); or the random mix (see below) |
+| Transition length (slider with the value on its left, in the Transitions group) | `transition-duration` | 0.2 to 5.0 seconds, in steps of 0.1 (1.0 by default); the same for every transition |
 
 "Preview" runs the CORE-2 preview (`preview_app.start_preview`) on the values in the window, saved
 or not (see "Save" below), in the same process. It never locks (D11); any key, click, scroll or mouse movement ends it, and
@@ -59,8 +60,8 @@ There is no on/off switch: that goes through the systemd user unit
 - The window says "Saved." only for a value that is stored and reads back as written. A refused
   value is not kept, the field goes back to the value in effect (the draft's, otherwise the stored
   one), and the status line says why.
-- The slide interval is one slider with a big HH:MM:SS (`00:00:05`) and a short text (`5 s`) above
-  it, updated while the slider moves. The default is 5 seconds. The slider is cut into four equal
+- The slide interval is one slider with a big HH:MM:SS (`00:00:10`) and a short text (`10 s`) above
+  it, updated while the slider moves. The default is 10 seconds (it was 5 before 1.0.1). The slider is cut into four equal
   quarters of its length, 36 steps in all, and each quarter has its steps spread evenly:
   1. 1 to 10 s, every second (1, 2, ... 10);
   2. 10 to 60 s, every 5 seconds (15, 20, ... 60);
@@ -82,7 +83,7 @@ There is no on/off switch: that goes through the systemd user unit
   seconds (100 s sits at 2 min, 11 s at 10 s; halfway between two steps, the lower one: 90 s sits at
   1 min), and the big text and a note say it is not a step. Opening the window never writes: the
   stored value stays until the user moves the slider. A stored 0 or 86400 cannot exist (GSettings
-  gives the default, 5 s, for a value outside the range). The idle time (1 to 86400 seconds) and
+  gives the default, 10 s, for a value outside the range). The idle time (1 to 86400 seconds) and
   the grace period are still plain number fields.
 - The "Between pictures" drop-down (group Transitions) offers None, the ten transitions in the
   order of `transitions.ALL_TRANSITIONS`, and "Random mix". `transitions` is a list of names: a
@@ -96,6 +97,13 @@ There is no on/off switch: that goes through the systemd user unit
   and the fade through black; the others are stored and the preview shows a plain cut for them
   until they are drawn. The row says that without desktop animations the pictures change at once.
   What the transitions do and when there is none: `docs/preview.md`, section 2.
+- The "Transition length" slider (group Transitions, 0.2 to 5.0 s in steps of 0.1, 1.0 by default)
+  writes `transition-duration`, one value for every transition. A new edit is rounded to the step
+  (1.25 becomes 1.2); a stored value that is not a step is shown as it is and left alone until the
+  slider is moved, like the slide interval. The slider always shows the stored length, even when the
+  engine cuts it short: a transition is never longer than half of the slide interval, so 5 s at a
+  slide interval of 4 s plays for 2 s (`transitions.transition_seconds`). The row says so in one
+  sentence, and nothing is written for the cut.
 - The folder chooser (Browse) opens in the folder of the field (the draft's) when it exists. If that
   folder is missing, or the field is empty (the default is in use), it opens in the system's pictures folder (`~/Pictures` when none is
   configured or it is the home directory itself), and in the home directory only when even that

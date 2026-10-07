@@ -29,6 +29,7 @@ from slideshow_lock.settings import (
     KEY_PICTURE_FOLDER,
     KEY_SCALING,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
     KEY_TRANSITION_ORDER,
     KEY_TRANSITIONS,
     default_picture_folder,
@@ -37,6 +38,8 @@ from slideshow_lock.transitions import (
     ALL_TRANSITIONS,
     BLUR,
     KEN_BURNS,
+    MAX_DURATION,
+    MIN_DURATION,
     ORDER_RANDOM,
     ORDERS,
 )
@@ -94,6 +97,13 @@ INT_RANGES = {
     KEY_SLIDE_INTERVAL_SECONDS: (INTERVAL_MIN_SECONDS, INTERVAL_MAX_SECONDS),
 }
 
+#: The transition-length slider: from ``MIN_DURATION`` to ``MAX_DURATION`` seconds (the schema's
+#: range), in steps of a tenth of a second. A value that is not a multiple of the step is rounded to
+#: it when it is edited; a stored one that is not is shown, and left alone until it is edited.
+DURATION_MIN_SECONDS = MIN_DURATION
+DURATION_MAX_SECONDS = MAX_DURATION
+DURATION_STEP_SECONDS = 0.1
+
 #: The values of the choice keys, in the order the window lists them. The schema's choices.
 CHOICES = {
     KEY_ORDER: ("random", "name"),
@@ -126,6 +136,7 @@ _GETTERS = {
     KEY_PICTURE_FOLDER: "get_picture_folder",
     KEY_TRANSITIONS: "get_transitions",
     KEY_TRANSITION_ORDER: "get_transition_order",
+    KEY_TRANSITION_DURATION: "get_transition_duration",
 }
 
 _SETTERS = {key: name.replace("get_", "set_", 1) for key, name in _GETTERS.items()}
@@ -325,6 +336,20 @@ class PreferencesModel:
         return Checked(None, interval_seconds_for_position(position))
 
     @staticmethod
+    def check_duration(value) -> "Checked":
+        """A transition length in seconds, rounded to the slider's step (a tenth of a second). Only
+        the slider edits it, so a value that is not a number, or is outside the schema's range, is
+        "not on the slider" (the message of the interval slider: no text of its own to translate).
+        """
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not DURATION_MIN_SECONDS <= value <= DURATION_MAX_SECONDS
+        ):
+            return Checked(_("This position is not on the slider."), None)
+        return Checked(None, round(float(value), 1))
+
+    @staticmethod
     def check_choice(key: str, value) -> "Checked":
         if value not in CHOICES[key]:
             return Checked(_("This choice is not available."), None)
@@ -374,6 +399,13 @@ class PreferencesModel:
         if not checked.ok:
             return SaveResult(False, checked.error)
         return self._store(KEY_SLIDE_INTERVAL_SECONDS, checked.value)
+
+    def set_duration(self, value) -> SaveResult:
+        """Save the transition length (seconds, rounded to a tenth)."""
+        checked = self.check_duration(value)
+        if not checked.ok:
+            return SaveResult(False, checked.error)
+        return self._store(KEY_TRANSITION_DURATION, checked.value)
 
     def set_choice(self, key: str, value) -> SaveResult:
         checked = self.check_choice(key, value)
@@ -453,6 +485,7 @@ SAVE_ORDER = (
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_SLIDE_INTERVAL_SECONDS,
+    KEY_TRANSITION_DURATION,
 )
 
 
@@ -520,6 +553,9 @@ class Draft:
     def edit_interval_position(self, position) -> SaveResult:
         return self._edit(KEY_SLIDE_INTERVAL_SECONDS, self._model.check_interval_position(position))
 
+    def edit_duration(self, value) -> SaveResult:
+        return self._edit(KEY_TRANSITION_DURATION, self._model.check_duration(value))
+
     def edit_choice(self, key: str, value) -> SaveResult:
         return self._edit(key, self._model.check_choice(key, value))
 
@@ -541,6 +577,8 @@ class Draft:
             return self._model.set_transition(value)
         if key == KEY_PAN_PORTRAIT_IMAGES:
             return self._model.set_pan_portrait_images(value)
+        if key == KEY_TRANSITION_DURATION:
+            return self._model.set_duration(value)
         if key in CHOICES:
             return self._model.set_choice(key, value)
         return self._model.set_int(key, value)

@@ -54,6 +54,9 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 from slideshow_lock import APP_ID, _, i18n  # noqa: E402
 from slideshow_lock.preferences_model import (  # noqa: E402
     CHOICES,
+    DURATION_MAX_SECONDS,
+    DURATION_MIN_SECONDS,
+    DURATION_STEP_SECONDS,
     INT_RANGES,
     INTERVAL_SLIDER_MAX,
     INTERVAL_STOPS,
@@ -75,6 +78,7 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_ORDER,
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_SCALING,
+    KEY_TRANSITION_DURATION,
     KEY_TRANSITIONS,
     Settings,
 )
@@ -83,6 +87,7 @@ _LOG = logging.getLogger(__name__)
 
 MARGIN = 18  # the window's edge
 ROW_SPACING = 8
+DURATION_SCALE_WIDTH = 260  # the transition-length slider, in pixels
 
 
 def _choice_labels():
@@ -175,8 +180,32 @@ class PreferencesWindow(Adw.ApplicationWindow):
             ),
         )
         self.transition_drop.connect("notify::selected", lambda *_a: self._on_transition())
+        # The length of a change: one value for every transition. The engine cuts it to half of the
+        # slide interval at most; the slider always shows the stored value (docs/preferences.md).
+        self.duration_scale = Gtk.Scale.new_with_range(
+            Gtk.Orientation.HORIZONTAL,
+            DURATION_MIN_SECONDS,
+            DURATION_MAX_SECONDS,
+            DURATION_STEP_SECONDS,
+        )
+        self.duration_scale.set_digits(1)
+        self.duration_scale.set_round_digits(1)
+        self.duration_scale.set_draw_value(True)
+        self.duration_scale.set_value_pos(Gtk.PositionType.LEFT)
+        self.duration_scale.set_size_request(DURATION_SCALE_WIDTH, -1)
+        self.duration_scale.set_valign(Gtk.Align.CENTER)
+        self.duration_scale.connect("value-changed", lambda _scale: self._on_duration())
+        duration_row = Adw.ActionRow(
+            title=_("Transition length"),
+            subtitle=_(
+                "How long one change takes, the same for every transition. It is never longer "
+                "than half of the time a picture is shown."
+            ),
+        )
+        duration_row.add_suffix(self._with_unit(self.duration_scale, _("seconds")))
         transitions_group = Adw.PreferencesGroup(title=_("Transitions"))
         transitions_group.add(self.transition_drop)
+        transitions_group.add(duration_row)
 
         # -- start the slideshow: the idle time ---------------------------------------------
         self.idle_spin = self._spin(KEY_IDLE_TIMEOUT_SECONDS)
@@ -338,6 +367,7 @@ class PreferencesWindow(Adw.ApplicationWindow):
             self.transition_drop.set_selected(
                 TRANSITION_CHOICES.index(self._draft.value(KEY_TRANSITIONS))
             )
+            self.duration_scale.set_value(self._draft.value(KEY_TRANSITION_DURATION))
         finally:
             self._updating = False
         self._update_save_button()
@@ -371,6 +401,10 @@ class PreferencesWindow(Adw.ApplicationWindow):
     def _on_int(self, key: str, spin: Gtk.SpinButton) -> None:
         if not self._updating:
             self._report(self._draft.edit_int(key, spin.get_value_as_int()))
+
+    def _on_duration(self) -> None:
+        if not self._updating:
+            self._report(self._draft.edit_duration(self.duration_scale.get_value()))
 
     def _on_interval(self) -> None:
         """The slider moved (by the user): snap it to its step and keep that step.

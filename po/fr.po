@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 04:15+0000\n"
+"POT-Creation-Date: 2026-10-07 04:38+0000\n"
 "PO-Revision-Date: 2026-10-06 04:00+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: French\n"
@@ -147,6 +147,22 @@ msgstr ""
 "les animations du bureau, les images changent aussitôt."
 
 #: slideshow_lock/preferences.py
+msgid "Transition length"
+msgstr "Durée de la transition"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"How long one change takes, the same for every transition. It is never longer "
+"than half of the time a picture is shown."
+msgstr ""
+"Durée d'un changement, la même pour toutes les transitions. Jamais "
+"plus longue que la moitié du temps d'affichage d'une image."
+
+#: slideshow_lock/preferences.py
+msgid "seconds"
+msgstr "secondes"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Transitions"
 
@@ -157,10 +173,6 @@ msgstr "Délai d’inactivité"
 #: slideshow_lock/preferences.py
 msgid "How long without input before the slideshow starts."
 msgstr "Durée sans activité avant le démarrage du diaporama."
-
-#: slideshow_lock/preferences.py
-msgid "seconds"
-msgstr "secondes"
 
 #: slideshow_lock/preferences.py
 msgid "Start the slideshow"
