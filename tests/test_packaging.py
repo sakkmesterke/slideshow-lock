@@ -433,7 +433,8 @@ def test_the_licence_text_is_listed_once_and_matches_no_default_pattern_of_setup
 
 
 def test_the_changelog_names_the_pictures_and_their_licence():
-    entry = SPEC.read_text().split("\n%changelog\n", 1)[1].split("\n\n", 1)[0]
+    changelog = SPEC.read_text().split("\n%changelog\n", 1)[1]
+    entry = changelog.split("- 1.0.1-1\n", 1)[1].split("\n\n", 1)[0]
     assert "CC BY-SA 4.0" in entry and "License tag" in entry
 
 
