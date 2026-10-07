@@ -157,7 +157,7 @@ Not one of the six starting points: the state machine does not know it. `Preview
   preview, and `settings_app.py`, the entry point of `slideshow-lock settings`, gives it
   `close_overview`, which makes this adapter on the session bus of the settings process. The window
   and the preview modules may not name the bus (D11, `tests/test_preview.py`), so the window only
-  holds a callback; `settings_app.py` is the sixth module of `LOCK_SIDE_MODULES`. A failing
+  holds a callback; `settings_app.py` is on `LOCK_SIDE_MODULES`. A failing
   callback is logged and the preview starts anyway. `close_overview` makes a new adapter at each
   press, so a failure gives one WARNING per press of the button, not one per process. `python3 -m slideshow_lock.preferences`, the
   window without the entry point, closes nothing.
@@ -166,6 +166,41 @@ Not one of the six starting points: the state machine does not know it. `Preview
   `org.gnome.Shell` on the fake session bus; no bus gives one WARNING for that press. Not measured: the real GNOME
   Shell, and that an overview is open at all when the Preview button is pressed (with the settings
   window in the overview the press may not be possible; an inference, not measured).
+
+### 3.7b Starting the service unit at login and from the menu (after 1.0.0)
+
+Not one of the six starting points either, and not `UnitControl`: section 3.7 decided the direction
+of enabling and disabling the unit (`UnitControl.set_enabled`), which is still not built. This is
+a smaller thing, only the start of the unit for the running session, and nothing is enabled.
+
+- Interface: `org.freedesktop.systemd1.Manager` at `/org/freedesktop/systemd1` on the session bus
+  (the user's systemd exports it there; not measured here, see below). Calls: `ResetFailedUnit(unit)`,
+  then `StartUnit(unit, "replace")`, for `slideshow-lock.service`. Adapter: `SystemdUserManager` in
+  `dbus_adapters.py` (it raises `GLib.Error` as it is, nothing is probed when it is made).
+- Caller: `slideshow_lock/control.py`, the entry point of `slideshowlock` and
+  `slideshow-lock control`. The window and the preview modules may not name the session or the bus
+  (D11, `tests/test_preview.py`), so the start is on the lock side (`control.py` is on
+  `LOCK_SIDE_MODULES`) and the window is `settings_app.main`, called after it in the same process.
+- Why `ResetFailedUnit` first: a unit that used up its start limit stays `failed` (`docs/service.md`,
+  section 8), and a failed unit is not started again. Its answer does not matter: a unit that is not
+  loaded gets an error from it, and `StartUnit` is tried all the same.
+- Two modes. `slideshowlock` (menu, terminal): start, then the window. `slideshowlock autostart`
+  (the XDG autostart entry, `/etc/xdg/autostart/<app id>.desktop`, GNOME only): start; the window
+  only if `first-run-done` is false and the user has stored no picture folder
+  (`Gio.Settings.get_user_value` is `None`: the schema default does not count, a stored empty
+  value does). The key is set before the window opens, so the window comes once, also when it is
+  closed without a choice. The menu start neither reads nor sets the key.
+- Failure: a refused `StartUnit` or no session bus is one WARNING (`[slideshow]`); the window opens
+  all the same. The exit status is the window's; the login start without a window ends with 1
+  when the service could not be started, 0 otherwise.
+- One process: `StartUnit` leaves a running unit alone, so the unit stays the supervised one (one
+  `Gio.Application` id, the journal under `slideshow-lock`), also when the user enabled it too.
+- Measured (automated, fake `org.freedesktop.systemd1` on a private bus): the method names, the
+  unit, the mode `replace`, the order, that a failed reset does not stop the start, the first-run
+  logic, that a failure does not stop the window. Not measured: the real user manager, `StartUnit`
+  on a unit that is disabled (the systemd documentation allows it, not run here), the autostart
+  time at login on gnome-session 46 (EL10) and 49 and later, the override of the entry with
+  `Hidden=true` or `X-GNOME-Autostart-enabled=false`, and a real GNOME session.
 
 ### 3.8 Unit readiness and `Type=` (answers OPS-1's open question)
 
