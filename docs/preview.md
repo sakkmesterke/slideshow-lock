@@ -135,7 +135,7 @@ transitions (section 2, "Transitions").
   that had moved 1 px), so the baseline of the first event is not reliable there; it was not
   measured on a real GNOME session. The smoke test therefore resets the baseline by hand before it
   checks the threshold (section 8).
-- **Transitions** (`transitions`, default the cross-fade; `slideshow_lock/transitions.py` names
+- **Transitions** (`transitions`, default Ken Burns; `slideshow_lock/transitions.py` names
   and times them, `slideshow_lock/transition_draw.py` says what each looks like and which comes
   next): when the interval ends, the next picture comes in with a transition instead of a cut. Ten
   are drawn, each over black, the new picture over the old one: `crossfade`, `fade-black`

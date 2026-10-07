@@ -114,7 +114,7 @@
     </key>
 
     <key name="transitions" type="as">
-      <default>['crossfade']</default>
+      <default>['ken-burns']</default>
       <summary>Transitions between pictures</summary>
       <description>
         How one picture changes into the next, as a list of names. The names are
@@ -125,7 +125,7 @@
         half of the slide interval; there is none when the desktop's animations
         are off. On software
         rendering the blur is drawn as a cross fade, and so is Ken Burns on a
-        picture that does not fill the window.
+        picture that does not fill the window. The default is Ken Burns alone.
         A name that is not in the list above is ignored (and logged once), so a
         value written by another version never stops the slideshow. A schema key
         of this type cannot list its choices, so the program checks the names.
