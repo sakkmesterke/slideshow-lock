@@ -115,6 +115,9 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 # NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
 # build of this version, with its rpmlint run, will show).
 URL:            https://github.com/trensoft/slideshow-lock
+Vendor:         TrenSoft
+# The name of the developer, as it is shown by rpm -qi. The URL, the COPR project and the app ID keep
+# the name of the GitHub account: they are addresses and identifiers, not a brand.
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
 # The tag v1.0.2 does not exist yet; it is made at the release, after the maintainer's approval (see the
@@ -406,6 +409,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - A picture that does not scroll keeps moving slowly for as long as it is on screen, also under the
   transitions, so there is no still moment before or after a transition
 - Settings window: the Save button sits next to the Preview button
+- Name TrenSoft as the developer: the Vendor tag of the package, the metainfo and the README
 
 * Wed Oct 07 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.1-1
 - Add the slideshowlock command, which starts the service and opens the settings window

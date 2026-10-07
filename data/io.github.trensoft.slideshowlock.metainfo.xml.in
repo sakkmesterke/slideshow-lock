@@ -5,6 +5,9 @@
   <project_license>GPL-3.0-or-later AND CC-BY-SA-4.0</project_license>
   <name>Slideshow Lock</name>
   <summary>Idle slideshow screensaver that locks on input</summary>
+  <developer id="io.github.trensoft">
+    <name>TrenSoft</name>
+  </developer>
   <description>
     <p>Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time.</p>
     <p>The first key press, click or mouse movement ends the slideshow. If the slideshow has been showing for at least the grace period, the session is locked as well.</p>

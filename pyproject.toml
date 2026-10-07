@@ -8,6 +8,7 @@ version = "1.0.2"
 description = "GNOME/Wayland idle slideshow screensaver with session-lock integration"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
+authors = [{ name = "TrenSoft" }]
 dependencies = ["PyGObject>=3.42"]
 
 [project.urls]
