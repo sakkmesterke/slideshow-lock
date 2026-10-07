@@ -18,6 +18,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Käivita slaidiesitluse teenus ja ava seadete aken."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "sisselogimisel: käivita teenus, ava aken ainult esimesel korral"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Juhuslik"
