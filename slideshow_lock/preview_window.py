@@ -465,6 +465,10 @@ class _Canvas(Gtk.Widget):
         edge_rect = rect if pose == STILL else self._moved_rect(rect, pose, width, height)
         masks = self._soft_painters(snapshot, draw, edge_rect)
         closers: List[Callable[[], None]] = []
+        settled = self._settled_rect(draw, rect, width, height)
+        if settled is not None:
+            snapshot.push_clip(settled)
+            closers.append(snapshot.pop)
         if draw.clip is not None:
             snapshot.push_clip(Graphene.Rect().init(*draw.clip))
             closers.append(snapshot.pop)
@@ -511,6 +515,39 @@ class _Canvas(Gtk.Widget):
         snapshot.restore()
         for close in reversed(closers):
             close()
+
+    def _settled_rect(
+        self, draw: Draw, rect, width: float, height: float
+    ) -> Optional[Graphene.Rect]:
+        """Where the outgoing picture of a transition may show: its own area (as the transition
+        moves it) drawn in, by ``draw.settle.share``, towards the area the incoming picture ends in,
+        less a pixel so that no edge of the old one shows round the new one's antialiased edge.
+        None when the outgoing picture is not cut: no ``settle``, nothing moves, no turn, or the
+        incoming picture fills the window (it covers all of it)."""
+        settle = draw.settle
+        if settle is None or settle.share <= 0.0 or draw.layer != OLD or draw.angle:
+            return None
+        if draw.pose == STILL and settle.to == STILL:
+            return None
+        new_rect = self._rect(self._texture, self._offset, width, height)
+        end = self._moved_rect(new_rect, settle.to, width, height)
+        if end.get_width() >= width and end.get_height() >= height:
+            return None
+        cx, cy = width / 2, height / 2
+        start = self._moved_rect(rect, draw.pose, width, height)  # then the transition moves it
+        s0 = (
+            cx + draw.dx + (start.get_x() - cx) * draw.scale,
+            cy + draw.dy + (start.get_y() - cy) * draw.scale,
+        )
+        s1 = (s0[0] + start.get_width() * draw.scale, s0[1] + start.get_height() * draw.scale)
+        inset_x = min(1.0, end.get_width() / 2)
+        inset_y = min(1.0, end.get_height() / 2)
+        e0 = (end.get_x() + inset_x, end.get_y() + inset_y)
+        e1 = (end.get_x() + end.get_width() - inset_x, end.get_y() + end.get_height() - inset_y)
+        k = min(1.0, settle.share)
+        left, top = (a + (b - a) * k for a, b in zip(s0, e0))
+        right, bottom = (a + (b - a) * k for a, b in zip(s1, e1))
+        return Graphene.Rect().init(left, top, max(0.0, right - left), max(0.0, bottom - top))
 
     @staticmethod
     def _moved_rect(rect, pose: Pose, width: float, height: float) -> Graphene.Rect:

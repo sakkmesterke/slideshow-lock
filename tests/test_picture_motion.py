@@ -165,3 +165,29 @@ def test_every_transition_starts_and_stops_softly(name):
     assert peak > 0.0
     assert _speed(name, 0.0, 0.01) <= 0.05 * peak, name
     assert _speed(name, 0.99, 1.0) <= 0.05 * peak, name
+
+
+# -- the outgoing picture is drawn in towards where the incoming one ends -----------------------
+
+SETTLED = ("crossfade", "slide-in", "ken-burns", "zoom", "wipe", "circle", "rotate")
+
+
+@pytest.mark.parametrize("name", ALL_TRANSITIONS)
+def test_the_outgoing_picture_that_stays_under_the_new_one_settles_by_the_easing(name):
+    """The pictures that do not fill the window keep their move under the incoming one, so that
+    the outgoing one is cut to the incoming one's area by the end (``Draw.settle``): its share is
+    the transition's easing, 0 at the first frame (nothing cut) and 1 at the last. The fade
+    through black, the push and the blur have no outgoing picture under the new one at the end."""
+    new = td.Pose(1.01)
+    for p in (0.0, 0.3, 0.7, 1.0):
+        olds = [
+            d
+            for d in td.with_poses(td.compose(name, p, W, H), td.Pose(1.04), new)
+            if d.layer == OLD
+        ]
+        for old in olds:
+            if name in SETTLED:
+                assert old.settle == td.Settle(td.ease(p), new), (name, p)
+            else:
+                assert old.settle is None, (name, p)
+    assert all(d.settle is None for d in td.compose(name, 1.0, W, H) if d.layer == NEW)
