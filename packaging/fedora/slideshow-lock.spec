@@ -406,8 +406,8 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
   a new login
 - Soft edges on the circle, wipe, slide-in, push, zoom and rotate transitions, instead of a hard line
 - Ken Burns: a stronger zoom
-- A picture that does not scroll keeps moving slowly for as long as it is on screen, also under the
-  transitions, so there is no still moment before or after a transition
+- A picture that does not scroll moves slowly during its whole interval and under the transitions, so
+  there is no still moment before or after a transition
 - Settings window: the Save button sits next to the Preview button
 - Name TrenSoft as the developer: the Vendor tag of the package, the metainfo and the README
 

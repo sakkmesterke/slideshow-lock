@@ -154,12 +154,13 @@ transitions (section 2, "Transitions").
   first and the last frame are the plain pictures with no band left behind; a `wipe` and a
   `circle` run on until the whole band is past the window, and a `push` lets the new picture come
   in over the last pixels of the old one, so the seam is two pictures dissolving into each other,
-  not a dark line. `crossfade`, `fade-black` and `blur` have no edge. **A picture is never still while it is on
-  screen** (`_Move`, `transition_draw.base_pose`), under every one of the ten: a picture that
+  not a dark line. `crossfade`, `fade-black` and `blur` have no edge. **A picture is never still during its
+  interval and under the transition after it** (`_Move`, `transition_draw.base_pose`), under every one of the ten: a picture that
   does not scroll appears enlarged by 14 % (`KEN_BURNS_ZOOM`) and shifted left by 3.5 % of the
   window width (`KEN_BURNS_DRIFT`) if it fills the window, and over the whole time it lives, which
   is its interval plus the longest transition after it (`picture_seconds`), shrinks and drifts
-  back at a steady pace, without an end point it could rest in; the shift is at most half of the
+  back at a steady pace until that time is over, and a picture that stays on screen longer than that
+  (a folder of one picture) keeps the pose it ended in; the shift is at most half of the
   enlargement, so the picture covers the window at every moment (no black edge). A picture that
   does not fill the window only grows by 4 % (`SMALL_ZOOM`) around the middle, without a shift.
   The move belongs to the picture: the incoming one arrives in motion, the outgoing one moves on
