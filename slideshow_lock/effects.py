@@ -6,6 +6,10 @@ renderer does not, so they are drawn only on a machine that is *known* to draw w
 other, and on one that cannot be told, the plain drawing is used (``transition_draw.compose_plain``,
 what 1.0.1 drew).
 
+The user has a switch as well (``hardware-acceleration`` in the settings): off, the plain drawing is
+used whatever the machine is. It can only take the effects away too; on a machine that is not known
+to have a GPU the switch changes nothing (the settings window greys it out and shows it off).
+
 Two layers decide, the second can only take the effects away:
 
 1. ``decide``: from the name of GTK's renderer class and the OpenGL renderer string (what Mesa or
@@ -17,8 +21,10 @@ Two layers decide, the second can only take the effects away:
    the effects are drawn, is measured in windows of ``GUARD_FRAMES``; if the median of a window is
    over the budget (``frame_budget_ms``) the effects are taken away for the rest of the process.
 
-``Effects`` keeps both; the window asks it (``full``) before every picture and hands it the frame
-clock's time (``frame``). Everything it decides and measures is logged.
+``Effects`` keeps both and the switch; the window asks it (``full``) before every picture and hands
+it the frame clock's time (``frame``). The switch is read once per picture (``apply_switch``), so a
+change applies from the next one and the move of the picture on screen is not cut short. Everything
+it decides and measures is logged.
 """
 
 from __future__ import annotations
@@ -188,6 +194,8 @@ class Effects:
         self._timer = FrameTimer(frames)
         self._decision: Optional[Decision] = None
         self._tripped: Optional[str] = None
+        self._switch: Callable[[], bool] = lambda: True
+        self._wanted = True
 
     @property
     def budget_ms(self) -> float:
@@ -203,11 +211,31 @@ class Effects:
         """Why the guard took the effects away, None while it has not."""
         return self._tripped
 
-    def full(self, read: Callable[[], Optional[Reading]]) -> bool:
-        """True if the effects may be drawn now. *read* is asked, until it answers, for
-        ``(renderer class, OpenGL renderer string)``; it answers None while the window has no
-        renderer yet (the effects are off then, and it is asked again), and anything it raises is
-        an unknown renderer, which is off for good."""
+    def follow(self, switch: Callable[[], bool]) -> None:
+        """Take the user's switch from *switch* (``Settings.get_hardware_acceleration``) from now
+        on, and read it at once."""
+        self._switch = switch
+        self.apply_switch()
+
+    def apply_switch(self) -> bool:
+        """Read the user's switch (once per picture). A switch that cannot be read leaves the last
+        value; the switch changing is logged. Returns True while the user wants the effects."""
+        try:
+            wanted = bool(self._switch())
+        except Exception as error:  # noqa: BLE001 - a settings failure must never stop the slideshow
+            _LOG.debug("[effects] could not read the hardware acceleration switch: %s", error)
+            return self._wanted
+        if wanted != self._wanted:
+            _LOG.info(
+                "[effects] hardware acceleration switched %s in the settings",
+                "on" if wanted else "off: plain drawing (as in 1.0.1)",
+            )
+        self._wanted = wanted
+        return wanted
+
+    def _decide(self, read: Callable[[], Optional[Reading]]) -> Optional[Decision]:
+        """The decision from the renderer, made at the first call that can read it (None while the
+        window has no renderer yet); anything *read* raises is an unknown renderer, which is off."""
         if self._decision is None:
             try:
                 reading = read()
@@ -215,14 +243,31 @@ class Effects:
                 _LOG.debug("[effects] could not read the renderer: %s", error)
                 reading = ("", None)
             if reading is None:
-                return False
+                return None
             self._decision = decide(reading[0], reading[1], self._environ)
             _LOG.info(
                 "[effects] %s: %s",
                 "full effects" if self._decision.full else "plain drawing (as in 1.0.1)",
                 self._decision.reason,
             )
-        return self._decision.full and self._tripped is None
+        return self._decision
+
+    def available(self, read: Callable[[], Optional[Reading]]) -> bool:
+        """True if this machine is known to draw with a GPU: what the settings window needs to know
+        to offer the switch. The switch itself and the guard of the drawing time are not asked."""
+        decision = self._decide(read)
+        return decision is not None and decision.full
+
+    def full(self, read: Callable[[], Optional[Reading]]) -> bool:
+        """True if the effects may be drawn now: the machine is known to have a GPU, the user's
+        switch is on and the guard has not tripped. *read* is asked, until it answers, for
+        ``(renderer class, OpenGL renderer string)``; it answers None while the window has no
+        renderer yet (the effects are off then, and it is asked again), and anything it raises is
+        an unknown renderer, which is off for good."""
+        decision = self._decide(read)
+        if decision is None:
+            return False
+        return decision.full and self._wanted and self._tripped is None
 
     def frame(self, now_microseconds: int) -> None:
         """The frame clock's time of a frame drawn with the effects: the guard of the drawing time.

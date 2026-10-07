@@ -174,8 +174,12 @@ transitions (section 2, "Transitions").
   move with the desktop's animations off. An empty list, or a list with no valid name,
   is the cut.
   **Effects only where a GPU is known** (`slideshow_lock/effects.py`, `gl_probe.py`). The soft edges,
-  the slow move and the Ken Burns zoom of 14 % cost drawing time that a CPU renderer does not have
-  (1.0.2 stuttered on a machine like that), so they are drawn only if two layers agree.
+  the slow move and the Ken Burns zoom of 14 % cost drawing time that a CPU renderer may not have
+  (measured on llvmpipe, not on a GPU: the soft edges made the overlap of the zoom about 2.6 times
+  and of the rotate 3 to 4 times as costly, the figures noisy by +-30 to 100 %), so they are drawn
+  only if two layers agree and the user's switch is on. The stutter of 1.0.2 on a machine with a GPU was
+  not this cost but the move being redrawn at a fixed 30 a second (bisect: commit 53ee616 of #76;
+  measured on llvmpipe, not on a GPU).
   *First, the renderer* (`effects.decide`, at the first picture a window shows): GTK's renderer
   class must be a GPU one (`GskNglRenderer`, `GskGLRenderer`, `GskVulkanRenderer`; not
   `GskCairoRenderer`, not `GSK_RENDERER=cairo`, `LIBGL_ALWAYS_SOFTWARE` or `GALLIUM_DRIVER=llvmpipe|softpipe`
@@ -208,6 +212,18 @@ transitions (section 2, "Transitions").
   not measured: a real GPU, the Vulkan renderer, Fedora's and RHEL's GTK, a multi-GPU laptop (the
   context is the display's default one, which is what GTK draws on). The blur's own check
   (`software_gl`, names only, above) was not changed.
+  *Third, the user's switch*: `hardware-acceleration` (default on), in the settings window's
+  Transitions group. Off, the drawing is plain (as in 1.0.1) whatever the machine is; on, the
+  effects are drawn where the first layer says the machine has a GPU. It can only take the effects
+  away: on a machine that is not known to have a GPU the window greys the switch out, shows it off
+  and says why, and the stored value is not touched (nothing shown there is an edit, so Save has
+  nothing to store). The process reads it once per picture (`Effects.apply_switch`, from
+  `_Canvas.set_frame`), so a change applies from the next picture and the move of the picture on
+  screen is not cut short; the service and a preview both follow it
+  (`preview_window.follow_hardware_acceleration`), and the Preview button of the window follows
+  its unsaved edit. The window asks the machine once, when it is on screen
+  (`preview_window.acceleration_available`; the switch stays greyed out until then). A change of
+  the switch is logged (`[effects] hardware acceleration switched ...`, INFO).
   One setting, `transition-duration` (0.2 to 5.0 s, default 1.0 s), is the length of
   every transition. A transition never takes more than half of the interval (a 1 s interval
   cross-fades for 0.5 s; the default 10 s interval leaves the whole 1.0 s) and under 0.2 s it is a

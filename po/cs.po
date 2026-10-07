@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Czech\n"
@@ -163,6 +163,10 @@ msgid "seconds"
 msgstr "sekund"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Hardwarová akcelerace"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Přechody"
 
@@ -199,12 +203,12 @@ msgid "Timing"
 msgstr "Časování"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Uložit"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Náhled"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Uložit"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -221,6 +225,21 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr ""
+"Pomalý pohyb a měkké okraje v přechodech. Pro jednoduchou animaci to vypněte."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"Nedostupné: tento počítač nekreslí pomocí grafické karty, proto se používá "
+"jednoduchá animace."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

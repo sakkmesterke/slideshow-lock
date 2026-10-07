@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Arabic\n"
@@ -166,6 +166,10 @@ msgid "seconds"
 msgstr "ثوانٍ"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "تسريع الأجهزة"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "الانتقالات"
 
@@ -202,12 +206,12 @@ msgid "Timing"
 msgstr "التوقيت"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "حفظ"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "معاينة"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "حفظ"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -224,6 +228,20 @@ msgstr "1 س"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 س"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr "حركة بطيئة وحواف ناعمة في الانتقالات. أوقفه للحصول على الحركة البسيطة."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"غير متاح: هذا الحاسوب لا يرسم باستخدام بطاقة الرسوميات، لذا تُستخدم الحركة "
+"البسيطة."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

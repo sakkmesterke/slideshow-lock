@@ -72,7 +72,9 @@ from slideshow_lock.preview_app import (  # noqa: E402
     build_source,
     start_preview,
 )
+from slideshow_lock.preview_window import acceleration_available  # noqa: E402
 from slideshow_lock.settings import (  # noqa: E402
+    KEY_HARDWARE_ACCELERATION,
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_ORDER,
@@ -138,6 +140,9 @@ class PreferencesWindow(Adw.ApplicationWindow):
         self._preview = None  # (controller, source, settings) while the preview runs
         self._chooser = None
         self._closed = False
+        # Whether this machine is known to draw with a GPU; None until the window is on screen and
+        # has a renderer to ask (``_on_map``). The switch is offered only when it is True.
+        self._acceleration_available: Optional[bool] = None
         self.set_default_size(620, 780)
 
         # -- pictures: folder, order, scaling, pan -----------------------------------------
@@ -217,9 +222,19 @@ class PreferencesWindow(Adw.ApplicationWindow):
             ),
         )
         duration_row.add_suffix(self._with_unit(self.duration_scale, _("seconds")))
+        # Hardware acceleration: on, the effects of 1.0.2 (the slow move, the soft edges); off, the
+        # plain animation of 1.0.1. Without a GPU it is greyed out and off (``_show_acceleration``).
+        self.acceleration_switch = Gtk.Switch(valign=Gtk.Align.CENTER, sensitive=False)
+        self.acceleration_switch.connect("notify::active", lambda *_a: self._on_acceleration())
+        self.acceleration_row = Adw.ActionRow(
+            title=_("Hardware acceleration"), subtitle=self._acceleration_text(True)
+        )
+        self.acceleration_row.add_suffix(self.acceleration_switch)
+        self.acceleration_row.set_activatable_widget(self.acceleration_switch)
         transitions_group = Adw.PreferencesGroup(title=_("Transitions"))
         transitions_group.add(self.transition_drop)
         transitions_group.add(duration_row)
+        transitions_group.add(self.acceleration_row)
 
         # -- start the slideshow: the idle time ---------------------------------------------
         self.idle_spin = self._spin(KEY_IDLE_TIMEOUT_SECONDS)
@@ -301,6 +316,7 @@ class PreferencesWindow(Adw.ApplicationWindow):
         content.append(footer)
         self.set_content(content)
         self.connect("close-request", self._on_close_request)
+        self.connect("map", lambda _window: self._on_map())
         settings.connect_changed(lambda _key: self.refresh() if not self._closed else None)
         self.refresh()
 
@@ -390,9 +406,40 @@ class PreferencesWindow(Adw.ApplicationWindow):
                 TRANSITION_CHOICES.index(self._draft.value(KEY_TRANSITIONS))
             )
             self.duration_scale.set_value(self._draft.value(KEY_TRANSITION_DURATION))
+            self._show_acceleration()
         finally:
             self._updating = False
         self._update_save_button()
+
+    @staticmethod
+    def _acceleration_text(available: bool) -> str:
+        if available:
+            return _(
+                "Slow movement and soft edges in the transitions. Turn it off for the plain "
+                "animation."
+            )
+        return _(
+            "Not available: this computer does not draw with a graphics card, so the plain "
+            "animation is used."
+        )
+
+    def _show_acceleration(self) -> None:
+        """Put the hardware acceleration switch to the value in effect: the draft's or the stored
+        one where the machine is known to have a GPU; greyed out and off everywhere else (the
+        stored value is not touched, so nothing here is an edit). Called with ``_updating`` set."""
+        available = bool(self._acceleration_available)
+        self.acceleration_switch.set_property(
+            "active", available and bool(self._draft.value(KEY_HARDWARE_ACCELERATION))
+        )
+        self.acceleration_switch.set_sensitive(available)
+        if self._acceleration_available is not None:
+            self.acceleration_row.set_subtitle(PreferencesWindow._acceleration_text(available))
+
+    def _on_map(self) -> None:
+        """The window is on screen and has a renderer: ask once whether it is a GPU's."""
+        if self._acceleration_available is None:
+            self._acceleration_available = acceleration_available(self)
+            self.refresh()
 
     def _show_interval(self) -> None:
         """Put the slider, the big HH:MM:SS line and the caption to the slide interval in effect.
@@ -502,6 +549,12 @@ class PreferencesWindow(Adw.ApplicationWindow):
     def _on_pan(self) -> None:
         if not self._updating:
             self._report(self._draft.edit_pan_portrait_images(self.pan_switch.get_active()))
+
+    def _on_acceleration(self) -> None:
+        if not self._updating:
+            self._report(
+                self._draft.edit_hardware_acceleration(self.acceleration_switch.get_active())
+            )
 
     def _on_screenshots(self) -> None:
         if not self._updating:

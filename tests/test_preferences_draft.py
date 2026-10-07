@@ -21,6 +21,7 @@ from slideshow_lock.preferences_model import (
     PreferencesModel,
 )
 from slideshow_lock.settings import (
+    KEY_HARDWARE_ACCELERATION,
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_ORDER,
@@ -53,6 +54,7 @@ def stored():
         "scaling": other.get_scaling(),
         "pan": other.get_pan_portrait_images(),
         "screenshots": other.get_show_screenshots(),
+        "acceleration": other.get_hardware_acceleration(),
         "transitions": other.get_transitions(),
         "transition_order": other.get_transition_order(),
         "duration": other.get_transition_duration(),
@@ -69,6 +71,7 @@ def edit_everything(draft, folder):
         draft.edit_choice(KEY_SCALING, "fit"),
         draft.edit_pan_portrait_images(True),
         draft.edit_show_screenshots(True),
+        draft.edit_hardware_acceleration(False),
         draft.edit_transition("zoom"),
         draft.edit_duration(2.5),
         draft.edit_folder(str(folder)),
@@ -92,6 +95,7 @@ def test_the_draft_shows_its_own_values_over_the_stored_ones(draft, tmp_path):
     assert draft.value(KEY_ORDER) == "name"
     assert draft.value(KEY_PAN_PORTRAIT_IMAGES) is True
     assert draft.value(KEY_SHOW_SCREENSHOTS) is True
+    assert draft.value(KEY_HARDWARE_ACCELERATION) is False
     assert draft.value(KEY_TRANSITIONS) == "zoom"
     assert draft.folder_text() == str(tmp_path)
     assert draft.interval_view().seconds == 30
@@ -122,6 +126,7 @@ def test_save_writes_every_edit(draft, tmp_path):
         "scaling": "fit",
         "pan": True,
         "screenshots": True,
+        "acceleration": False,
         "transitions": ["zoom"],
         "transition_order": "random",
         "duration": 2.5,
@@ -140,6 +145,7 @@ def test_save_writes_every_edit(draft, tmp_path):
         (lambda d: d.edit_choice(KEY_SCALING, "fit"), KEY_SCALING),
         (lambda d: d.edit_pan_portrait_images(True), KEY_PAN_PORTRAIT_IMAGES),
         (lambda d: d.edit_show_screenshots(True), KEY_SHOW_SCREENSHOTS),
+        (lambda d: d.edit_hardware_acceleration(False), KEY_HARDWARE_ACCELERATION),
         (lambda d: d.edit_transition("wipe"), KEY_TRANSITIONS),
         (lambda d: d.edit_duration(3.3), KEY_TRANSITION_DURATION),
         (lambda d: d.edit_folder("/nonexistent/pictures"), KEY_PICTURE_FOLDER),
@@ -161,6 +167,7 @@ def test_every_key_a_draft_can_hold_is_in_the_save_order():
         set(INT_RANGES)
         | set(CHOICES)
         | {
+            KEY_HARDWARE_ACCELERATION,
             KEY_PAN_PORTRAIT_IMAGES,
             KEY_SHOW_SCREENSHOTS,
             KEY_PICTURE_FOLDER,
@@ -293,6 +300,7 @@ def test_the_preview_values_are_the_edits_as_the_settings_getters_return_them(dr
         KEY_SCALING: "fit",
         KEY_PAN_PORTRAIT_IMAGES: True,
         KEY_SHOW_SCREENSHOTS: True,
+        KEY_HARDWARE_ACCELERATION: False,
         KEY_TRANSITIONS: ["zoom"],
         KEY_TRANSITION_DURATION: 2.5,
         KEY_PICTURE_FOLDER: str(tmp_path),
@@ -371,6 +379,10 @@ SAVE_STATE_CASES = {
     KEY_SHOW_SCREENSHOTS: (
         lambda d, tmp: d.edit_show_screenshots(True),
         lambda d, tmp: d.edit_show_screenshots(False),
+    ),
+    KEY_HARDWARE_ACCELERATION: (
+        lambda d, tmp: d.edit_hardware_acceleration(False),
+        lambda d, tmp: d.edit_hardware_acceleration(True),
     ),
     KEY_TRANSITIONS: (
         lambda d, tmp: d.edit_transition("zoom"),

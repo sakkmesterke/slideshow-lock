@@ -71,6 +71,8 @@ def test_defaults_match_brief_section_5():
     assert settings.get_transitions() == ["ken-burns"]
     assert settings.get_transition_order() == "random"
     assert settings.get_transition_duration() == 1.0
+    # The effects of 1.0.2 are on where the machine has a GPU; without one they are off anyway.
+    assert settings.get_hardware_acceleration() is True
 
 
 # -- roundtrips -----------------------------------------------------------------
@@ -114,6 +116,23 @@ def test_pan_portrait_images_roundtrip():
     assert settings.get_pan_portrait_images() is True
     assert settings.set_pan_portrait_images(False) is True
     assert settings.get_pan_portrait_images() is False
+
+
+def test_hardware_acceleration_roundtrip():
+    settings = Settings()
+    assert settings.set_hardware_acceleration(False) is True
+    assert settings.get_hardware_acceleration() is False
+    assert settings.set_hardware_acceleration(True) is True
+    assert settings.get_hardware_acceleration() is True
+
+
+def test_hardware_acceleration_rejects_values_that_are_not_a_real_bool(caplog):
+    settings = Settings()
+    for bad in ("no", "false", 1, 0, None, [], "yes"):
+        with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+            assert settings.set_hardware_acceleration(bad) is False
+        assert settings.get_hardware_acceleration() is True  # unchanged default
+    assert any("hardware-acceleration" in record.message for record in caplog.records)
 
 
 def test_show_screenshots_roundtrip():

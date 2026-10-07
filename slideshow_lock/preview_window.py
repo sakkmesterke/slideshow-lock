@@ -184,9 +184,22 @@ def _read_renderer(widget) -> Optional[Tuple[str, Optional[str]]]:
 
 
 def full_effects(widget) -> bool:
-    """True if *widget* may draw the effects: its machine is known to draw with a GPU and has kept
-    up so far. Asks for the renderer at the first call that can (``effects().full``)."""
+    """True if *widget* may draw the effects: its machine is known to draw with a GPU, the user's
+    switch is on and the machine has kept up so far. Asks for the renderer at the first call that
+    can (``effects().full``)."""
     return effects().full(lambda: _read_renderer(widget))
+
+
+def acceleration_available(widget) -> bool:
+    """True if *widget*'s machine is known to draw with a GPU (the settings window offers its
+    switch only then). The widget must be realized, or the answer is False for now."""
+    return effects().available(lambda: _read_renderer(widget))
+
+
+def follow_hardware_acceleration(settings) -> None:
+    """Let the user's switch (``settings.get_hardware_acceleration``) decide, together with the
+    machine, whether the pictures of this process are drawn with the effects."""
+    effects().follow(settings.get_hardware_acceleration)
 
 
 def _color_stops(stops) -> List[Gsk.ColorStop]:
@@ -305,6 +318,7 @@ class _Canvas(Gtk.Widget):
         a picture already on screen, the old one goes out through the transition; any call, with
         or without one, first ends a transition that is still running."""
         pan_seconds = seconds * PAN_FRACTION
+        effects().apply_switch()  # the user's choice applies from this picture on
         full = full_effects(self)
         self._stop_pan()
         previous_move = self._move

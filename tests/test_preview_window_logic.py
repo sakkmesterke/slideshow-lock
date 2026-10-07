@@ -9,6 +9,8 @@ is what ``tools/wayland-smoke`` checks on a real compositor.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from gi.repository import GLib
 
@@ -820,6 +822,91 @@ def test_the_transitions_ticks_feed_the_guard_too(monkeypatch):
     for frame in range(14):
         window._on_transition_tick(None, _Clock(frame * 0.08))
     assert preview_window.effects().tripped is not None
+
+
+# -- the user's switch: hardware acceleration on or off in the settings ---------------------------
+
+
+class _Switch:
+    def __init__(self, value=True):
+        self.value = value
+
+    def __call__(self):
+        return self.value
+
+
+def switched_canvas(monkeypatch, value):
+    """A canvas on a GPU machine that follows a switch which says *value*."""
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, calls = window_for_frames(monkeypatch, reading=GPU_READING)
+    switch = _Switch(value)
+    preview_window.effects().follow(switch)
+    return window, calls, switch
+
+
+@pytest.mark.parametrize("value,moves", [(True, True), (False, False)])
+def test_the_switch_decides_whether_a_picture_moves_on_a_gpu(monkeypatch, value, moves):
+    window, calls, _switch = switched_canvas(monkeypatch, value)
+    window.set_frame(flat_frame("a.png"), 20.0)
+    assert (window._move is not None) is moves
+    assert calls == (["tick"] if moves else [])
+
+
+def test_switched_off_the_next_picture_is_plain_and_the_one_on_screen_goes_on_moving(
+    monkeypatch,
+):
+    window, _calls, switch = switched_canvas(monkeypatch, True)
+    window.set_frame(flat_frame("a.png"), 20.0)
+    move = window._move
+    switch.value = False
+    assert window._on_move_tick(None, _Clock(1.0)) == GLib.SOURCE_CONTINUE
+    assert window._move is move  # not cut short in the middle of the picture
+    window.set_frame(flat_frame("b.png"), 20.0, ("circle", 1.0))
+    assert window._move is None and window._run.plain is True
+
+
+def test_switched_on_again_the_next_picture_moves_and_has_the_effects(monkeypatch):
+    window, _calls, switch = switched_canvas(monkeypatch, False)
+    window.set_frame(flat_frame("a.png"), 20.0)
+    assert window._move is None
+    switch.value = True
+    window.set_frame(flat_frame("b.png"), 20.0, ("circle", 1.0))
+    assert window._move is not None and window._run.plain is False
+
+
+def test_a_cpu_machine_stays_plain_whatever_the_switch_says(monkeypatch):
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window, _calls = window_for_frames(
+        monkeypatch, reading=("GskNglRenderer", "llvmpipe (LLVM 15)")
+    )
+    preview_window.effects().follow(_Switch(True))
+    window.set_frame(flat_frame("a.png"), 20.0)
+    window.set_frame(flat_frame("b.png"), 20.0, ("circle", 1.0))
+    assert window._move is None and window._run.plain is True
+
+
+def test_the_settings_window_is_told_whether_the_machine_has_a_gpu(monkeypatch):
+    monkeypatch.setattr(preview_window, "_effects", Effects({}))
+    monkeypatch.setattr(preview_window, "_read_renderer", lambda widget: GPU_READING)
+    assert preview_window.acceleration_available(object()) is True
+    monkeypatch.setattr(preview_window, "_effects", Effects({}))
+    monkeypatch.setattr(
+        preview_window, "_read_renderer", lambda widget: ("GskNglRenderer", "llvmpipe")
+    )
+    assert preview_window.acceleration_available(object()) is False
+    monkeypatch.setattr(preview_window, "_effects", Effects({}))
+    monkeypatch.setattr(preview_window, "_read_renderer", lambda widget: None)
+    assert preview_window.acceleration_available(object()) is False  # no renderer yet
+
+
+def test_following_the_settings_gives_the_effects_the_stored_choice(monkeypatch):
+    monkeypatch.setattr(preview_window, "_effects", Effects({}))
+    settings = SimpleNamespace(get_hardware_acceleration=_Switch(False))
+    preview_window.follow_hardware_acceleration(settings)
+    assert preview_window.effects().full(lambda: GPU_READING) is False
+    settings.get_hardware_acceleration.value = True
+    preview_window.effects().apply_switch()
+    assert preview_window.effects().full(lambda: GPU_READING) is True
 
 
 # -- reading the renderer from a widget ------------------------------------------------------------

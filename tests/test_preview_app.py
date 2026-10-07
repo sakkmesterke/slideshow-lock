@@ -27,6 +27,7 @@ from slideshow_lock.preview_app import (
     start_preview,
 )
 from slideshow_lock.settings import (
+    KEY_HARDWARE_ACCELERATION,
     KEY_ORDER,
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_PICTURE_FOLDER,
@@ -214,6 +215,32 @@ def test_start_preview_closes_its_worker_thread_when_the_preview_stops(tmp_path,
     assert not controller.running
     thread.join(5)
     assert not thread.is_alive()  # no thread left behind per preview
+
+
+def test_start_preview_lets_the_hardware_acceleration_setting_decide_the_effects(
+    tmp_path, monkeypatch
+):
+    """The preview of the settings window reads the switch through its ``SessionSettings`` (the
+    edits not saved yet included), so the Preview button shows what the switch would do."""
+    make_image(tmp_path / "a.png")
+    source = started(tmp_path, (FakeWatcher(), ManualScheduler()))
+    followed = []
+    monkeypatch.setattr(preview_app, "open_monitor_windows", lambda: [FakeWindow()])
+    monkeypatch.setattr(preview_app, "ImageScaler", FakeScaler)
+    monkeypatch.setattr(
+        preview_app, "follow_hardware_acceleration", lambda settings: followed.append(settings)
+    )
+    settings = FakeSettings()
+    controller = start_preview(settings, source)
+    assert followed == [settings]
+    controller.stop("test")
+
+
+def test_the_session_settings_replace_the_hardware_acceleration_switch_for_the_run():
+    stored = SimpleNamespace(get_hardware_acceleration=lambda: True)
+    assert preview_app.SessionSettings(stored, {}).get_hardware_acceleration() is True
+    replaced = {KEY_HARDWARE_ACCELERATION: False}
+    assert preview_app.SessionSettings(stored, replaced).get_hardware_acceleration() is False
 
 
 @pytest.mark.parametrize("animations", [True, False])
