@@ -29,8 +29,9 @@ is downloaded. It needs git, gzip, rpmbuild, sed, grep and head only and uses no
 
 Limits of (a):
 
-- The version in a build before the release is `1.0.1-1`, built from whatever commit COPR checked
-  out. Such a build must not be mistaken for the release.
+- A build before the release is a test build. It is not made in the release project
+  (`docs/RELEASING.md`, "What may be built in the COPR project"), and it has a lower `Release` than
+  the release, such as `1.0.1-0.1.test`.
 - A `git archive` tarball and the GitHub tag tarball hold the same files but are not the same
   bytes. A checksum recorded for the release belongs to one of the two (section 5).
 - `rpmbuild -bs` reads the whole spec in a chroot where the build dependencies are not installed:
@@ -120,10 +121,11 @@ One step for the owner of the Fedora account, nothing is stored in the repositor
 1. Project name `slideshow-lock`, owned by the maintainer's Fedora account.
 2. Chroots: the list of section 2.
 3. Package source type: SCM (git), clone URL `https://github.com/trensoft/slideshow-lock.git`,
-   committish `main`, subdirectory empty, spec file `packaging/fedora/slideshow-lock.spec`, build
-   method "Make srpm" (the file is `.copr/Makefile`).
-4. Webhook: none for now. Automatic rebuilds: off. Every build is started by hand until this is
-   decided otherwise.
+   subdirectory empty, spec file `packaging/fedora/slideshow-lock.spec`, build method "Make srpm"
+   (the file is `.copr/Makefile`). The committish is not `main`: a build is of the tag that started
+   it (the source log of build 11084848 shows `'committish': 'v1.0.0'`).
+4. Webhook: only the creation of a tag (`docs/RELEASING.md`, "The webhook (tag only)"). No build is
+   started by hand (`docs/RELEASING.md`, "What may be built in the COPR project").
 5. Internet access during the build: off (the default). `[H]` The build then needs none, because
    `Source0` is the tarball the Makefile made and is in the source RPM. Measured is only that the
    Makefile itself works without a network (section 1); what COPR does with this setting is not.
@@ -140,7 +142,6 @@ These are open and are not part of this change:
   first);
 - the release date in the AppStream metainfo, when that file exists;
 - a COPR build in each chroot (section 2) that succeeded, and `rpmlint` on the result;
-- the version of a test build and of the release: both are `1.0.1-1`, so a machine that installed
-  the test build is not offered the release as an update. Which is chosen (a lower version for the
-  test builds, or a higher `Release` at the release) is decided at the release; the spec is not
-  changed by this change.
+- the version of a test build and of the release: decided, see `docs/RELEASING.md`, "What may be
+  built in the COPR project". The release is `1.0.1-1`; a test build is lower and is not made in
+  this project.
