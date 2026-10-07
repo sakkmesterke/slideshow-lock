@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-06 20:43+0000\n"
+"POT-Creation-Date: 2026-10-07 02:49+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Thai\n"
@@ -21,6 +21,19 @@ msgstr ""
 #: data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
+
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "เริ่มบริการสไลด์โชว์และเปิดหน้าต่างการตั้งค่า"
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "เมื่อลงชื่อเข้าใช้: เริ่มบริการ เปิดหน้าต่างเฉพาะครั้งแรก"
+
+#: slideshow_lock/control.py slideshow_lock/preferences.py
+#: slideshow_lock/preview_app.py slideshow_lock/service.py
+msgid "log every step"
+msgstr "บันทึกทุกขั้นตอน"
 
 #: slideshow_lock/preferences.py
 msgid "Random"
@@ -157,11 +170,6 @@ msgstr "ตัวอย่างกำลังทำงาน: กดปุ่�
 #: slideshow_lock/preferences.py
 msgid "Change the slideshow settings."
 msgstr "เปลี่ยนการตั้งค่าสไลด์โชว์"
-
-#: slideshow_lock/preferences.py slideshow_lock/preview_app.py
-#: slideshow_lock/service.py
-msgid "log every step"
-msgstr "บันทึกทุกขั้นตอน"
 
 #: slideshow_lock/preferences.py
 msgid ""
