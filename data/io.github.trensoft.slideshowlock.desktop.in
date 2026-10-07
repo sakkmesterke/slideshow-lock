@@ -2,8 +2,8 @@
 Type=Application
 Name=Slideshow Lock
 Comment=Set up the idle slideshow and the session lock
-Exec=slideshow-lock settings
-TryExec=slideshow-lock
+Exec=slideshowlock
+TryExec=slideshowlock
 Icon=io.github.trensoft.slideshowlock
 Terminal=false
 StartupNotify=true
