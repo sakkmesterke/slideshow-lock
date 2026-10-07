@@ -18,6 +18,14 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
+#: slideshow_lock/control.py
+msgid "Start the slideshow service and open the settings window."
+msgstr "Έναρξη της υπηρεσίας προβολής διαφανειών και άνοιγμα του παραθύρου ρυθμίσεων."
+
+#: slideshow_lock/control.py
+msgid "at login: start the service, open the window only the first time"
+msgstr "κατά τη σύνδεση: έναρξη της υπηρεσίας, άνοιγμα του παραθύρου μόνο την πρώτη φορά"
+
 #: slideshow_lock/preferences.py
 msgid "Random"
 msgstr "Τυχαία"
