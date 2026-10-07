@@ -6,7 +6,7 @@
   <name>Slideshow Lock</name>
   <summary>Idle slideshow screensaver that locks on input</summary>
   <developer id="io.github.sakkmesterke">
-    <name>TrenSoft</name>
+    <name translate="no">TrenSoft</name>
   </developer>
   <description>
     <p>Slideshow Lock starts a fullscreen picture slideshow on every screen when the session has been idle for a set time.</p>
