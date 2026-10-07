@@ -41,9 +41,11 @@ from slideshow_lock.transitions import (
 #: The Ken Burns picture comes in enlarged by this much and over the whole run shrinks to its own
 #: size, and starts shifted to the left by ``KEN_BURNS_DRIFT`` of the window's width and drifts back
 #: to the middle: the last frame of the run is the picture as the plain drawing shows it, so
-#: nothing jumps when the run ends.
-KEN_BURNS_ZOOM = 0.08
-KEN_BURNS_DRIFT = 0.02
+#: nothing jumps when the run ends. The enlarged picture must cover the window at every moment of
+#: the run (no black edge shows): half of what it is larger by is at least what it is shifted by,
+#: ``KEN_BURNS_DRIFT <= KEN_BURNS_ZOOM / 2`` (both shrink with the same factor, so this is enough).
+KEN_BURNS_ZOOM = 0.14
+KEN_BURNS_DRIFT = 0.035
 
 #: The zoom: the old picture grows by this much while it fades out, the new one comes in from
 #: ``1 - ZOOM_IN`` of its size.

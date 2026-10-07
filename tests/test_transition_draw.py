@@ -181,6 +181,36 @@ def test_ken_burns_fades_in_during_its_share_and_then_keeps_moving():
     assert start.dx < early.dx < late.dx < end.dx == 0.0
 
 
+#: ``KEN_BURNS_ZOOM`` on main (070e033), before the zoom was made stronger. The new one is 1.5 to
+#: 2 times that, and stays in the 0.12 to 0.16 range.
+OLD_KEN_BURNS_ZOOM = 0.08
+
+
+def test_ken_burns_zoom_is_one_and_a_half_to_two_times_the_old_one():
+    assert 0.12 <= td.KEN_BURNS_ZOOM <= 0.16
+    assert 1.5 <= td.KEN_BURNS_ZOOM / OLD_KEN_BURNS_ZOOM <= 2.0
+    start = td.compose(KEN_BURNS, 0.0, W, H, fade_share=0.1)[-1]
+    assert start.scale == pytest.approx(1.0 + td.KEN_BURNS_ZOOM)
+
+
+def test_ken_burns_never_shows_a_black_edge():
+    """The enlarged picture reaches past the window on both sides by more than it is shifted by,
+    at every point of the run: ``scale - 1`` is at least ``2 |dx| / width``."""
+    assert td.KEN_BURNS_DRIFT <= td.KEN_BURNS_ZOOM / 2.0
+    for p in (0.0, 0.25, 0.5, 0.75, 1.0):
+        draw = td.compose(KEN_BURNS, p, W, H, fade_share=0.1)[-1]
+        assert draw.scale - 1.0 >= 2.0 * abs(draw.dx) / W - 1e-12, p
+        assert draw.dy == 0.0
+
+
+def test_ken_burns_shrinks_smoothly_without_a_jump():
+    scales = [td.compose(KEN_BURNS, i / 200.0, W, H, fade_share=0.1)[-1].scale for i in range(201)]
+    steps = [a - b for a, b in zip(scales, scales[1:])]
+    assert all(step > 0.0 for step in steps)  # always shrinking, never still
+    assert max(steps) <= 1.01 * min(steps)  # at a steady pace: no step is bigger than the others
+    assert scales[0] == pytest.approx(1.0 + td.KEN_BURNS_ZOOM) and scales[-1] == 1.0
+
+
 def test_ken_burns_last_frame_is_the_picture_the_plain_drawing_shows_after_it():
     """The window draws the new picture plainly (scale 1, no shift, whole opacity) once the run is
     over, so the last animated frame must be that: no jump when the run ends."""
