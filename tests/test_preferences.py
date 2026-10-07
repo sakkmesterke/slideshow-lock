@@ -513,7 +513,7 @@ def test_the_transition_drop_down_keeps_the_choice_of_its_index():
     )
     PreferencesWindow._on_transition(window)
     assert window._draft.value("transitions") == "random"
-    assert Settings().get_transitions() == ["crossfade"]  # nothing stored
+    assert Settings().get_transitions() == ["ken-burns"]  # nothing stored
 
 
 def test_the_folder_field_keeps_the_folder_and_stores_nothing(tmp_path):
@@ -635,7 +635,7 @@ def test_the_preview_runs_on_the_values_of_the_window_and_stores_none_of_them(
     assert shown.get_transition_duration() == 2.5
     assert shown.get_scaling() == "fill"  # not edited: the stored value
     assert _stored(KEY_ORDER) == "random"  # nothing was stored
-    assert Settings().get_transitions() == ["crossfade"]
+    assert Settings().get_transitions() == ["ken-burns"]
     assert window._draft.dirty  # and the edits are still to be saved
 
 

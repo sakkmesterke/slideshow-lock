@@ -20,7 +20,7 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Picture order | `order` | random, name |
 | Scaling | `scaling` | fill, fit |
 | Scroll tall pictures | `pan-portrait-images` | on, off (off by default) |
-| Between pictures (drop-down, in the Transitions group) | `transitions`, `transition-order` | none (an empty list); one of the ten: cross-fade (`crossfade`, the default), fade through black (`fade-black`), slide in (`slide-in`), push (`push`), Ken Burns (`ken-burns`), zoom (`zoom`), wipe (`wipe`), circle reveal (`circle`), blur (`blur`), rotate (`rotate`); or the random mix (see below) |
+| Between pictures (drop-down, in the Transitions group) | `transitions`, `transition-order` | none (an empty list); one of the ten: cross-fade (`crossfade`), fade through black (`fade-black`), slide in (`slide-in`), push (`push`), Ken Burns (`ken-burns`, the default), zoom (`zoom`), wipe (`wipe`), circle reveal (`circle`), blur (`blur`), rotate (`rotate`); or the random mix (see below) |
 | Transition length (slider with the value on its left, in the Transitions group) | `transition-duration` | 0.2 to 5.0 seconds, in steps of 0.1 (1.0 by default); the same for every transition |
 
 "Preview" runs the CORE-2 preview (`preview_app.start_preview`) on the values in the window, saved
@@ -93,9 +93,8 @@ There is no on/off switch: that goes through the systemd user unit
   `random`. "Random mix" is only an entry of the window: a stored list of two or more names reads
   back as "Random mix" (the window cannot show more), and a list of one name as that transition.
   Reading never writes: a list written by hand or by another version stays until the user picks
-  another entry. The default is the cross-fade, not the random mix. This version draws the cross-fade
-  and the fade through black; the others are stored and the preview shows a plain cut for them
-  until they are drawn. The row says that without desktop animations the pictures change at once.
+  another entry. The default is Ken Burns, not the random mix. All ten are drawn (`docs/preview.md`,
+  section 2); where Ken Burns cannot be drawn it is a cross-fade. The row says that without desktop animations the pictures change at once.
   What the transitions do and when there is none: `docs/preview.md`, section 2.
 - The "Transition length" slider (group Transitions, 0.2 to 5.0 s in steps of 0.1, 1.0 by default)
   writes `transition-duration`, one value for every transition. A new edit is rounded to the step

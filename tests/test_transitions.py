@@ -78,8 +78,8 @@ def test_random_is_the_eight_without_the_blur_and_ken_burns_in_the_canonical_ord
     )
 
 
-def test_the_default_is_the_cross_fade_alone():
-    assert DEFAULT_TRANSITIONS == ("crossfade",)
+def test_the_default_is_ken_burns_alone():
+    assert DEFAULT_TRANSITIONS == ("ken-burns",)
     assert ORDERS == ("random", "sequence")
 
 

@@ -162,8 +162,8 @@ def main() -> int:
         == (120, 0, interval_position_for_seconds(10), 0, 0, False, 1.0),
     )
     check(
-        "the transition drop-down starts at the cross-fade, the stored default",
-        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("crossfade"),
+        "the transition drop-down starts at Ken Burns, the stored default",
+        window.transition_drop.get_selected() == TRANSITION_CHOICES.index("ken-burns"),
         str(window.transition_drop.get_selected()),
     )
     check(
@@ -239,7 +239,7 @@ def main() -> int:
     check(
         "the edits are kept: nothing is stored before Save",
         stored_values()
-        == (120, 0, 10, "random", "fill", False, ["crossfade"], 1.0, default_picture_folder()),
+        == (120, 0, 10, "random", "fill", False, ["ken-burns"], 1.0, default_picture_folder()),
         str(stored_values()),
     )
     check("Save is on", window.save_button.get_sensitive())
