@@ -19,11 +19,13 @@ large, turned, moved, clipped, blurred); this module turns each of those into ``
 calls from a tick of its own, always on black. Its end is a moment in time, not a number of frames,
 so a slow machine draws fewer frames and not a longer transition. The first frame is drawn at
 progress 0 with both pictures, which is where the new texture is uploaded, out of sight; the clock
-of the transition starts at the second tick. When it ends the tick is removed and the picture is
-drawn 1:1 as always, so the last frame is never a filtered one and nothing redraws until the next
-change. The blur works on pictures reduced to a quarter of their size (it is the costly one), and
-on software rendering it, like a Ken Burns picture that is not the size of the window, is drawn as
-a cross fade (``transition_draw.effective_name``).
+of the transition starts at the second tick. A picture with no old one (the first of a preview)
+has only Ken Burns, which then fades in from black while it moves; the other nine are cuts there.
+When it ends the tick is removed and the picture is drawn 1:1 as always, so the last frame is never
+a filtered one and nothing redraws until the next change. The blur works on pictures reduced to a
+quarter of their size (it is the costly one), and on software rendering it, like a Ken Burns
+picture that is not the size of the window, is drawn as a cross fade
+(``transition_draw.effective_name``).
 
 Input: the window's own GTK controllers (motion, click, key, scroll) call
 ``on_input``, and so does a ``close-request`` (the window was closed from outside, from the
@@ -168,8 +170,9 @@ class _Canvas(Gtk.Widget):
         transition: Optional[Tuple[str, float]] = None,
     ) -> None:
         """Show *frame*. With *transition* ``(name, seconds)`` and a picture already on screen, the
-        old one goes out through the transition; any call, with or without one, first ends a
-        transition that is still running."""
+        old one goes out through the transition; with no picture on screen only Ken Burns runs (it
+        comes in over black), any other transition is a cut. Any call, with or without a
+        transition, first ends one that is still running."""
         self._stop_pan()
         self._end_transition()
         outgoing = None
@@ -195,7 +198,7 @@ class _Canvas(Gtk.Widget):
                 self._tick_id = self.add_tick_callback(self._on_tick)
             else:  # animations are off: the middle of the picture, like the centre crop
                 self._offset = (frame.pan_range[0] // 2, frame.pan_range[1] // 2)
-        if outgoing is not None and outgoing[0] is not None and self._texture is not None:
+        if outgoing is not None and self._texture is not None:
             self._begin_transition(outgoing, old_offset, pan_seconds, *transition)
         self.queue_draw()
 
@@ -220,6 +223,8 @@ class _Canvas(Gtk.Widget):
             frame.pan_range,
             software_gl(self) if name == BLUR else False,
         )
+        if outgoing[0] is None and name != KEN_BURNS:  # nothing to change from: a plain picture
+            return
         run_seconds, fade_share = seconds, 1.0
         if name == KEN_BURNS:
             run_seconds = max(seconds, pan_seconds)
@@ -283,7 +288,7 @@ class _Canvas(Gtk.Widget):
         black = Gdk.RGBA()
         black.alpha = 1.0
         snapshot.append_color(black, Graphene.Rect().init(0, 0, width, height))
-        if self._run is not None and self._old_texture is not None:
+        if self._run is not None:
             for draw in self._run.draws(width, height):
                 self._paint(snapshot, draw, width, height)
         elif self._texture is not None:
@@ -305,6 +310,8 @@ class _Canvas(Gtk.Widget):
         """One ``Draw`` of the running transition: cut, faded, blurred, then moved/turned/scaled
         around the window's centre (the cut is in the window's own coordinates)."""
         if draw.opacity <= 0.0:  # nothing of it shows (and GTK drops such a node anyway)
+            return
+        if draw.layer == OLD and self._old_texture is None:  # a first picture: black is the old one
             return
         if draw.layer == OLD:
             texture, offset = self._old_texture, self._old_offset

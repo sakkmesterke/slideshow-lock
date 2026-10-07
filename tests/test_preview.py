@@ -41,6 +41,7 @@ from slideshow_lock.settings import (
     KEY_TRANSITIONS,
 )
 from slideshow_lock.transition_draw import TransitionChooser
+from slideshow_lock.transitions import ALL_TRANSITIONS, DEFAULT_TRANSITIONS
 from tests.jpeg_fixtures import fake_jpeg
 from tests.test_image_source import (
     FakeWatcher,
@@ -1739,6 +1740,78 @@ def transition_rig(
 def test_the_first_picture_comes_in_without_a_transition(tmp_path, backends):
     r = transition_rig(tmp_path, backends)
     assert [w.transitions for w in r.windows] == [[None], [None]]
+
+
+def test_the_first_picture_comes_in_with_ken_burns_when_that_is_the_one_chosen(tmp_path, backends):
+    """Ken Burns is a slow move, not a change from an old picture: without it the first picture of
+    a preview stood still while every later one moved."""
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",))
+    assert [w.transitions for w in r.windows] == [[("ken-burns", 1.0)], [("ken-burns", 1.0)]]
+    r.tick(10)
+    assert r.windows[0].transitions == [("ken-burns", 1.0), ("ken-burns", 1.0)]
+
+
+def test_the_default_setting_gives_the_first_picture_its_ken_burns(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=DEFAULT_TRANSITIONS)
+    assert r.windows[0].transitions == [("ken-burns", 1.0)]
+
+
+@pytest.mark.parametrize("name", [n for n in ALL_TRANSITIONS if n != "ken-burns"])
+def test_any_other_single_transition_leaves_the_first_picture_plain(tmp_path, backends, name):
+    r = transition_rig(tmp_path, backends, chosen=(name,))
+    assert [w.transitions for w in r.windows] == [[None], [None]]
+
+
+def test_a_mix_with_ken_burns_leaves_the_first_picture_plain_and_the_order_where_it_was(
+    tmp_path, backends
+):
+    """The chooser is not asked for the first picture: a sequence still starts with its first
+    transition at the second picture."""
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns", "crossfade"), order="sequence")
+    assert r.windows[0].transitions == [None]
+    r.tick(10)
+    r.tick(10)
+    assert [t[0] for t in r.windows[0].transitions[1:]] == ["crossfade", "ken-burns"]
+
+
+def test_the_first_picture_has_no_ken_burns_without_desktop_animations(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",), animations=lambda: False)
+    assert [w.transitions for w in r.windows] == [[None], [None]]
+
+
+def test_the_first_picture_has_no_ken_burns_when_the_interval_is_too_short_for_a_transition(
+    tmp_path, backends
+):
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",), interval=0.3)
+    assert r.windows[0].transitions == [None]
+
+
+def test_the_first_picture_that_a_walk_still_under_way_finds_comes_in_with_ken_burns(
+    tmp_path, backends
+):
+    """The empty state first (a message is on screen), then the picture turns up."""
+    settings = FakeSettings(transitions=("ken-burns",))
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1, settings=settings, scan=False)
+    r.controller.start()
+    assert r.windows[0].frames == []
+    assert backends[1].run_all()
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png"]
+    assert r.windows[0].transitions == [("ken-burns", 1.0)]
+
+
+def test_a_first_picture_that_is_made_again_for_the_real_window_size_has_its_ken_burns_once(
+    tmp_path, backends
+):
+    settings = FakeSettings(transitions=("ken-burns",))
+    r = Rig(
+        tmp_path, backends, ["a.png", "b.png"], windows=1, sizes=[PLACEHOLDER], settings=settings
+    )
+    r.controller.start()
+    r.windows[0].resize((1920, 1080))
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png"]  # shown once, at the real size
+    assert r.windows[0].transitions == [("ken-burns", 1.0)]
 
 
 def test_the_next_picture_comes_in_with_the_chosen_transition_on_every_monitor(tmp_path, backends):

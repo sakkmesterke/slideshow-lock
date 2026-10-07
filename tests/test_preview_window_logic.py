@@ -251,6 +251,28 @@ def test_the_first_picture_has_nothing_to_change_from(monkeypatch):
     assert calls == [] and window._old_texture is None and window._run is None
 
 
+@pytest.mark.parametrize("name", [n for n in ALL_TRANSITIONS if n != "ken-burns"])
+def test_every_other_transition_on_the_first_picture_is_a_cut(monkeypatch, name):
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame(), 9.0, (name, 1.0))
+    assert calls == [] and window._old_texture is None and window._run is None
+
+
+def test_ken_burns_on_the_first_picture_runs_with_no_old_picture(monkeypatch):
+    window, calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame(), 9.0, ("ken-burns", 0.8))
+    assert calls == ["tick"] and window._old_texture is None
+    assert window._run.name == "ken-burns" and window._run.seconds == 9.0
+    assert window._run.fade_share == pytest.approx(0.8 / 9.0)
+
+
+def test_ken_burns_on_a_first_picture_that_does_not_fill_the_window_is_a_cut(monkeypatch):
+    window, calls = window_for_frames(monkeypatch)
+    small = Frame("s.png", 2, 3, 6, bytes(6 * 3), "fake", (0, 0))
+    window.set_frame(small, 9.0, ("ken-burns", 0.8))  # it would be a cross fade: from nothing
+    assert calls == [] and window._run is None
+
+
 def test_the_same_frame_again_is_not_a_change(monkeypatch):
     window, calls = window_for_frames(monkeypatch)
     frame = flat_frame()
@@ -443,3 +465,31 @@ def test_the_first_frame_draws_both_pictures_and_the_second_draws_them_at_progre
     textures = [c[1] for c in snapshot.calls if c[0] == "append_texture"]
     assert window._old_texture in textures and window._texture in textures
     assert snapshot.calls[0][0] == "append_color"  # black comes first
+
+
+def scales_drawn(window):
+    """The scale factors the canvas asks of the snapshot, one per picture painted by the run."""
+    snapshot = _Snapshot()
+    window.do_snapshot(snapshot)
+    return [c[1] for c in snapshot.calls if c[0] == "scale"], snapshot
+
+
+def test_the_first_picture_with_ken_burns_moves_while_it_is_shown(monkeypatch):
+    """The state of the run changes in time on the first picture, and only the new picture is
+    painted (there is no old one: its layer is skipped, black shows through)."""
+    window, _calls = window_for_frames(monkeypatch)
+    window.set_frame(flat_frame(), 9.0, ("ken-burns", 0.8))
+    before = _Snapshot()
+    window.do_snapshot(before)  # the first frame, before the clock: nothing may fail on no old one
+    run_ticks(window, [10.0, 10.0])  # the first tick, then the second: the clock starts
+    scales = []
+    for now in (11.0, 14.5, 18.0):  # 1, 4.5 and 8 of the nine seconds; the fade is over by 1
+        run_ticks(window, [now])
+        scale, snapshot = scales_drawn(window)
+        assert len(scale) == 1  # the new picture alone
+        scales.append(scale[0])
+        textures = [c[1] for c in snapshot.calls if c[0] == "append_texture"]
+        assert textures == [window._texture]
+    assert scales[0] > scales[1] > scales[2] > 1.0  # the picture settles to its own size
+    run_ticks(window, [19.1])  # 9.1 s: over
+    assert window._run is None

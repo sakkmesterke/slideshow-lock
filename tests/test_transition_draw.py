@@ -405,3 +405,27 @@ def test_ken_burns_run_keeps_the_fade_share_it_was_given():
     run.tick(1)
     run.tick(1 + 400_000)  # 4 % of the run: half way through the fade
     assert run.draws(W, H) == td.compose(KEN_BURNS, 0.04, W, H, 0.08)
+
+
+@pytest.mark.parametrize(
+    "names, expected",
+    [
+        ([KEN_BURNS], KEN_BURNS),
+        ([KEN_BURNS, KEN_BURNS], KEN_BURNS),
+        (["sparkle", KEN_BURNS], KEN_BURNS),  # the unknown name is dropped, as the chooser does
+        ([], None),
+        ([CROSSFADE], None),
+        ([KEN_BURNS, CROSSFADE], None),
+        (["sparkle"], None),
+    ],
+)
+def test_the_first_picture_has_ken_burns_only_when_that_is_the_one_transition_chosen(
+    names, expected
+):
+    assert td.first_picture_name(names) == expected
+
+
+def test_asking_for_the_first_picture_does_not_move_the_chooser():
+    chooser = td.TransitionChooser(random.Random(1))
+    td.first_picture_name([CROSSFADE, KEN_BURNS])
+    assert chooser.next([CROSSFADE, KEN_BURNS], ORDER_SEQUENCE) == CROSSFADE

@@ -158,7 +158,11 @@ transitions (section 2, "Transitions").
   redo after a settings or window size change, the same picture shown again (a folder of one), and
   when the desktop's animations are off (`gtk-enable-animations`, asked for every change of picture
   like the pan; whether the GNOME setting reaches it was not measured). A window that had no
-  picture before shows the new one without a transition. Any later `show_frame`, message or close
+  picture before shows the new one without a transition. The one exception is `ken-burns` when it
+  is the only name in the list (the default): its slow move is not a change from an old picture,
+  so the first picture, and a picture that comes in after the "no pictures" message, run it too,
+  fading in from black (`first_picture_name`). With several names in the list the first picture
+  stays plain, and the order of the mix is not touched by it. Any later `show_frame`, message or close
   ends a running transition at once.
   **Choosing.** The setting is a list of names (`crossfade`, `fade-black`, `slide-in`, `push`,
   `ken-burns`, `zoom`, `wipe`, `circle`, `blur`, `rotate`; an unknown one is left out by the getter

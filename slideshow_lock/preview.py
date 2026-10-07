@@ -36,12 +36,14 @@ What it does:
 * A new picture comes in with a transition (``slideshow_lock.transitions``, one of the ten that
   ``slideshow_lock.transition_draw`` describes, chosen from the stored list for every change with
   ``TransitionChooser``: never the same one twice in a row in ``random`` order) when the interval
-  ends, and only then: not the first picture, not a redo after a settings or size change, not when
-  the same picture is shown again (a folder of one), not when the desktop's animations are off, and
-  not when half of the interval (or the ``transition-duration``) is under 0.2 s. A window that
-  had nothing on screen before just shows the picture. The window draws it and ends it by itself;
-  any later picture, message or close ends a running one at once (``show_frame`` and
-  ``show_message`` of the window).
+  ends, and only then: not the first picture (Ken Burns apart, see below), not a redo after a
+  settings or size change, not when the same picture is shown again (a folder of one), not when the
+  desktop's animations are off, and not when half of the interval (or the ``transition-duration``)
+  is under 0.2 s. A window that had nothing on screen before just shows the picture. The one
+  exception is Ken Burns chosen alone (``first_picture_name``): its slow move is not a change from
+  an old picture, so the first picture, which has none, comes in with it as well (fading in from
+  black). The window draws it and ends it by itself; any later picture, message or close ends a
+  running one at once (``show_frame`` and ``show_message`` of the window).
 * Live settings: the interval, ``scaling``, ``pan-portrait-images``, ``transitions``,
   ``transition-order`` and ``transition-duration`` take effect without a restart (the folder and
   the order are handled by ``source_from_settings``); the transition is read for every change of
@@ -62,7 +64,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 from slideshow_lock import _
 from slideshow_lock.image_source import _BurstLog
 from slideshow_lock.scaling import Frame, ImageSkipped
-from slideshow_lock.transition_draw import TransitionChooser
+from slideshow_lock.transition_draw import TransitionChooser, first_picture_name
 from slideshow_lock.transitions import transition_seconds
 
 _LOG = logging.getLogger(__name__)
@@ -340,8 +342,16 @@ class PreviewController:
                 self._next_frames = frames
                 if self._swap_due:
                     self._swap()
+            elif job.purpose == _JOB_SHOW:  # nothing was on screen: the first picture
+                self._display(
+                    job.path,
+                    frames,
+                    fresh=True,
+                    transition=self._pick_first_transition(),
+                    first=True,
+                )
             else:
-                self._display(job.path, frames, fresh=job.purpose == _JOB_SHOW)
+                self._display(job.path, frames, fresh=False)
         except Exception:
             _LOG.exception("[slideshow] preview step failed")
 
@@ -383,10 +393,17 @@ class PreviewController:
     # -- on screen ----------------------------------------------------------------------
 
     def _display(
-        self, path: str, frames: Dict[int, Frame], *, fresh: bool, transition=None
+        self,
+        path: str,
+        frames: Dict[int, Frame],
+        *,
+        fresh: bool,
+        transition=None,
+        first: bool = False,
     ) -> None:
         """Put *frames* on the windows. *transition* is ``(name, seconds)`` for a picture that
-        replaces another at the end of the interval (``_swap``), None for every other case."""
+        replaces another at the end of the interval (``_swap``) or, with *first*, comes in over
+        nothing (``_pick_first_transition``), None for every other case."""
         interval = self._interval()
         _LOG.debug(
             "[slideshow] showing %r (%s)",
@@ -397,7 +414,7 @@ class PreviewController:
             frame = frames.get(index)
             if frame is None:
                 window.show_message("")
-            elif transition is not None and self._comes_in_changed(index, frame):
+            elif transition is not None and (first or self._comes_in_changed(index, frame)):
                 window.show_frame(frame, interval * PAN_FRACTION, transition)
             else:
                 window.show_frame(frame, interval * PAN_FRACTION)
@@ -445,6 +462,20 @@ class PreviewController:
         name = self._chooser.next(
             self._settings.get_transitions(), self._settings.get_transition_order()
         )
+        if name is None:
+            return None
+        seconds = transition_seconds(
+            name, self._interval(), self._settings.get_transition_duration()
+        )
+        return (name, seconds) if seconds > 0 else None
+
+    def _pick_first_transition(self) -> Optional[Tuple[str, float]]:
+        """``(name, seconds)`` for the picture that comes in over nothing, or None. Only Ken Burns
+        has one (``first_picture_name``): its slow move needs no old picture, and without this the
+        first picture of every preview would stand still while all the others move."""
+        if not self._animations():
+            return None
+        name = first_picture_name(self._settings.get_transitions())
         if name is None:
             return None
         seconds = transition_seconds(
