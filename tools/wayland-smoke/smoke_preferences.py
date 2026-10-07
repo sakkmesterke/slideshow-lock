@@ -210,6 +210,21 @@ def main() -> int:
         window.pictures_group.get_description(),
     )
     check("Save is off while there is nothing to save", not window.save_button.get_sensitive())
+    save_parent = window.save_button.get_parent()
+    ancestors, widget = [], window.save_button.get_parent()
+    while widget is not None:
+        ancestors.append(widget)
+        widget = widget.get_parent()
+    check(
+        "Save sits in the footer box, right after Preview",
+        isinstance(save_parent, Gtk.Box)
+        and save_parent is window.preview_button.get_parent()
+        and window.preview_button.get_next_sibling() is window.save_button,
+    )
+    check(
+        "Save is not in the header bar",
+        not any(isinstance(widget, Adw.HeaderBar) for widget in ancestors),
+    )
     if args.screenshot:
         os.makedirs(args.screenshot, exist_ok=True)
         screenshot(window, os.path.join(args.screenshot, "window.png"))
@@ -260,6 +275,10 @@ def main() -> int:
     )
     check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
     check("Save is off again", not window.save_button.get_sensitive())
+    window.idle_spin.set_value(301)
+    check("Save is on after a change", window.save_button.get_sensitive())
+    window.idle_spin.set_value(300)
+    check("Save is off when the change is put back", not window.save_button.get_sensitive())
     window.transition_drop.set_selected(TRANSITION_CHOICES.index("none"))
     window.save_button.emit("clicked")
     check(
