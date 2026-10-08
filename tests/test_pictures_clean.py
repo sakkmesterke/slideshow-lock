@@ -1,11 +1,13 @@
 """The sample pictures in ``data/pictures``: clean, whole, listed, and small enough.
 
 The pictures are JPEG files that went through ``tools/strip_jpeg_metadata.py``: the Photoshop
-block, comments and every other piece of metadata are out, the picture itself is byte for byte what
-it was. Two pieces are in, on purpose: the author and the licence, as one Exif APP1 (Artist,
-Copyright) and one XMP APP1 (dc:creator, dc:rights, xmpRights:WebStatement), byte for byte what
-``exif_segment()`` and ``xmp_segment()`` of the tool give. This module keeps it so, for this set and
-for any set that replaces it (a later release must not bring personal data back in):
+block, comments, every ICC profile and every other piece of metadata are out, the picture itself is
+byte for byte what it was. No colour profile is in: the bytes of a profile are not the author's, so
+the licence of the pictures could not cover them. Two pieces are in, on purpose: the author and
+the licence, as one Exif APP1 (Artist, Copyright) and one XMP APP1 (dc:creator, dc:rights,
+xmpRights:WebStatement), byte for byte what ``exif_segment()`` and ``xmp_segment()`` of the tool
+give. This module keeps it so, for this set and for any set that replaces it (a later release must
+not bring personal data back in):
 
 * ``audit`` (the white list of segments, closed: it fails on anything it does not understand) over
   every picture, one test case for each picture and each of the missing or changed fields, and the
@@ -246,6 +248,27 @@ def test_a_picture_has_one_exif_and_one_xmp_of_the_author_and_nothing_else(pictu
     assert not markers & {sj.APP13, sj.COM}  # no Photoshop block, no comment
 
 
+def app_segments(data: bytes) -> List[tuple]:
+    """(marker, first 12 payload bytes) of every segment before the scan, read with no code of the
+    tool: the length field of each segment says where the next one starts."""
+    found, pos = [], 2
+    while data[pos + 1] != 0xDA:  # up to SOS
+        length = int.from_bytes(data[pos + 2 : pos + 4], "big")
+        found.append((data[pos + 1], data[pos + 4 : pos + 16]))
+        pos += 2 + length
+    return found
+
+
+@pytest.mark.parametrize("picture", image_files(PICTURES), ids=lambda p: p.name)
+def test_a_picture_carries_no_colour_profile_of_anybody(picture):
+    data = picture.read_bytes()
+    segments = app_segments(data)
+    assert segments  # the walker did walk
+    assert not [m for m, head in segments if m == 0xE2]  # no APP2 at all (ICC, MPF, FlashPix)
+    assert not [m for m, head in segments if head.startswith(b"ICC_PROFILE")]
+    assert b"ICC_PROFILE" not in data[: data.index(b"\xff\xda")]  # nowhere in the headers
+
+
 def test_the_folder_passes_the_content_gate_the_manifest_and_the_size_gate():
     assert content_problems(PICTURES) == []
     assert manifest_problems(PICTURES, MANIFEST.read_text()) == []
@@ -417,6 +440,13 @@ XMP = app(
 PHOTOSHOP = app(sj.APP13, b"Photoshop 3.0\x008BIM\x04\x04\x00\x00\x00\x00\x00\x04IPTC")
 COMMENT = app(sj.COM, b"made at /home/someone/Pictures")
 MPF = app(sj.APP2, b"MPF\x00II*\x00\x08\x00\x00\x00")
+#: A colour profile the way a camera or an editor writes it: the 128-byte header (the signature
+#: ``acsp`` at 36) and a tag count; the profile is not a real one, the cleaner does not read it.
+ICC_BODY = b"\x00" * 36 + b"acsp" + b"\x00" * 88 + b"\x00\x00\x00\x00"
+ICC = app(sj.APP2, b"ICC_PROFILE\x00\x01\x01" + ICC_BODY)
+ICC_CHUNKS = app(sj.APP2, b"ICC_PROFILE\x00\x01\x02" + ICC_BODY) + app(
+    sj.APP2, b"ICC_PROFILE\x00\x02\x02" + ICC_BODY
+)
 OTHER_APP = app(0xE5, b"Ducky\x00\x01")
 XMP_EXTENSION = app(sj.APP1, b"http://ns.adobe.com/xmp/extension/\x00" + b"0" * 32 + b"\x00" * 8)
 
@@ -439,16 +469,18 @@ def after_soi(data: bytes, extra: bytes) -> bytes:
     return data[:2] + extra + data[2:]
 
 
-def with_icc(data: bytes, new_segment: bytes) -> bytes:
-    old = next(s.data for s in sj.parse(data) if s.marker == sj.APP2)
-    return data.replace(old, new_segment, 1)
-
-
 @pytest.mark.parametrize("name", sample_names())
 @pytest.mark.parametrize(
     "dirt",
-    [EXIF + XMP, PHOTOSHOP + COMMENT, MPF + OTHER_APP, EXIF + XMP + PHOTOSHOP + COMMENT + MPF],
-    ids=["exif+xmp", "photoshop+com", "mpf+app5", "all of it"],
+    [
+        EXIF + XMP,
+        PHOTOSHOP + COMMENT,
+        MPF + OTHER_APP,
+        ICC,
+        ICC_CHUNKS,
+        EXIF + XMP + PHOTOSHOP + COMMENT + MPF + ICC,
+    ],
+    ids=["exif+xmp", "photoshop+com", "mpf+app5", "icc", "icc in two chunks", "all of it"],
 )
 def test_the_cleaner_takes_the_dirt_out_and_gives_back_the_same_bytes(name, dirt):
     clean = real(name)
@@ -470,13 +502,9 @@ def mutants():
     first = sample_names()[0]
     data = real(first)
     sof, sos = segment_bytes(data, sj.SOF0), segment_bytes(data, sj.SOS)
-    icc = segment_bytes(data, sj.APP2)
-    profile = icc[18:]
     jfif = segment_bytes(data, sj.APP0)
     dqt = segment_bytes(data, sj.DQT)
     scan = sos + b"\x12\x34"
-    flipped = bytearray(icc)
-    flipped[40] ^= 0xFF
     adobe14 = b"\xff\xee\x00\x0eAdobe\x00\x64\x00\x00\x00\x00\x01"
     return {
         "exif": (data, after_soi(data, EXIF), r"Exif segment that is not the expected"),
@@ -533,13 +561,21 @@ def mutants():
             data[:-2] + dqt + data[-2:],
             r"DQT segment after the scan",
         ),
-        "an unknown ICC profile": (data, with_icc(data, bytes(flipped)), r"not one of the known"),
-        "two ICC profiles": (data, after_soi(data, icc), r"2 ICC"),
-        "no ICC profile": (data, data.replace(icc, b"", 1), r"no ICC"),
-        "ICC chunk 2 of 2": (
+        "an ICC profile": (data, after_soi(data, ICC), r"an ICC profile: the pictures carry none"),
+        "an ICC profile in two chunks": (
             data,
-            with_icc(data, icc[:17] + b"\x02" + profile),
-            r"FFE2.*not on the white list",
+            after_soi(data, ICC_CHUNKS),
+            r"an ICC profile: the pictures carry none",
+        ),
+        "an ICC profile after the JFIF header": (
+            data,
+            data.replace(jfif, jfif + ICC, 1),
+            r"an ICC profile: the pictures carry none",
+        ),
+        "an ICC profile after the scan": (
+            data,
+            data[:-2] + ICC + data[-2:],
+            r"FFE2 segment after the scan",
         ),
         "no EOI": (data, data[:-2], r"no EOI"),
         "cut inside the scan": (data, data[: len(data) // 2], r"no EOI"),
@@ -579,12 +615,12 @@ def test_the_audit_does_not_search_the_entropy_data_for_words():
     sj.audit(data[:at] + b"Photoshop" + data[at + 9 :])
 
 
-def test_the_cleaner_refuses_a_profile_it_does_not_know_and_a_file_it_does_not_understand():
+def test_the_cleaner_takes_every_profile_out_and_refuses_a_file_it_does_not_understand():
     data = real(sample_names()[0])
-    with pytest.raises(
-        sj.JpegError, match="no ICC"
-    ):  # the unknown profile is dropped, none is left
-        sj.clean(mutants()["an unknown ICC profile"][1])
+    for profiled in (after_soi(data, ICC), after_soi(data, ICC_CHUNKS)):
+        with pytest.raises(sj.JpegError, match="an ICC profile: the pictures carry none"):
+            sj.audit(profiled)  # the audit is red for it ...
+        assert sj.clean(profiled) == data  # ... and the cleaner takes it out, puts none back
     with pytest.raises(sj.JpegError):
         sj.clean(data[:-2])  # no EOI
     with pytest.raises(sj.JpegError):
