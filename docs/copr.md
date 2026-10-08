@@ -1,21 +1,24 @@
 # COPR build
 
-How the RPM is built in COPR, and what is decided and what is not. Nothing here has been run in
-COPR: the project does not exist yet. `[H]` marks background knowledge that was not measured.
+How the RPM is built in COPR, and what is decided and what is not. The COPR project
+`sakkmesterke/slideshow-lock` exists and has built the package: `api_3/build/list` lists the builds
+11084376 to 11092273 (1.0.0-1 to 1.0.5-1), read on 2026-10-08. `[H]` marks background knowledge that
+was not measured.
 
 COPR builds the package itself, from the spec, on its own server (`[H]` with `mock`, one build per
 chroot). That build is the real build test: nothing here builds the package locally. Locally,
 `rpmlint` can run on the spec and, once COPR has built them, on the RPMs. `desktop-file-validate`
-and `appstreamcli validate` have nothing to check yet: the repository has no `.desktop` file and no
-AppStream metainfo (the spec says a later change adds them); they run on those files once they
-exist. What the COPR server does is not measurable from here, so what is said about it below is a
-claim, not a fact.
+and `appstreamcli validate` run on the `.desktop` files and the AppStream metainfo
+(`data/io.github.sakkmesterke.SlideshowLock.desktop.in` and `.metainfo.xml.in` are in the
+repository); the `%check` of the spec runs them, and the builder log of the COPR build 11092273
+shows both commands in `epel-10-x86_64` and in `fedora-44-x86_64`. What the COPR server does is not
+measurable from here, so what is said about it below is a claim, not a fact.
 
 ## 1. Source of the build
 
-The spec's `Source0` is the GitHub tarball of the tag `v%{version}`. The tag of the next release,
-`v1.0.2`, does not exist yet (`git ls-remote --tags origin` lists `v1.0.0` and `v1.0.1` only,
-2026-10-07), so COPR cannot download it. Options:
+The spec's `Source0` is the GitHub tarball of the tag `v%{version}`. The tags `v1.0.2` to `v1.0.5`
+exist (`git ls-remote --tags origin` lists `v1.0.0` to `v1.0.5`, 2026-10-08). The options below date
+from when the tag of the release did not exist yet and COPR could not download the tarball:
 
 | | Source | Risk |
 |---|---|---|
@@ -136,7 +139,8 @@ One step for the owner of the Fedora account, nothing is stored in the repositor
 
 These are open and are not part of this change:
 
-- the tag `v1.0.2`, and the maintainer's approval of it;
+- the maintainer's approval of the tag `v1.0.2` (the tag itself exists, with `v1.0.3` to `v1.0.5`:
+  `git ls-remote --tags origin`, 2026-10-08);
 - a protected or signed tag, so that it cannot be moved later;
 - the SHA-512 of the release tarball (which of the two tarballs of section 1 is meant, decided
   first);

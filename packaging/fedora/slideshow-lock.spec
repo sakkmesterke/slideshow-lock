@@ -120,8 +120,11 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 # SPDX header yet. CC-BY-SA-4.0 is the licence of the seven sample pictures (data/pictures, [K] the
 # credit is data/pictures/CREDITS.txt, the text is packaging/licenses/CC-BY-SA-4.0.txt); the binary
 # package holds both, hence AND. [H] an SPDX expression in License: is what the guidelines ask for;
-# NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
-# build of this version, with its rpmlint run, will show).
+# [M] COPR build 11092273 (1.0.5-1, 2026-10-08), fedora-review/review.txt of fedora-43, fedora-44 and
+# fedora-rawhide: "The License field must be a valid SPDX expression" is [x]; the licensecheck note
+# lists "Creative Commons Attribution-ShareAlike 4.0" and "Unknown or generated" (221 files, 222 on
+# rawhide); the rpmlint.txt of the three has no message about the licence. Not settled: "License field
+# in the package spec file matches the actual license" stays [ ], a manual item of the reviewer.
 URL:            https://github.com/sakkmesterke/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
