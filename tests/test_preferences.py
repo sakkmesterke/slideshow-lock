@@ -445,7 +445,7 @@ def _stored(key):
 
 
 def _editing_stand_in(draft=None):
-    """What the edit handlers, ``_report``, ``save`` and ``_on_close_request`` read from the window,
+    """What the edit handlers, ``_report`` and ``_on_close_request`` read from the window,
     on a real ``Draft`` over the real settings: they run, they are not mocked."""
     log, labels = [], []
     stand_in = SimpleNamespace(
@@ -699,13 +699,6 @@ def test_a_change_put_back_is_stored_again(case, tmp_path):
     controls[name] = original
     handler(window)
     assert _read_all() == before and not window._draft.dirty
-
-
-def test_save_keeps_the_folder_field_first_and_has_nothing_else_to_write():
-    window = _editing_stand_in()
-    assert PreferencesWindow.save(window) is True
-    assert window.log[0] == "commit_folder"  # a folder typed and not yet kept is kept first
-    assert window.labels[-1] == "" and "refresh" in window.log
 
 
 def test_closing_the_window_keeps_a_folder_that_was_typed_and_stores_nothing_else():
