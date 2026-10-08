@@ -49,7 +49,7 @@ class Rig:
         self.root = root
         self.source = make_source(root)
         self.pictures = str(root / "home" / "Pictures")
-        self.state = str(root / "state" / "slideshow-lock" / "sample-pictures.json")
+        self.state = str(root / "state" / "slideshow-lock" / "sample-pictures-v2.json")
 
     @property
     def sub(self) -> Path:
@@ -152,11 +152,11 @@ def test_the_fixed_data_dirs_are_the_default_and_the_environment_is_not_read(tmp
 def test_the_state_file_follows_xdg_state_home_when_it_is_absolute(tmp_path):
     base = str(tmp_path / "st")
     assert sp.state_path({"XDG_STATE_HOME": base, "HOME": "/h"}) == os.path.join(
-        base, "slideshow-lock", "sample-pictures.json"
+        base, "slideshow-lock", "sample-pictures-v2.json"
     )
     for bad in ("", "relative/state"):
         assert sp.state_path({"XDG_STATE_HOME": bad, "HOME": "/h"}) == (
-            "/h/.local/state/slideshow-lock/sample-pictures.json"
+            "/h/.local/state/slideshow-lock/sample-pictures-v2.json"
         )
     assert sp.state_path({"HOME": "/h"}).startswith("/h/.local/state/")
 
@@ -221,8 +221,8 @@ def test_the_pictures_folder_is_made_when_it_is_missing_and_nothing_hidden_is_le
     rig.run()
     assert not [n for n in rig.names() if n.startswith(".")]
     assert sorted(os.listdir(os.path.dirname(rig.state))) == [
-        "sample-pictures.json",
-        "sample-pictures.json.lock",
+        "sample-pictures-v2.json",
+        "sample-pictures-v2.json.lock",
     ]
 
 
@@ -769,6 +769,51 @@ def test_a_real_subfolder_without_a_state_gets_only_what_is_missing(rig):
     result = rig.run()
     assert (result.copied, result.already_there) == (3, 1)
     assert (rig.sub / "mine.png").read_bytes() == b"y"
+
+
+def legacy_update_rig(rig):
+    """The state of an update from the earlier identifier: its state file marks every name as dealt
+    with, the folder of the current identifier does not exist, the earlier folder holds the user's
+    pictures. The state path is the one the program derives from the environment."""
+    environ = {"XDG_STATE_HOME": str(rig.root / "state"), "HOME": str(rig.root / "home")}
+    legacy_state = Path(environ["XDG_STATE_HOME"]) / "slideshow-lock" / "sample-pictures.json"
+    legacy_state.parent.mkdir(parents=True)
+    names = sorted(PICTURES + (sp.CREDITS_NAME,))
+    legacy_state.write_text(json.dumps({"version": sp.STATE_VERSION, "handled": names}))
+    legacy_folder = Path(rig.pictures) / "legacy-folder"
+    legacy_folder.mkdir(parents=True)
+    (legacy_folder / PICTURES[0]).write_bytes(b"the user's own copy")
+    return sp.state_path(environ), legacy_state, legacy_folder
+
+
+def test_an_update_from_the_earlier_identifier_copies_everything_once_into_the_new_folder(rig):
+    state, legacy_state, legacy_folder = legacy_update_rig(rig)
+    legacy_bytes = legacy_state.read_bytes()
+    legacy_tree = rig.tree(str(legacy_folder))
+    assert not rig.sub.exists()
+
+    first = sp.install(rig.source, rig.pictures, state)  # red if the state were not per folder
+    assert (first.status, first.copied, first.handled_before) == (sp.DONE, 4, 0)
+    assert rig.names() == sorted(PICTURES + (sp.CREDITS_NAME,))
+    assert legacy_state.read_bytes() == legacy_bytes  # not read into the new state, not written
+    assert rig.tree(str(legacy_folder)) == legacy_tree
+    assert state != str(legacy_state)
+
+    second = sp.install(rig.source, rig.pictures, state)
+    assert (second.status, second.copied, second.handled_before) == (sp.NOTHING_TO_DO, 0, 4)
+    assert legacy_state.read_bytes() == legacy_bytes
+
+
+def test_a_new_install_without_any_state_copies_everything(rig):
+    state = sp.state_path(
+        {"XDG_STATE_HOME": str(rig.root / "state"), "HOME": str(rig.root / "home")}
+    )
+    result = sp.install(rig.source, rig.pictures, state)
+    assert (result.status, result.copied, result.handled_before) == (sp.DONE, 4, 0)
+    assert sorted(os.listdir(os.path.dirname(state))) == [
+        "sample-pictures-v2.json",
+        "sample-pictures-v2.json.lock",
+    ]
 
 
 # -- what goes wrong while writing -------------------------------------------------------------

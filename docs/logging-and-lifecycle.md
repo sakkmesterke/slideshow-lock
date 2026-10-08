@@ -106,12 +106,15 @@ chosen another picture folder; the `picture-folder` key is never written.
 What the user can rely on, and what the log says:
 
 - A picture or the whole folder the user deletes does not come back: the names that were dealt with
-  are in `$XDG_STATE_HOME/slideshow-lock/sample-pictures.json` (`~/.local/state/...`). A name that a
-  later package adds is copied once. Nothing is overwritten; a file that is there is left as it is.
+  are in `$XDG_STATE_HOME/slideshow-lock/sample-pictures-v2.json` (`~/.local/state/...`). The state
+  belongs to the current pictures folder: the legacy `sample-pictures.json` of the earlier identifier
+  is never read, written or removed, so an update from it copies the pictures once into the new
+  folder. A name that a later package adds is copied once. Nothing is overwritten; a file that is
+  there is left as it is.
 - With nothing left to copy nothing is created and nothing is written: no folder, no cleanup, no
   state rewrite. A start with everything done is silent (DEBUG at most).
 - The order inside `install`: the package and its file list; the lock (`flock` on
-  `sample-pictures.json.lock`); the state; what is still to do; then, only if there is something:
+  `sample-pictures-v2.json.lock`); the state; what is still to do; then, only if there is something:
   free space (the files plus a 16 MiB margin, measured on the nearest existing folder, so before any
   folder is made), a trial write of the state, the folders, the removal of hidden leftovers of a cut
   copy (`.<name>.part-<pid>`, only with the lock), the copies. A copy is written to the hidden name,

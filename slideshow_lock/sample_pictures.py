@@ -11,8 +11,10 @@ involved at all.
 
 What the user keeps, whatever happens:
 
-* A file the program has dealt with is written in a state file (``sample-pictures.json`` under
-  ``$XDG_STATE_HOME/slideshow-lock``) and is never copied again. A picture or the whole subfolder
+* A file the program has dealt with is written in a state file (``sample-pictures-v2.json`` under
+  ``$XDG_STATE_HOME/slideshow-lock``) and is never copied again. The state is kept for this folder:
+  the file of the earlier identifier is neither read, written nor removed, so a user who comes from
+  it gets the pictures once into the new folder. A picture or the whole subfolder
   the user deletes does not come back. A name that a later package adds is copied once.
 * Nothing is overwritten: a file that is already there is left as it is (``os.link`` refuses to
   replace it) and counts as dealt with.
@@ -148,7 +150,7 @@ def state_path(environ: Optional[Dict[str, str]] = None) -> str:
     if not os.path.isabs(base):
         home = environ.get("HOME") or os.path.expanduser("~")
         base = os.path.join(home, ".local", "state")
-    return os.path.join(base, APP_DIR, "sample-pictures.json")
+    return os.path.join(base, APP_DIR, "sample-pictures-v2.json")
 
 
 # -- names -----------------------------------------------------------------------------------------

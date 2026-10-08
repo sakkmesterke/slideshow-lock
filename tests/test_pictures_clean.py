@@ -284,7 +284,9 @@ def test_the_credits_are_the_fixed_line_without_a_year_a_path_or_a_host():
 def test_the_real_folder_is_taken_over_by_install_with_the_credits_and_the_bytes(tmp_path):
     """The folder as the package installs it, through the code that copies it."""
     result = sp.install(
-        str(PICTURES), str(tmp_path / "Pictures"), str(tmp_path / "state" / "sample-pictures.json")
+        str(PICTURES),
+        str(tmp_path / "Pictures"),
+        str(tmp_path / "state" / "sample-pictures-v2.json"),
     )
     assert (result.status, result.copied) == (sp.DONE, len(os.listdir(PICTURES)))
     copied = tmp_path / "Pictures" / sp.SUBDIR

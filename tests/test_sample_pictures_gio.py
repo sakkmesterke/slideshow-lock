@@ -54,7 +54,7 @@ class Rig:
         self.root = tmp_path
         self.pictures = tmp_path / "home" / "Képek"
         self.source_dir = make_source(tmp_path)
-        self.state = str(tmp_path / "state" / "sample-pictures.json")
+        self.state = str(tmp_path / "state" / "sample-pictures-v2.json")
         monkeypatch.setattr(settings_module, "default_picture_folder", lambda: str(self.pictures))
         self.settings = Settings()
         assert self.settings._settings.get_user_value(KEY_PICTURE_FOLDER) is None
