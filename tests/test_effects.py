@@ -36,6 +36,29 @@ def test_a_gpu_renderer_with_a_gpu_string_gets_the_effects(renderer_class, gl_re
     assert gl_renderer in decision.reason
 
 
+def test_a_long_renderer_string_is_cut_in_the_reason_but_read_whole_by_the_decision():
+    long_gpu = "Mesa " + "x" * 400
+    decision = decide("GskNglRenderer", long_gpu)
+    assert decision.full is True
+    assert len(decision.reason) < 300 and decision.reason.count("x") == 195  # 200 characters shown
+    assert "..." in decision.reason
+    # a software marker past the cut still counts: the decision is not made on the shown part
+    soft = "Mesa " + "x" * 300 + " llvmpipe (LLVM 15)"
+    decision = decide("GskNglRenderer", soft)
+    assert decision.full is False and "llvmpipe" not in decision.reason
+    assert "draws with the CPU" in decision.reason and len(decision.reason) < 300
+    virtual = "Mesa " + "x" * 300 + " virgl"
+    decision = decide("GskNglRenderer", virtual)
+    assert decision.full is False and "is a virtual GPU" in decision.reason
+    assert len(decision.reason) < 300
+
+
+def test_a_renderer_string_within_the_limit_is_shown_whole():
+    decision = decide("GskNglRenderer", "Mesa Intel(R) UHD Graphics 620 (KBL GT2)")
+    assert "Mesa Intel(R) UHD Graphics 620 (KBL GT2)" in decision.reason
+    assert "..." not in decision.reason
+
+
 @pytest.mark.parametrize(
     "gl_renderer",
     [

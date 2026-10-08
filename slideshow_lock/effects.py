@@ -84,6 +84,16 @@ class Decision(NamedTuple):
     reason: str
 
 
+#: How much of an OpenGL renderer string goes into a reason (the log). The decision reads all of it:
+#: a marker after this point must still count.
+REASON_STRING_LIMIT = 200
+
+
+def _shown(text: str) -> str:
+    """*text* for a reason: cut at ``REASON_STRING_LIMIT`` characters, cut marked."""
+    return text if len(text) <= REASON_STRING_LIMIT else text[:REASON_STRING_LIMIT] + "..."
+
+
 def renderer_is_gpu(renderer_class: str) -> bool:
     """True if *renderer_class* (``GskNglRenderer``, ``GskVulkanRenderer``, ...) is one that draws
     with a GPU. The Cairo renderer, a name that is not known and an empty one are not."""
@@ -114,11 +124,11 @@ def decide(
     lowered = gl_renderer.lower()
     for marker in SOFTWARE_MARKERS:
         if marker in lowered:
-            return Decision(False, "OpenGL renderer %r draws with the CPU" % gl_renderer)
+            return Decision(False, "OpenGL renderer %r draws with the CPU" % _shown(gl_renderer))
     for marker in VIRTUAL_MARKERS:
         if marker in lowered:
-            return Decision(False, "OpenGL renderer %r is a virtual GPU" % gl_renderer)
-    return Decision(True, "%s on OpenGL renderer %r" % (renderer_class, gl_renderer))
+            return Decision(False, "OpenGL renderer %r is a virtual GPU" % _shown(gl_renderer))
+    return Decision(True, "%s on OpenGL renderer %r" % (renderer_class, _shown(gl_renderer)))
 
 
 def frame_budget_ms(environ: Optional[Mapping[str, str]] = None) -> float:
