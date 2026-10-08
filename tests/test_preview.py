@@ -140,6 +140,7 @@ class FakeWindow:
         self.frames = []
         self.transitions = []  # the transition each show_frame was given, parallel to frames
         self.messages = []
+        self.first_transitions = []
         self.closed = 0
         self.input_callbacks = []
         self.size_callbacks = []
@@ -147,9 +148,10 @@ class FakeWindow:
     def device_size(self):
         return self.size
 
-    def show_frame(self, frame, pan_seconds, transition=None):
+    def show_frame(self, frame, pan_seconds, transition=None, first_transition=None):
         self.frames.append((frame, pan_seconds))
         self.transitions.append(transition)
+        self.first_transitions.append(first_transition)
         self.messages.append(None)
 
     def show_message(self, text):
@@ -1974,6 +1976,140 @@ def test_a_window_with_nothing_on_screen_yet_shows_the_picture_without_a_transit
     r.tick(10)
     assert r.windows[0].transitions[-1] == ("crossfade", 1.0)
     assert r.windows[1].transitions == [None]
+
+
+def test_the_first_picture_asks_for_the_choice_but_gets_no_transition(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",))
+    for window in r.windows:
+        assert window.transitions == [None]
+        assert window.first_transitions == [("ken-burns", 1.0)]
+
+
+def test_the_first_picture_has_no_choice_when_it_would_be_a_cut(tmp_path, backends):
+    for kwargs in ({"chosen": ()}, {"animations": lambda: False}, {"interval": 0.3}):
+        r = transition_rig(tmp_path, backends, **kwargs)
+        assert r.windows[0].first_transitions == [None], kwargs
+
+
+def test_the_choice_for_the_first_picture_does_not_use_up_the_sequence(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("push", "wipe"), order="sequence")
+    assert r.windows[0].first_transitions == [("push", 1.0)]
+    r.tick(10)
+    r.tick(10)
+    assert names_shown(r.windows[0]) == ["push", "wipe"]  # the first change is still the first one
+
+
+def test_a_redo_and_the_same_picture_again_get_no_choice(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",))
+    r.settings.set(KEY_SCALING, "fit")
+    r.worker.run_all()
+    assert len(r.windows[0].frames) == 2
+    assert r.windows[0].first_transitions[-1] is None
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",), files=("only.png",))
+    r.tick(10)
+    assert r.windows[0].first_transitions == [("ken-burns", 1.0), None]
+
+
+def test_a_window_with_nothing_on_screen_gets_the_choice_for_the_move_only(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",))
+    r.windows[1].frames.clear()
+    r.windows[1].transitions.clear()
+    r.windows[1].first_transitions.clear()
+    del r.controller._shown_frames[1]
+    r.tick(10)
+    assert (r.windows[0].transitions[-1], r.windows[0].first_transitions[-1]) == (
+        ("ken-burns", 1.0),
+        None,
+    )
+    assert (r.windows[1].transitions[-1], r.windows[1].first_transitions[-1]) == (
+        None,
+        ("ken-burns", 1.0),
+    )
+
+
+def test_the_first_picture_after_the_empty_state_message_gets_the_choice(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, chosen=("ken-burns",), files=(), scan=True)
+    assert r.windows[0].frames == []
+    make_image(tmp_path / "late.png")
+    r.backends[0].emit(str(tmp_path / "late.png"), _fs("created"))
+    backends[1].run_all()
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["late.png"]
+    assert r.windows[0].first_transitions == [("ken-burns", 1.0)]
+
+
+class _MovingWindow(FakeWindow):
+    """A fake window that hands what it is given to a real canvas (the GTK parts recorded, not
+    drawn): the first picture of a slideshow must end up with the slow move there."""
+
+    def __init__(self, size, canvas):
+        super().__init__(size)
+        self.canvas = canvas
+        self._converted = {}
+
+    def show_frame(self, frame, pan_seconds, transition=None, first_transition=None):
+        super().show_frame(frame, pan_seconds, transition, first_transition)
+        real = self._converted.setdefault(
+            id(frame),
+            Frame(
+                frame.path,
+                frame.width,
+                frame.height,
+                frame.stride,
+                bytes(frame.stride * frame.height),
+                frame.method,
+                frame.pan_range,
+            ),
+        )
+        extra = {} if first_transition is None else {"first_transition": first_transition}
+        self.canvas.set_frame(real, pan_seconds, transition, **extra)
+
+
+def moving_rig(tmp_path, backends, monkeypatch, animations=True, **kwargs):
+    from slideshow_lock import preview_window
+    from tests.test_preview_window_logic import window_for_frames
+
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: animations)
+    canvas, calls = window_for_frames(monkeypatch)  # a 4 x 3 canvas
+    r = Rig(
+        tmp_path,
+        backends,
+        ("a.png", "b.png"),
+        windows=1,
+        sizes=[(4, 3)],
+        animations=lambda: animations,
+        settings=FakeSettings(interval=10, transitions=kwargs.pop("chosen")),
+        **kwargs,
+    )
+    r.windows = [_MovingWindow((4, 3), canvas)]
+    return r.start(), canvas, calls
+
+
+def test_the_first_picture_of_the_slideshow_has_the_slow_move_in_the_canvas(
+    tmp_path, backends, monkeypatch
+):
+    r, canvas, calls = moving_rig(tmp_path, backends, monkeypatch, chosen=("ken-burns",))
+    assert r.windows[0].shown() == ["a.png"] and r.windows[0].transitions == [None]
+    assert canvas._move is not None and canvas._move.span > 10
+    assert calls == ["tick"]
+
+
+def test_the_first_picture_stands_still_when_the_chosen_transition_is_another(
+    tmp_path, backends, monkeypatch
+):
+    r, canvas, calls = moving_rig(tmp_path, backends, monkeypatch, chosen=("crossfade",))
+    assert r.windows[0].shown() == ["a.png"]
+    assert canvas._move is None and calls == []
+
+
+def test_the_first_picture_stands_still_when_the_animations_are_off(
+    tmp_path, backends, monkeypatch
+):
+    r, canvas, calls = moving_rig(
+        tmp_path, backends, monkeypatch, animations=False, chosen=("ken-burns",)
+    )
+    assert r.windows[0].shown() == ["a.png"]
+    assert canvas._move is None and calls == []
 
 
 def names_shown(window):

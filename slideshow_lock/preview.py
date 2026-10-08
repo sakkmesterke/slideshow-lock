@@ -39,7 +39,10 @@ What it does:
   ends, and only then: not the first picture, not a redo after a settings or size change, not when
   the same picture is shown again (a folder of one), not when the desktop's animations are off, and
   not when half of the interval (or the ``transition-duration``) is under 0.2 s. A window that
-  had nothing on screen before just shows the picture. The window draws it and ends it by itself;
+  had nothing on screen before (the first picture, or the first after the empty-state message)
+  just shows the picture: nothing is drawn for it, but the transition is chosen for it like for
+  any other picture, and when that is Ken Burns the picture has its slow move. The window draws
+  a transition and ends it by itself;
   any later picture, message or close ends a running one at once (``show_frame`` and
   ``show_message`` of the window).
 * Live settings: the interval, ``scaling``, ``pan-portrait-images``, ``transitions``,
@@ -344,7 +347,13 @@ class PreviewController:
                 if self._swap_due:
                     self._swap()
             else:
-                self._display(job.path, frames, fresh=job.purpose == _JOB_SHOW)
+                first = job.purpose == _JOB_SHOW  # nothing was on screen: the first picture
+                self._display(
+                    job.path,
+                    frames,
+                    fresh=first,
+                    transition=self._pick_transition(first=True) if first else None,
+                )
         except Exception:
             _LOG.exception("[slideshow] preview step failed")
 
@@ -411,6 +420,9 @@ class PreviewController:
                 window.show_message("")
             elif transition is not None and self._comes_in_changed(index, frame):
                 window.show_frame(frame, interval, transition)
+            elif transition is not None and index not in self._shown_frames:
+                # nothing to change from: no transition is drawn, the choice decides the slow move
+                window.show_frame(frame, interval, first_transition=transition)
             else:
                 window.show_frame(frame, interval)
         self._shown_path = path
@@ -450,14 +462,16 @@ class PreviewController:
         if path is not None and frames is not None:
             self._display(path, frames, fresh=True, transition=self._pick_transition())
 
-    def _pick_transition(self) -> Optional[Tuple[str, float]]:
-        """``(name, seconds)`` for the change of picture that is about to happen, or None for a
-        cut. Read from the settings every time, so a change applies to the next picture."""
-        if self._shown_path is None or not self._shown_frames or not self._animations():
+    def _pick_transition(self, first: bool = False) -> Optional[Tuple[str, float]]:
+        """``(name, seconds)`` for the picture that is about to come in, or None for a cut. Read
+        from the settings every time, so a change applies to the next picture. The first picture
+        has one chosen too (*first*): it comes in over nothing, so only its slow move (Ken Burns)
+        follows, and the choice is not remembered, the first real change is chosen as if the first
+        picture had not asked."""
+        if not self._animations():
             return None
-        name = self._chooser.next(
-            self._settings.get_transitions(), self._settings.get_transition_order()
-        )
+        choose = self._chooser.peek if first else self._chooser.next
+        name = choose(self._settings.get_transitions(), self._settings.get_transition_order())
         if name is None:
             return None
         seconds = transition_seconds(

@@ -326,6 +326,25 @@ def test_sequence_goes_round_in_the_canonical_order_not_the_stored_one():
     assert got == [CROSSFADE, PUSH, ROTATE, CROSSFADE, PUSH, ROTATE, CROSSFADE]
 
 
+def test_peek_makes_the_choice_without_remembering_it():
+    chooser = td.TransitionChooser()
+    names = [CROSSFADE, PUSH, ZOOM]
+    assert chooser.peek(names, ORDER_SEQUENCE) == CROSSFADE
+    assert chooser.peek(names, ORDER_SEQUENCE) == CROSSFADE  # the sequence has not moved on
+    assert [chooser.next(names, ORDER_SEQUENCE) for _ in range(3)] == [CROSSFADE, PUSH, ZOOM]
+    assert chooser.peek(names, ORDER_SEQUENCE) == CROSSFADE  # round again, from the last one
+    assert chooser.peek([], ORDER_SEQUENCE) is None
+    assert chooser.next(names, ORDER_SEQUENCE) == CROSSFADE  # and the empty list did not reset it
+
+
+def test_a_peek_does_not_change_what_random_may_not_repeat():
+    chooser = td.TransitionChooser(random.Random(5))
+    assert chooser.next([CROSSFADE, PUSH], ORDER_RANDOM) in (CROSSFADE, PUSH)
+    last = chooser._last
+    assert chooser.peek([CROSSFADE, PUSH], ORDER_RANDOM) != last
+    assert chooser._last == last
+
+
 def test_sequence_after_the_list_changed_continues_after_the_last_one_shown():
     chooser = td.TransitionChooser()
     assert chooser.next([CROSSFADE, PUSH, ZOOM], ORDER_SEQUENCE) == CROSSFADE

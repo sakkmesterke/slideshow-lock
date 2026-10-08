@@ -525,7 +525,9 @@ def test_a_picture_that_comes_in_with_any_other_transition_stands_still(monkeypa
 def test_the_first_picture_a_cut_and_the_same_picture_again_stand_still(monkeypatch):
     monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
     window, calls = window_for_frames(monkeypatch)
-    window.set_frame(flat_frame("a.png"), 20.0, ("ken-burns", 1.0))  # nothing to come in over
+    # a transition handed to a canvas with nothing on it is not drawn and gives no move: the move of
+    # a first picture comes by ``first_transition`` (see the tests below)
+    window.set_frame(flat_frame("a.png"), 20.0, ("ken-burns", 1.0))
     assert window._move is None
     window.set_frame(flat_frame("b.png"), 20.0)  # a cut
     assert window._move is None
@@ -553,6 +555,62 @@ def test_a_scrolling_picture_or_no_animations_means_no_slow_move(monkeypatch, pa
     window.set_frame(flat_frame("old.png"), 20.0)
     window.set_frame(tall_frame(pan_range), 20.0, ("ken-burns", 1.0))
     assert window._move is None
+
+
+def first_canvas(monkeypatch, enabled=True):
+    """A canvas with nothing on screen yet, the animations as the desktop answers."""
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: enabled)
+    window, calls = window_for_frames(monkeypatch)
+    calls.clear()
+    return window, calls
+
+
+def test_the_first_picture_has_the_slow_move_when_ken_burns_is_chosen_for_it(monkeypatch):
+    window, calls = first_canvas(monkeypatch)
+    window.set_frame(flat_frame("first.png"), 20.0, first_transition=("ken-burns", 1.0))
+    assert window._move.span == td.picture_seconds(20.0)
+    assert calls == ["tick"] and window._run is None  # its own tick, and no transition is drawn
+    assert window._pose(window._move, 4.0) == td.base_pose(0.0, window._move.span, 4.0)
+    window._on_move_tick(None, _Clock(100.0))
+    window._on_move_tick(None, _Clock(110.0))
+    assert window._pose(window._move, 4.0) == td.base_pose(10.0, window._move.span, 4.0)
+    assert window._pose(window._move, 4.0) != td.base_pose(0.0, window._move.span, 4.0)
+
+
+@pytest.mark.parametrize("name", [n for n in ALL_TRANSITIONS if n != "ken-burns"])
+def test_a_first_picture_with_any_other_transition_chosen_stands_still(monkeypatch, name):
+    window, calls = first_canvas(monkeypatch)
+    window.set_frame(flat_frame("first.png"), 20.0, first_transition=(name, 1.0))
+    assert window._move is None and window._run is None and calls == []
+
+
+def test_a_first_picture_moves_nothing_without_animations_or_with_a_zero_length(monkeypatch):
+    window, calls = first_canvas(monkeypatch, enabled=False)
+    window.set_frame(flat_frame("first.png"), 20.0, first_transition=("ken-burns", 1.0))
+    assert window._move is None and calls == []
+    window, calls = first_canvas(monkeypatch)
+    window.set_frame(flat_frame("first.png"), 20.0, first_transition=("ken-burns", 0.0))
+    assert window._move is None and calls == []
+
+
+def test_a_first_picture_that_does_not_fill_the_window_or_scrolls_has_no_move(monkeypatch):
+    window, calls = first_canvas(monkeypatch)
+    window.set_frame(tall_frame((0, 600)), 20.0, first_transition=("ken-burns", 1.0))
+    assert window._move is None
+    window, calls = first_canvas(monkeypatch)
+    small = Frame("s.png", 2, 3, 6, bytes(6 * 3), "fake", (0, 0))  # the window is 4 x 3
+    window.set_frame(small, 20.0, first_transition=("ken-burns", 1.0))
+    assert window._move is None
+
+
+def test_first_transition_is_only_for_a_canvas_with_nothing_on_it(monkeypatch):
+    window, calls = canvas_with_a_picture(monkeypatch)
+    monkeypatch.setattr(preview_window, "animations_enabled", lambda: True)
+    window.set_frame(flat_frame("n.png"), 20.0, first_transition=("ken-burns", 1.0))
+    assert window._move is None and calls == []  # a picture is on screen: the cut stays a cut
+    window.set_frame(None, 0.0)  # a message: the canvas is empty again
+    window.set_frame(flat_frame("m.png"), 20.0, first_transition=("ken-burns", 1.0))
+    assert window._move is not None
 
 
 def test_the_clock_of_the_move_starts_at_the_first_tick_and_the_poses_follow_it(monkeypatch):

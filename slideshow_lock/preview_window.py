@@ -15,10 +15,11 @@ tick, which only runs while there is something to scroll.
 A picture that comes in with the Ken Burns transition moves slowly (``_Move``,
 ``transition_draw.base_pose``: a zoom and a drift): from the frame it appears on until the
 transition that takes it away has finished it, also under a transition, as the incoming and as the
-outgoing picture, so that it does not stop before the next one comes. It is redrawn at every frame
-of the frame clock, as a transition is, until its move has run its span (then it stands in its
-last pose and nothing is drawn more). Every other picture is drawn once, 1:1, and not again, as
-in 1.0.1.
+outgoing picture, so that it does not stop before the next one comes. So does the first picture of
+a window, which has no transition to come in with, when the transition chosen for it is Ken Burns
+(``first_transition`` of ``set_frame``). Such a picture is redrawn at every frame of the frame
+clock, as a transition is, until its move has run its span (then it stands in its last pose and
+nothing is drawn more). Every other picture is drawn once, 1:1, and not again, as in 1.0.1.
 
 A transition (``slideshow_lock.transitions``, ``slideshow_lock.transition_draw``) keeps the old
 picture's texture next to the new one for its short time. What each of the ten looks like at a
@@ -205,14 +206,19 @@ class _Canvas(Gtk.Widget):
         frame: Optional[Frame],
         seconds: float,
         transition: Optional[Tuple[str, float]] = None,
+        first_transition: Optional[Tuple[str, float]] = None,
     ) -> None:
         """Show *frame*, which is on screen for *seconds*. With *transition* ``(name, seconds)`` and
         a picture already on screen, the old one goes out through the transition; any call, with
-        or without one, first ends a transition that is still running."""
+        or without one, first ends a transition that is still running. A window with nothing on
+        screen has nothing to come in over: *first_transition* is the one chosen for such a picture,
+        no transition is drawn for it, it only decides whether the picture has the slow move (Ken
+        Burns) by the rule that holds for every other picture."""
         pan_seconds = seconds * PAN_FRACTION
         self._stop_pan()
         previous_move = self._move
         same_frame = frame is not None and frame is self._frame
+        empty_before = self._texture is None
         self._end_transition()
         outgoing = None
         if transition is not None and frame is not None and frame is not self._frame:
@@ -230,11 +236,13 @@ class _Canvas(Gtk.Widget):
             )
             self._frame = frame
         self._offset = (0, 0)
+        chosen = None
+        if outgoing is not None and outgoing[0] is not None:
+            chosen = transition
+        elif empty_before and frame is not None:
+            chosen = first_transition
         ken_burns = (
-            outgoing is not None
-            and outgoing[0] is not None
-            and transition[1] > 0
-            and self._drawn_name(transition[0]) == KEN_BURNS
+            chosen is not None and chosen[1] > 0 and self._drawn_name(chosen[0]) == KEN_BURNS
         )
         self._start_move(frame, seconds, previous_move if same_frame else None, ken_burns)
         if frame is not None and frame.pan_range != (0, 0):
@@ -270,10 +278,10 @@ class _Canvas(Gtk.Widget):
     def _start_move(
         self, frame: Optional[Frame], seconds: float, old_move: Optional[_Move], ken_burns: bool
     ) -> None:
-        """Give *frame* its slow move: a picture that comes in with the Ken Burns transition
-        (*ken_burns*) has one, while the desktop allows animations. The very same frame again (a
-        folder of one) keeps the one it has, so nothing jumps back (*old_move* is that one, None
-        for any other frame)."""
+        """Give *frame* its slow move: a picture that comes in with the Ken Burns transition, or is
+        the first on its window with Ken Burns as the chosen one (*ken_burns*), has one, while the
+        desktop allows animations. The very same frame again (a folder of one) keeps the one it
+        has, so nothing jumps back (*old_move* is that one, None for any other frame)."""
         if old_move is not None:  # the very same frame
             self._move = old_move
             return
@@ -517,10 +525,14 @@ class PreviewWindow:
         return device_size(surface.get_width(), surface.get_height(), self._scale())
 
     def show_frame(
-        self, frame: Frame, seconds: float, transition: Optional[Tuple[str, float]] = None
+        self,
+        frame: Frame,
+        seconds: float,
+        transition: Optional[Tuple[str, float]] = None,
+        first_transition: Optional[Tuple[str, float]] = None,
     ) -> None:
         self._message.set_visible(False)
-        self._canvas.set_frame(frame, seconds, transition)
+        self._canvas.set_frame(frame, seconds, transition, first_transition)
 
     def show_message(self, text: str) -> None:
         """Black screen with a short message; an empty string shows plain black."""

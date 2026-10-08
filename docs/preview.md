@@ -152,30 +152,38 @@ transitions (section 2, "Transitions").
   canvas (`tests/test_transition_plain.py`, `tests/test_preview_window_logic.py`). The soft edges
   of 1.0.2 and the hardware-acceleration switch, the renderer reading and the frame-time guard of
   1.0.3 are gone.
-  **Only the Ken Burns picture moves** (`_Move`, `transition_draw.base_pose`). A picture that comes
-  in with the Ken Burns transition appears enlarged by 14 % (`KEN_BURNS_ZOOM`) and shifted left by
-  3.5 % of the window width (`KEN_BURNS_DRIFT`), and over the whole time it lives, which is its
-  interval plus the longest transition after it (`picture_seconds`), shrinks and drifts back at a
-  steady pace, so that it does not stop before the next picture comes (1.0.1's move took 90 % of
-  the interval and then stood still, which is what stopped the outgoing picture under the next
-  transition); a picture that stays on screen longer than that (a folder of one picture) keeps the
-  pose it ended in. The shift is at most half of the enlargement, so the picture covers the window
-  at every moment (no black edge). The move belongs to the picture: the incoming one arrives in
-  motion from the first moment of its transition (its clock starts at the transition's first tick),
-  the outgoing one moves on under whichever transition takes it away (`Draw.pose`, done inside the
-  picture's own place before the transition moves, turns and cuts it), and the plain drawing after
-  the transition goes on from the same value. It is redrawn at every frame of the frame clock, as a
-  transition is, until the move has run its span (a picture that stands on, a folder of one: it is
-  drawn the last time and its tick ends, nothing is drawn after it). Every other picture is drawn
-  once, 1:1, and not again: the first picture, a cut, the same picture again and a picture that
-  comes in with any other transition stand still, and a scrolling picture keeps its pan and has no
-  such move. No move with the desktop's animations off. An empty list, or a list with no valid
-  name, is the cut.
+  **Only the Ken Burns picture moves** (`_Move`, `transition_draw.base_pose`): a picture that comes
+  in with the Ken Burns transition, and the first picture of a window when Ken Burns is the choice
+  for it (see the first picture of a window, below). Such a picture appears enlarged by 14 %
+  (`KEN_BURNS_ZOOM`) and shifted left by 3.5 % of the window width (`KEN_BURNS_DRIFT`), and over the
+  whole time it lives, which is its interval plus the longest transition after it
+  (`picture_seconds`), shrinks and drifts back at a steady pace, so that it does not stop before the
+  next picture comes (1.0.1's move took 90 % of the interval and then stood still, which is what
+  stopped the outgoing picture under the next transition); a picture that stays on screen longer
+  than that (a folder of one picture) keeps the pose it ended in. The shift is at most half of the
+  enlargement, so the picture covers the window at every moment (no black edge). The move belongs to
+  the picture: the incoming one arrives in motion from the first moment of its transition (its clock
+  starts at the transition's first tick), the outgoing one moves on under whichever transition takes
+  it away (`Draw.pose`, done inside the picture's own place before the transition moves, turns and
+  cuts it), and the plain drawing after the transition goes on from the same value. It is redrawn at
+  every frame of the frame clock, as a transition is, until the move has run its span (a picture
+  that stands on, a folder of one: it is drawn the last time and its tick ends, nothing is drawn
+  after it). Every other picture is drawn once, 1:1, and not again: a cut, the same picture again
+  and a picture that comes in with any other transition stand still, and a scrolling picture keeps
+  its pan and has no such move. The first picture of a window (and the first after the empty-state
+  message) has nothing to come in over, so no transition is drawn for it, but the transition is
+  chosen for it by the rule of every other picture
+  (`PreviewController._pick_transition(first=True)`, `first_transition` of `set_frame`): when that
+  is Ken Burns, drawn as Ken Burns, it has the slow move; with any other one it stands still. The
+  choice for it is only looked at (`TransitionChooser.peek`), so the `sequence` order and the "not
+  the same twice" rule start from the first real change as before. A redo after a settings or size
+  change makes a new picture without a choice, so it starts no move (and ends a running one). No
+  move with the desktop's animations off. An empty list, or a list with no valid name, is the cut.
   One setting, `transition-duration` (0.2 to 5.0 s, default 1.0 s), is the length of
   every transition. A transition never takes more than half of the interval (a 1 s interval
   cross-fades for 0.5 s; the default 10 s interval leaves the whole 1.0 s) and under 0.2 s it is a
   cut. The stored value is not changed by that cut: the settings window shows the stored one.
-  **No transition** for: the first picture, a
+  **No transition drawn** for: the first picture, a
   redo after a settings or window size change, the same picture shown again (a folder of one), and
   when the desktop's animations are off (`gtk-enable-animations`, asked for every change of picture
   like the pan; whether the GNOME setting reaches it was not measured). A window that had no

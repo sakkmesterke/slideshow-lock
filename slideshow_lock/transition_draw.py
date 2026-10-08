@@ -12,12 +12,14 @@ the old one, never beside it in the same layer, so it never makes the old one le
 pixels below it would allow: a transition cannot dip towards black unless it is the "fade-black".
 
 Only the Ken Burns picture moves. ``base_pose`` is its slow move (a zoom and a drift), measured from
-the moment the picture appears, with the Ken Burns transition, and carried by the picture through
-the whole time it is on screen: as the incoming picture of that transition, while it is shown, and
-as the outgoing picture of whichever transition takes it away, so it does not stop before the next
-picture comes. A ``Draw`` carries it as ``pose``; the window applies it inside the picture's own
-place, so every transition cuts, slides and fades that moving picture as it would a still one. Every
-other picture stands still (it is drawn once, 1:1), as in 1.0.1.
+the moment the picture appears, with the Ken Burns transition (or, on a window that had nothing on
+screen, as the first picture, when Ken Burns is the choice for it and no transition is drawn), and
+carried by the picture through the whole time it is on screen: as the incoming picture of that
+transition, while it is shown, and as the outgoing picture of whichever transition takes it away,
+so it does not stop before the next picture comes. A ``Draw`` carries it as ``pose``; the window
+applies it inside the picture's own place, so every transition cuts, slides and fades that moving
+picture as it would a still one. Every other picture stands still (it is drawn once, 1:1), as in
+1.0.1.
 
 ``TransitionChooser`` picks the transition for every change of picture from the stored list.
 """
@@ -262,6 +264,16 @@ class TransitionChooser:
             choice = self._rng.choice(pool)
         self._last = choice
         return choice
+
+    def peek(self, names: Sequence, order: str) -> Optional[str]:
+        """The choice ``next`` would make, without remembering it: the picture it is made for
+        comes in over nothing, so it must not use up a place of the ``sequence`` order or change
+        what the first real change may not repeat."""
+        last = self._last
+        try:
+            return self.next(names, order)
+        finally:
+            self._last = last
 
 
 class TransitionRun:
