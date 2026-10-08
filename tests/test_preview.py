@@ -365,7 +365,13 @@ def test_ac1_a_changed_order_applies_to_the_pictures_after_the_prepared_one(tmp_
         r.tick(10)
     shown = r.windows[0].shown()
     assert shown[0] == "p0.png"
-    assert shown[1:] == new_order[:7]  # the prepared picture is kept, then the new order rules
+    assert shown[1] == new_order[0]  # the prepared picture is kept, then the new order rules...
+    # ...except that a picture never comes back within three others: p0, which was just shown, is
+    # not among the next three (its place in the new order is taken by a later picture)
+    assert "p0.png" not in shown[1:4]
+    assert len(set(shown)) >= 7
+    for index, name in enumerate(shown):
+        assert name not in shown[max(0, index - 3) : index]
 
 
 # -- AC2/AC3: scaling mode and pan come from the settings, live ----------------------------------
