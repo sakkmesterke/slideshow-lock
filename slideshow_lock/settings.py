@@ -55,6 +55,17 @@ KEY_TRANSITION_ORDER = "transition-order"
 KEY_TRANSITION_DURATION = "transition-duration"
 KEY_HARDWARE_ACCELERATION = "hardware-acceleration"
 
+#: The boolean keys, with the default each has in the schema. A program newer than the schema
+#: installed beside it (an upgrade whose schema has not been compiled yet) finds a key missing, and
+#: GLib does not raise for that: it aborts the process. So a boolean is read only after the schema
+#: has been asked, and a key it does not have gives this default.
+BOOLEAN_DEFAULTS = {
+    KEY_PAN_PORTRAIT_IMAGES: False,
+    KEY_SHOW_SCREENSHOTS: False,
+    KEY_FIRST_RUN_DONE: False,
+    KEY_HARDWARE_ACCELERATION: True,
+}
+
 
 def default_picture_folder() -> str:
     """Return the XDG-derived default picture folder (D25).
@@ -92,6 +103,7 @@ class Settings:
     def __init__(self) -> None:
         self._settings = Gio.Settings.new(APP_ID)
         self._changed_handlers: List[int] = []
+        self._missing_logged: set = set()
 
     # -- live reload (acceptance criterion 1) ------------------------------
 
@@ -154,7 +166,7 @@ class Settings:
     # -- pan-portrait-images ----------------------------------------------------
 
     def get_pan_portrait_images(self) -> bool:
-        return self._settings.get_boolean(KEY_PAN_PORTRAIT_IMAGES)
+        return self._get_boolean(KEY_PAN_PORTRAIT_IMAGES)
 
     def set_pan_portrait_images(self, value: bool) -> bool:
         return self._set_boolean(KEY_PAN_PORTRAIT_IMAGES, value)
@@ -162,7 +174,7 @@ class Settings:
     # -- show-screenshots ------------------------------------------------------------
 
     def get_show_screenshots(self) -> bool:
-        return self._settings.get_boolean(KEY_SHOW_SCREENSHOTS)
+        return self._get_boolean(KEY_SHOW_SCREENSHOTS)
 
     def set_show_screenshots(self, value: bool) -> bool:
         return self._set_boolean(KEY_SHOW_SCREENSHOTS, value)
@@ -225,7 +237,7 @@ class Settings:
     # -- hardware-acceleration (the effects of 1.0.2 on, or the plain animation of 1.0.1) ----
 
     def get_hardware_acceleration(self) -> bool:
-        return self._settings.get_boolean(KEY_HARDWARE_ACCELERATION)
+        return self._get_boolean(KEY_HARDWARE_ACCELERATION)
 
     def set_hardware_acceleration(self, value: bool) -> bool:
         return self._set_boolean(KEY_HARDWARE_ACCELERATION, value)
@@ -256,7 +268,7 @@ class Settings:
     # -- first-run-done (the login start opens the settings window once) ---------------
 
     def get_first_run_done(self) -> bool:
-        return self._settings.get_boolean(KEY_FIRST_RUN_DONE)
+        return self._get_boolean(KEY_FIRST_RUN_DONE)
 
     def set_first_run_done(self, value: bool) -> bool:
         return self._set_boolean(KEY_FIRST_RUN_DONE, value)
@@ -300,12 +312,37 @@ class Settings:
             )
         return ok
 
+    def _has_key(self, key: str) -> bool:
+        """True if the schema installed knows *key*. Asked for the keys a newer program added, as
+        GLib aborts the process at a key the schema does not have."""
+        try:
+            return bool(self._settings.props.settings_schema.has_key(key))
+        except Exception:  # noqa: BLE001 - a schema that cannot be asked is taken to have the key
+            return True
+
+    def _get_boolean(self, key: str) -> bool:
+        """The boolean *key*, or its schema default (``BOOLEAN_DEFAULTS``) if the installed schema
+        is older and lacks it (logged once)."""
+        if self._has_key(key):
+            return self._settings.get_boolean(key)
+        if key not in self._missing_logged:
+            self._missing_logged.add(key)
+            _LOG.warning(
+                "[config] the installed schema has no key '%s' (an older schema): using '%s'",
+                key,
+                BOOLEAN_DEFAULTS[key],
+            )
+        return BOOLEAN_DEFAULTS[key]
+
     def _set_boolean(self, key: str, value: bool) -> bool:
         # `Gio.Settings.set_boolean` takes any truthy Python object, so "no", 0 or [] would be
         # saved as a boolean. Only a real bool counts as a valid value.
+        if isinstance(value, bool) and not self._has_key(key):
+            self._get_boolean(key)  # logs that the schema is an older one
+            return False
         ok = isinstance(value, bool) and self._settings.set_boolean(key, value)
         if not ok:
-            fallback = self._settings.get_boolean(key)
+            fallback = self._get_boolean(key)
             _LOG.warning(
                 "[config] invalid value '%s' for key '%s' rejected, keeping '%s'",
                 value,
