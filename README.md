@@ -26,7 +26,7 @@ X-GNOME-Autostart-enabled=false
 
 ## Updating
 
-The packages come from the COPR project `sakkmesterke/slideshow-lock`. To update, run `sudo dnf upgrade --refresh`. A plain `dnf upgrade` can miss a new version for up to 48 hours, because dnf keeps the repository metadata in a cache; this was seen when updating 1.0.0 to 1.0.1.
+The packages come from the COPR project `trensoft/slideshow-lock`. To update, run `sudo dnf upgrade --refresh`. A plain `dnf upgrade` can miss a new version for up to 48 hours, because dnf keeps the repository metadata in a cache; this was seen when updating 1.0.0 to 1.0.1.
 
 ## Translations
 

@@ -12,9 +12,9 @@ authors = [{ name = "TrenSoft" }]
 dependencies = ["PyGObject>=3.42"]
 
 [project.urls]
-Homepage = "https://github.com/sakkmesterke/slideshow-lock"
-Source = "https://github.com/sakkmesterke/slideshow-lock"
-Issues = "https://github.com/sakkmesterke/slideshow-lock/issues"
+Homepage = "https://github.com/trensoft/slideshow-lock"
+Source = "https://github.com/trensoft/slideshow-lock"
+Issues = "https://github.com/trensoft/slideshow-lock/issues"
 
 [project.optional-dependencies]
 dev = ["ruff", "pytest"]

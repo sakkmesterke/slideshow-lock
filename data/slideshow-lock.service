@@ -5,7 +5,7 @@
 # session is marked "not measured".
 [Unit]
 Description=Slideshow screensaver that locks the session on input
-Documentation=https://github.com/sakkmesterke/slideshow-lock
+Documentation=https://github.com/trensoft/slideshow-lock
 # systemd.special(7) (read in systemd 252): graphical-session.target "is active whenever any graphical
 # session is running" and is there "to stop user services which only apply to a graphical session
 # when the session is terminated. Such services should have PartOf=graphical-session.target"; the

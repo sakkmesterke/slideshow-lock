@@ -17,7 +17,7 @@ Fedora account, the webhook and the repository permissions.
 The maintainer's rule, set on 2026-10-07.
 
 1. Only a tagged release that the maintainer has approved is built in the COPR project
-   `sakkmesterke/slideshow-lock`.
+   `trensoft/slideshow-lock`.
 2. No test build is started in this project: not by a push, not by a manual Rebuild, not by hand.
    The reason: the regular update on the maintainer's machines installs whatever appears there with
    a higher version, so a test build would be installed there as if it were a release.
@@ -71,13 +71,13 @@ are in `docs/copr.md`, section 4.
 
    ```
    sudo dnf install dnf-plugins-core
-   sudo dnf copr enable sakkmesterke/slideshow-lock
+   sudo dnf copr enable trensoft/slideshow-lock
    sudo dnf install slideshow-lock
    ```
 
    `[H]` `dnf copr` needs `dnf-plugins-core`. `[H]` On AlmaLinux 10, Rocky Linux 10 and RHEL 10
    EPEL and the CRB repository have to be enabled first; how that is done differs on RHEL.
-   `[H]` The owner name `sakkmesterke` is the name of the maintainer's COPR account.
+   `[H]` The owner name `trensoft` is the name of the maintainer's COPR account.
 4. The GitHub release, with the list of changes.
 5. The report: done, per chroot, and what could not be checked.
 

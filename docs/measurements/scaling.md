@@ -266,7 +266,7 @@ dnf -q repoquery --disablerepo='*' \
 
 # 2. Get the tools
 sudo dnf install -y git python3-gobject python3-cairo python3-numpy gstreamer1-plugins-base
-git clone https://github.com/sakkmesterke/slideshow-lock.git && cd slideshow-lock/tools/measure-scaling
+git clone https://github.com/trensoft/slideshow-lock.git && cd slideshow-lock/tools/measure-scaling
 
 # 3. CPU costs on this machine (about 3 minutes, close other applications first)
 python3 bench.py A --out out && python3 bench.py B --out out
