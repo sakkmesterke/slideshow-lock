@@ -46,4 +46,4 @@ On RHEL 10, AlmaLinux and Rocky, JPEG, PNG, GIF and TIFF have a loader from the 
 
 ## Authorship
 
-The code of this project was written with a team of AI agents; the maintainer, TrenSoft, is responsible for it.
+The code of this project was written with the help of AI agents.
