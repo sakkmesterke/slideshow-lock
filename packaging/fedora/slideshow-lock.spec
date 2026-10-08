@@ -55,11 +55,12 @@
 # the log.
 #
 # Prerequisites that are not in this file:
-#   - The tag v1.0.5 does not exist yet [M: git ls-remote --tags origin lists v1.0.0, v1.0.1, v1.0.2,
-#     v1.0.3 and v1.0.4 only, 2026-10-08], so Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before
-#     it does. The tag is made at the release, after the maintainer's approval (docs/RELEASING.md). A
-#     protected or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release
-#     has to be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
+#   - The tag v1.0.5 exists [M: git ls-remote --tags origin lists v1.0.0 to v1.0.5, v1.0.5^{} is
+#     f0f208973f56a42e53d2e9d0c65fd63512e347ec, 2026-10-08], so Source0 (the GitHub archive of the tag
+#     v%%{version}) can be downloaded. A tag is made at a release, after the maintainer's approval
+#     (docs/RELEASING.md). A protected or signed tag and a SHA-512 of the tarball are to be fixed at
+#     release time. A release has to be cut after po/*.po (the catalogs are in the repository) and
+#     after the files listed next.
 #   - The files this spec installs are in the repository and must stay there:
 #     data/io.github.sakkmesterke.SlideshowLock.desktop.in,
 #     data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in (the only copies in git: the installed
@@ -124,8 +125,8 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 URL:            https://github.com/sakkmesterke/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
-# The tag v1.0.5 does not exist yet; it is made at the release, after the maintainer's approval (see the
-# prerequisites at the top).
+# The tag v1.0.5 exists (see the prerequisites at the top); a tag is made at a release, after the
+# maintainer's approval.
 
 BuildArch:      noarch
 # [K] pure Python: slideshow_lock/*.py only, no extension module
