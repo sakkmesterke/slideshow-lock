@@ -48,7 +48,7 @@ RST = range(0xD0, 0xD8)
 #: The one source of the texts: the author, the licence, and what is built from them. The credit
 #: line is the text of ``data/pictures/CREDITS.txt``; the rights line is in Exif Copyright and in
 #: XMP dc:rights; the author is in Exif Artist and in XMP dc:creator.
-AUTHOR = "sakkmesterke (Alexovics Attila)"
+AUTHOR = "sakkmesterke"
 LICENSE_NAME = "CC BY-SA 4.0"
 LICENSE_URL = "https://creativecommons.org/licenses/by-sa/4.0/"
 RIGHTS = f"{LICENSE_NAME}, {AUTHOR}"
