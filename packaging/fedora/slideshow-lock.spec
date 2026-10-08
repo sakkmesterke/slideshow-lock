@@ -414,6 +414,14 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
   author and the licence stay in each picture, and the author is named "TrenSoft"
 - The address of the project is github.com/trensoft/slideshow-lock (the package URL, the AppStream
   data and the service file)
+- The application has a new identifier, io.github.trensoft.slideshowlock. The settings start from their
+  defaults once; whoever has set a picture folder of their own has to set it again. At the first start
+  the seven sample pictures are copied once into the folder Pictures/trensoft, on a new installation and
+  on an update alike
+- The program does not delete the files of the earlier identifier: the earlier picture folder, its state
+  file and an autostart entry that was made by hand under the earlier name stay where they are, and the
+  user deletes them. An autostart that was switched off by hand under the earlier name is active again
+  under the new identifier
 - The README says that the code was written with the help of AI agents
 
 * Thu Oct 08 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.5-2
