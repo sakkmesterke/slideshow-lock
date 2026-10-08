@@ -1,10 +1,8 @@
-"""CI scaffolding for the slideshow-lock application.
+"""The slideshow-lock package: the application identity and the name shown to the user.
 
-This module intentionally contains no product logic yet. Its only purpose is
-to give the GitHub Actions pipeline (ruff, pytest, xgettext) real source to
-operate on before the application code (state machine, D-Bus layer, GTK
-slideshow) lands from the other work items. Every string shown to a user
-must go through ``_()`` so gettext can extract it (see D26).
+The application itself lives in the modules next to this one (state machine, D-Bus layer,
+settings, GTK slideshow and settings window); this module holds what they share. Every string
+shown to a user must go through ``_()`` so gettext can extract it (see D26).
 
 ``APP_ID`` is the single-source application identity constant (D17): the
 `.desktop` file name, the GSettings schema id, the RPM package name, the

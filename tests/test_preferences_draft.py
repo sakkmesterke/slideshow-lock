@@ -1,6 +1,7 @@
-"""Tests of the edits the settings window keeps until the user saves (``preferences_model.Draft``),
-without GTK. The rule is the one of the Save button: nothing reaches the settings before ``save``,
-``save`` writes every kept edit, and one that cannot be stored stays kept and is reported.
+"""Tests of the edits the settings window keeps in a draft (``preferences_model.Draft``), without
+GTK. The rule of the draft: nothing reaches the settings before ``save`` (the window calls it
+after every edit and when it closes), ``save`` writes every kept edit, and one that cannot be
+stored stays kept and is reported.
 
 The tests read the settings through a second ``Settings`` object, as the service does: what they see
 is what is stored, not what the draft holds.
@@ -339,7 +340,7 @@ def test_the_duration_edit_is_rounded_to_a_tenth_before_it_is_kept(draft):
     assert draft.preview_values()[KEY_TRANSITION_DURATION] == 1.2
 
 
-# -- when there is something to save (the state of the Save button is ``dirty``) ------------------
+# -- when there is something to save (``dirty``: the draft holds an edit that is not stored) ------
 
 #: Per key: how to change the field, and how to bring it back to what is stored (the defaults of
 #: the schema; the first test below checks that the stored values are those).
