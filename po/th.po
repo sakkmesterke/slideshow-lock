@@ -165,10 +165,6 @@ msgid "seconds"
 msgstr "วินาที"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "การเร่งความเร็วด้วยฮาร์ดแวร์"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "การเปลี่ยนภาพ"
 
@@ -209,10 +205,6 @@ msgid "Preview"
 msgstr "ตัวอย่าง"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "บันทึก"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 วิ"
 
@@ -227,19 +219,6 @@ msgstr "1 ชม."
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 ชม."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr "การเคลื่อนไหวช้าและขอบนุ่มนวลในการเปลี่ยนภาพ ปิดเพื่อใช้แอนิเมชันแบบเรียบง่าย."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"ไม่พร้อมใช้งาน: คอมพิวเตอร์เครื่องนี้ไม่ได้วาดภาพด้วยการ์ดจอ จึงใช้แอนิเมชันแบบเรียบง่ายแทน."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

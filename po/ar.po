@@ -166,10 +166,6 @@ msgid "seconds"
 msgstr "ثوانٍ"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "تسريع الأجهزة"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "الانتقالات"
 
@@ -210,10 +206,6 @@ msgid "Preview"
 msgstr "معاينة"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "حفظ"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 ث"
 
@@ -228,20 +220,6 @@ msgstr "1 س"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 س"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr "حركة بطيئة وحواف ناعمة في الانتقالات. أوقفه للحصول على الحركة البسيطة."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"غير متاح: هذا الحاسوب لا يرسم باستخدام بطاقة الرسوميات، لذا تُستخدم الحركة "
-"البسيطة."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

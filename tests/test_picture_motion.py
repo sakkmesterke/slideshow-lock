@@ -1,12 +1,14 @@
-"""A picture is never still: from the frame it appears on, through the transition that brings it
-in, while it is shown plainly, and through the transition that takes it out, it moves a little
-between every two frames (``transition_draw.base_pose``, carried by ``Draw.pose``). No display.
+"""A Ken Burns picture is never still: from the frame it appears on, through the Ken Burns
+transition that brings it in, while it is shown, and through whichever transition takes it out, it
+moves a little between every two frames (``transition_draw.base_pose``, carried by ``Draw.pose``).
+The incoming picture starts its own move in the first moment of the transition, the outgoing one
+goes on with the move it has. No display.
 
-``life`` plays the life of one picture on a frame clock of a given rate, the way the window does:
-``compose`` for the incoming transition, the plain picture, ``compose`` for the outgoing one, each
-with the picture's pose at that moment. ``problems`` reads the frames it returns. The broken
-variants (``Mutant``) are the ways it could go wrong: the check must find each of them, or it
-proves nothing about the real thing.
+``life`` plays the life of one Ken Burns picture on a frame clock of a given rate, the way the
+window does: ``compose`` for the incoming Ken Burns transition, the plain picture, ``compose`` for
+the outgoing one, each with the picture's pose at that moment. ``problems`` reads the frames it
+returns. The broken variants (``Mutant``) are the ways it could go wrong: the check must find each
+of them, or it proves nothing about the real thing.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ import pytest
 from slideshow_lock import transition_draw as td
 from slideshow_lock.transitions import (
     ALL_TRANSITIONS,
+    KEN_BURNS,
     NEW,
     OLD,
     transition_seconds,
@@ -58,16 +61,17 @@ def _state(draw: td.Draw) -> Tuple[float, float, float, float]:
 
 
 def life(
-    name: str, interval: float, hz: int, fills: bool, mutant: Mutant = REAL
+    name: str, interval: float, hz: int, mutant: Mutant = REAL
 ) -> List[Optional[Tuple[float, ...]]]:
-    """The picture's state at every frame of its life (None where transition *name* does not draw
-    it: the fade through black shows one picture at a time)."""
+    """The state of a Ken Burns picture at every frame of its life: it comes in with Ken Burns,
+    is shown for *interval* seconds and goes out with transition *name* (None where *name* does not
+    draw it: the fade through black shows one picture at a time)."""
     seconds = transition_seconds(name, interval, DURATION)
     span = mutant.span(interval)
     frames: List[Optional[Tuple[float, ...]]] = []
 
     def pose(age: float) -> td.Pose:
-        return td.base_pose(age, span, W, fills)
+        return td.base_pose(age, span, W)
 
     def pick(draws, layer):
         return next((d for d in draws if d.layer == layer), None)
@@ -75,9 +79,9 @@ def life(
     total = interval + seconds
     for i in range(int(total * hz) + 1):
         t = i / hz
-        if t < seconds:  # it comes in
+        if t < seconds:  # it comes in with Ken Burns
             age = t
-            draws = td.with_poses(td.compose(name, t / seconds, W, H), td.STILL, pose(age))
+            draws = td.with_poses(td.compose(KEN_BURNS, t / seconds, W, H), td.STILL, pose(age))
             draw = pick(draws, NEW)
         elif t < interval:  # it is shown
             age = t - seconds if mutant.restart_after_incoming else t
@@ -116,12 +120,11 @@ def problems(frames: List[Optional[Tuple[float, ...]]]) -> List[str]:
     return found
 
 
-@pytest.mark.parametrize("fills", [True, False], ids=["fills", "small"])
 @pytest.mark.parametrize("hz", RATES)
 @pytest.mark.parametrize("interval", INTERVALS)
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
-def test_a_picture_moves_between_every_two_frames_of_its_whole_life(name, interval, hz, fills):
-    assert problems(life(name, interval, hz, fills)) == []
+def test_a_picture_moves_between_every_two_frames_of_its_whole_life(name, interval, hz):
+    assert problems(life(name, interval, hz)) == []
 
 
 @pytest.mark.parametrize("mutant", MUTANTS, ids=lambda m: m.name)
@@ -130,14 +133,14 @@ def test_the_check_finds_each_broken_variant(name, mutant):
     """Control: with the old rest at the end, a still outgoing picture, or a jump when the
     incoming run ends, the check is red (on the long and the short picture time, 60 Hz)."""
     for interval in (3.0, 60.0):
-        assert problems(life(name, interval, 60, True, mutant)), (name, interval)
+        assert problems(life(name, interval, 60, mutant)), (name, interval)
 
 
 def test_every_transition_gives_the_incoming_and_the_outgoing_picture_a_frame_to_move_in():
     """The life of a picture has frames in it for all ten names (fade-black shows one picture at a
     time, so some of its frames are not drawn, but the in-between ones are)."""
     for name in ALL_TRANSITIONS:
-        frames = life(name, 20.0, 60, True)
+        frames = life(name, 20.0, 60)
         assert sum(1 for f in frames if f is not None) > len(frames) // 2, name
 
 
@@ -167,27 +170,25 @@ def test_every_transition_starts_and_stops_softly(name):
     assert _speed(name, 0.99, 1.0) <= 0.05 * peak, name
 
 
-# -- the outgoing picture is drawn in towards where the incoming one ends -----------------------
+# -- the incoming picture starts its move with the transition, the outgoing one goes on ----------
 
-SETTLED = ("crossfade", "slide-in", "ken-burns", "zoom", "wipe", "circle", "rotate")
+
+def test_the_incoming_picture_starts_at_the_beginning_of_its_move_in_the_first_moment():
+    """The first frame of the Ken Burns transition has the new picture at its start pose (enlarged
+    by the whole zoom, shifted by the whole drift): it does not wait for the cross fade."""
+    new = td.with_poses(td.compose(KEN_BURNS, 0.0, W, H), td.STILL, td.base_pose(0.0, 10.0, W))[-1]
+    assert new.pose == td.Pose(1.0 + td.KEN_BURNS_ZOOM, -W * td.KEN_BURNS_DRIFT)
+    later = td.base_pose(0.5, 10.0, W)
+    assert later.scale < new.pose.scale and later.dx > new.pose.dx  # and it has begun to move
 
 
 @pytest.mark.parametrize("name", ALL_TRANSITIONS)
-def test_the_outgoing_picture_that_stays_under_the_new_one_settles_by_the_easing(name):
-    """The pictures that do not fill the window keep their move under the incoming one, so that
-    the outgoing one is cut to the incoming one's area by the end (``Draw.settle``): its share is
-    the transition's easing, 0 at the first frame (nothing cut) and 1 at the last. The fade
-    through black, the push and the blur have no outgoing picture under the new one at the end."""
-    new = td.Pose(1.01)
-    for p in (0.0, 0.3, 0.7, 1.0):
-        olds = [
-            d
-            for d in td.with_poses(td.compose(name, p, W, H), td.Pose(1.04), new)
-            if d.layer == OLD
-        ]
-        for old in olds:
-            if name in SETTLED:
-                assert old.settle == td.Settle(td.ease(p), new), (name, p)
-            else:
-                assert old.settle is None, (name, p)
-    assert all(d.settle is None for d in td.compose(name, 1.0, W, H) if d.layer == NEW)
+def test_the_outgoing_picture_goes_on_from_where_it_was_at_the_end_of_its_time(name):
+    """The outgoing picture's pose at the first frame of its transition is the pose it has at its
+    age then, not the start pose: the move is not begun again."""
+    interval, span = 10.0, td.picture_seconds(10.0)
+    here = td.base_pose(interval, span, W)
+    start = td.base_pose(0.0, span, W)
+    assert here != start
+    old = [d for d in td.with_poses(td.compose(name, 0.0, W, H), here, start) if d.layer == OLD]
+    assert old and all(d.pose == here for d in old)

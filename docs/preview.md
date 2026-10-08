@@ -138,100 +138,39 @@ transitions (section 2, "Transitions").
 - **Transitions** (`transitions`, default Ken Burns; `slideshow_lock/transitions.py` names
   and times them, `slideshow_lock/transition_draw.py` says what each looks like and which comes
   next): when the interval ends, the next picture comes in with a transition instead of a cut. Ten
-  are drawn, each over black, the new picture over the old one: `crossfade`, `fade-black`
-  (the old picture to black, black to the new one), `slide-in` (the new picture slides in
-  from the right over the still old one), `push` (the new picture pushes the old one out to
-  the left), `ken-burns` (with the effects the cross-fade, the move
-  that gave it its name being every picture's, see below; without them as in 1.0.1, see *Plain*), `zoom` (the old picture grows by 15 %
-  and fades while the new one comes in from 85 %), `wipe` (the new picture is uncovered from
-  the left), `circle` (from the centre in a growing circle that ends past the corners),
-  `blur` (the old picture blurs, at the middle the new one takes over and sharpens) and
-  `rotate` (the new picture turns in from -12 degrees, enlarged by 25 %, while it fades in over
-  the old one). Progress is eased (smoothstep). The next three paragraphs (the soft edges, the slow
-  move, the stronger Ken Burns zoom) are the **effects**, drawn only where a GPU is known to draw
-  (**Effects only where a GPU is known**, below). **Soft edges:** where the new picture meets the old
-  one there is a band, not a line: `slide-in`, `push`, `wipe`, `circle`, `zoom` and `rotate` fade
-  the new picture in over `SOFT_EDGE_SHARE` (12 %) of the window's shorter side. The band narrows
-  where the edge has no room (at the window's border at the start and at the end of a run), so the
-  first and the last frame are the plain pictures with no band left behind; a `wipe` and a
-  `circle` run on until the whole band is past the window, and a `push` lets the new picture come
-  in over the last pixels of the old one, so the seam is two pictures dissolving into each other,
-  not a dark line. `crossfade`, `fade-black` and `blur` have no edge.
-  **With the effects, a picture is never still during its
-  interval and under the transition after it** (`_Move`, `transition_draw.base_pose`), under every one of the ten: a picture that
-  does not scroll appears enlarged by 14 % (`KEN_BURNS_ZOOM`) and shifted left by 3.5 % of the
-  window width (`KEN_BURNS_DRIFT`) if it fills the window, and over the whole time it lives, which
-  is its interval plus the longest transition after it (`picture_seconds`), shrinks and drifts
-  back at a steady pace until that time is over, and a picture that stays on screen longer than that
-  (a folder of one picture) keeps the pose it ended in; the shift is at most half of the
-  enlargement, so the picture covers the window at every moment (no black edge). A picture that
-  does not fill the window only grows by 4 % (`SMALL_ZOOM`) around the middle, without a shift.
-  The move belongs to the picture: the incoming one arrives in motion, the outgoing one moves on
-  under the transition (`Draw.pose`, done inside the picture's own place before the transition
-  moves, turns and cuts it), and the plain drawing after the transition goes on from the same
-  value. It is redrawn at every frame of the frame clock, as a transition is (not at a fixed 30 a second, which a 60 Hz screen showed as every pose twice), until the move has run its span (a picture
-  that stands on, a folder of one: it is drawn the last time and its tick ends, nothing is drawn
-  after it), and the picture is always drawn through
-  the transform (filtered), not 1:1. A scrolling picture keeps its pan and has no such move. No
-  move with the desktop's animations off. An empty list, or a list with no valid name,
-  is the cut.
-  **Effects only where a GPU is known** (`slideshow_lock/effects.py`, `gl_probe.py`). The soft edges,
-  the slow move and the Ken Burns zoom of 14 % cost drawing time that a CPU renderer may not have
-  (measured on llvmpipe, not on a GPU: the soft edges made the overlap of the zoom about 2.6 times
-  and of the rotate 3 to 4 times as costly, the figures noisy by +-30 to 100 %), so they are drawn
-  only if two layers agree and the user's switch is on. The stutter of 1.0.2 on a machine with a GPU was
-  not this cost but the move being redrawn at a fixed 30 a second (bisect: commit 53ee616 of #76;
-  measured on llvmpipe, not on a GPU).
-  *First, the renderer* (`effects.decide`, at the first picture a window shows): GTK's renderer
-  class must be a GPU one (`GskNglRenderer`, `GskGLRenderer`, `GskVulkanRenderer`; not
-  `GskCairoRenderer`, not `GSK_RENDERER=cairo`, `LIBGL_ALWAYS_SOFTWARE` or `GALLIUM_DRIVER=llvmpipe|softpipe`
-  in the environment) and the OpenGL renderer string must name a GPU. GTK and PyGObject do not give
-  that string (`Gsk.Renderer` has only its type name, `Gdk.GLContext` the version and the API), so
-  `gl_probe.read_gl_renderer` makes a GDK GL context current for the moment and asks `glGetString(GL_RENDERER)`
-  of `libGL.so.1` (or `libGLESv2.so.2`) through ctypes, then clears the context. A string with
-  `llvmpipe`, `softpipe`, `swrast`, `lavapipe`, `swiftshader` or `software` is the CPU: this is the Mesa that
-  falls back on its own, which GTK reports as an ordinary GL renderer. `SVGA3D`, `virgl`, `VMware`,
-  `virtio`, `VirtualBox`, `QXL`, `Bochs`, `Cirrus` or `Parallels` is a virtual GPU, taken for a no too. Only a positive reading is a yes: an
-  unknown class, a string that cannot be read (no GL, no library, a failed call) or a window with no
-  renderer yet means *plain* (for a window with no renderer yet until it has one; any other answer
-  is final for the process).
-  *Second, the drawing time* (`Effects.frame`, `FrameTimer`): while the effects are drawn, the interval
-  between the frame clock's ticks (the ticks of the slow move and of the transitions) is taken in
-  windows of 20 frames, for every canvas (monitor) by its own clock, and if the median of a window is
-  over the budget (`FRAME_BUDGET_MS`, 25 ms,
-  **provisional: it was not measured, on either kind of machine**; `SLIDESHOW_FRAME_BUDGET_MS` in the
-  environment replaces it without a new build) the effects are taken away for the rest of the
-  process, on every screen. So a display that ticks slower than 25 ms (a 30 Hz one, a throttled
-  compositor, a busy machine) ends in the plain drawing of 1.0.1 for the rest of the process, whatever
-  the switch says, and nothing in the settings window shows it (the switch keeps its value; the log
-  has the WARNING). Nothing is measured while the switch is off (that drawing is the plain one
-  already). A trip: the slow move stops where it is and the picture stands still (it is drawn 1:1
-  from the next frame), a transition that is running ends as it began, and every picture after it
-  is plain. An interval of
-  a second or more is a pause (display off, window hidden), not slow drawing: it is not counted.
-  *Plain* is the drawing of 1.0.1 (`transition_draw.compose_plain`): hard edges, a picture that stands
-  still (drawn 1:1), no outgoing-picture settling, and `ken-burns` as it was: the new picture
-  alone moves, 8 % enlarged and 2 % shifted at the start, over the pan time (90 % of the interval),
-  with the cross fade taking the transition's own time. The log has the decision and why
-  (`[effects] full effects: ...` or `plain drawing (as in 1.0.1): ...`, at INFO, once), a trip of
-  the guard (`plain drawing from now on`, WARNING) and every median (DEBUG). Measured: the string
-  is read under a headless compositor without `/dev/dri` on GTK 4.8.3 (renderer class
-  `GskGLRenderer`, string `llvmpipe (LLVM 15.0.6, 256 bits)`, which the class alone did not show);
-  not measured: a real GPU, the Vulkan renderer, Fedora's and RHEL's GTK, a multi-GPU laptop (the
-  context is the display's default one, which is what GTK draws on). The blur's own check
-  (`software_gl`, names only, above) was not changed.
-  *Third, the user's switch*: `hardware-acceleration` (default on), in the settings window's
-  Transitions group. Off, the drawing is plain (as in 1.0.1) whatever the machine is; on, the
-  effects are drawn where the first layer says the machine has a GPU. It can only take the effects
-  away: on a machine that is not known to have a GPU the window greys the switch out, shows it off
-  and says why, and the stored value is not touched (nothing shown there is an edit, so Save has
-  nothing to store). The process reads it once per picture (`Effects.apply_switch`, from
-  `_Canvas.set_frame`), so a change applies from the next picture and the move of the picture on
-  screen is not cut short; the service and a preview both follow it
-  (`preview_window.follow_hardware_acceleration`), and the Preview button of the window follows
-  its unsaved edit. The window asks the machine once, when it is on screen
-  (`preview_window.acceleration_available`; the switch stays greyed out until then). A change of
-  the switch is logged (`[effects] hardware acceleration switched ...`, INFO).
+  are drawn, each over black, the new picture over the old one, with hard edges as in 1.0.1:
+  `crossfade`, `fade-black` (the old picture to black, black to the new one), `slide-in` (the new
+  picture slides in from the right over the still old one), `push` (the new picture pushes the old
+  one out to the left), `ken-burns` (the cross-fade of pictures that move, see below), `zoom` (the
+  old picture grows by 15 % and fades while the new one comes in from 85 %), `wipe` (the new
+  picture is uncovered from the left), `circle` (from the centre in a growing circle), `blur` (the
+  old picture blurs, at the middle the new one takes over and sharpens) and `rotate` (the new
+  picture turns in from -12 degrees, enlarged by 25 %, while it fades in over the old one).
+  Progress is eased (smoothstep). Nine of the ten are drawn exactly as 1.0.1 drew them: the draw
+  values are pinned field by field to what 1.0.1's own `compose` gave (`tests/compose_1_0_1.json`,
+  made by `tools/dump_compose_1_0_1.py` on the `v1.0.1` tag) and so are the drawing calls of the
+  canvas (`tests/test_transition_plain.py`, `tests/test_preview_window_logic.py`). The soft edges
+  of 1.0.2 and the hardware-acceleration switch, the renderer reading and the frame-time guard of
+  1.0.3 are gone.
+  **Only the Ken Burns picture moves** (`_Move`, `transition_draw.base_pose`). A picture that comes
+  in with the Ken Burns transition appears enlarged by 14 % (`KEN_BURNS_ZOOM`) and shifted left by
+  3.5 % of the window width (`KEN_BURNS_DRIFT`), and over the whole time it lives, which is its
+  interval plus the longest transition after it (`picture_seconds`), shrinks and drifts back at a
+  steady pace, so that it does not stop before the next picture comes (1.0.1's move took 90 % of
+  the interval and then stood still, which is what stopped the outgoing picture under the next
+  transition); a picture that stays on screen longer than that (a folder of one picture) keeps the
+  pose it ended in. The shift is at most half of the enlargement, so the picture covers the window
+  at every moment (no black edge). The move belongs to the picture: the incoming one arrives in
+  motion from the first moment of its transition (its clock starts at the transition's first tick),
+  the outgoing one moves on under whichever transition takes it away (`Draw.pose`, done inside the
+  picture's own place before the transition moves, turns and cuts it), and the plain drawing after
+  the transition goes on from the same value. It is redrawn at every frame of the frame clock, as a
+  transition is, until the move has run its span (a picture that stands on, a folder of one: it is
+  drawn the last time and its tick ends, nothing is drawn after it). Every other picture is drawn
+  once, 1:1, and not again: the first picture, a cut, the same picture again and a picture that
+  comes in with any other transition stand still, and a scrolling picture keeps its pan and has no
+  such move. No move with the desktop's animations off. An empty list, or a list with no valid
+  name, is the cut.
   One setting, `transition-duration` (0.2 to 5.0 s, default 1.0 s), is the length of
   every transition. A transition never takes more than half of the interval (a 1 s interval
   cross-fades for 0.5 s; the default 10 s interval leaves the whole 1.0 s) and under 0.2 s it is a
@@ -251,25 +190,23 @@ transitions (section 2, "Transitions").
   `--transition random` of `preview_app` does the same for one run.
   **Two are not always what was asked for** (`effective_name`): `ken-burns` needs a picture that
   fills the window and does not scroll (a fit picture, or a panning portrait, gets the cross-fade
-  instead, which is what it is anyway now; the picture's own move differs), and the `blur`, which is the costly one (it works on pictures reduced to a quarter of
-  their size), is a cross-fade when drawing is known to be in software (Cairo renderer,
-  `GSK_RENDERER=cairo`, `LIBGL_ALWAYS_SOFTWARE`, `GALLIUM_DRIVER=llvmpipe|softpipe`; this check goes
-  by those names only, so a Mesa that falls back to llvmpipe on its own, a virtual machine
-  without a GPU, is not recognised by it and the blur is tried there; the effects above do read the
-  OpenGL renderer string). The blur is also a cross-fade, with
-  a warning in the log, if the reduced pictures cannot be made.
+  instead, and stands still), and the `blur`, which is the costly one (it works on pictures reduced
+  to a quarter of their size), is a cross-fade when drawing is known to be in software (Cairo
+  renderer, `GSK_RENDERER=cairo`, `LIBGL_ALWAYS_SOFTWARE`, `GALLIUM_DRIVER=llvmpipe|softpipe`; this
+  check goes by those names only, so a Mesa that falls back to llvmpipe on its own, a virtual
+  machine without a GPU, is not recognised by it and the blur is tried there). The blur is also a
+  cross-fade, with a warning in the log, if the reduced pictures cannot be made.
   How it is drawn: `_Canvas` keeps the old texture; `transition_draw.compose` gives, for a moment
   of the transition, the pictures to paint from the bottom up (which one, opacity, scale, angle,
-  shift, clip, circle, blur, soft edge), and the canvas turns each into `Gtk.Snapshot` calls (clip,
-  opacity, blur, then shift/rotate/scale around the centre). A soft edge is a `push_mask` with
-  an alpha gradient, which needs GTK 4.10: on GTK 4.8 the edges stay as they were cut. A picture of opacity 0 is not painted at all:
+  shift, clip, circle, blur, pose), and the canvas turns each into `Gtk.Snapshot` calls (clip,
+  opacity, blur, then shift/rotate/scale around the centre, then the pose). A picture of opacity 0 is not painted at all:
   on GTK 4.8.3 a rotated, faded-out node was seen to change the pixels of the picture under it
   (cause not looked into). The canvas has a frame-clock tick of its own and a `TransitionRun`
   whose end is a point in time, not a number of frames, so a slow machine draws fewer frames and
   not a longer transition. The first frame is at progress 0 with the new picture added at one
   pixel and almost no opacity (the new texture is uploaded there, out of sight), the clock starts
-  at the second tick, and at the end the transition's tick is removed; the picture goes on with
-  the tick of its slow move if the effects are drawn (a scrolling picture, or any picture without the effects, is drawn 1:1 as always, no redraw until the
+  at the second tick, and at the end the transition's tick is removed; a Ken Burns picture goes on
+  with the tick of its slow move (every other picture is drawn 1:1 as always, no redraw until the
   next change). A panning old picture stays where it stopped; the new one starts at the top. `--transition
   NAME|random|none` of `preview_app` replaces the setting for one run.
 - **Live settings.** The interval re-arms the running timer. `scaling` and `pan-portrait-images`

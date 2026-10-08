@@ -171,10 +171,6 @@ msgid "seconds"
 msgstr "segundo"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Pagpapabilis ng hardware"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Mga transition"
 
@@ -216,10 +212,6 @@ msgid "Preview"
 msgstr "Paunang tingin"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "I-save"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 segundo"
 
@@ -234,22 +226,6 @@ msgstr "1 oras"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 oras"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Mabagal na galaw at malalambot na gilid sa mga paglipat. Patayin ito para sa "
-"payak na animation."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Hindi available: ang computer na ito ay hindi gumuguhit gamit ang graphics "
-"card, kaya ang simpleng animation ang ginagamit."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

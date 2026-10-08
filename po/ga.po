@@ -166,10 +166,6 @@ msgid "seconds"
 msgstr "soicind"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Luasghéarú crua-earraí"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Aistrithe"
 
@@ -211,10 +207,6 @@ msgid "Preview"
 msgstr "Réamhamharc"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Sábháil"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 s"
 
@@ -229,22 +221,6 @@ msgstr "1 u"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 u"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Gluaiseacht mhall agus imill bhoga sna haistrithe. Cas as é chun an bheochan "
-"shimplí a úsáid."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Níl ar fáil: ní tharraingíonn an ríomhaire seo le cárta grafaice, mar sin "
-"úsáidtear an bheochan shimplí."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

@@ -11,7 +11,8 @@ the machine's speed) and what the window's own renderer draws is read back as pi
 * in the middle something is drawn that is neither the old nor the new picture;
 * after the end the canvas is plain again: no run, no old texture, no tick, and the pixels are the
   new picture, pixel for pixel (a Ken Burns picture is still on its slow move then: it is the new
-  picture as that move has it, with controls that a wrong scale, shift or no move fails);
+  picture as that move has it, with controls that a wrong scale, shift or no move fails; every
+  other picture stands still);
 * a ``show_frame`` or a ``show_message`` in the middle of a run ends it at once.
 
 What it does not prove: how a transition looks (a human judgement on the real screen), speed, GPU
@@ -37,7 +38,6 @@ gi.require_version("Gtk", "4.0")
 from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
 from slideshow_lock import preview_window  # noqa: E402
-from slideshow_lock.effects import Effects  # noqa: E402
 from slideshow_lock.preview_window import PreviewWindow, software_gl  # noqa: E402
 from slideshow_lock.scaling import Frame  # noqa: E402
 from slideshow_lock.transition_draw import STILL  # noqa: E402
@@ -169,10 +169,10 @@ def moved(frame_pixels, pose, width: int, height: int):
 
 def check_end(label, window, pb, pts, width, height, must_move=False) -> None:
     """What the window draws after the run: the new picture. Plain, it is the picture itself, pixel
-    for pixel. On its slow move (Ken Burns with the effects: it comes in on the move and is still on
-    it when the run is over) it is the picture as the canvas's pose has it, and the controls show
-    that a wrong scale, a wrong shift and no move are each told from it. *must_move*: the effects
-    are known to be on, so a canvas without a move is a failure, not the plain case."""
+    for pixel. On its slow move (Ken Burns: it comes in on the move and is still on it when the run
+    is over) it is the picture as the canvas's pose has it, and the controls show that a wrong
+    scale, a wrong shift and no move are each told from it. *must_move*: the transition is Ken
+    Burns, so a canvas without a move is a failure, not the plain case."""
     canvas = window._canvas
     end = capture(window)
     if must_move:
@@ -297,33 +297,9 @@ def main() -> int:
             and canvas._run_tick_id == 0
             and not canvas._reduced,
         )
-        check_end(label, window, pb, pts, width, height)
-
-    # Ken Burns with the effects forced on: on a CPU renderer (headless mutter) the loop above has
-    # the plain drawing, where the picture ends still; this is the path where it ends on its move
-    forced = preview_window._effects
-    forced_reader = preview_window._read_renderer
-    preview_window._effects = Effects({})
-    preview_window._read_renderer = lambda widget: ("GskNglRenderer", "Mesa Intel(R) UHD Graphics")
-    try:
-        window.show_frame(a, 0.0)
-        pump(60)
-        window.show_frame(b, 4.0, (KEN_BURNS, 1.0))
-        run = canvas._run
-        check(
-            "ken-burns (effects forced on): a run starts, with the effects",
-            run is not None and run.name == KEN_BURNS and not run.plain,
-        )
-        if run is not None:
-            step_by_hand(canvas, run.seconds, 0.5)
-            alive = step_by_hand(canvas, run.seconds, 1.0)
-            check("ken-burns (effects forced on): the run is over at its end", alive is False)
-            check_end(
-                "ken-burns (effects forced on)", window, pb, pts, width, height, must_move=True
-            )
-    finally:
-        preview_window._effects = forced
-        preview_window._read_renderer = forced_reader
+        check_end(label, window, pb, pts, width, height, must_move=name == KEN_BURNS)
+        if name != KEN_BURNS:
+            check(f"{label}: the new picture stands still (no move)", canvas._move is None)
 
     # a new picture, a message or a close in the middle of a run ends it at once
     for what in ("show_frame", "show_message", "close_frame"):

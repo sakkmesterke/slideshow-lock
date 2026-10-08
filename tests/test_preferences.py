@@ -8,7 +8,6 @@ import ast
 import inspect
 import textwrap
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -27,7 +26,6 @@ from slideshow_lock.settings import (
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_ORDER,
     KEY_PICTURE_FOLDER,
-    KEY_TRANSITION_DURATION,
     Settings,
 )
 
@@ -433,7 +431,7 @@ def test_the_constructor_check_tells_a_constructor_that_drops_the_callback_apart
     assert _stores_before_preview(_CONSTRUCTOR.format(line=line)) is keeps
 
 
-# -- the edits are kept in the draft and written by Save and by the close -----------------------
+# -- every edit is stored the moment it is made -----------------------------------------------
 
 
 def _stored(key):
@@ -456,7 +454,6 @@ def _editing_stand_in(draft=None):
         _preview=None,
         _draft=draft or Draft(PreferencesModel(Settings())),
         status=SimpleNamespace(set_label=labels.append),
-        save_button=SimpleNamespace(set_sensitive=lambda value: log.append(("button", value))),
         refresh=lambda: log.append("refresh"),
         _show_folder=lambda: log.append("show_folder"),
         _show_interval=lambda: log.append("show_interval"),
@@ -466,99 +463,105 @@ def _editing_stand_in(draft=None):
     )
     stand_in._commit_folder = lambda: log.append("commit_folder")
     stand_in._report = lambda result: PreferencesWindow._report(stand_in, result)
-    stand_in._update_save_button = lambda: PreferencesWindow._update_save_button(stand_in)
     return stand_in
 
 
-def test_a_number_field_keeps_the_edit_and_stores_nothing():
+def test_a_number_field_stores_the_edit_at_once():
     window = _editing_stand_in()
     spin = SimpleNamespace(get_value_as_int=lambda: 300)
     PreferencesWindow._on_int(window, KEY_IDLE_TIMEOUT_SECONDS, spin)
-    assert window._draft.pending == {KEY_IDLE_TIMEOUT_SECONDS: 300}
-    assert _stored(KEY_IDLE_TIMEOUT_SECONDS) == 120
-    assert ("button", True) in window.log  # there is something to save now
+    assert _stored(KEY_IDLE_TIMEOUT_SECONDS) == 300
+    assert window._draft.pending == {} and window.labels[-1] == "Saved."
 
 
-def test_a_number_field_set_by_the_window_itself_keeps_nothing():
+def test_a_number_field_set_by_the_window_itself_stores_nothing():
     window = _editing_stand_in()
     window._updating = True
     spin = SimpleNamespace(get_value_as_int=lambda: 300)
     PreferencesWindow._on_int(window, KEY_IDLE_TIMEOUT_SECONDS, spin)
-    assert window._draft.pending == {}
+    assert window._draft.pending == {} and _stored(KEY_IDLE_TIMEOUT_SECONDS) == 120
 
 
-def test_the_transition_length_slider_keeps_the_edit_and_stores_nothing():
+def test_the_transition_length_slider_stores_the_edit_at_once():
     window = _editing_stand_in()
     window.duration_scale = SimpleNamespace(get_value=lambda: 2.5)
     PreferencesWindow._on_duration(window)
-    assert window._draft.pending == {KEY_TRANSITION_DURATION: 2.5}
-    assert Settings().get_transition_duration() == 1.0  # nothing stored
-    assert ("button", True) in window.log
+    assert Settings().get_transition_duration() == 2.5
+    assert window._draft.pending == {}
 
 
-def test_the_transition_length_slider_set_by_the_window_itself_keeps_nothing():
+def test_the_transition_length_slider_set_by_the_window_itself_stores_nothing():
     window = _editing_stand_in()
     window._updating = True
     window.duration_scale = SimpleNamespace(get_value=lambda: 2.5)
     PreferencesWindow._on_duration(window)
-    assert window._draft.pending == {}
+    assert Settings().get_transition_duration() == 1.0
 
 
-def test_a_drop_down_keeps_the_edit_and_stores_nothing():
+def test_a_drop_down_stores_the_edit_at_once():
     window = _editing_stand_in()
     window.order_drop = SimpleNamespace(get_selected=lambda: CHOICES[KEY_ORDER].index("name"))
     PreferencesWindow._on_choice(window, KEY_ORDER)
-    assert window._draft.pending == {KEY_ORDER: "name"}
-    assert _stored(KEY_ORDER) == "random"
+    assert _stored(KEY_ORDER) == "name" and window._draft.pending == {}
 
 
-def test_the_transition_drop_down_keeps_the_choice_of_its_index():
+def test_the_transition_drop_down_stores_the_choice_of_its_index():
     window = _editing_stand_in()
     window.transition_drop = SimpleNamespace(
         get_selected=lambda: TRANSITION_CHOICES.index("random")
     )
     PreferencesWindow._on_transition(window)
+    assert Settings().get_transitions() != ["ken-burns"]  # the random mix is stored
     assert window._draft.value("transitions") == "random"
-    assert Settings().get_transitions() == ["ken-burns"]  # nothing stored
 
 
-def test_the_folder_field_keeps_the_folder_and_stores_nothing(tmp_path):
+def test_the_folder_field_stores_the_folder_when_it_is_left(tmp_path):
     window = _editing_stand_in()
     window.folder_row = SimpleNamespace(get_text=lambda: str(tmp_path))
     PreferencesWindow._commit_folder(window)
-    assert window._draft.pending == {KEY_PICTURE_FOLDER: str(tmp_path)}
-    assert _stored(KEY_PICTURE_FOLDER) != str(tmp_path)
-    assert "show_folder" in window.log  # the field shows it the way it would be stored
+    assert _stored(KEY_PICTURE_FOLDER) == str(tmp_path) and window._draft.pending == {}
+    assert "show_folder" in window.log  # the field shows it the way it was stored
 
 
 def test_a_refused_edit_says_why_and_puts_the_fields_back():
     window = _editing_stand_in()
     spin = SimpleNamespace(get_value_as_int=lambda: 0)
     PreferencesWindow._on_int(window, KEY_IDLE_TIMEOUT_SECONDS, spin)
-    assert window._draft.pending == {}
+    assert window._draft.pending == {} and _stored(KEY_IDLE_TIMEOUT_SECONDS) == 120
     assert window.labels and window.labels[-1] != ""
     assert "refresh" in window.log
 
 
-def test_the_save_button_follows_whether_there_is_something_to_save():
+def test_an_edit_that_cannot_be_stored_says_so_is_thrown_away_and_the_fields_go_back(monkeypatch):
+    monkeypatch.setattr(Settings, "set_order", lambda self, value: False)
     window = _editing_stand_in()
-    PreferencesWindow._update_save_button(window)
-    assert window.log[-1] == ("button", False)
-    window._draft.edit_choice(KEY_ORDER, "name")
-    PreferencesWindow._update_save_button(window)
-    assert window.log[-1] == ("button", True)
+    window.order_drop = SimpleNamespace(get_selected=lambda: CHOICES[KEY_ORDER].index("name"))
+    PreferencesWindow._on_choice(window, KEY_ORDER)
+    assert window.labels[-1] not in ("", "Saved.")
+    assert not window._draft.dirty  # not kept to be tried again behind the user's back
+    assert "refresh" in window.log and _stored(KEY_ORDER) == "random"
 
 
-# -- where the Save button sits ------------------------------------------------------------------
+# -- there is no Save button, and nothing scrolls -----------------------------------------------
+
+
+def test_the_window_has_no_save_button_and_no_scrolled_area():
+    """The constructor cannot run here, so its source is read: no Save button, no
+    ``Adw.PreferencesPage`` (that one scrolls) and no scrolled window. The real widget tree is
+    checked by ``tools/wayland-smoke/smoke_preferences.py``."""
+    source = inspect.getsource(PreferencesWindow.__init__)
+    assert "save_button" not in source and "Save" not in source
+    assert "PreferencesPage" not in source and "ScrolledWindow" not in source
+    assert not hasattr(PreferencesWindow, "_update_save_button")
 
 
 def _layout(source):
     """What the constructor *source* puts where, read from its statements (the constructor builds a
     real window and cannot run here): ``children`` maps a container variable to the ``self.<name>``
     widgets it is given, in order; ``kinds`` maps a variable to the constructor it is made by
-    (``Gtk.Box``, ``Adw.HeaderBar``); ``placed`` is the set of variables given to another one."""
+    (``Gtk.Box``, ``Adw.HeaderBar``)."""
     function = ast.parse(textwrap.dedent(source)).body[0]
-    children, kinds, placed = {}, {}, set()
+    children, kinds = {}, {}
     for node in ast.walk(function):
         if (
             isinstance(node, ast.Assign)
@@ -583,124 +586,28 @@ def _layout(source):
                 and argument.value.id == "self"
             ):
                 children.setdefault(container, []).append(argument.attr)
-            elif isinstance(argument, ast.Name):
-                placed.add(argument.id)
-    return children, kinds, placed
+    return children, kinds
 
 
-def _container_of(source, attribute):
-    children, kinds, placed = _layout(source)
-    holders = [name for name, held in children.items() if attribute in held]
-    return holders, children, kinds, placed
-
-
-def _save_sits_right_after_preview_in_the_footer(source):
-    """True if, in *source*, ``self.save_button`` is held by exactly one container, the one that
-    holds ``self.preview_button``, directly after it; that container is a ``Gtk.Box`` (not the
-    header bar) and is itself placed in the window."""
-    holders, children, kinds, placed = _container_of(source, "save_button")
-    preview_holders, *_ = _container_of(source, "preview_button")
-    if len(holders) != 1 or preview_holders != holders:
-        return False
-    held = children[holders[0]]
-    return (
-        held.count("save_button") == 1
-        and held.index("save_button") == held.index("preview_button") + 1
-        and kinds.get(holders[0]) == "Gtk.Box"
-        and holders[0] in placed
-    )
-
-
-def test_the_save_button_sits_in_the_footer_right_after_the_preview_button():
-    """The constructor cannot run here, so its statements are read: the Save button is given to the
-    box that holds the Preview button, next to it, and not to the header bar. Where the button
-    really is on a screen is checked by ``tools/wayland-smoke/smoke_preferences.py``."""
-    assert _save_sits_right_after_preview_in_the_footer(
-        inspect.getsource(PreferencesWindow.__init__)
-    )
-
-
-_LAYOUT = """
-def __init__(self):
-    header = Adw.HeaderBar()
-    self.preview_button = Gtk.Button()
-    self.save_button = Gtk.Button()
-    footer = Gtk.Box()
-{lines}
-    content = Gtk.Box()
-    content.append(header)
-    content.append(footer)
-"""
-
-
-@pytest.mark.parametrize(
-    "lines, right",
-    [
-        # the layout of the window
-        ("    footer.append(self.preview_button)\n    footer.append(self.save_button)", True),
-        # Save in the header bar, as it was
-        (
-            "    header.pack_end(self.save_button)\n    footer.append(self.preview_button)",
-            False,
-        ),
-        # in the footer but before the Preview button
-        ("    footer.append(self.save_button)\n    footer.append(self.preview_button)", False),
-        # in the footer but not next to it
-        (
-            "    footer.append(self.preview_button)\n    footer.append(self.status)\n"
-            "    footer.append(self.save_button)",
-            False,
-        ),
-        # in both
-        (
-            "    footer.append(self.preview_button)\n    footer.append(self.save_button)\n"
-            "    header.pack_end(self.save_button)",
-            False,
-        ),
-        # not placed at all
-        ("    footer.append(self.preview_button)", False),
-    ],
-    ids=[
-        "footer-after-preview",
-        "header-bar",
-        "footer-before-preview",
-        "footer-not-next-to-preview",
-        "in-both",
-        "not-placed",
-    ],
-)
-def test_the_placement_check_tells_the_header_bar_from_the_footer(lines, right):
-    """Negative control of the check above, on constructors written out here (so it does not
-    depend on the real one)."""
-    assert _save_sits_right_after_preview_in_the_footer(_LAYOUT.format(lines=lines)) is right
-
-
-def test_the_placement_check_wants_the_footer_to_be_in_the_window():
-    source = _LAYOUT.format(
-        lines="    footer.append(self.preview_button)\n    footer.append(self.save_button)"
-    ).replace("    content.append(footer)\n", "")
-    assert _save_sits_right_after_preview_in_the_footer(source) is False
+def test_the_footer_holds_the_preview_button_the_status_and_the_version_in_that_order():
+    children, kinds = _layout(inspect.getsource(PreferencesWindow.__init__))
+    footers = [name for name, held in children.items() if "preview_button" in held]
+    assert len(footers) == 1 and kinds[footers[0]] == "Gtk.Box"
+    assert children[footers[0]] == ["preview_button", "status", "version_label"]
 
 
 def test_the_header_bar_is_given_nothing_of_the_window_s_own():
     """The header bar stays for the window controls: nothing of ``self`` is placed in it."""
-    children, kinds, _placed = _layout(inspect.getsource(PreferencesWindow.__init__))
+    children, kinds = _layout(inspect.getsource(PreferencesWindow.__init__))
     headers = [name for name, kind in kinds.items() if kind == "Adw.HeaderBar"]
     assert headers  # the check looks at something
     assert all(name not in children for name in headers)
 
 
-def _button_state(window):
-    """What the window last told the Save button (``None`` if it never did)."""
-    states = [entry[1] for entry in window.log if isinstance(entry, tuple) and entry[0] == "button"]
-    return states[-1] if states else None
-
-
-def _changing_window(tmp_path):
+def _changing_window():
     """A stand-in whose controls are read through ``controls``, so one handler can be run on a value
-    and then on the stored value. ``refresh`` has the real one's effect on the button."""
+    and then on the stored value."""
     window = _editing_stand_in()
-    window.refresh = lambda: (window.log.append("refresh"), window._update_save_button())
     controls = {
         "spin": 120,
         "duration": 1.0,
@@ -724,8 +631,22 @@ def _changing_window(tmp_path):
     return window, controls
 
 
+def _read_all():
+    other = Settings()
+    return (
+        other.get_idle_timeout_seconds(),
+        other.get_slide_interval_seconds(),
+        other.get_transition_duration(),
+        other.get_order(),
+        other.get_transitions(),
+        other.get_pan_portrait_images(),
+        other.get_show_screenshots(),
+        other.get_picture_folder(),
+    )
+
+
 #: Per control: (name in ``controls``, the value that changes it, the handler that reads it).
-_SAVE_BUTTON_CASES = {
+_AUTOSAVE_CASES = {
     "number": (
         "spin",
         300,
@@ -753,130 +674,54 @@ _SAVE_BUTTON_CASES = {
 }
 
 
-def _change(window, controls, tmp_path, name, value, handler):
+@pytest.mark.parametrize("case", sorted(_AUTOSAVE_CASES))
+def test_a_changed_field_is_stored_the_moment_it_changes_with_nothing_left_to_save(case, tmp_path):
+    window, controls = _changing_window()
+    before = _read_all()
+    name, value, handler = _AUTOSAVE_CASES[case]
+    controls[name] = str(tmp_path) if value == "CHANGED" else value
+    handler(window)
+    after = _read_all()
+    changed = [i for i, (a, b) in enumerate(zip(before, after)) if a != b]
+    assert len(changed) == 1, (before, after)  # exactly the field that was changed
+    assert not window._draft.dirty and window.labels[-1] == "Saved."
+
+
+@pytest.mark.parametrize("case", sorted(_AUTOSAVE_CASES))
+def test_a_change_put_back_is_stored_again(case, tmp_path):
+    window, controls = _changing_window()
+    before = _read_all()
+    name, value, handler = _AUTOSAVE_CASES[case]
     original = controls[name]
     controls[name] = str(tmp_path) if value == "CHANGED" else value
     handler(window)
-    return original
-
-
-def test_the_save_button_is_off_on_a_fresh_window():
-    window, _controls = _changing_window(None)
-    PreferencesWindow._update_save_button(window)  # what the constructor's refresh ends in
-    assert _button_state(window) is False
-
-
-@pytest.mark.parametrize("case", sorted(_SAVE_BUTTON_CASES))
-def test_the_save_button_is_on_once_a_field_is_changed(case, tmp_path):
-    window, controls = _changing_window(tmp_path)
-    name, value, handler = _SAVE_BUTTON_CASES[case]
-    _change(window, controls, tmp_path, name, value, handler)
-    assert window._draft.dirty
-    assert _button_state(window) is True
-
-
-@pytest.mark.parametrize("case", sorted(_SAVE_BUTTON_CASES))
-def test_the_save_button_is_off_again_after_the_save(case, tmp_path):
-    window, controls = _changing_window(tmp_path)
-    name, value, handler = _SAVE_BUTTON_CASES[case]
-    _change(window, controls, tmp_path, name, value, handler)
-    assert _button_state(window) is True
-    assert PreferencesWindow.save(window) is True
-    assert _button_state(window) is False
-
-
-@pytest.mark.parametrize("case", sorted(_SAVE_BUTTON_CASES))
-def test_the_save_button_is_off_again_when_the_change_is_put_back(case, tmp_path):
-    window, controls = _changing_window(tmp_path)
-    name, value, handler = _SAVE_BUTTON_CASES[case]
-    original = _change(window, controls, tmp_path, name, value, handler)
-    assert _button_state(window) is True
+    assert _read_all() != before
     controls[name] = original
     handler(window)
-    assert not window._draft.dirty
-    assert _button_state(window) is False
+    assert _read_all() == before and not window._draft.dirty
 
 
-def _refreshing_window():
-    """A window whose widgets take any call and whose ``refresh`` and ``_update_save_button`` are
-    the real ones, on a real ``Draft``: what ``refresh`` does to the Save button is then read."""
-    settings = Settings()
-    model = PreferencesModel(settings)
-    log = []
-    window = MagicMock()
-    window._updating = False
-    window._model = model
-    window._draft = Draft(model)
-    window.save_button = SimpleNamespace(set_sensitive=lambda value: log.append(("button", value)))
-    window.log = log
-    window.refresh = lambda: PreferencesWindow.refresh(window)
-    window._update_save_button = lambda: PreferencesWindow._update_save_button(window)
-    window._report = lambda result: PreferencesWindow._report(window, result)
-    return window
-
-
-def test_the_real_refresh_puts_the_save_button_to_whether_there_is_something_to_save():
-    """``save`` and a refused edit end in ``refresh``: it is what greys the button after a save."""
-    window = _refreshing_window()
-    window._draft.edit_choice(KEY_ORDER, "name")
-    window.refresh()
-    assert _button_state(window) is True
-    window._draft.discard()
-    window.refresh()
-    assert _button_state(window) is False
-
-
-def test_a_save_through_the_real_refresh_greys_the_save_button():
-    window = _refreshing_window()
-    window._report(window._draft.edit_choice(KEY_ORDER, "name"))
-    assert _button_state(window) is True
-    assert PreferencesWindow.save(window) is True
-    assert _button_state(window) is False
-
-
-def test_save_keeps_the_folder_field_then_writes_the_edits_and_says_so():
+def test_save_keeps_the_folder_field_first_and_has_nothing_else_to_write():
     window = _editing_stand_in()
-    window._draft.edit_choice(KEY_ORDER, "name")
-    window._draft.edit_int(KEY_IDLE_TIMEOUT_SECONDS, 300)
     assert PreferencesWindow.save(window) is True
     assert window.log[0] == "commit_folder"  # a folder typed and not yet kept is kept first
-    assert (_stored(KEY_ORDER), _stored(KEY_IDLE_TIMEOUT_SECONDS)) == ("name", 300)
-    assert window.labels[-1] == "Saved."
-    assert not window._draft.dirty
-    assert "refresh" in window.log
+    assert window.labels[-1] == "" and "refresh" in window.log
 
 
-def test_save_that_cannot_store_a_value_says_so_and_keeps_it(monkeypatch):
-    monkeypatch.setattr(Settings, "set_order", lambda self, value: False)
-    window = _editing_stand_in()
-    window._draft.edit_choice(KEY_ORDER, "name")
-    assert PreferencesWindow.save(window) is False
-    assert window.labels[-1] not in ("", "Saved.")
-    assert window._draft.dirty
-
-
-def test_closing_the_window_writes_the_edits_without_a_question():
-    window = _editing_stand_in()
-    window._draft.edit_choice(KEY_ORDER, "name")
-    window._draft.edit_int(KEY_IDLE_TIMEOUT_SECONDS, 300)
-    assert PreferencesWindow._on_close_request(window, None) is False  # the window may close
-    assert window.log[0] == "commit_folder"
-    assert (_stored(KEY_ORDER), _stored(KEY_IDLE_TIMEOUT_SECONDS)) == ("name", 300)
-    assert window._closed is True
-
-
-def test_closing_the_window_without_edits_stores_nothing():
+def test_closing_the_window_keeps_a_folder_that_was_typed_and_stores_nothing_else():
     window = _editing_stand_in()
     seen = []
     listener = Settings()
     listener.connect_changed(seen.append)
-    assert PreferencesWindow._on_close_request(window, None) is False
-    assert seen == []
+    assert PreferencesWindow._on_close_request(window, None) is False  # the window may close
+    assert window.log[0] == "commit_folder" and seen == []
+    assert window._closed is True
 
 
 def test_closing_the_window_with_a_value_that_cannot_be_stored_logs_it_and_still_closes(
     monkeypatch, caplog
 ):
+    """Only a draft left over (a store that failed and was not thrown away) can be in this case."""
     monkeypatch.setattr(Settings, "set_order", lambda self, value: False)
     window = _editing_stand_in()
     window._draft.edit_choice(KEY_ORDER, "name")
@@ -885,11 +730,12 @@ def test_closing_the_window_with_a_value_that_cannot_be_stored_logs_it_and_still
     assert any("could not be saved at close" in m for m in caplog.messages)
 
 
-def test_the_preview_runs_on_the_values_of_the_window_and_stores_none_of_them(
+def test_the_preview_runs_on_the_stored_values_which_are_the_values_of_the_window(
     monkeypatch, tmp_path
 ):
-    """The preview reads the edits that are not saved yet, through ``SessionSettings``; the
-    stored settings keep their values and the edits stay kept."""
+    """Every value of the window is stored the moment it is changed, so the preview, which reads
+    the settings through ``SessionSettings`` (nothing replaced: the draft is empty), shows what the
+    window shows."""
     seen = {}
 
     class Controller:
@@ -908,11 +754,10 @@ def test_the_preview_runs_on_the_values_of_the_window_and_stores_none_of_them(
 
     window = _window_stand_in()
     window._draft = Draft(PreferencesModel(Settings()))
-    window._draft.edit_choice(KEY_ORDER, "name")
-    window._draft.edit_transition("zoom")
-    window._draft.edit_folder(str(tmp_path))
-    window._draft.edit_interval_position(0)
-    window._draft.edit_duration(2.5)
+    stored = Settings()
+    assert stored.set_order("name") and stored.set_transitions(["zoom"])
+    assert stored.set_picture_folder(str(tmp_path))
+    assert stored.set_slide_interval_seconds(1) and stored.set_transition_duration(2.5)
     monkeypatch.setattr(preferences, "build_source", fake_build_source)
     monkeypatch.setattr(preferences, "start_preview", fake_start_preview)
     PreferencesWindow._start_preview(window)
@@ -924,10 +769,8 @@ def test_the_preview_runs_on_the_values_of_the_window_and_stores_none_of_them(
     assert shown.get_picture_folder() == str(tmp_path)
     assert shown.get_slide_interval_seconds() == 1
     assert shown.get_transition_duration() == 2.5
-    assert shown.get_scaling() == "fill"  # not edited: the stored value
-    assert _stored(KEY_ORDER) == "random"  # nothing was stored
-    assert Settings().get_transitions() == ["ken-burns"]
-    assert window._draft.dirty  # and the edits are still to be saved
+    assert shown.get_scaling() == "fill"
+    assert not window._draft.dirty  # nothing is waiting to be saved
 
 
 def test_the_preview_keeps_the_folder_field_before_it_reads_the_values(monkeypatch):
@@ -950,107 +793,3 @@ def test_the_folder_field_that_still_shows_the_folder_in_effect_keeps_and_says_n
     window.folder_row = SimpleNamespace(get_text=lambda: f"  {tmp_path}  ")
     PreferencesWindow._commit_folder(window)
     assert window.log == [] and window.labels == []  # the same folder, only whitespace around it
-
-
-# -- the hardware acceleration switch ------------------------------------------------------------
-
-
-class _Recorder:
-    """What the switch and the row were told, in place of the widgets."""
-
-    def __init__(self):
-        self.active = None
-        self.sensitive = None
-        self.subtitle = None
-        self.refreshed = 0
-
-
-def acceleration_window(available, draft=None):
-    recorder = _Recorder()
-    draft = draft if draft is not None else Draft(PreferencesModel(Settings()))
-    window = SimpleNamespace(
-        _acceleration_available=available,
-        _draft=draft,
-        _updating=False,
-        acceleration_switch=SimpleNamespace(
-            set_property=lambda name, value: setattr(recorder, name, value),
-            set_sensitive=lambda value: setattr(recorder, "sensitive", value),
-            get_active=lambda: recorder.active,
-        ),
-        acceleration_row=SimpleNamespace(
-            set_subtitle=lambda text: setattr(recorder, "subtitle", text)
-        ),
-        refresh=lambda: setattr(recorder, "refreshed", recorder.refreshed + 1),
-    )
-    return window, recorder
-
-
-def test_with_a_gpu_the_switch_is_on_by_default_and_can_be_used():
-    window, shown = acceleration_window(True)
-    PreferencesWindow._show_acceleration(window)
-    assert shown.active is True and shown.sensitive is True
-    assert shown.subtitle == PreferencesWindow._acceleration_text(True)
-
-
-def test_with_a_gpu_the_switch_shows_the_value_in_effect():
-    window, shown = acceleration_window(True)
-    assert window._draft.edit_hardware_acceleration(False).ok
-    PreferencesWindow._show_acceleration(window)
-    assert shown.active is False and shown.sensitive is True
-
-
-@pytest.mark.parametrize("stored", [True, False])
-def test_without_a_gpu_the_switch_is_greyed_out_and_off_and_says_why(stored):
-    assert Settings().set_hardware_acceleration(stored)
-    window, shown = acceleration_window(False)
-    PreferencesWindow._show_acceleration(window)
-    assert shown.active is False and shown.sensitive is False
-    assert shown.subtitle == PreferencesWindow._acceleration_text(False)
-    assert shown.subtitle != PreferencesWindow._acceleration_text(True)
-
-
-def test_showing_the_switch_off_without_a_gpu_is_no_edit_and_leaves_the_stored_value():
-    """The switch looks off on a machine without a GPU, but the stored choice is kept and the Save
-    button has nothing to save: nothing the window shows there is an edit."""
-    window, _shown = acceleration_window(False)
-    PreferencesWindow._show_acceleration(window)
-    assert not window._draft.dirty
-    assert Settings().get_hardware_acceleration() is True
-
-
-def test_until_the_machine_is_known_the_switch_is_greyed_out_and_keeps_its_text():
-    window, shown = acceleration_window(None)
-    PreferencesWindow._show_acceleration(window)
-    assert shown.active is False and shown.sensitive is False
-    assert shown.subtitle is None  # not the "not available" text before anyone asked
-
-
-def test_the_map_asks_the_machine_once_and_shows_the_answer(monkeypatch):
-    asked = []
-    monkeypatch.setattr(
-        preferences, "acceleration_available", lambda widget: asked.append(widget) or True
-    )
-    window, shown = acceleration_window(None)
-    PreferencesWindow._on_map(window)
-    PreferencesWindow._on_map(window)  # a second map: no second question
-    assert asked == [window] and window._acceleration_available is True
-    assert shown.refreshed == 1
-
-
-def test_a_use_of_the_switch_is_an_edit_that_save_stores():
-    window, shown = acceleration_window(True)
-    window._report = lambda result: setattr(shown, "result", result)
-    shown.active = False
-    PreferencesWindow._on_acceleration(window)
-    assert shown.result.ok and window._draft.pending == {"hardware-acceleration": False}
-    assert window._draft.save().ok
-    assert Settings().get_hardware_acceleration() is False
-
-
-def test_the_fields_being_set_from_the_values_in_effect_are_no_edit():
-    window, shown = acceleration_window(True)
-    window._report = lambda result: setattr(shown, "result", result)
-    window._updating = True
-    shown.active = False
-    PreferencesWindow._on_acceleration(window)
-    assert not window._draft.dirty and not hasattr(shown, "result")
