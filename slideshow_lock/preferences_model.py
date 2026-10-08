@@ -6,8 +6,8 @@ saved. It imports no GTK, so the CI tests it without a display; what the real wi
 with it is checked with ``tools/wayland-smoke/smoke_preferences.py`` and, for how it looks,
 by eye on the reference machine.
 
-The window edits a ``Draft``: a change is checked when it is made and kept in the draft, and it
-reaches the settings only when the user saves or closes the window (``Draft.save``). Every
+The window edits a ``Draft``: a change is checked when it is made and kept in the draft and written
+at once (``Draft.save``; the window calls it after every edit and when it closes). Every
 ``Draft.edit_*`` returns a ``SaveResult``; the window puts the field back to the value in effect
 when the edit is refused, so it never shows a value that is neither stored nor in the draft.
 ``PreferencesModel.set_*`` check and store at once (what ``Draft.save`` uses, key by key); each says
