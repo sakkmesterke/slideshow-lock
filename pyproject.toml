@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slideshow-lock"
-version = "1.0.2"
+version = "1.0.3"
 description = "GNOME/Wayland idle slideshow screensaver with session-lock integration"
 requires-python = ">=3.9"
 license = { file = "LICENSE" }
