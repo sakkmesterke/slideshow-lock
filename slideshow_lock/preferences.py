@@ -578,18 +578,6 @@ class PreferencesWindow(Adw.ApplicationWindow):
             self._report(self._draft.edit_folder(path))
             self._show_folder()
 
-    # -- saving ------------------------------------------------------------------------------
-
-    def save(self) -> bool:
-        """Store a folder that was typed and not confirmed yet, and whatever else is left in the
-        draft (nothing is, but for a value that could not be stored). True when nothing is left
-        unsaved."""
-        self._commit_folder()
-        result = self._draft.save()
-        self.status.set_label(result.message)
-        self.refresh()
-        return result.ok
-
     # -- the preview -----------------------------------------------------------------------------
 
     def _start_preview(self) -> None:
