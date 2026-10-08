@@ -197,11 +197,17 @@ transitions (section 2, "Transitions").
   is final for the process).
   *Second, the drawing time* (`Effects.frame`, `FrameTimer`): while the effects are drawn, the interval
   between the frame clock's ticks (the ticks of the slow move and of the transitions) is taken in
-  windows of 20 frames, and if the median of a window is over the budget (`FRAME_BUDGET_MS`, 25 ms,
-  **provisional until it is measured on both kinds of machine**; `SLIDESHOW_FRAME_BUDGET_MS` in the
+  windows of 20 frames, for every canvas (monitor) by its own clock, and if the median of a window is
+  over the budget (`FRAME_BUDGET_MS`, 25 ms,
+  **provisional: it was not measured, on either kind of machine**; `SLIDESHOW_FRAME_BUDGET_MS` in the
   environment replaces it without a new build) the effects are taken away for the rest of the
-  process: the slow move stops where it is and the picture stands still (it is drawn 1:1 from the next frame),
-  a transition that is running ends as it began, and every picture after it is plain. An interval of
+  process, on every screen. So a display that ticks slower than 25 ms (a 30 Hz one, a throttled
+  compositor, a busy machine) ends in the plain drawing of 1.0.1 for the rest of the process, whatever
+  the switch says, and nothing in the settings window shows it (the switch keeps its value; the log
+  has the WARNING). Nothing is measured while the switch is off (that drawing is the plain one
+  already). A trip: the slow move stops where it is and the picture stands still (it is drawn 1:1
+  from the next frame), a transition that is running ends as it began, and every picture after it
+  is plain. An interval of
   a second or more is a pause (display off, window hidden), not slow drawing: it is not counted.
   *Plain* is the drawing of 1.0.1 (`transition_draw.compose_plain`): hard edges, a picture that stands
   still (drawn 1:1), no outgoing-picture settling, and `ken-burns` as it was: the new picture
