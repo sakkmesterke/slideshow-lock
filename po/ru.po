@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 21:00+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Russian\n"
@@ -165,6 +165,10 @@ msgid "seconds"
 msgstr "секунд"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Аппаратное ускорение"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Переходы"
 
@@ -201,12 +205,12 @@ msgid "Timing"
 msgstr "Временные параметры"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Сохранить"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Предпросмотр"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Сохранить"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -223,6 +227,21 @@ msgstr "1 ч"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 ч"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr ""
+"Медленное движение и мягкие края в переходах. Отключите для обычной анимации."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"Недоступно: этот компьютер не использует видеокарту для отрисовки, поэтому "
+"используется обычная анимация."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

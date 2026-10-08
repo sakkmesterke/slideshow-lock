@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 21:00+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Serbian\n"
@@ -163,6 +163,10 @@ msgid "seconds"
 msgstr "секунди"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Хардверско убрзање"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Прелази"
 
@@ -199,12 +203,12 @@ msgid "Timing"
 msgstr "Време приказа"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Сачувај"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Преглед"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Сачувај"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -221,6 +225,20 @@ msgstr "1 ч"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 ч"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr "Спор покрет и меке ивице у прелазима. Искључите за обичну анимацију."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"Недоступно: овај рачунар не црта графичком картицом, па се користи обична "
+"анимација."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

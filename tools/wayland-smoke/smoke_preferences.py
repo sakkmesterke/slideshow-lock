@@ -221,6 +221,50 @@ def main() -> int:
         and save_parent is window.preview_button.get_parent()
         and window.preview_button.get_next_sibling() is window.save_button,
     )
+    from slideshow_lock.version import program_version
+
+    label = window.version_label
+    check(
+        "the version is the last thing in the footer, faint, and the package's own",
+        label.get_parent() is save_parent
+        and label.get_next_sibling() is None
+        and label.has_css_class("dim-label")
+        and label.get_label() == program_version() != "",
+        label.get_label(),
+    )
+    machine_has_gpu = window._acceleration_available
+    switch, row = window.acceleration_switch, window.acceleration_row
+    check(
+        "hardware acceleration: the machine was asked when the window came on screen",
+        machine_has_gpu is not None,
+        str(machine_has_gpu),
+    )
+    group = row.get_ancestor(Adw.PreferencesGroup)
+    check(
+        "hardware acceleration: the switch is a row of the Transitions group, after the length row",
+        group is not None
+        and group.get_title() == "Transitions"
+        and row.get_title() == "Hardware acceleration"
+        and row.get_prev_sibling() is not None,
+        str(group.get_title() if group is not None else None),
+    )
+    if machine_has_gpu:
+        check(
+            "hardware acceleration: on a GPU the switch is usable and starts on",
+            switch.get_sensitive() and switch.get_active(),
+        )
+    else:
+        check(
+            "hardware acceleration: without a GPU the switch is greyed out, off, and says why",
+            not switch.get_sensitive()
+            and not switch.get_active()
+            and row.get_subtitle() == PreferencesWindow._acceleration_text(False),
+            row.get_subtitle(),
+        )
+        check(
+            "hardware acceleration: showing it off is no edit; the stored choice stays on",
+            not window.save_button.get_sensitive() and stored.get_hardware_acceleration(),
+        )
     check(
         "Save is not in the header bar",
         not any(isinstance(widget, Adw.HeaderBar) for widget in ancestors),

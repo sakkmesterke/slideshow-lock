@@ -52,9 +52,14 @@ from slideshow_lock.preferences_model import (  # noqa: E402
     INTERVAL_MIN_SECONDS,
 )
 from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  # noqa: E402
-from slideshow_lock.preview_window import animations_enabled, open_monitor_windows  # noqa: E402
+from slideshow_lock.preview_window import (  # noqa: E402
+    animations_enabled,
+    follow_hardware_acceleration,
+    open_monitor_windows,
+)
 from slideshow_lock.scaling import ImageScaler, probe_loadable  # noqa: E402
 from slideshow_lock.settings import (  # noqa: E402
+    KEY_HARDWARE_ACCELERATION,
     KEY_ORDER,
     KEY_PAN_PORTRAIT_IMAGES,
     KEY_PICTURE_FOLDER,
@@ -160,6 +165,9 @@ class SessionSettings:
     def get_show_screenshots(self) -> bool:
         return self._get(KEY_SHOW_SCREENSHOTS, self._settings.get_show_screenshots)
 
+    def get_hardware_acceleration(self) -> bool:
+        return self._get(KEY_HARDWARE_ACCELERATION, self._settings.get_hardware_acceleration)
+
     def get_transitions(self) -> List[str]:
         return self._get(KEY_TRANSITIONS, self._settings.get_transitions)
 
@@ -186,6 +194,7 @@ def start_preview(
     while it shows (``IdleHold``); without one it asks for nothing. Either way it ends by itself
     after ``PREVIEW_LIMIT_SECONDS``, through the controller's ``stop`` like any other end.
     """
+    follow_hardware_acceleration(settings)
     hold = IdleHold(application) if application is not None else None
     shown_on = []  # the first window the controller opens: what the request is made for
 
