@@ -824,6 +824,19 @@ def test_the_transitions_ticks_feed_the_guard_too(monkeypatch):
     assert preview_window.effects().tripped is not None
 
 
+def test_every_canvas_feeds_the_guard_with_its_own_clock(monkeypatch):
+    """Two monitors at 30 Hz, the second half a period later: mixed they would look like 60 Hz."""
+    first, _calls = guarded_canvas(monkeypatch)
+    second, _calls = window_for_frames(monkeypatch, reading=GPU_READING)  # the same machine
+    second.set_frame(flat_frame("b.png"), 20.0)
+    assert first._move is not None and second._move is not None
+    for k in range(40):
+        first._on_move_tick(None, _Clock(k / 30.0))
+        second._on_move_tick(None, _Clock(k / 30.0 + 1 / 60.0))
+    assert preview_window.effects().tripped is not None
+    assert first._move is None and second._move is None
+
+
 # -- the user's switch: hardware acceleration on or off in the settings ---------------------------
 
 

@@ -318,6 +318,68 @@ def test_frames_that_do_not_keep_up_take_the_effects_away_for_the_rest_of_the_pr
     assert effects.full(reader(GPU)) is False
 
 
+def interleaved(*streams):
+    """The frames of several canvases in the order of their times: (time in ms, source)."""
+    return sorted((t, source) for source, times in streams for t in times)
+
+
+@pytest.mark.parametrize("shift_ms", [16.7, 3.0], ids=["half-a-period", "three-ms"])
+def test_two_canvases_that_each_run_at_30_hz_trip_the_guard_whatever_their_phase(shift_ms):
+    """Two monitors, each ticking every 33.3 ms (over the 25 ms budget), the second shifted by
+    *shift_ms*. Mixed into one clock the intervals are 16.7 and 16.7 (or 3 and 30.3) and the median
+    of the mix is under the budget for ever: every canvas is judged by its own clock."""
+    effects = Effects({}, budget_ms=25.0, frames=10)
+    assert effects.full(reader(GPU))
+    first = [k * 33.3 for k in range(40)]
+    second = [k * 33.3 + shift_ms for k in range(40)]
+    for t, source in interleaved(("a", first), ("b", second)):
+        effects.frame(int(t * 1000), source)
+    assert effects.tripped is not None and "33.3 ms" in effects.tripped
+    assert effects.full(reader(GPU)) is False
+
+
+def test_two_canvases_that_keep_up_do_not_trip_the_guard():
+    effects = Effects({}, budget_ms=25.0, frames=10)
+    effects.full(reader(GPU))
+    first = [k * 16.7 for k in range(80)]
+    second = [k * 16.7 + 5.0 for k in range(80)]
+    for t, source in interleaved(("a", first), ("b", second)):
+        effects.frame(int(t * 1000), source)
+    assert effects.tripped is None
+
+
+def test_one_slow_canvas_is_enough_the_fast_one_does_not_hide_it():
+    effects = Effects({}, budget_ms=25.0, frames=10)
+    effects.full(reader(GPU))
+    fast = [k * 8.0 for k in range(200)]
+    slow = [k * 60.0 for k in range(30)]
+    for t, source in interleaved(("fast", fast), ("slow", slow)):
+        effects.frame(int(t * 1000), source)
+    assert effects.tripped is not None and "60.0 ms" in effects.tripped
+
+
+def test_a_clock_that_goes_back_on_one_canvas_does_not_disturb_the_other():
+    """The clock of 'a' jumps back in the middle of a window of 'b': 'b' still completes its window
+    where it would have (and the jump is no interval of either)."""
+    effects = Effects({}, budget_ms=25.0, frames=5)
+    effects.full(reader(GPU))
+    for k in range(5):  # 'b': 4 intervals of 60 ms, one more frame completes the window
+        effects.frame(int(k * 60_000), "b")
+    effects.frame(1_000_000, "a")
+    effects.frame(10_000, "a")  # 'a' goes back: its window starts again, nothing for 'b'
+    assert effects.tripped is None
+    effects.frame(int(5 * 60_000), "b")
+    assert effects.tripped is not None and "60.0 ms" in effects.tripped
+
+
+def test_a_canvas_whose_clock_goes_back_is_measured_again_from_there():
+    effects = Effects({}, budget_ms=25.0, frames=5)
+    effects.full(reader(GPU))
+    for t in (500, 516, 532, 10, 70, 130, 190, 250, 310):  # fast, back, then 60 ms apart
+        effects.frame(int(t * 1000), "a")
+    assert effects.tripped is not None and "60.0 ms" in effects.tripped
+
+
 def test_the_budget_is_a_parameter_not_a_constant():
     slow = Effects({}, budget_ms=100.0, frames=10)
     slow.full(reader(GPU))

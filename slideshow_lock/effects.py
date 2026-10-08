@@ -18,8 +18,10 @@ Two layers decide, the second can only take the effects away:
    Anything that is not positively a GPU - Cairo, a software or a virtual GPU, a string that could
    not be read - is a no.
 2. ``Effects.frame``: the drawing time itself. The interval between the frame clock's ticks, while
-   the effects are drawn, is measured in windows of ``GUARD_FRAMES``; if the median of a window is
-   over the budget (``frame_budget_ms``) the effects are taken away for the rest of the process.
+   the effects are drawn, is measured in windows of ``GUARD_FRAMES``, for every window of the
+   screens (every canvas) by itself: the ticks of two monitors are not one clock, and mixed up they
+   would show half the interval of each. If the median of a window is over the budget
+   (``frame_budget_ms``) the effects are taken away for the rest of the process, for all screens.
 
 ``Effects`` keeps both and the switch; the window asks it (``full``) before every picture and hands
 it the frame clock's time (``frame``). The switch is read once per picture (``apply_switch``), so a
@@ -31,7 +33,7 @@ from __future__ import annotations
 
 import logging
 import statistics
-from typing import Callable, List, Mapping, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, Hashable, List, Mapping, NamedTuple, Optional, Tuple
 
 from slideshow_lock.transition_draw import software_renderer
 
@@ -191,7 +193,8 @@ class Effects:
     ) -> None:
         self._environ = environ if environ is not None else {}
         self._budget = budget_ms if budget_ms is not None else frame_budget_ms(self._environ)
-        self._timer = FrameTimer(frames)
+        self._frames = frames
+        self._timers: Dict[Hashable, FrameTimer] = {}  # the frame clock of every canvas by itself
         self._decision: Optional[Decision] = None
         self._tripped: Optional[str] = None
         self._switch: Callable[[], bool] = lambda: True
@@ -269,12 +272,17 @@ class Effects:
             return False
         return decision.full and self._wanted and self._tripped is None
 
-    def frame(self, now_microseconds: int) -> None:
+    def frame(self, now_microseconds: int, source: Hashable = None) -> None:
         """The frame clock's time of a frame drawn with the effects: the guard of the drawing time.
-        Not called, or no effect, while the effects are off."""
+        *source* says whose clock it is (the canvas of one monitor): every source has its own
+        intervals, only the decision to take the effects away is for the process. Not called, or no
+        effect, while the effects are off."""
         if self._decision is None or not self._decision.full or self._tripped is not None:
             return
-        median = self._timer.add(now_microseconds)
+        timer = self._timers.get(source)
+        if timer is None:
+            timer = self._timers[source] = FrameTimer(self._frames)
+        median = timer.add(now_microseconds)
         if median is None:
             return
         _LOG.debug("[effects] median frame interval %.1f ms (budget %.1f ms)", median, self._budget)
@@ -283,4 +291,5 @@ class Effects:
                 median,
                 self._budget,
             )
+            self._timers = {}  # nothing more to measure
             _LOG.warning("[effects] plain drawing from now on (as in 1.0.1): %s", self._tripped)
