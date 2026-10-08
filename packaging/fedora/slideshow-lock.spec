@@ -410,11 +410,11 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # owner of both folders and removes them with the files
 
 %changelog
-* Thu Oct 08 2026 sakkmesterke <info@alexovicsattila.com> - 1.0.5-2
+* Thu Oct 08 2026 TrenSoft <info@alexovicsattila.com> - 1.0.5-2
 - Remove the Vendor tag: Fedora packages do not use it (fedora-review: "Packager, Vendor, PreReq,
   Copyright tags should not be in spec"). The upstream sources are the same as in 1.0.5-1
 
-* Thu Oct 08 2026 sakkmesterke <info@alexovicsattila.com> - 1.0.5-1
+* Thu Oct 08 2026 TrenSoft <info@alexovicsattila.com> - 1.0.5-1
 - Random order: a picture shown just before the order was changed to random no longer comes back after
   fewer than 3 other pictures
 - Random order: when the picture that is next in line is deleted, the picture that takes its place also
@@ -422,7 +422,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - When the picture on screen is deleted or can no longer be read and the program redraws it (after a
   change of scaling, panning or window size), the slideshow no longer skips a picture or shows one twice
 
-* Thu Oct 08 2026 sakkmesterke <info@alexovicsattila.com> - 1.0.4-1
+* Thu Oct 08 2026 TrenSoft <info@alexovicsattila.com> - 1.0.4-1
 - Remove the hardware acceleration of 1.0.3: the "Hardware acceleration" switch, the frame-time guard and
   the graphics-card probe are gone. Nine of the ten transitions are drawn as in 1.0.1; the soft edges
   of 1.0.2 are gone
@@ -433,7 +433,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - In random order a picture is not shown again before at least 3 other pictures have been shown (a folder
   of fewer than 4 pictures keeps as many apart as it has)
 
-* Thu Oct 08 2026 sakkmesterke <info@alexovicsattila.com> - 1.0.3-1
+* Thu Oct 08 2026 TrenSoft <info@alexovicsattila.com> - 1.0.3-1
 - Settings window: a "Hardware acceleration" switch in the Transitions group. The soft edges and the slow
   move of the pictures are drawn only where the machine is known to draw with a GPU and the switch is on;
   otherwise the animation is drawn as in 1.0.1. Without a GPU, or where that cannot be found out, the
@@ -446,7 +446,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - A yes/no setting that the installed settings schema lacks (a program newer than its schema, while an
   update is not finished) gives its default value, instead of ending the program
 
-* Wed Oct 07 2026 sakkmesterke <info@alexovicsattila.com> - 1.0.2-1
+* Wed Oct 07 2026 TrenSoft <info@alexovicsattila.com> - 1.0.2-1
 - Restart the running user service after the package is updated, so that the new version runs without
   a new login
 - Soft edges on the circle, wipe, slide-in, push, zoom and rotate transitions, instead of a hard line
@@ -456,7 +456,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - Settings window: the Save button sits next to the Preview button
 - Name TrenSoft as the developer: the Vendor tag of the package, the metainfo and the README
 
-* Wed Oct 07 2026 sakkmesterke <info@alexovicsattila.com> - 1.0.1-1
+* Wed Oct 07 2026 TrenSoft <info@alexovicsattila.com> - 1.0.1-1
 - Add the slideshowlock command, which starts the service and opens the settings window
 - Start the service at login through an XDG autostart entry, and open the settings window once on the
   first start
@@ -478,5 +478,5 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 - Leave screenshots out of the slideshow by default, judged by the name of the folder or the file; a
   switch in the settings window shows them again
 
-* Tue Oct 06 2026 sakkmesterke <info@alexovicsattila.com> - 1.0.0-1
+* Tue Oct 06 2026 TrenSoft <info@alexovicsattila.com> - 1.0.0-1
 - Initial package

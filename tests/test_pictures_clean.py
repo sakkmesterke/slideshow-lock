@@ -55,19 +55,18 @@ sys.modules["strip_jpeg_metadata"] = sj
 _spec.loader.exec_module(sj)
 
 #: The credit line: one text, in ``CREDITS.txt`` and in the README (no year, no path, no host name).
-CREDITS_TEXT = "Fraktálképek: sakkmesterke, CC BY-SA 4.0\n"
+CREDITS_TEXT = "Fraktálképek: TrenSoft, CC BY-SA 4.0\n"
 
 #: The texts as they were given, written out here once more on purpose: the tool's constants are
 #: compared with them (the test is not the tool's own output compared with itself).
-AUTHOR_TEXT = "sakkmesterke"
-RIGHTS_TEXT = "CC BY-SA 4.0, sakkmesterke"
+AUTHOR_TEXT = "TrenSoft"
+RIGHTS_TEXT = "CC BY-SA 4.0, TrenSoft"
 WEB_STATEMENT_TEXT = "https://creativecommons.org/licenses/by-sa/4.0/"
 
-#: The whole Exif APP1 segment of every picture (90 bytes) and the XMP APP1 segment (649 bytes).
+#: The whole Exif APP1 segment of every picture (82 bytes) and the XMP APP1 segment (641 bytes).
 EXPECTED_EXIF_HEX = (
-    "ffe1005845786966000049492a000800000002003b0102000d00000026000000988202001b0000003400"
-    "00000000000073616b6b6d65737465726b65000043432042592d534120342e302c2073616b6b6d657374"
-    "65726b650000"
+    "ffe1005045786966000049492a000800000002003b010200090000002600000098820200170000003000"
+    "0000000000005472656e536f6674000043432042592d534120342e302c205472656e536f66740000"
 )
 EXPECTED_XMP_PAYLOAD = (
     '<?xpacket begin="\ufeff" id="W5M0MpCehiHzreSzNTczkc9d"?>'
@@ -75,8 +74,8 @@ EXPECTED_XMP_PAYLOAD = (
     '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
     '<rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/"'
     ' xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/">'
-    "<dc:creator><rdf:Seq><rdf:li>sakkmesterke</rdf:li></rdf:Seq></dc:creator>"
-    '<dc:rights><rdf:Alt><rdf:li xml:lang="x-default">CC BY-SA 4.0, sakkmesterke</rdf:li>'
+    "<dc:creator><rdf:Seq><rdf:li>TrenSoft</rdf:li></rdf:Seq></dc:creator>"
+    '<dc:rights><rdf:Alt><rdf:li xml:lang="x-default">CC BY-SA 4.0, TrenSoft</rdf:li>'
     "</rdf:Alt></dc:rights>"
     "<xmpRights:WebStatement>https://creativecommons.org/licenses/by-sa/4.0/"
     "</xmpRights:WebStatement>"
@@ -737,7 +736,7 @@ def xmp_cases() -> Dict[str, bytes]:
             lambda p: cut(p, "<xmpRights:WebStatement>", "</xmpRights:WebStatement>")
         ),
         "XMP rights differ": xmp_changed(lambda p: p.replace("CC BY-SA 4.0,", "CC BY 4.0,")),
-        "XMP creator differs": xmp_changed(lambda p: p.replace("<rdf:li>sakk", "<rdf:li>Sakk")),
+        "XMP creator differs": xmp_changed(lambda p: p.replace("<rdf:li>Tren", "<rdf:li>tren")),
         "XMP with CreatorTool left": xmp_changed(
             lambda p: p.replace(
                 "</rdf:Description>",
