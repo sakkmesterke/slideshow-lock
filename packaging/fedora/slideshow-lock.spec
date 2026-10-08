@@ -109,7 +109,7 @@ Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
 Version:        1.0.5
 # [K] pyproject.toml says version = "1.0.5"
-Release:        1%{?dist}
+Release:        2%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
@@ -122,9 +122,6 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 # NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
 # build of this version, with its rpmlint run, will show).
 URL:            https://github.com/trensoft/slideshow-lock
-Vendor:         TrenSoft
-# The name of the developer, as it is shown by rpm -qi. The URL, the COPR project and the app ID keep
-# the name of the GitHub account: they are addresses and identifiers, not a brand.
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
 # The tag v1.0.5 does not exist yet; it is made at the release, after the maintainer's approval (see the
@@ -411,6 +408,10 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # owner of both folders and removes them with the files
 
 %changelog
+* Thu Oct 08 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.5-2
+- Remove the Vendor tag: Fedora packages do not use it (fedora-review: "Packager, Vendor, PreReq,
+  Copyright tags should not be in spec"). The upstream sources are the same as in 1.0.5-1
+
 * Thu Oct 08 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.5-1
 - Random order: a picture shown just before the order was changed to random no longer comes back after
   fewer than 3 other pictures
