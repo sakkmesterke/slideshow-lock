@@ -43,3 +43,7 @@ The program is GPL-3.0-or-later (`LICENSE`). The seven sample pictures in `data/
 ## Picture formats
 
 On RHEL 10, AlmaLinux and Rocky, JPEG, PNG, GIF and TIFF have a loader from the base repositories (the package requires the one that has the TIFF and GIF loaders; installing the package there was not measured). BMP and WebP files need an extra gdk-pixbuf loader that those systems have only in EPEL 10 (`gdk-pixbuf2-modules-extra`, `webp-pixbuf-loader`): without EPEL enabled they are not shown, and the journal gets one WARNING for such a file (`journalctl --user -u slideshow-lock`); the other pictures play on. JPEG 2000 is not supported: no repository that was looked at has a gdk-pixbuf loader for it. On Fedora 43 and later the formats come through glycin; how that behaves was not measured. Details: `docs/image-source.md`, "Picture formats".
+
+## Authorship
+
+The code of this project was written with the help of AI agents.
