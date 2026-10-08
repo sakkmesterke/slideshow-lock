@@ -32,7 +32,14 @@
 # results are in the fedora-review/ directory of each: review.txt, rpmlint.txt). rpmlint ran with the
 # Fedora configuration (/etc/xdg/rpmlint/fedora.toml) on the built noarch RPM and on the source RPM,
 # and printed the same in fedora-43, fedora-44 and fedora-rawhide: 0 errors, 2 warnings
-# (no-manual-page-for-binary and empty-%%postun), 7 filtered. fedora-review (rc 0) wrote its template;
+# (no-manual-page-for-binary and empty-%%postun), 7 filtered. That is the result for the 1.0.0 spec of
+# that build. [M] The build 11092273 of 1.0.5-1 (rpmlint.txt of fedora-43, fedora-44 and fedora-rawhide,
+# identical) prints 1 error, 2 warnings, 7 filtered: "E: explicit-lib-dependency libadwaita" (rpmlint
+# only looks at the name "libadwaita" of the Requires; the program loads the typelib Adw-1 through
+# PyGObject and no repository has a typelib(Adw) provide), and the warnings no-manual-page-for-binary
+# for slideshow-lock and slideshowlock (empty-%%postun is gone: the spec has a %%posttrans). The error is
+# filtered by packaging/fedora/slideshow-lock.rpmlintrc, which is not part of the SRPM: with
+# "rpmlint --rpmlintrc" the same files give 0 errors, 2 warnings. fedora-review (rc 0) wrote its template;
 # the review.txt of the three chroots lists 70 items (counted with the pattern "^\[.\]:" so that the two
 # legend lines are not counted): 35 marked "[x]", 2 marked "[!]" (the download of Source0, which fails
 # because the tag v1.0.0 did not exist yet when that run was made, and the reminder to test the build
@@ -48,11 +55,12 @@
 # the log.
 #
 # Prerequisites that are not in this file:
-#   - The tag v1.0.5 does not exist yet [M: git ls-remote --tags origin lists v1.0.0, v1.0.1, v1.0.2,
-#     v1.0.3 and v1.0.4 only, 2026-10-08], so Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before
-#     it does. The tag is made at the release, after the maintainer's approval (docs/RELEASING.md). A
-#     protected or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release
-#     has to be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
+#   - The tag v1.0.5 exists [M: git ls-remote --tags origin lists v1.0.0 to v1.0.5, v1.0.5^{} is
+#     f0f208973f56a42e53d2e9d0c65fd63512e347ec, 2026-10-08], so Source0 (the GitHub archive of the tag
+#     v%%{version}) can be downloaded. A tag is made at a release, after the maintainer's approval
+#     (docs/RELEASING.md). A protected or signed tag and a SHA-512 of the tarball are to be fixed at
+#     release time. A release has to be cut after po/*.po (the catalogs are in the repository) and
+#     after the files listed next.
 #   - The files this spec installs are in the repository and must stay there:
 #     data/io.github.sakkmesterke.SlideshowLock.desktop.in,
 #     data/io.github.sakkmesterke.SlideshowLock.metainfo.xml.in (the only copies in git: the installed
@@ -102,7 +110,7 @@ Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
 Version:        1.0.5
 # [K] pyproject.toml says version = "1.0.5"
-Release:        1%{?dist}
+Release:        2%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
@@ -115,13 +123,10 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 # NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
 # build of this version, with its rpmlint run, will show).
 URL:            https://github.com/sakkmesterke/slideshow-lock
-Vendor:         TrenSoft
-# The name of the developer, as it is shown by rpm -qi. The URL, the COPR project and the app ID keep
-# the name of the GitHub account: they are addresses and identifiers, not a brand.
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
-# The tag v1.0.5 does not exist yet; it is made at the release, after the maintainer's approval (see the
-# prerequisites at the top).
+# The tag v1.0.5 exists (see the prerequisites at the top); a tag is made at a release, after the
+# maintainer's approval.
 
 BuildArch:      noarch
 # [K] pure Python: slideshow_lock/*.py only, no extension module
@@ -317,11 +322,12 @@ install -Dpm 0644 data/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg \
 # [H] the icon cache is refreshed by a file trigger of the icon theme packages: no scriptlet here
 
 # The translations. [K] tools/i18n.sh build DIR writes DIR/<lang>/LC_MESSAGES/<APP_ID>.mo for the
-# languages of po/LINGUAS (de, es, fr, hu, it); slideshow_lock/i18n.py reads <prefix>/share/locale
+# languages of po/LINGUAS (40 in 1.0.5); slideshow_lock/i18n.py reads <prefix>/share/locale
 bash tools/i18n.sh build %{buildroot}%{_datadir}/locale
 %find_lang %{app_id}
 # [M] find-lang.sh of rpm 4.18.0 (the same option parsing as in rpm 4.19.1, read): with the five
-# catalogs in a scratch build root it writes %%{app_id}.lang with five %%lang(..) lines, exit 0.
+# catalogs of 1.0.0 (1.0.5 has 40) in a scratch build root it writes %%{app_id}.lang with five
+# %%lang(..) lines, exit 0.
 # Without a catalog it prints "No translations found" and exits 1, so a build that lost its
 # catalogs fails instead of shipping an English-only package. The option --allow-no-translations of
 # the earlier version of this spec is NOT in find-lang.sh of rpm 4.18.0 or 4.19.1: it is taken as the
@@ -383,8 +389,11 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # [M] the wheel of setuptools 84.0.0 has License-File: LICENSE only (see %%install), so the licence of
 # the pictures is not claimed twice by %%pyproject_save_files; the name and the folder
 # packaging/licenses/ match no default licence-file pattern of setuptools (LICEN[CS]E*, COPYING*,
-# NOTICE*, AUTHORS*) [H: from memory, not measured for setuptools newer than 84.0.0]. NOT measured: the
-# "listed twice" check of rpmbuild and rpmlint on a build of this version.
+# NOTICE*, AUTHORS*) [H: from memory, not measured for setuptools newer than 84.0.0]. [M] rpm -qpL and
+# rpm -qp --licensefiles on the noarch RPM of 1.0.5-1 built from this spec in rootless build roots with
+# the COPR package sets (rpm 4.19.1.1 on EL10, rpm 6.0.2 on Fedora 43): two %%license files, LICENSE (in
+# the dist-info directory of the wheel) and CC-BY-SA-4.0.txt, each once; no file of the RPM is listed
+# twice, and rpmbuild printed no "listed twice" message.
 %{_bindir}/%{name}
 %{_bindir}/slideshowlock
 %{_datadir}/glib-2.0/schemas/%{app_id}.gschema.xml
@@ -401,6 +410,10 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # owner of both folders and removes them with the files
 
 %changelog
+* Thu Oct 08 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.5-2
+- Remove the Vendor tag: Fedora packages do not use it (fedora-review: "Packager, Vendor, PreReq,
+  Copyright tags should not be in spec"). The upstream sources are the same as in 1.0.5-1
+
 * Thu Oct 08 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.5-1
 - Random order: a picture shown just before the order was changed to random no longer comes back after
   fewer than 3 other pictures
