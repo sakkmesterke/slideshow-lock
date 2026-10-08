@@ -164,10 +164,6 @@ msgid "seconds"
 msgstr "sekundes"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Aparatūras paātrinājums"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Pārejas"
 
@@ -208,10 +204,6 @@ msgid "Preview"
 msgstr "Priekšskatījums"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Saglabāt"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 s"
 
@@ -226,22 +218,6 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Lēna kustība un mīkstas malas pārejās. Izslēdziet, lai izmantotu vienkāršo "
-"animāciju."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Nav pieejams: šis dators nezīmē ar grafisko karti, tāpēc tiek izmantota "
-"vienkāršā animācija."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

@@ -108,9 +108,4 @@ def test_the_window_shows_it_small_and_faint_at_the_end_of_the_footer():
     assert "label=program_version()" in source
     assert 'self.version_label.add_css_class("dim-label")' in source
     appended = re.findall(r"footer\.append\(([^)]*)\)", source)
-    assert appended == [
-        "self.preview_button",
-        "self.save_button",
-        "self.status",
-        "self.version_label",
-    ]
+    assert appended == ["self.preview_button", "self.status", "self.version_label"]

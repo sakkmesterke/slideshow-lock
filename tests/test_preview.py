@@ -234,9 +234,6 @@ class FakeSettings:
     def get_transition_duration(self):
         return self.values[KEY_TRANSITION_DURATION]
 
-    def get_hardware_acceleration(self):
-        return True
-
     def connect_changed(self, callback):
         self._callbacks.append(callback)
 
@@ -1264,14 +1261,6 @@ MODULE_ALLOWED_NAMES = {
     ("preview_app.py", "uninhibit"): (
         "preview_app.IdleHold: Gtk.Application.uninhibit, giving that request back"
     ),
-    ("gl_probe.py", "ctypes"): (
-        "gl_probe: ctypes, to call glGetString(GL_RENDERER) in libGL.so.1 or libGLESv2.so.2 once "
-        "the display's GL context is current. Nothing else is called, loaded or started: "
-        "test_gl_probe_uses_ctypes_for_nothing_but_glgetstring pins it"
-    ),
-    ("gl_probe.py", "cdll"): (
-        "gl_probe: ctypes.CDLL, the loader of those two libraries by soname (the same pin)"
-    ),
     ("preview_app.py", "applicationinhibitflags"): (
         "preview_app.IdleHold: Gtk.ApplicationInhibitFlags.IDLE, the idle flag of that request "
         "(the only one used; the logout, switch and suspend flags are not)"
@@ -1775,6 +1764,17 @@ def test_every_transition_has_the_one_stored_length(tmp_path, backends):
 
 
 def test_a_short_interval_cuts_the_transition_to_half_of_it(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, interval=1)
+    r.tick(1)
+    assert r.windows[0].transitions[-1] == ("crossfade", 0.5)
+
+
+def test_a_duration_longer_than_half_the_interval_is_cut_to_half_of_it(tmp_path, backends):
+    r = transition_rig(tmp_path, backends, interval=6, duration=5.0)
+    r.tick(6)
+    assert r.windows[0].transitions[-1] == ("crossfade", 3.0)
+
+
 def appearances(r, window=0, steps=5, step=0.05):
     """``(time, transition)`` of every picture that comes on window *window* after the first, for
     *steps* intervals of slideshow time run in *step* seconds. The time is the clock's at the very
@@ -1828,17 +1828,6 @@ def test_a_transition_as_long_as_the_display_time_is_half_of_it_and_the_cycle_st
     seen = appearances(r, steps=4)
     assert [transition for _moment, transition in seen] == [("crossfade", 1.5)] * len(seen)
     assert [round(b[0] - a[0], 6) for a, b in zip(seen, seen[1:])] == [3.0] * (len(seen) - 1)
-
-
-    r = transition_rig(tmp_path, backends, interval=1)
-    r.tick(1)
-    assert r.windows[0].transitions[-1] == ("crossfade", 0.5)
-
-
-def test_a_duration_longer_than_half_the_interval_is_cut_to_half_of_it(tmp_path, backends):
-    r = transition_rig(tmp_path, backends, interval=6, duration=5.0)
-    r.tick(6)
-    assert r.windows[0].transitions[-1] == ("crossfade", 3.0)
 
 
 def test_a_duration_changed_while_it_shows_applies_to_the_next_change(tmp_path, backends):
@@ -2003,47 +1992,3 @@ def _fs(name):
     from slideshow_lock.image_source import FsEvent
 
     return FsEvent(name.replace("_", "-"))
-
-
-def test_gl_probe_uses_ctypes_for_nothing_but_glgetstring():
-    """The allowance for ``gl_probe.py`` (``MODULE_ALLOWED_NAMES``) is for reading the OpenGL
-    renderer string and nothing else: of ctypes it touches only the loader and two types, and the
-    only libraries it names are the two GLVND dispatch libraries, by soname."""
-    with open(_package_file("gl_probe.py"), encoding="utf-8") as handle:
-        tree = ast.parse(handle.read())
-    ctypes_attributes = {
-        node.attr
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name)
-        and node.value.id == "ctypes"
-    }
-    assert ctypes_attributes == {"CDLL", "c_char_p", "c_uint"}
-    imports = {
-        alias.name
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.Import, ast.ImportFrom))
-        for alias in node.names
-    }
-    assert "ctypes" in imports and not imports & {"subprocess", "os", "socket", "shutil"}
-    libraries = {
-        node.value
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Constant)
-        and isinstance(node.value, str)
-        and ".so" in node.value
-        and " " not in node.value  # a library name, not a sentence
-    }
-    assert libraries == {"libGL.so.1", "libGLESv2.so.2"}
-
-
-def test_the_gl_probe_pin_would_catch_another_ctypes_use():
-    source = "import ctypes\nctypes.CDLL('libc.so.6').system(b'true')\nctypes.cdll.LoadLibrary('x')"
-    attributes = {
-        node.attr
-        for node in ast.walk(ast.parse(source))
-        if isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name)
-        and node.value.id == "ctypes"
-    }
-    assert attributes == {"CDLL", "cdll"}  # not the three the pin allows

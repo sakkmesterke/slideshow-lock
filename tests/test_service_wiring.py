@@ -430,15 +430,3 @@ def test_both_switches_together_replace_both_timings():
 def test_main_prints_the_reason_and_returns_2_for_a_timing_out_of_range(argv, message, capsys):
     assert service.main(argv) == 2
     assert message in capsys.readouterr().err
-
-
-def test_the_service_lets_the_hardware_acceleration_setting_decide_the_effects():
-    """The service reads the switch through its own settings object, from the moment its source is
-    started; a change in the settings window applies from the next picture."""
-    import inspect
-
-    from slideshow_lock import service
-
-    source = inspect.getsource(service.main)
-    assert "follow_hardware_acceleration(settings)" in source
-    assert source.index("source.start()") < source.index("follow_hardware_acceleration(settings)")

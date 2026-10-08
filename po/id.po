@@ -166,10 +166,6 @@ msgid "seconds"
 msgstr "detik"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Akselerasi perangkat keras"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Transisi"
 
@@ -211,10 +207,6 @@ msgid "Preview"
 msgstr "Pratinjau"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Simpan"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 dtk"
 
@@ -229,21 +221,6 @@ msgstr "1 jam"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 jam"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Gerakan lambat dan tepi halus pada transisi. Matikan untuk animasi sederhana."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Tidak tersedia: komputer ini tidak menggambar dengan kartu grafis, sehingga "
-"animasi sederhana yang digunakan."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

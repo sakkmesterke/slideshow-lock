@@ -165,10 +165,6 @@ msgid "seconds"
 msgstr "सेकंड"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "हार्डवेयर त्वरण"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "ट्रांज़िशन"
 
@@ -209,10 +205,6 @@ msgid "Preview"
 msgstr "पूर्वावलोकन"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "सहेजें"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 से."
 
@@ -227,20 +219,6 @@ msgstr "1 घं."
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 घं."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr "ट्रांज़िशन में धीमी गति और मुलायम किनारे। सादे एनिमेशन के लिए इसे बंद करें।"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"उपलब्ध नहीं: यह कंप्यूटर ग्राफ़िक्स कार्ड से ड्रॉइंग नहीं करता, इसलिए सादा एनिमेशन इस्तेमाल "
-"हो रहा है।"
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

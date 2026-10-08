@@ -163,10 +163,6 @@ msgid "seconds"
 msgstr "sekundit"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Riistvaraline kiirendus"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Üleminekud"
 
@@ -207,10 +203,6 @@ msgid "Preview"
 msgstr "Eelvaade"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Salvesta"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 s"
 
@@ -225,22 +217,6 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Aeglane liikumine ja pehmed servad üleminekutel. Lülita välja, kui soovid "
-"lihtsat animatsiooni."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Pole saadaval: see arvuti ei joonista graafikakaardiga, seega kasutatakse "
-"lihtsat animatsiooni."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

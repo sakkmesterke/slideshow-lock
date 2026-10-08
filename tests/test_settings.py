@@ -76,8 +76,6 @@ def test_defaults_match_brief_section_5():
     assert settings.get_transitions() == ["ken-burns"]
     assert settings.get_transition_order() == "random"
     assert settings.get_transition_duration() == 1.0
-    # The effects of 1.0.2 are on where the machine has a GPU; without one they are off anyway.
-    assert settings.get_hardware_acceleration() is True
 
 
 # -- roundtrips -----------------------------------------------------------------
@@ -123,23 +121,6 @@ def test_pan_portrait_images_roundtrip():
     assert settings.get_pan_portrait_images() is False
 
 
-def test_hardware_acceleration_roundtrip():
-    settings = Settings()
-    assert settings.set_hardware_acceleration(False) is True
-    assert settings.get_hardware_acceleration() is False
-    assert settings.set_hardware_acceleration(True) is True
-    assert settings.get_hardware_acceleration() is True
-
-
-def test_hardware_acceleration_rejects_values_that_are_not_a_real_bool(caplog):
-    settings = Settings()
-    for bad in ("no", "false", 1, 0, None, [], "yes"):
-        with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
-            assert settings.set_hardware_acceleration(bad) is False
-        assert settings.get_hardware_acceleration() is True  # unchanged default
-    assert any("hardware-acceleration" in record.message for record in caplog.records)
-
-
 def test_the_boolean_defaults_of_the_code_are_those_of_the_schema():
     """A key the installed schema lacks gets the default in ``BOOLEAN_DEFAULTS``; it must be the
     schema's own, and every boolean getter must be in the table."""
@@ -173,10 +154,6 @@ from slideshow_lock.settings import Settings
 settings = Settings()
 settings._settings = Gio.Settings.new_full(schema, Gio.memory_settings_backend_new(), None)
 getter = {
-    "hardware-acceleration": (
-        settings.get_hardware_acceleration,
-        settings.set_hardware_acceleration,
-    ),
     "pan-portrait-images": (settings.get_pan_portrait_images, settings.set_pan_portrait_images),
     "show-screenshots": (settings.get_show_screenshots, settings.set_show_screenshots),
     "first-run-done": (settings.get_first_run_done, settings.set_first_run_done),
@@ -193,7 +170,6 @@ print("DONE")
 @pytest.mark.parametrize(
     "key, default",
     [
-        ("hardware-acceleration", True),
         ("pan-portrait-images", False),
         ("show-screenshots", False),
         ("first-run-done", False),
@@ -550,6 +526,30 @@ def test_asking_about_the_default_is_no_warning_when_the_folder_is_missing(first
 
 @pytest.mark.parametrize("value", [0.2, 0.5, 1.0, 2.75, 5.0, 3])
 def test_transition_duration_roundtrip(value):
+    settings = Settings()
+    assert settings.set_transition_duration(value) is True
+    assert settings.get_transition_duration() == float(value)
+
+
+@pytest.mark.parametrize(
+    "value", [0.19, 0.0, -1.0, 5.01, 60, float("nan"), float("inf"), "1.0", None, True, [1.0]]
+)
+def test_transition_duration_rejects_what_is_outside_its_range_or_not_a_number(value, caplog):
+    settings = Settings()
+    assert settings.set_transition_duration(2.0) is True
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+        assert settings.set_transition_duration(value) is False
+    assert settings.get_transition_duration() == 2.0  # unchanged
+    assert any(
+        "transition-duration" in r.message and "[config]" in r.message for r in caplog.records
+    )
+
+
+def test_the_schema_holds_the_duration_to_its_range():
+    schema = Gio.SettingsSchemaSource.get_default().lookup(APP_ID, True)
+    assert schema.get_key("transition-duration").get_range().unpack() == ("range", (0.2, 5.0))
+    assert schema.get_key("transition-duration").get_default_value().unpack() == 1.0
+    assert schema.get_key("slide-interval-seconds").get_default_value().unpack() == 10
 
 
 # -- new defaults reach only the keys the user never set ------------------------------------------
@@ -640,27 +640,3 @@ def test_nothing_that_starts_the_program_or_opens_a_window_writes_a_default():
             if setters.search(text):
                 callers[name] = len(setters.findall(text))
     assert set(callers) == {"preferences_model.py"}, callers
-    settings = Settings()
-    assert settings.set_transition_duration(value) is True
-    assert settings.get_transition_duration() == float(value)
-
-
-@pytest.mark.parametrize(
-    "value", [0.19, 0.0, -1.0, 5.01, 60, float("nan"), float("inf"), "1.0", None, True, [1.0]]
-)
-def test_transition_duration_rejects_what_is_outside_its_range_or_not_a_number(value, caplog):
-    settings = Settings()
-    assert settings.set_transition_duration(2.0) is True
-    with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
-        assert settings.set_transition_duration(value) is False
-    assert settings.get_transition_duration() == 2.0  # unchanged
-    assert any(
-        "transition-duration" in r.message and "[config]" in r.message for r in caplog.records
-    )
-
-
-def test_the_schema_holds_the_duration_to_its_range():
-    schema = Gio.SettingsSchemaSource.get_default().lookup(APP_ID, True)
-    assert schema.get_key("transition-duration").get_range().unpack() == ("range", (0.2, 5.0))
-    assert schema.get_key("transition-duration").get_default_value().unpack() == 1.0
-    assert schema.get_key("slide-interval-seconds").get_default_value().unpack() == 10

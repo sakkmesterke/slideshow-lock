@@ -163,10 +163,6 @@ msgid "seconds"
 msgstr "секунди"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Хардверско убрзање"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Прелази"
 
@@ -207,10 +203,6 @@ msgid "Preview"
 msgstr "Преглед"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Сачувај"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 с"
 
@@ -225,20 +217,6 @@ msgstr "1 ч"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 ч"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr "Спор покрет и меке ивице у прелазима. Искључите за обичну анимацију."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Недоступно: овај рачунар не црта графичком картицом, па се користи обична "
-"анимација."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

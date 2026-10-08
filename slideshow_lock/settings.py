@@ -53,7 +53,6 @@ KEY_FIRST_RUN_DONE = "first-run-done"
 KEY_TRANSITIONS = "transitions"
 KEY_TRANSITION_ORDER = "transition-order"
 KEY_TRANSITION_DURATION = "transition-duration"
-KEY_HARDWARE_ACCELERATION = "hardware-acceleration"
 
 #: The boolean keys, with the default each has in the schema. A program newer than the schema
 #: installed beside it (an upgrade whose schema has not been compiled yet) finds a key missing, and
@@ -63,7 +62,6 @@ BOOLEAN_DEFAULTS = {
     KEY_PAN_PORTRAIT_IMAGES: False,
     KEY_SHOW_SCREENSHOTS: False,
     KEY_FIRST_RUN_DONE: False,
-    KEY_HARDWARE_ACCELERATION: True,
 }
 
 
@@ -233,14 +231,6 @@ class Settings:
                 self.get_transition_duration(),
             )
         return ok
-
-    # -- hardware-acceleration (the effects of 1.0.2 on, or the plain animation of 1.0.1) ----
-
-    def get_hardware_acceleration(self) -> bool:
-        return self._get_boolean(KEY_HARDWARE_ACCELERATION)
-
-    def set_hardware_acceleration(self, value: bool) -> bool:
-        return self._set_boolean(KEY_HARDWARE_ACCELERATION, value)
 
     # -- picture-folder (acceptance criterion 4 / D25 / brief 3.7) ----------
 

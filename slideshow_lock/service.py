@@ -51,7 +51,6 @@ from slideshow_lock.preview import GLibClock, PreviewController, ThreadWorker  #
 from slideshow_lock.preview_app import SessionSettings, build_source  # noqa: E402
 from slideshow_lock.preview_window import (  # noqa: E402
     animations_enabled,
-    follow_hardware_acceleration,
     open_monitor_windows,
 )
 from slideshow_lock.scaling import ImageScaler  # noqa: E402
@@ -391,7 +390,6 @@ def main(argv: Optional[List[str]] = None) -> int:
             return
         source = build_source(settings)
         source.start()
-        follow_hardware_acceleration(settings)
         worker = ThreadWorker()
         controller = PreviewController(
             source,
