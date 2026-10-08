@@ -122,7 +122,7 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 # package holds both, hence AND. [H] an SPDX expression in License: is what the guidelines ask for;
 # NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
 # build of this version, with its rpmlint run, will show).
-URL:            https://github.com/sakkmesterke/slideshow-lock
+URL:            https://github.com/trensoft/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
 # The tag v1.0.5 exists (see the prerequisites at the top); a tag is made at a release, after the

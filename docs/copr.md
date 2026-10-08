@@ -120,7 +120,7 @@ One step for the owner of the Fedora account, nothing is stored in the repositor
 
 1. Project name `slideshow-lock`, owned by the maintainer's Fedora account.
 2. Chroots: the list of section 2.
-3. Package source type: SCM (git), clone URL `https://github.com/sakkmesterke/slideshow-lock.git`,
+3. Package source type: SCM (git), clone URL `https://github.com/trensoft/slideshow-lock.git`,
    subdirectory empty, spec file `packaging/fedora/slideshow-lock.spec`, build method "Make srpm"
    (the file is `.copr/Makefile`). The committish is not `main`: a build is of the tag that started
    it (the source log of build 11084848 shows `'committish': 'v1.0.0'`).

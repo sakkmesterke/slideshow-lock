@@ -10,7 +10,7 @@ lock really follows the movement, is exactly what the first trial is for.
 ## 1. Get the code
 
 ```
-git clone --branch main https://github.com/sakkmesterke/slideshow-lock.git
+git clone --branch main https://github.com/trensoft/slideshow-lock.git
 cd slideshow-lock
 ```
 

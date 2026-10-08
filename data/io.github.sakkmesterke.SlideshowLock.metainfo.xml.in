@@ -14,8 +14,8 @@
     <p>The pictures come from a folder you choose. A settings window sets the folder, the idle time, the grace period, how long each picture shows, the order and the scaling.</p>
   </description>
   <launchable type="desktop-id">io.github.sakkmesterke.SlideshowLock.desktop</launchable>
-  <url type="homepage">https://github.com/sakkmesterke/slideshow-lock</url>
-  <url type="bugtracker">https://github.com/sakkmesterke/slideshow-lock/issues</url>
+  <url type="homepage">https://github.com/trensoft/slideshow-lock</url>
+  <url type="bugtracker">https://github.com/trensoft/slideshow-lock/issues</url>
   <categories>
     <category>Settings</category>
   </categories>
