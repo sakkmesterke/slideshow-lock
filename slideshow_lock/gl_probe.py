@@ -6,7 +6,8 @@ that is the one place where Mesa says ``llvmpipe`` when it has fallen back to th
 (which GTK reports as an ordinary GL renderer), so it is read here through ``ctypes``:
 
 * a context is made with ``Gdk.Display.create_gl_context()`` (GTK's own, on the display GTK draws
-  on), realized and made current for the moment of the call, and cleared again;
+  on), realized and made current for the moment of the call (and found to be the current one:
+  ``glGetString`` answers for whatever is current), and cleared again;
 * ``glGetString`` is looked up in ``libGL.so.1`` and ``libGLESv2.so.2``, the GLVND dispatch
   libraries (GTK's own OpenGL loader reaches the driver through the same ones), by their sonames
   only, which the dynamic loader resolves; nothing else is loaded, started or written.
@@ -49,6 +50,9 @@ def read_gl_renderer(display: Any, loader: Callable[[str], Any] = ctypes.CDLL) -
         context = display.create_gl_context()
         context.realize()
         context.make_current()
+        if type(context).get_current() is not context:  # not ours: the string would be another's
+            _LOG.debug("[gl-probe] the context did not become current")
+            return None
         names = (LIBRARY_GLES, LIBRARY_GL) if context.get_use_es() else (LIBRARY_GL, LIBRARY_GLES)
         for name in names:
             try:

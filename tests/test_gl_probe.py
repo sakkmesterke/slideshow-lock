@@ -38,11 +38,25 @@ class _Context:
         return self._use_es
 
 
-def _context_class(log, **kwargs):
+def _context_class(log, takes=True, other=None, **kwargs):
+    """A context whose class has the statics of ``Gdk.GLContext``. *takes* false: ``make_current``
+    returns but the context does not become current; *other*: what is current instead."""
+    current = {}
+
     class Context(_Context):
+        def make_current(self):
+            super().make_current()
+            if takes:
+                current["context"] = self
+
         @staticmethod
         def clear_current():
             log.append("clear_current")
+            current.clear()
+
+        @staticmethod
+        def get_current():
+            return current.get("context", other)
 
     return Context(log, **kwargs)
 
@@ -101,6 +115,18 @@ def test_the_string_is_read_from_a_current_context_and_the_context_is_cleared_af
         ("glGetString", GL_RENDERER),
         "clear_current",
     ]
+
+
+@pytest.mark.parametrize("other", [None, object()], ids=["nothing-current", "another-context"])
+def test_a_context_that_did_not_become_current_is_none_and_no_library_is_touched(other):
+    """``make_current`` returned, but ``Gdk.GLContext.get_current()`` is not this context:
+    ``glGetString`` would answer for whatever else is current (or crash for nothing), so nothing is
+    asked and the context is still cleared."""
+    log = []
+    display = _Display(_context_class(log, takes=False, other=other))
+    loader = loader_for(log, {LIBRARY_GL: b"Mesa Intel(R) UHD Graphics 620 (KBL GT2)"})
+    assert read_gl_renderer(display, loader) is None
+    assert log == ["create", "realize", "make_current", "clear_current"]
 
 
 def test_the_renderer_name_is_the_gl_renderer_constant_not_the_vendor_or_version():
@@ -164,7 +190,17 @@ def test_a_display_without_gl_is_none():
 def test_a_context_that_cannot_be_cleared_does_not_change_the_answer():
     log = []
 
+    current = []
+
     class Stubborn(_Context):
+        def make_current(self):
+            super().make_current()
+            current.append(self)
+
+        @staticmethod
+        def get_current():
+            return current[-1]
+
         @staticmethod
         def clear_current():
             raise RuntimeError("cannot clear")
