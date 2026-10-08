@@ -85,6 +85,10 @@ OPT_OUTS = {
         "test_check_names_every_missing_item_and_marks_the_package_names_unverified",
     ),
     ("test_run_script.py", "test_check_without_python3_says_so"),
+    (
+        "test_settings.py",
+        "test_a_boolean_key_the_schema_lacks_gives_its_default_and_does_not_abort",
+    ),
     ("test_run_script.py", "test_check_fails_without_a_wayland_session"),
     ("test_run_script.py", "test_check_passes_when_everything_is_installed"),
     (
