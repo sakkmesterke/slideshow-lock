@@ -71,6 +71,20 @@ def no_gi_bin(tmp_path):
 
 
 @pytest.fixture
+def no_adw_bin(tmp_path):
+    """A PATH directory whose python3 is the real one, except that the Adw typelib cannot be loaded
+    (it answers the ``typelib Adw 1`` probe of ``run.sh`` with a failure)."""
+    bin_dir = tmp_path / "no-adw-bin"
+    bin_dir.mkdir()
+    _executable(
+        bin_dir / "python3",
+        '#!/bin/sh\nif [ "$1" = "-c" ] && [ "$3" = "Adw" ]; then exit 1; fi\n'
+        f'exec "{sys.executable}" "$@"\n',
+    )
+    return bin_dir
+
+
+@pytest.fixture
 def stub_bin(tmp_path):
     """A python3 that answers ``-m`` by printing what it got and passes everything else on."""
     bin_dir = tmp_path / "stub-bin"
@@ -209,10 +223,27 @@ def test_check_fails_without_a_wayland_session(tmp_path):
     assert "1 required item(s) missing" in result.stderr
 
 
+def test_check_names_a_missing_libadwaita_which_the_settings_window_needs(tmp_path, no_adw_bin):
+    """preferences.py requires the Adw 1 typelib; without the check, ``./run.sh settings`` passed
+    ``check`` and then died with a raw ValueError."""
+    result = _run(["check"], _env(tmp_path, path=f"{no_adw_bin}{os.pathsep}{os.environ['PATH']}"))
+    assert result.returncode != 0
+    assert "MISSING: libadwaita" in result.stderr
+    assert "Adw-1 typelib" in result.stderr
+    assert "1 required item(s) missing" in result.stderr
+
+
 def test_check_passes_when_everything_is_installed(tmp_path):
     result = _run(["check"], _env(tmp_path))
     assert result.returncode == 0, result.stderr
-    for item in ("gi (PyGObject)", "GTK 4", "GdkPixbuf", "glib-compile-schemas", "Wayland session"):
+    for item in (
+        "gi (PyGObject)",
+        "GTK 4",
+        "libadwaita",
+        "GdkPixbuf",
+        "glib-compile-schemas",
+        "Wayland session",
+    ):
         assert f"ok:      {item}" in result.stdout
     assert "MISSING" not in result.stderr
 

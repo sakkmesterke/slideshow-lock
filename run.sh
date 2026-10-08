@@ -80,6 +80,7 @@ do_check() {
             report_ok "gi (PyGObject)"
             check_typelib Gtk 4.0 gtk4 "GTK 4"
             check_typelib Gdk 4.0 gtk4 "Gdk 4"
+            check_typelib Adw 1 libadwaita "libadwaita (the settings window)"
             check_typelib Graphene 1.0 graphene "Graphene"
             check_typelib GdkPixbuf 2.0 gdk-pixbuf2 "GdkPixbuf (picture decoding)"
             check_typelib Gio 2.0 glib2 "Gio"

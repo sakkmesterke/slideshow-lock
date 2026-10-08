@@ -91,6 +91,7 @@ OPT_OUTS = {
     ),
     ("test_settings.py", "test_a_changed_default_reaches_only_the_keys_the_user_never_set"),
     ("test_run_script.py", "test_check_fails_without_a_wayland_session"),
+    ("test_run_script.py", "test_check_names_a_missing_libadwaita_which_the_settings_window_needs"),
     ("test_run_script.py", "test_check_passes_when_everything_is_installed"),
     (
         "test_run_script.py",
