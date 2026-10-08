@@ -1013,6 +1013,8 @@ class ImageSource:
             return
         self._play = survivors
         self._pos = new_pos if new_pos < len(survivors) else 0
+        if self._order == ORDER_RANDOM and self._play and self.current() != old:
+            self._keep_apart()  # the successor takes the cursor's place: same rule as in advance
         new = self.current()
         if new != old:
             self._notify(new)
