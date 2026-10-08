@@ -1,4 +1,4 @@
-# Fedora and EL spec for slideshow-lock 1.0.4.
+# Fedora and EL spec for slideshow-lock 1.0.5.
 #
 # Legend for the comments in this file:
 #   [K]  known: read from this repository (the file is named) or from a source named in the comment
@@ -6,7 +6,7 @@
 #        COPR build, are named in the comment
 #   [H]  background knowledge about RPM, systemd and the Fedora packaging guidelines, NOT verified
 #
-# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1, 1.0.2, 1.0.3 and 1.0.4 are not
+# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1, 1.0.2, 1.0.3, 1.0.4 and 1.0.5 are not
 # covered by them): built in COPR (project sakkmesterke/slideshow-lock) in all four chroots, in two builds:
 # 11084376 of main 0ac5c23 before the fix of the cairo typelib, which failed on the three Fedora
 # chroots, and 11084605 of main 2f45728 (the committish in the log of the SRPM build) after the fix,
@@ -48,8 +48,8 @@
 # the log.
 #
 # Prerequisites that are not in this file:
-#   - The tag v1.0.4 does not exist yet [M: git ls-remote --tags origin lists v1.0.0, v1.0.1, v1.0.2
-#     and v1.0.3 only, 2026-10-08], so Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before
+#   - The tag v1.0.5 does not exist yet [M: git ls-remote --tags origin lists v1.0.0, v1.0.1, v1.0.2,
+#     v1.0.3 and v1.0.4 only, 2026-10-08], so Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before
 #     it does. The tag is made at the release, after the maintainer's approval (docs/RELEASING.md). A
 #     protected or signed tag and a SHA-512 of the tarball are to be fixed at release time. The release
 #     has to be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
@@ -100,8 +100,8 @@
 
 Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
-Version:        1.0.4
-# [K] pyproject.toml says version = "1.0.4"
+Version:        1.0.5
+# [K] pyproject.toml says version = "1.0.5"
 Release:        1%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
@@ -120,7 +120,7 @@ Vendor:         TrenSoft
 # the name of the GitHub account: they are addresses and identifiers, not a brand.
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
-# The tag v1.0.4 does not exist yet; it is made at the release, after the maintainer's approval (see the
+# The tag v1.0.5 does not exist yet; it is made at the release, after the maintainer's approval (see the
 # prerequisites at the top).
 
 BuildArch:      noarch
@@ -401,6 +401,14 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # owner of both folders and removes them with the files
 
 %changelog
+* Thu Oct 08 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.5-1
+- Random order: a picture shown just before the order was changed to random no longer comes back after
+  fewer than 3 other pictures
+- Random order: when the picture that is next in line is deleted, the picture that takes its place also
+  keeps the distance of 3 pictures
+- When the picture on screen is deleted or can no longer be read and the program redraws it (after a
+  change of scaling, panning or window size), the slideshow no longer skips a picture or shows one twice
+
 * Thu Oct 08 2026 Attila Alexovics <info@alexovicsattila.com> - 1.0.4-1
 - Remove the hardware acceleration of 1.0.3: the "Hardware acceleration" switch, the frame-time guard and
   the graphics-card probe are gone. Nine of the ten transitions are drawn as in 1.0.1; the soft edges
