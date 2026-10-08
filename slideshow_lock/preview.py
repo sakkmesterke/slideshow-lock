@@ -208,6 +208,7 @@ class PreviewController:
         self._shown_path: Optional[str] = None
         self._shown_frames: Dict[int, Frame] = {}
         self._shown_stale = False  # settings or sizes changed since these frames were made
+        self._shown_unredoable = False  # the redo of the shown picture failed: do not repeat it
         self._shown_at = 0.0
         self._next_path: Optional[str] = None
         self._next_frames: Optional[Dict[int, Frame]] = None
@@ -284,7 +285,12 @@ class PreviewController:
             return  # a size event or the size timeout calls this again
         path, purpose = self._want
         self._want = None
-        if purpose == _JOB_NEXT and self._shown_stale and self._shown_path is not None:
+        if (
+            purpose == _JOB_NEXT
+            and self._shown_stale
+            and not self._shown_unredoable
+            and self._shown_path is not None
+        ):
             # What is on screen is still in the old mode: redo it first. Its result asks for
             # the next picture again (``_display``), so this request is not lost.
             if self._job is not None and self._job.purpose == _JOB_REFRESH:
@@ -369,6 +375,15 @@ class PreviewController:
             if self._timer is None:
                 self._arm_timer(self._interval())
             return
+        if job.purpose == _JOB_REFRESH:
+            # The picture on screen cannot be redone (deleted, damaged). Keep its frames: the
+            # source already stands at the picture that follows it, so stepping here would show
+            # that follower early and again at its turn. Ask for the follower as it is.
+            self._shown_unredoable = True
+            if self._next_path is not None:
+                self._want = (self._next_path, _JOB_NEXT)
+                self._dispatch()
+            return
         following = self._source.advance()
         if following is None:
             return  # the source emptied; it reports that itself
@@ -401,6 +416,7 @@ class PreviewController:
         self._shown_path = path
         self._shown_frames = frames
         self._shown_stale = False
+        self._shown_unredoable = False
         if fresh:
             self._shown_at = self._clock.now()
             self._arm_timer(interval)
@@ -470,6 +486,7 @@ class PreviewController:
         if not self._running:
             return
         try:
+            self._shown_unredoable = False  # a new interval: the redo may be tried once more
             if self._shown_path is None:  # nothing was shown: try again from the source
                 self._failures = 0
                 self._failed_out = False
@@ -563,6 +580,7 @@ class PreviewController:
     def _invalidate_and_rerender(self) -> None:
         """Settings or a window size changed: redo the shown picture and the prefetched one."""
         self._shown_stale = True
+        self._shown_unredoable = False
         self._next_frames = None
         # _swap_due is left alone: if the interval is over already, the redone next picture is
         # shown the moment it arrives. Cancelling it here left that picture never shown.

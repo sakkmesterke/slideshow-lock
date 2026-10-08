@@ -11,6 +11,7 @@ Test names carry the CORE-2 acceptance criterion they prove (AC1 ... AC8).
 from __future__ import annotations
 
 import ast
+import itertools
 import logging
 import os
 import random
@@ -774,6 +775,28 @@ def test_a_refresh_that_fails_once_does_not_leave_the_picture_in_the_old_mode(
     assert {f.method for f, _pan in r.windows[0].frames[-2:]} == {"fake-fit-0"}
 
 
+def test_a_refresh_of_a_picture_that_can_no_longer_be_read_does_not_advance_the_source(
+    tmp_path, backends
+):
+    """b.png is on screen, c.png is prepared; b.png is deleted, then a scaling change redoes the
+    shown picture and that fails. The source must not step: it already stands at c.png, and a
+    step here showed d.png at once and c.png twice (a b d c a c)."""
+    r = rig(tmp_path, backends, ["a.png", "b.png", "c.png", "d.png"], windows=1)
+    r.tick(10)
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    os.unlink(tmp_path / "b.png")
+    r.scaler.bad.add("b.png")
+    r.backends[0].emit(str(tmp_path / "b.png"), _fs("deleted"))
+    backends[1].run_all()
+    r.settings.set(KEY_SCALING, "fit")
+    r.worker.run_all()
+    assert r.windows[0].shown() == ["a.png", "b.png"]  # the old frame stays, nothing new yet
+    for _ in range(4):
+        r.tick(10)
+    assert r.windows[0].shown() == ["a.png", "b.png", "c.png", "d.png", "a.png", "c.png"]
+    assert {f.method for f, _pan in r.windows[0].frames[-4:]} == {"fake-fit-0"}
+
+
 def test_a_refresh_that_keeps_failing_is_tried_once_per_interval_not_in_a_loop(
     tmp_path, backends, caplog
 ):
@@ -798,10 +821,12 @@ def test_a_refresh_that_keeps_failing_is_tried_once_per_interval_not_in_a_loop(
 def test_a_timer_that_fires_while_a_failed_redo_waits_for_sizes_does_not_overwrite_its_wish(
     tmp_path, backends
 ):
-    """The redo of the shown picture failed out, and its follow-up request waits because no
-    window knows its size yet. The interval timer fires in that gap: the request that waits must
-    not be replaced by "the next picture" (``_on_timer`` asks only when nothing is pending).
-    Replaced, the picture that just failed is asked for again, and ``c.png`` is skipped."""
+    """The redo of the shown picture failed, and the request for the prepared picture waits
+    because no window knows its size yet. The interval timer fires in that gap: it must leave the
+    request that waits alone (``_on_timer`` asks only when nothing is pending). The pictures
+    come in their order, none is skipped or doubled. (Before the fix of a failed redo the
+    request that waited was for ``c.png``, the failed redo having stepped the source past
+    ``b.png``; the order asserted here was then ``a c b``.)"""
     r = rig(tmp_path, backends, windows=1, settings=FakeSettings(interval=1))
     r.settings.set(KEY_SCALING, "fit")  # the redo of a.png is on the worker
     r.windows[0].size = None  # and now no window knows its size
@@ -815,7 +840,10 @@ def test_a_timer_that_fires_while_a_failed_redo_waits_for_sizes_does_not_overwri
     r.worker.run_all()
     r.tick(1)
     r.tick(1)
-    assert r.windows[0].shown()[:3] == ["a.png", "c.png", "b.png"]
+    # a.png may appear twice running: the timer lets the failed redo be tried again, and it
+    # works the second time. What must not happen is a follower skipped or shown early.
+    order = [name for name, _same in itertools.groupby(r.windows[0].shown())]
+    assert order[:3] == ["a.png", "b.png", "c.png"]
 
 
 # -- AC5: damaged pictures are skipped, empty source is a defined state --------------------------
