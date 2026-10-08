@@ -172,10 +172,6 @@ msgid "seconds"
 msgstr "másodperc"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Hardveres gyorsítás"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Átmenetek"
 
@@ -217,10 +213,6 @@ msgid "Preview"
 msgstr "Előnézet"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Mentés"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 mp"
 
@@ -235,22 +227,6 @@ msgstr "1 óra"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 óra"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Lassú mozgás és lágy élek az átmeneteknél. Kikapcsolva az egyszerű animáció "
-"jelenik meg."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Nem érhető el: ez a számítógép nem használ grafikus kártyát a "
-"megjelenítéshez, ezért az egyszerű animáció van használatban."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

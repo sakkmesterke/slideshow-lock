@@ -20,6 +20,8 @@ Behaviour in short:
 * If the image on screen is deleted, the cursor moves on to the image that
   followed it. If the last image is deleted, ``current()`` is ``None``: a
   logged ``[slideshow-dir]`` WARNING (brief 3.7), not an error.
+* In random order the same image comes back only after at least ``REPEAT_GAP`` (3) other images
+  (fewer in a folder of fewer than four: the largest distance there is); see ``advance``.
 * Hidden files and folders (leading ``.``) are skipped, which also keeps
   partial-copy temp files (rsync, browsers) out of the queue.
 * Non-image files are filtered by extension. A file that has an image extension
@@ -63,6 +65,10 @@ _LOG = logging.getLogger(__name__)
 
 ORDER_RANDOM = "random"
 ORDER_NAME = "name"
+
+#: In random order the same picture comes back only after at least this many other pictures (fewer
+#: when the folder has fewer, then as many as it has: the largest distance there is).
+REPEAT_GAP = 3
 
 #: Extensions treated as candidate images. Kept in one place so it can be
 #: trimmed once the display layer's (CORE-2) real loader support is known.
@@ -362,6 +368,7 @@ class ImageSource:
         self._files: Set[str] = set()
         self._play: List[str] = []  # play order
         self._pos = 0  # index of the current image in _play
+        self._recent: Deque[str] = collections.deque(maxlen=REPEAT_GAP)  # the last pictures shown
         self._empty_logged = False
         self._listeners: List[Callable[[Optional[str]], None]] = []
 
@@ -489,16 +496,39 @@ class ImageSource:
         """
         if not self._play:
             return None
+        self._remember(self._play[self._pos])
         self._pos += 1
         if self._pos >= len(self._play):
             self._pos = 0
             if self._order == ORDER_RANDOM and len(self._play) > 1:
-                last = self._play[-1]
                 self._rng.shuffle(self._play)
-                if self._play[0] == last:  # do not show the same image twice in a row
-                    swap = self._rng.randrange(1, len(self._play))
-                    self._play[0], self._play[swap] = self._play[swap], self._play[0]
+        if self._order == ORDER_RANDOM:
+            self._keep_apart()
         return self._play[self._pos]
+
+    def _remember(self, path: str) -> None:
+        """Note *path* as the latest picture shown (the one the cursor leaves)."""
+        if not self._recent or self._recent[-1] != path:
+            self._recent.append(path)
+
+    def _keep_apart(self) -> None:
+        """In random order, do not let the picture at the cursor be one of the last ``REPEAT_GAP``
+        shown: swap it with another picture that is not (one later in the cycle if there is one,
+        else an earlier one), so at least ``REPEAT_GAP`` other pictures come between two showings
+        of the same one. A folder with ``n`` pictures keeps ``n - 1`` of them apart when ``n`` is
+        smaller (the largest distance there is; one picture is shown again and again). There is
+        always a picture to swap with: the window is smaller than the folder."""
+        gap = min(REPEAT_GAP, len(self._play) - 1)
+        window = set(list(self._recent)[len(self._recent) - gap :]) if gap > 0 else set()
+        if self._play[self._pos] not in window:
+            return
+        later = [i for i in range(self._pos + 1, len(self._play)) if self._play[i] not in window]
+        earlier = [i for i in range(self._pos) if self._play[i] not in window]
+        choices = later or earlier
+        if not choices:  # cannot happen (see above); the picture stays
+            return
+        swap = self._rng.choice(choices)
+        self._play[self._pos], self._play[swap] = self._play[swap], self._play[self._pos]
 
     def images(self) -> List[str]:
         """Snapshot of the queue in play order."""
@@ -631,6 +661,7 @@ class ImageSource:
             self._play = []
             self._files = set()
             self._pos = 0
+        self._recent.clear()  # a new folder: its history names no picture of the old one
 
     # -- scan ------------------------------------------------------------------
 

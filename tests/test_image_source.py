@@ -849,6 +849,94 @@ def test_random_order_does_not_repeat_an_image_across_the_cycle_boundary(tmp_pat
         previous = nxt
 
 
+def _showings(src, count):
+    """The pictures in the order the screen shows them: the current one, then *count* advances."""
+    return [src.current()] + [src.advance() for _ in range(count)]
+
+
+def _gaps(showings):
+    """For every picture that comes again: the number of OTHER pictures between the two showings."""
+    last = {}
+    gaps = []
+    for index, path in enumerate(showings):
+        if path in last:
+            gaps.append(index - last[path] - 1)  # *path* is not among them: it is the last showing
+        last[path] = index
+    return gaps
+
+
+@pytest.mark.parametrize("count", [1, 2, 3, 4, 5, 8, 25])
+@pytest.mark.parametrize("seed", range(12))
+def test_random_order_puts_at_least_three_other_pictures_between_two_showings(
+    tmp_path, backends, count, seed
+):
+    for n in range(count):
+        make_image(tmp_path / f"{n}.png")
+    src = started(tmp_path, backends, order="random", rng=random.Random(seed))
+    showings = _showings(src, 6 * count + 20)
+    wanted = min(3, count - 1)  # a folder of fewer than four: the largest distance there is
+    gaps = _gaps(showings)
+    assert gaps and min(gaps) >= wanted
+    if count > 1:
+        assert set(showings) == set(src.images())  # and every picture is still shown
+
+
+def test_random_order_of_one_picture_shows_it_again_and_again_without_failing(tmp_path, backends):
+    make_image(tmp_path / "only.png")
+    src = started(tmp_path, backends, order="random")
+    assert set(_showings(src, 30)) == {str(tmp_path / "only.png")}
+
+
+def test_random_order_keeps_every_picture_once_per_cycle_with_the_gap(tmp_path, backends):
+    for n in range(9):
+        make_image(tmp_path / f"{n}.png")
+    src = started(tmp_path, backends, order="random", rng=random.Random(3))
+    showings = _showings(src, 9 * 6 - 1)
+    for cycle in range(6):
+        assert len(set(showings[cycle * 9 : cycle * 9 + 9])) == 9
+
+
+def test_name_order_of_four_or_more_pictures_keeps_the_gap_by_itself(tmp_path, backends):
+    for n in range(5):
+        make_image(tmp_path / f"{n}.png")
+    src = started(tmp_path, backends, order="name")
+    assert min(_gaps(_showings(src, 40))) >= 3
+
+
+def test_random_order_changing_the_folder_forgets_the_history(tmp_path, backends):
+    for n in range(5):
+        make_image(tmp_path / "one" / f"{n}.png")
+    for n in range(2):
+        make_image(tmp_path / "two" / f"{n}.png")
+    src = started(tmp_path / "one", backends, order="random", rng=random.Random(5))
+    old = set(_showings(src, 12))
+    assert len(old) == 5
+    src.set_folder(str(tmp_path / "two"))
+    backends[1].run_all()
+    assert not src._recent  # the history names no picture of the old folder
+    after = _showings(src, 10)
+    assert set(after) == {str(tmp_path / "two" / f"{n}.png") for n in range(2)}
+    assert not old & set(after)  # nothing of the old folder is named any more
+    assert min(_gaps(after)) >= 1  # two pictures: they alternate
+    # and back: the old history is not kept, the first picture is free to be any of the five
+    src.set_folder(str(tmp_path / "one"))
+    backends[1].run_all()
+    again = _showings(src, 40)
+    assert set(again) == old and min(_gaps(again)) >= 3
+
+
+def test_random_order_deleting_pictures_while_showing_does_not_fail(tmp_path, backends):
+    paths = [make_image(tmp_path / f"{n}.png") for n in range(6)]
+    src = started(tmp_path, backends, order="random", rng=random.Random(2))
+    _showings(src, 10)
+    for path in paths[:4]:
+        os.remove(path)
+        backends[0].emit(path, FsEvent.DELETED)
+    shown = _showings(src, 20)
+    assert set(shown[1:]) <= {paths[4], paths[5]}
+    assert min(_gaps(shown[1:])) >= 1
+
+
 def test_name_order_inserting_before_the_displayed_image_keeps_the_display_stable(
     tmp_path, backends
 ):

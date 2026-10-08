@@ -22,7 +22,6 @@ from typing import Any, Dict, NamedTuple, Optional
 
 from slideshow_lock import _
 from slideshow_lock.settings import (
-    KEY_HARDWARE_ACCELERATION,
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_ORDER,
@@ -140,7 +139,6 @@ _GETTERS = {
     KEY_TRANSITIONS: "get_transitions",
     KEY_TRANSITION_ORDER: "get_transition_order",
     KEY_TRANSITION_DURATION: "get_transition_duration",
-    KEY_HARDWARE_ACCELERATION: "get_hardware_acceleration",
 }
 
 _SETTERS = {key: name.replace("get_", "set_", 1) for key, name in _GETTERS.items()}
@@ -372,12 +370,6 @@ class PreferencesModel:
         return Checked(None, value)
 
     @staticmethod
-    def check_hardware_acceleration(value) -> "Checked":
-        if not isinstance(value, bool):
-            return Checked(_("This must be on or off."), None)
-        return Checked(None, value)
-
-    @staticmethod
     def check_show_screenshots(value) -> "Checked":
         if not isinstance(value, bool):
             return Checked(_("This must be on or off."), None)
@@ -465,14 +457,6 @@ class PreferencesModel:
             else SaveResult(False, checked.error)
         )
 
-    def set_hardware_acceleration(self, value) -> SaveResult:
-        checked = self.check_hardware_acceleration(value)
-        return (
-            self._store(KEY_HARDWARE_ACCELERATION, checked.value)
-            if checked.ok
-            else SaveResult(False, checked.error)
-        )
-
     def set_show_screenshots(self, value) -> SaveResult:
         checked = self.check_show_screenshots(value)
         return (
@@ -519,19 +503,19 @@ SAVE_ORDER = (
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_SLIDE_INTERVAL_SECONDS,
     KEY_TRANSITION_DURATION,
-    KEY_HARDWARE_ACCELERATION,
 )
 
 
 class Draft:
-    """The edits of the settings window that are not saved yet.
+    """The edit of the settings window that is not saved yet.
 
     An edit is checked when it is made (``PreferencesModel.check_*``) and kept here, per key; one
     that is refused changes nothing. An edit that brings a field back to the stored value is
     dropped, so ``dirty`` is true only when saving would change something. Nothing reaches the
-    settings before ``save``: the window calls it for the Save button and when it closes. ``save``
-    writes the kept keys one by one through the model; a key that is stored leaves the draft, a key
-    that is not stays in it, and the first failure is what ``save`` reports.
+    settings before ``save``: the window calls it right after every edit (the settings are saved
+    the moment they are changed) and when it closes. ``save`` writes the kept keys one by one
+    through the model; a key that is stored leaves the draft, a key that is not stays in it, and
+    the first failure is what ``save`` reports (the window then throws the draft away).
 
     The transition key holds the drop-down entry (``TRANSITION_CHOICES``), not the list; the folder
     holds the text the way it would be stored ("" is the default folder).
@@ -599,9 +583,6 @@ class Draft:
     def edit_pan_portrait_images(self, value) -> SaveResult:
         return self._edit(KEY_PAN_PORTRAIT_IMAGES, self._model.check_pan_portrait_images(value))
 
-    def edit_hardware_acceleration(self, value) -> SaveResult:
-        return self._edit(KEY_HARDWARE_ACCELERATION, self._model.check_hardware_acceleration(value))
-
     def edit_show_screenshots(self, value) -> SaveResult:
         return self._edit(KEY_SHOW_SCREENSHOTS, self._model.check_show_screenshots(value))
 
@@ -619,8 +600,6 @@ class Draft:
             return self._model.set_pan_portrait_images(value)
         if key == KEY_SHOW_SCREENSHOTS:
             return self._model.set_show_screenshots(value)
-        if key == KEY_HARDWARE_ACCELERATION:
-            return self._model.set_hardware_acceleration(value)
         if key == KEY_TRANSITION_DURATION:
             return self._model.set_duration(value)
         if key in CHOICES:

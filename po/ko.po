@@ -162,10 +162,6 @@ msgid "seconds"
 msgstr "초"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "하드웨어 가속"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "전환 효과"
 
@@ -206,10 +202,6 @@ msgid "Preview"
 msgstr "미리 보기"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "저장"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10초"
 
@@ -224,22 +216,6 @@ msgstr "1시간"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24시간"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"전환 효과에 느린 움직임과 부드러운 가장자리를 적용합니다. 단순한 애니메이션"
-"을 쓰려면 끄세요."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"사용할 수 없음: 이 컴퓨터는 그래픽 카드로 그리지 않으므로 단순한 애니메이션"
-"이 사용됩니다."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

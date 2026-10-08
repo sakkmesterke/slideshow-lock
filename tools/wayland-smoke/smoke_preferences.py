@@ -5,8 +5,12 @@ What it exercises: the real ``PreferencesWindow`` (real GTK widgets on headless 
 ``Settings`` (memory backend), the real GLib main loop, and the real preview started from the
 "Preview" button (one fullscreen window per virtual monitor). Fields are driven by calling the
 widgets' own setters (``set_value``, ``set_selected``, ``set_active``, ``set_text`` + the
-``entry-activated`` signal), which fires the same handlers a user's change fires. An edit is kept
-in the window's draft and reaches the settings through the Save button (or the close).
+``entry-activated`` signal), which fires the same handlers a user's change fires. An edit is
+stored the moment it is made (there is no Save button), so what the service would read is what
+the window shows.
+
+It also measures the window: its natural size must fit a 1366 x 768 screen (run it with
+``run.sh --monitors 1366x768,800x1000``) and nothing in it may scroll.
 
 What it does not prove: how the window looks (a human judgement on the real monitor: use
 ``--screenshot DIR`` to get a picture of the window as GTK draws it here), real keyboard and
@@ -53,7 +57,6 @@ from slideshow_lock.settings import (  # noqa: E402
     KEY_SCALING,
     KEY_SHOW_SCREENSHOTS,
     KEY_SLIDE_INTERVAL_SECONDS,
-    KEY_TRANSITION_DURATION,
     Settings,
     default_picture_folder,
 )
@@ -80,6 +83,15 @@ def pump(seconds: float = 0.3, until=None) -> bool:
         if not context.iteration(False):
             GLib.usleep(5000)
     return bool(until()) if until is not None else True
+
+
+def descendants(widget):
+    """Every widget below *widget*, depth first."""
+    child = widget.get_first_child()
+    while child is not None:
+        yield child
+        yield from descendants(child)
+        child = child.get_next_sibling()
 
 
 def fullscreen_windows() -> int:
@@ -209,71 +221,63 @@ def main() -> int:
         "does not exist yet" in window.pictures_group.get_description(),
         window.pictures_group.get_description(),
     )
-    check("Save is off while there is nothing to save", not window.save_button.get_sensitive())
-    save_parent = window.save_button.get_parent()
-    ancestors, widget = [], window.save_button.get_parent()
+    check("there is no Save button", not hasattr(window, "save_button"))
+    footer = window.preview_button.get_parent()
+    ancestors, widget = [], footer
     while widget is not None:
         ancestors.append(widget)
         widget = widget.get_parent()
-    check(
-        "Save sits in the footer box, right after Preview",
-        isinstance(save_parent, Gtk.Box)
-        and save_parent is window.preview_button.get_parent()
-        and window.preview_button.get_next_sibling() is window.save_button,
-    )
     from slideshow_lock.version import program_version
 
     label = window.version_label
     check(
-        "the version is the last thing in the footer, faint, and the package's own",
-        label.get_parent() is save_parent
+        "the footer holds Preview, the status and, last, the faint version of the package",
+        isinstance(footer, Gtk.Box)
+        and window.preview_button.get_next_sibling() is window.status
+        and label.get_parent() is footer
         and label.get_next_sibling() is None
         and label.has_css_class("dim-label")
         and label.get_label() == program_version() != "",
         label.get_label(),
     )
-    machine_has_gpu = window._acceleration_available
-    switch, row = window.acceleration_switch, window.acceleration_row
     check(
-        "hardware acceleration: the machine was asked when the window came on screen",
-        machine_has_gpu is not None,
-        str(machine_has_gpu),
-    )
-    group = row.get_ancestor(Adw.PreferencesGroup)
-    check(
-        "hardware acceleration: the switch is a row of the Transitions group, after the length row",
-        group is not None
-        and group.get_title() == "Transitions"
-        and row.get_title() == "Hardware acceleration"
-        and row.get_prev_sibling() is not None,
-        str(group.get_title() if group is not None else None),
-    )
-    if machine_has_gpu:
-        check(
-            "hardware acceleration: on a GPU the switch is usable and starts on",
-            switch.get_sensitive() and switch.get_active(),
-        )
-    else:
-        check(
-            "hardware acceleration: without a GPU the switch is greyed out, off, and says why",
-            not switch.get_sensitive()
-            and not switch.get_active()
-            and row.get_subtitle() == PreferencesWindow._acceleration_text(False),
-            row.get_subtitle(),
-        )
-        check(
-            "hardware acceleration: showing it off is no edit; the stored choice stays on",
-            not window.save_button.get_sensitive() and stored.get_hardware_acceleration(),
-        )
-    check(
-        "Save is not in the header bar",
+        "nothing of the footer is in the header bar",
         not any(isinstance(widget, Adw.HeaderBar) for widget in ancestors),
+    )
+    check(
+        "there is no hardware acceleration row or switch",
+        not hasattr(window, "acceleration_switch") and not hasattr(window, "acceleration_row"),
+    )
+    scrolled = [
+        w
+        for w in descendants(window)
+        if isinstance(w, Gtk.ScrolledWindow) and w.get_ancestor(Gtk.Popover) is None
+    ]  # (the lists of a drop-down, in their popovers, are not the window)
+    check("nothing in the window scrolls: no scrolled window", not scrolled, str(scrolled))
+    width, height = window.get_width(), window.get_height()
+    least = window.measure(Gtk.Orientation.VERTICAL, width)[0]
+    check(
+        "at the width it has, the window is as tall as its content needs: nothing is cut off",
+        height >= least,
+        f"{width}x{height}, content needs {least} high",
+    )
+    nat_width = window.measure(Gtk.Orientation.HORIZONTAL, -1)[1]
+    nat_height = window.measure(Gtk.Orientation.VERTICAL, min(nat_width, width))[1]
+    check(
+        "the natural size fits a 1366 x 768 screen with room for the desktop's bars",
+        nat_width <= 1366 and nat_height <= 768 - 80,
+        f"{nat_width}x{nat_height}",
+    )
+    check(
+        "the window opens at its natural size",
+        (width, height) == (nat_width, nat_height),
+        f"{width}x{height} natural {nat_width}x{nat_height}",
     )
     if args.screenshot:
         os.makedirs(args.screenshot, exist_ok=True)
         screenshot(window, os.path.join(args.screenshot, "window.png"))
 
-    # -- every field is kept in the draft, and Save writes it -----------------------------------
+    # -- every field is stored the moment it is changed ---------------------------------------
     window.idle_spin.set_value(300)
     window.grace_spin.set_value(5)
     window.interval_scale.set_value(interval_position_for_seconds(20))
@@ -301,46 +305,30 @@ def main() -> int:
         )
 
     check(
-        "the edits are kept: nothing is stored before Save",
-        stored_values()
-        == (
-            (120, 0, 10, "random", "fill", False, False)
-            + (["ken-burns"], 1.0, default_picture_folder())
-        ),
-        str(stored_values()),
-    )
-    check("Save is on", window.save_button.get_sensitive())
-    check("the HH:MM:SS line follows", window.interval_total.get_label() == "00:00:20")
-    window.save_button.emit("clicked")
-    check(
-        "Save writes every field",
+        "every field is stored at once, the folder when it is confirmed",
         stored_values() == (300, 5, 20, "name", "fit", True, True, ["fade-black"], 2.5, folder),
         str(stored_values()),
     )
+    check("the HH:MM:SS line follows", window.interval_total.get_label() == "00:00:20")
     check("the status says so", window.status.get_label() == "Saved.", window.status.get_label())
-    check("Save is off again", not window.save_button.get_sensitive())
     window.idle_spin.set_value(301)
-    check("Save is on after a change", window.save_button.get_sensitive())
+    check("one more change is stored too", stored.get_idle_timeout_seconds() == 301)
     window.idle_spin.set_value(300)
-    check("Save is off when the change is put back", not window.save_button.get_sensitive())
+    check("and so is putting it back", stored.get_idle_timeout_seconds() == 300)
     window.transition_drop.set_selected(TRANSITION_CHOICES.index("none"))
-    window.save_button.emit("clicked")
     check(
         "none is saved as the empty list, not as the default",
         stored.get_transitions() == [] and window.status.get_label() == "Saved.",
         str(stored.get_transitions()),
     )
     window.transition_drop.set_selected(TRANSITION_CHOICES.index("random"))
-    check("the random mix is kept, not stored", stored.get_transitions() == [])
-    window.save_button.emit("clicked")
     check(
-        "the random mix is saved as the eight, with the order random",
+        "the random mix is stored as the eight, with the order random",
         stored.get_transitions() == list(RANDOM_POOL) and stored.get_transition_order() == "random",
         str(stored.get_transitions()),
     )
     window.transition_drop.set_selected(TRANSITION_CHOICES.index("blur"))
-    window.save_button.emit("clicked")
-    check("any of the ten is saved as a list of its name", stored.get_transitions() == ["blur"])
+    check("any of the ten is stored as a list of its name", stored.get_transitions() == ["blur"])
     stored.set_transitions(["crossfade"])
     pump(0.3)
     check(
@@ -359,8 +347,7 @@ def main() -> int:
     check(
         "a stored list of several names shows as the random mix and stays stored",
         window.transition_drop.get_selected() == TRANSITION_CHOICES.index("random")
-        and stored._settings.get_strv("transitions") == ["wipe", "push"]
-        and not window.save_button.get_sensitive(),
+        and stored._settings.get_strv("transitions") == ["wipe", "push"],
     )
     stored.set_transitions(["crossfade"])
     check(
@@ -384,27 +371,22 @@ def main() -> int:
         window.idle_spin.update()
         check(
             f"{text!r} in a number field changes nothing, the old value stays",
-            stored.get_idle_timeout_seconds() == 300
-            and window.idle_spin.get_value_as_int() == 300
-            and not window.save_button.get_sensitive(),
+            stored.get_idle_timeout_seconds() == 300 and window.idle_spin.get_value_as_int() == 300,
             f"stored {stored.get_idle_timeout_seconds()}, field {window.idle_spin.get_text()!r}",
         )
     window.grace_spin.set_text("")  # known corner: an emptied grace field reads as 0, its minimum
     window.grace_spin.update()
     check(
-        "an emptied grace period field is kept as 0, its minimum, and shows it",
-        window._draft.value(KEY_LOCK_GRACE_PERIOD_SECONDS)
-        == window.grace_spin.get_value_as_int()
-        == 0
-        and stored.get_lock_grace_period_seconds() == 5,
-        f"kept {window._draft.value(KEY_LOCK_GRACE_PERIOD_SECONDS)}",
+        "an emptied grace period field is stored as 0, its minimum, and shows it",
+        stored.get_lock_grace_period_seconds() == window.grace_spin.get_value_as_int() == 0,
+        f"stored {stored.get_lock_grace_period_seconds()}",
     )
     window.grace_spin.set_value(5)
     scale = window.interval_scale
     keys = window._interval_keys
 
     def kept():
-        return window._draft.interval_view().seconds
+        return stored.get_slide_interval_seconds()
 
     def press(key):
         return keys.emit("key-pressed", key, 0, Gdk.ModifierType(0))
@@ -506,8 +488,8 @@ def main() -> int:
         f"{scale.get_value()} {show()}",
     )
     check(
-        "the status stays empty after the echo: no message replaced",
-        window.status.get_label() == "",
+        "the status says Saved. after the echo: no message replaced by another",
+        window.status.get_label() == "Saved.",
         window.status.get_label(),
     )
     walked = []
@@ -520,11 +502,9 @@ def main() -> int:
         f"{sum(a != b for a, b in zip(walked, INTERVAL_STOPS))} differ",
     )
     # -- a stored value that is not a step: shown at the nearest, never written back -------------
-    window.save_button.emit("clicked")  # the walk above left the last step kept
     check(
-        "Save writes the last step of the walk and is off again",
-        stored.get_slide_interval_seconds() == INTERVAL_STOPS[-1]
-        and not window.save_button.get_sensitive(),
+        "the last step of the walk is stored",
+        stored.get_slide_interval_seconds() == INTERVAL_STOPS[-1],
         str(stored.get_slide_interval_seconds()),
     )
     stored.set_slide_interval_seconds(100)
@@ -549,59 +529,33 @@ def main() -> int:
     )
     press(Gdk.KEY_Right)
     check(
-        "an arrow from there goes one step on, to 3 min, kept and not stored",
-        kept() == 180 and stored.get_slide_interval_seconds() == 100,
-        show(),
-    )
-    stored.set_slide_interval_seconds(77)  # another process changes a value, off the scale
-    pump(0.5)
-    check(
-        "a stored change elsewhere does not take away an edit that is not saved: 3 min stays",
+        "an arrow from there goes one step on, to 3 min, and it is stored",
         kept() == 180 and window.interval_total.get_label() == "00:03:00",
-        f"{scale.get_value()} {show()}",
-    )
-    window.save_button.emit("clicked")
-    check(
-        "and Save writes it over the other process's value",
-        stored.get_slide_interval_seconds() == 180,
+        show(),
     )
     stored.set_slide_interval_seconds(77)
     pump(1.0, until=lambda: window.interval_total.get_label() == "00:01:17")
     pump(0.5)
     check(
-        "with nothing kept, a value set elsewhere shows at the nearest step and stays 77",
+        "a value set elsewhere shows at the nearest step and stays 77",
         scale.get_value() == interval_position_for_seconds(60)
         and stored.get_slide_interval_seconds() == 77,
         f"{scale.get_value()} {show()}",
     )
     window.idle_spin.set_text("86400")
     window.idle_spin.update()
-    check(
-        "the idle time still takes 86400 (kept)",
-        window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 86400,
-    )
+    check("the idle time still takes 86400", stored.get_idle_timeout_seconds() == 86400)
     window.idle_spin.set_text("20")
     window.idle_spin.update()
-    check(
-        "a typed number is kept and not stored",
-        window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 20
-        and stored.get_idle_timeout_seconds() == 300,
-    )
-    window.idle_spin.set_text("99")
-    window.idle_spin.update()
+    check("a typed number is stored", stored.get_idle_timeout_seconds() == 20)
     stored.set_scaling("fill")  # another process changes another key: the window refreshes
     pump(0.5)
     check(
-        "a change elsewhere does not take an edit out of a number field that is not saved",
-        window.idle_spin.get_value_as_int() == 99
-        and window._draft.value(KEY_IDLE_TIMEOUT_SECONDS) == 99
+        "a change elsewhere does not take the value out of a number field",
+        window.idle_spin.get_value_as_int() == 20
         and window.scaling_drop.get_selected() == CHOICES[KEY_SCALING].index("fill"),
         str(window.idle_spin.get_value_as_int()),
     )
-    window.idle_spin.set_text("20")
-    window.idle_spin.update()
-    window.save_button.emit("clicked")
-    check("and Save stores it", stored.get_idle_timeout_seconds() == 20)
     stored.set_idle_timeout_seconds(77)
     pump(1.0, until=lambda: window.idle_spin.get_value_as_int() == 77)
     check(
@@ -612,22 +566,17 @@ def main() -> int:
     stored.set_transition_duration(3.7)  # another process changes the transition length
     pump(1.0, until=lambda: abs(window.duration_scale.get_value() - 3.7) < 1e-6)
     check(
-        "a transition length set elsewhere shows up in the slider, and the Save button stays off",
-        abs(window.duration_scale.get_value() - 3.7) < 1e-6
-        and not window.save_button.get_sensitive(),
+        "a transition length set elsewhere shows up in the slider",
+        abs(window.duration_scale.get_value() - 3.7) < 1e-6,
         str(window.duration_scale.get_value()),
     )
     window.duration_scale.set_value(0.2)
     window.duration_scale.set_value(9.0)  # the scale itself stops at its end
     check(
-        "the slider stops at 5.0 s and keeps what it shows",
-        window.duration_scale.get_value() == 5.0
-        and window._draft.value(KEY_TRANSITION_DURATION) == 5.0
-        and stored.get_transition_duration() == 3.7,
+        "the slider stops at 5.0 s and stores what it shows",
+        window.duration_scale.get_value() == 5.0 and stored.get_transition_duration() == 5.0,
         str(window.duration_scale.get_value()),
     )
-    window.save_button.emit("clicked")
-    check("and Save stores it", stored.get_transition_duration() == 5.0)
 
     # -- the folder chooser: only the paths a headless run can reach ------------------------
     window.browse_button.emit("clicked")
@@ -661,26 +610,20 @@ def main() -> int:
     other = tempfile.mkdtemp(prefix="slideshow-smoke-prefs-")
     window._on_folder_chosen(_Chosen(other), Gtk.ResponseType.ACCEPT)
     check(
-        "a folder chosen in the chooser is shown and kept, not stored yet",
-        stored.get_picture_folder() == folder
-        and window.folder_row.get_text() == other
-        and window.save_button.get_sensitive(),
+        "a folder chosen in the chooser is shown and stored",
+        stored.get_picture_folder() == other and window.folder_row.get_text() == other,
     )
-    window.save_button.emit("clicked")
-    check("and Save stores it", stored.get_picture_folder() == other)
     window.folder_row.set_text("")
     window.folder_row.emit("entry-activated")
-    window.save_button.emit("clicked")
     check(
-        "emptying the field and saving goes back to the default folder",
+        "emptying the field goes back to the default folder",
         stored.get_picture_folder() == default_picture_folder(),
     )
     window.folder_row.set_text(folder)
     window.folder_row.emit("entry-activated")
-    window.save_button.emit("clicked")
 
     # -- the preview ---------------------------------------------------------------------------
-    window.order_drop.set_selected(CHOICES[KEY_ORDER].index("random"))  # kept, not saved
+    window.order_drop.set_selected(CHOICES[KEY_ORDER].index("random"))  # stored at once
     window.transition_drop.set_selected(TRANSITION_CHOICES.index("zoom"))
     before = {k: stored._settings.get_value(k).unpack() for k in KEYS}
     before_transitions = stored._settings.get_strv("transitions")
@@ -692,17 +635,16 @@ def main() -> int:
     check("the button is off while it runs", not window.preview_button.get_sensitive())
     controller = window._preview[0]
     check(
-        "the preview runs on the values of the window that are not saved: random, zoom",
+        "the preview runs on the values of the window, which are the stored ones: random, zoom",
         controller._settings.get_order() == "random"
         and controller._settings.get_transitions() == ["zoom"]
-        and stored.get_order() == "name",
+        and stored.get_order() == "random",
         f"{controller._settings.get_order()} {controller._settings.get_transitions()}",
     )
     check(
-        "the preview changed no stored setting, and the edits are still to be saved",
+        "the preview changed no stored setting",
         before == {k: stored._settings.get_value(k).unpack() for k in KEYS}
-        and stored._settings.get_strv("transitions") == before_transitions
-        and window.save_button.get_sensitive(),
+        and stored._settings.get_strv("transitions") == before_transitions,
     )
     controller.stop("smoke")
     pump(1.0, until=lambda: window.preview_button.get_sensitive())
@@ -722,7 +664,7 @@ def main() -> int:
         f"{fullscreen_windows()} windows left",
     )
     check(
-        "closing the window saves what was edited, without a question",
+        "closing the window leaves the stored values as they were",
         stored.get_order() == "random" and stored.get_transitions() == ["zoom"],
         f"{stored.get_order()} {stored.get_transitions()}",
     )
