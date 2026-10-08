@@ -32,7 +32,14 @@
 # results are in the fedora-review/ directory of each: review.txt, rpmlint.txt). rpmlint ran with the
 # Fedora configuration (/etc/xdg/rpmlint/fedora.toml) on the built noarch RPM and on the source RPM,
 # and printed the same in fedora-43, fedora-44 and fedora-rawhide: 0 errors, 2 warnings
-# (no-manual-page-for-binary and empty-%%postun), 7 filtered. fedora-review (rc 0) wrote its template;
+# (no-manual-page-for-binary and empty-%%postun), 7 filtered. That is the result for the 1.0.0 spec of
+# that build. [M] The build 11092273 of 1.0.5-1 (rpmlint.txt of fedora-43, fedora-44 and fedora-rawhide,
+# identical) prints 1 error, 2 warnings, 7 filtered: "E: explicit-lib-dependency libadwaita" (rpmlint
+# only looks at the name "libadwaita" of the Requires; the program loads the typelib Adw-1 through
+# PyGObject and no repository has a typelib(Adw) provide), and the warnings no-manual-page-for-binary
+# for slideshow-lock and slideshowlock (empty-%%postun is gone: the spec has a %%posttrans). The error is
+# filtered by packaging/fedora/slideshow-lock.rpmlintrc, which is not part of the SRPM: with
+# "rpmlint --rpmlintrc" the same files give 0 errors, 2 warnings. fedora-review (rc 0) wrote its template;
 # the review.txt of the three chroots lists 70 items (counted with the pattern "^\[.\]:" so that the two
 # legend lines are not counted): 35 marked "[x]", 2 marked "[!]" (the download of Source0, which fails
 # because the tag v1.0.0 did not exist yet when that run was made, and the reminder to test the build
