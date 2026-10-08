@@ -325,7 +325,8 @@ install -Dpm 0644 data/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg \
 bash tools/i18n.sh build %{buildroot}%{_datadir}/locale
 %find_lang %{app_id}
 # [M] find-lang.sh of rpm 4.18.0 (the same option parsing as in rpm 4.19.1, read): with the five
-# catalogs in a scratch build root it writes %%{app_id}.lang with five %%lang(..) lines, exit 0.
+# catalogs of 1.0.0 (1.0.5 has 40) in a scratch build root it writes %%{app_id}.lang with five
+# %%lang(..) lines, exit 0.
 # Without a catalog it prints "No translations found" and exits 1, so a build that lost its
 # catalogs fails instead of shipping an English-only package. The option --allow-no-translations of
 # the earlier version of this spec is NOT in find-lang.sh of rpm 4.18.0 or 4.19.1: it is taken as the
