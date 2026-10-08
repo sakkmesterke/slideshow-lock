@@ -317,7 +317,7 @@ install -Dpm 0644 data/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg \
 # [H] the icon cache is refreshed by a file trigger of the icon theme packages: no scriptlet here
 
 # The translations. [K] tools/i18n.sh build DIR writes DIR/<lang>/LC_MESSAGES/<APP_ID>.mo for the
-# languages of po/LINGUAS (de, es, fr, hu, it); slideshow_lock/i18n.py reads <prefix>/share/locale
+# languages of po/LINGUAS (40 in 1.0.5); slideshow_lock/i18n.py reads <prefix>/share/locale
 bash tools/i18n.sh build %{buildroot}%{_datadir}/locale
 %find_lang %{app_id}
 # [M] find-lang.sh of rpm 4.18.0 (the same option parsing as in rpm 4.19.1, read): with the five
@@ -383,8 +383,11 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # [M] the wheel of setuptools 84.0.0 has License-File: LICENSE only (see %%install), so the licence of
 # the pictures is not claimed twice by %%pyproject_save_files; the name and the folder
 # packaging/licenses/ match no default licence-file pattern of setuptools (LICEN[CS]E*, COPYING*,
-# NOTICE*, AUTHORS*) [H: from memory, not measured for setuptools newer than 84.0.0]. NOT measured: the
-# "listed twice" check of rpmbuild and rpmlint on a build of this version.
+# NOTICE*, AUTHORS*) [H: from memory, not measured for setuptools newer than 84.0.0]. [M] rpm -qpL and
+# rpm -qp --licensefiles on the noarch RPM of 1.0.5-1 built from this spec in rootless build roots with
+# the COPR package sets (rpm 4.19.1.1 on EL10, rpm 6.0.2 on Fedora 43): two %%license files, LICENSE (in
+# the dist-info directory of the wheel) and CC-BY-SA-4.0.txt, each once; no file of the RPM is listed
+# twice, and rpmbuild printed no "listed twice" message.
 %{_bindir}/%{name}
 %{_bindir}/slideshowlock
 %{_datadir}/glib-2.0/schemas/%{app_id}.gschema.xml
