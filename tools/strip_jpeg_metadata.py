@@ -7,15 +7,17 @@ white list; the entropy-coded data of the scan is copied as it is, byte for byte
   header (SOF0), the restart interval (DRI) and the one scan (SOS and its data): the picture.
 * The JFIF header (APP0, at most one) and the Adobe colour marker (APP14, at most one, 14 bytes,
   transform 0-2): they say how to read the picture, they carry no personal data.
-* The one ICC profile (APP2) that is one of ``KNOWN_ICC_SHA256``: the sRGB profile of the pictures.
 
 Everything else is dropped: Exif (with its thumbnail), XMP, the Photoshop block (APP13), comments
-(COM) and every other APPn. Two segments are then put back, and only these two: the author and the
-licence of the pictures, as one Exif APP1 (``exif_segment``: Artist and Copyright, two tags, no
-other IFD) and one XMP APP1 (``xmp_segment``: dc:creator, dc:rights, xmpRights:WebStatement). Both
-are built from the constants ``AUTHOR`` and ``LICENSE_NAME`` / ``LICENSE_URL`` that the credit line
-of ``data/pictures/CREDITS.txt`` is built from, by the functions that the audit compares with, byte
-for byte: there is one source for the text and no second place that writes Exif.
+(COM), every ICC profile (APP2, ``ICC_PROFILE``: the bytes of a colour profile belong to whoever
+made the profile, not to the author of the picture, so none is kept and none is put back; a picture
+without a profile is taken for sRGB) and every other APPn. Two segments are then put back, and
+only these two: the author and the licence of the pictures, as one Exif APP1 (``exif_segment``:
+Artist and Copyright, two tags, no other IFD) and one XMP APP1 (``xmp_segment``: dc:creator,
+dc:rights, xmpRights:WebStatement). Both are built from the constants ``AUTHOR`` and
+``LICENSE_NAME`` / ``LICENSE_URL`` that the credit line of ``data/pictures/CREDITS.txt`` is built
+from, by the functions that the audit compares with, byte for byte: there is one source for the
+text and no second place that writes Exif.
 
 ``audit`` is the same white list as a check: it fails on anything that is not on it (an Exif or XMP
 segment that is not byte for byte the expected one included, and one that is missing), and on every
@@ -42,13 +44,6 @@ SOI, EOI = 0xD8, 0xD9
 SOF0, DHT, DQT, DRI, SOS = 0xC0, 0xC4, 0xDB, 0xDD, 0xDA
 APP0, APP1, APP2, APP13, APP14, COM = 0xE0, 0xE1, 0xE2, 0xED, 0xEE, 0xFE
 RST = range(0xD0, 0xD8)
-
-#: The SHA-256 of the ICC profile bytes (without the 14 bytes of the APP2 header), and what each is.
-KNOWN_ICC_SHA256: Dict[str, str] = {
-    "12afb4d9953adee0607d347daee5b78b18d6b3cab2d572b88970703f5edb37bc": "sRGB, 456 bytes",
-    "3f6d674174f3804eb0dabdac90ae17486e898c5063a66f861c116ea033da8301": "sRGB IEC61966-2.1, 3144 B",
-}
-ICC_MAX_BYTES = 4096
 
 #: The one source of the texts: the author, the licence, and what is built from them. The credit
 #: line is the text of ``data/pictures/CREDITS.txt``; the rights line is in Exif Copyright and in
@@ -180,30 +175,15 @@ def _is_xmp(segment: Segment) -> bool:
     return segment.marker == APP1 and segment.data[4 : 4 + len(XMP_ID)] == XMP_ID
 
 
-def _icc_profile(segment: Segment) -> Optional[bytes]:
-    """The profile bytes of a whole one-chunk ICC segment; ``None`` if it is something else."""
-    if segment.marker != APP2 or segment.data[4:16] != ICC_ID:
-        return None
-    if len(segment.data) < 18 or segment.data[16] != 1 or segment.data[17] != 1:
-        return None  # not chunk 1 of 1
-    return segment.data[18:]
+def _is_icc(segment: Segment) -> bool:
+    """Any chunk of an ICC profile (APP2 with the ``ICC_PROFILE`` id), whatever is in it."""
+    return segment.marker == APP2 and segment.data[4:16] == ICC_ID
 
 
-def _keep(segment: Segment, icc_seen: bool) -> bool:
+def _keep(segment: Segment) -> bool:
     if segment.marker in (SOI, EOI, DQT, DHT, SOF0, DRI, SOS):
         return True
-    if _is_jfif(segment) or _is_adobe(segment):
-        return True
-    profile = _icc_profile(segment)
-    return profile is not None and not icc_seen and _icc_is_known(profile)
-
-
-def _icc_is_known(profile: bytes) -> bool:
-    return (
-        len(profile) <= ICC_MAX_BYTES
-        and profile[36:40] == b"acsp"
-        and hashlib.sha256(profile).hexdigest() in KNOWN_ICC_SHA256
-    )
+    return _is_jfif(segment) or _is_adobe(segment)
 
 
 def _write(segments: List[Segment]) -> bytes:
@@ -214,11 +194,7 @@ def clean(data: bytes) -> bytes:
     """*data* without the metadata, but for the Exif and XMP segment of the author and the licence.
     Raises ``JpegError`` if the file is not understood or if what is
     left is not clean (``audit``): there is no output that has not passed the check."""
-    kept, icc_seen = [], False
-    for segment in parse(data):
-        if _keep(segment, icc_seen):
-            icc_seen = icc_seen or _icc_profile(segment) is not None
-            kept.append(segment)
+    kept = [segment for segment in parse(data) if _keep(segment)]
     # the author and the licence, after SOI and the JFIF header (the place the dropped ones had)
     at = 2 if len(kept) > 1 and _is_jfif(kept[1]) else 1
     kept[at:at] = [Segment(APP1, exif_segment()), Segment(APP1, xmp_segment())]
@@ -247,13 +223,12 @@ def audit(data: bytes) -> None:
         ("DRI", 1),
         ("JFIF", 1),
         ("Adobe", 1),
-        ("ICC", 1),
         ("Exif", 1),
         ("XMP", 1),
     ):
         if count.get(name, 0) > limit:
             raise JpegError(f"{count[name]} {name} segments, at most {limit}")
-    for name in ("DQT", "DHT", "SOF0", "SOS", "ICC", "Exif", "XMP"):
+    for name in ("DQT", "DHT", "SOF0", "SOS", "Exif", "XMP"):
         if not count.get(name):
             raise JpegError(f"no {name} segment")
     if segments[-1].marker != EOI or segments[0].marker != SOI:
@@ -292,11 +267,8 @@ def _check_segment(segment: Segment, scan_seen: bool) -> str:
         if segment.data[15] > 2:
             raise JpegError(f"an Adobe segment with the transform {segment.data[15]}")
         return "Adobe"
-    profile = _icc_profile(segment)
-    if profile is not None:
-        if not _icc_is_known(profile):
-            raise JpegError("an ICC profile that is not one of the known sRGB profiles")
-        return "ICC"
+    if _is_icc(segment):
+        raise JpegError("an ICC profile: the pictures carry none (the cleaner takes them out)")
     raise JpegError(f"the segment FF{marker:02X} is not on the white list")
 
 
