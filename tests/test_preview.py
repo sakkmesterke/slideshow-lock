@@ -234,6 +234,9 @@ class FakeSettings:
     def get_transition_duration(self):
         return self.values[KEY_TRANSITION_DURATION]
 
+    def get_hardware_acceleration(self):
+        return True
+
     def connect_changed(self, callback):
         self._callbacks.append(callback)
 
@@ -1255,6 +1258,14 @@ MODULE_ALLOWED_NAMES = {
     ("preview_app.py", "uninhibit"): (
         "preview_app.IdleHold: Gtk.Application.uninhibit, giving that request back"
     ),
+    ("gl_probe.py", "ctypes"): (
+        "gl_probe: ctypes, to call glGetString(GL_RENDERER) in libGL.so.1 or libGLESv2.so.2 once "
+        "the display's GL context is current. Nothing else is called, loaded or started: "
+        "test_gl_probe_uses_ctypes_for_nothing_but_glgetstring pins it"
+    ),
+    ("gl_probe.py", "cdll"): (
+        "gl_probe: ctypes.CDLL, the loader of those two libraries by soname (the same pin)"
+    ),
     ("preview_app.py", "applicationinhibitflags"): (
         "preview_app.IdleHold: Gtk.ApplicationInhibitFlags.IDLE, the idle flag of that request "
         "(the only one used; the logout, switch and suspend flags are not)"
@@ -1931,3 +1942,47 @@ def _fs(name):
     from slideshow_lock.image_source import FsEvent
 
     return FsEvent(name.replace("_", "-"))
+
+
+def test_gl_probe_uses_ctypes_for_nothing_but_glgetstring():
+    """The allowance for ``gl_probe.py`` (``MODULE_ALLOWED_NAMES``) is for reading the OpenGL
+    renderer string and nothing else: of ctypes it touches only the loader and two types, and the
+    only libraries it names are the two GLVND dispatch libraries, by soname."""
+    with open(_package_file("gl_probe.py"), encoding="utf-8") as handle:
+        tree = ast.parse(handle.read())
+    ctypes_attributes = {
+        node.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "ctypes"
+    }
+    assert ctypes_attributes == {"CDLL", "c_char_p", "c_uint"}
+    imports = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        for alias in node.names
+    }
+    assert "ctypes" in imports and not imports & {"subprocess", "os", "socket", "shutil"}
+    libraries = {
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and ".so" in node.value
+        and " " not in node.value  # a library name, not a sentence
+    }
+    assert libraries == {"libGL.so.1", "libGLESv2.so.2"}
+
+
+def test_the_gl_probe_pin_would_catch_another_ctypes_use():
+    source = "import ctypes\nctypes.CDLL('libc.so.6').system(b'true')\nctypes.cdll.LoadLibrary('x')"
+    attributes = {
+        node.attr
+        for node in ast.walk(ast.parse(source))
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "ctypes"
+    }
+    assert attributes == {"CDLL", "cdll"}  # not the three the pin allows

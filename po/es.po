@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 04:38+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 04:00+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: Spanish\n"
@@ -155,12 +155,16 @@ msgid ""
 "How long one change takes, the same for every transition. It is never longer "
 "than half of the time a picture is shown."
 msgstr ""
-"Cuánto dura un cambio, igual para todas las transiciones. Nunca es "
-"mayor que la mitad del tiempo que se muestra una imagen."
+"Cuánto dura un cambio, igual para todas las transiciones. Nunca es mayor que "
+"la mitad del tiempo que se muestra una imagen."
 
 #: slideshow_lock/preferences.py
 msgid "seconds"
 msgstr "segundos"
+
+#: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Aceleración por hardware"
 
 #: slideshow_lock/preferences.py
 msgid "Transitions"
@@ -200,12 +204,12 @@ msgid "Timing"
 msgstr "Temporización"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Guardar"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Vista previa"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Guardar"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -222,6 +226,22 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr ""
+"Movimiento lento y bordes suaves en las transiciones. Desactívalo para usar "
+"la animación simple."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"No disponible: este equipo no dibuja con una tarjeta gráfica, por lo que se "
+"usa la animación simple."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

@@ -12,6 +12,10 @@ Covers the four CORE-3 acceptance criteria from the card:
 from __future__ import annotations
 
 import logging
+import os
+import re
+import subprocess
+import sys
 import time
 import warnings
 
@@ -20,6 +24,7 @@ from gi.repository import Gio, GLib
 
 from slideshow_lock import APP_ID
 from slideshow_lock.settings import (
+    BOOLEAN_DEFAULTS,
     Settings,
     default_picture_folder,
 )
@@ -71,6 +76,8 @@ def test_defaults_match_brief_section_5():
     assert settings.get_transitions() == ["ken-burns"]
     assert settings.get_transition_order() == "random"
     assert settings.get_transition_duration() == 1.0
+    # The effects of 1.0.2 are on where the machine has a GPU; without one they are off anyway.
+    assert settings.get_hardware_acceleration() is True
 
 
 # -- roundtrips -----------------------------------------------------------------
@@ -114,6 +121,103 @@ def test_pan_portrait_images_roundtrip():
     assert settings.get_pan_portrait_images() is True
     assert settings.set_pan_portrait_images(False) is True
     assert settings.get_pan_portrait_images() is False
+
+
+def test_hardware_acceleration_roundtrip():
+    settings = Settings()
+    assert settings.set_hardware_acceleration(False) is True
+    assert settings.get_hardware_acceleration() is False
+    assert settings.set_hardware_acceleration(True) is True
+    assert settings.get_hardware_acceleration() is True
+
+
+def test_hardware_acceleration_rejects_values_that_are_not_a_real_bool(caplog):
+    settings = Settings()
+    for bad in ("no", "false", 1, 0, None, [], "yes"):
+        with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
+            assert settings.set_hardware_acceleration(bad) is False
+        assert settings.get_hardware_acceleration() is True  # unchanged default
+    assert any("hardware-acceleration" in record.message for record in caplog.records)
+
+
+def test_the_boolean_defaults_of_the_code_are_those_of_the_schema():
+    """A key the installed schema lacks gets the default in ``BOOLEAN_DEFAULTS``; it must be the
+    schema's own, and every boolean getter must be in the table."""
+    settings = Settings()
+    for key, default in BOOLEAN_DEFAULTS.items():
+        assert settings._settings.get_default_value(key).get_boolean() is default, key
+    schema = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+    xml = open(os.path.join(schema, APP_ID + ".gschema.xml"), encoding="utf-8").read()
+    booleans = re.findall(r'<key name="([a-z-]+)" type="b">', xml)
+    assert sorted(booleans) == sorted(BOOLEAN_DEFAULTS)
+
+
+_OLD_SCHEMA_SCRIPT = r"""
+import logging, os, re, shutil, subprocess, sys, tempfile
+logging.basicConfig(level=logging.WARNING, stream=sys.stdout, format="LOG %(message)s")
+data, key = sys.argv[1], sys.argv[2]
+work = tempfile.mkdtemp()
+name = "io.github.trensoft.slideshowlock.gschema.xml"
+xml = open(os.path.join(data, name), encoding="utf-8").read()
+old = re.sub(r'\s*<key name="%s" type="b">.*?</key>' % re.escape(key), "", xml, flags=re.S)
+assert old != xml
+open(os.path.join(work, name), "w", encoding="utf-8").write(old)
+subprocess.run(["glib-compile-schemas", work], check=True)
+import gi
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio
+source = Gio.SettingsSchemaSource.new_from_directory(work, None, False)
+schema = source.lookup("io.github.trensoft.slideshowlock", False)
+assert not schema.has_key(key)
+from slideshow_lock.settings import Settings
+settings = Settings()
+settings._settings = Gio.Settings.new_full(schema, Gio.memory_settings_backend_new(), None)
+getter = {
+    "hardware-acceleration": (
+        settings.get_hardware_acceleration,
+        settings.set_hardware_acceleration,
+    ),
+    "pan-portrait-images": (settings.get_pan_portrait_images, settings.set_pan_portrait_images),
+    "show-screenshots": (settings.get_show_screenshots, settings.set_show_screenshots),
+    "first-run-done": (settings.get_first_run_done, settings.set_first_run_done),
+}[key]
+print("GET", getter[0]())
+print("GET AGAIN", getter[0]())
+print("SET", getter[1](True), getter[1](False), getter[1]("no"))
+print("OTHER", settings.get_slide_interval_seconds())
+print("DONE")
+"""
+
+
+@pytest.mark.spawns_processes  # glib-compile-schemas and a python of its own
+@pytest.mark.parametrize(
+    "key, default",
+    [
+        ("hardware-acceleration", True),
+        ("pan-portrait-images", False),
+        ("show-screenshots", False),
+        ("first-run-done", False),
+    ],
+)
+def test_a_boolean_key_the_schema_lacks_gives_its_default_and_does_not_abort(key, default):
+    """GLib aborts the whole process at a key the schema does not have, so this runs in a process
+    of its own: the schema of an older version, compiled without *key*."""
+    data = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    result = subprocess.run(
+        [sys.executable, "-c", _OLD_SCHEMA_SCRIPT, data, key],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    lines = result.stdout.splitlines()
+    assert "GET %s" % default in lines and "GET AGAIN %s" % default in lines
+    assert "SET False False False" in lines  # nothing can be saved to a key that is not there
+    assert "OTHER 10" in lines and lines[-1] == "DONE"
+    logged = [line for line in lines if line.startswith("LOG ") and key in line]
+    assert len(logged) >= 1 and "older schema" in logged[0]
+    assert sum("has no key" in line and "using" in line for line in logged) == 1  # once
 
 
 def test_show_screenshots_roundtrip():

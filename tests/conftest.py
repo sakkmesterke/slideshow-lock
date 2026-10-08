@@ -75,6 +75,7 @@ os.environ["GSETTINGS_BACKEND"] = "memory"
 # constructing a `Settings()` is what triggers GLib's first (and only)
 # resolution of the default schema source / backend.
 from slideshow_lock.settings import (  # noqa: E402
+    KEY_HARDWARE_ACCELERATION,
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_ORDER,
@@ -101,6 +102,7 @@ _ALL_SETTINGS_KEYS = [
     KEY_TRANSITIONS,
     KEY_TRANSITION_ORDER,
     KEY_TRANSITION_DURATION,
+    KEY_HARDWARE_ACCELERATION,
 ]
 
 
@@ -120,6 +122,19 @@ def _reset_gsettings_between_tests():
     settings = Settings()
     for key in _ALL_SETTINGS_KEYS:
         settings._settings.reset(key)
+
+
+@pytest.fixture(autouse=True)
+def _forget_the_effects_between_tests():
+    """The process-wide ``Effects`` (the machine's decision, the guard, the settings switch it
+    follows) is made again by the next test that asks for it: a switch given by one test's settings
+    must not decide the drawing in another."""
+    yield
+    import sys
+
+    module = sys.modules.get("slideshow_lock.preview_window")
+    if module is not None:
+        module._effects = None
 
 
 #: Python-level ways to start a program or to reach a bus. The slideshow preview never locks

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:55+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Latvian\n"
@@ -164,6 +164,10 @@ msgid "seconds"
 msgstr "sekundes"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "Aparatūras paātrinājums"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Pārejas"
 
@@ -200,12 +204,12 @@ msgid "Timing"
 msgstr "Ilgumi"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Saglabāt"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Priekšskatījums"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "Saglabāt"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -222,6 +226,22 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr ""
+"Lēna kustība un mīkstas malas pārejās. Izslēdziet, lai izmantotu vienkāršo "
+"animāciju."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"Nav pieejams: šis dators nezīmē ar grafisko karti, tāpēc tiek izmantota "
+"vienkāršā animācija."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

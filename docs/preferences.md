@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Save button next to the Preview button at the bottom. Run it from a source checkout:
+A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Save button next to the Preview button at the bottom and the program's version, small and faint, at the bottom right. The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -23,6 +23,7 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Show screenshots | `show-screenshots` | on, off (off by default): off leaves screenshots out of the slideshow by their names, as a convenience and not a privacy control (a renamed screenshot, or a link of another name to a screenshot folder, is shown), see `docs/image-source.md`, "Screenshots" |
 | Between pictures (drop-down, in the Transitions group) | `transitions`, `transition-order` | none (an empty list); one of the ten: cross-fade (`crossfade`), fade through black (`fade-black`), slide in (`slide-in`), push (`push`), Ken Burns (`ken-burns`, the default), zoom (`zoom`), wipe (`wipe`), circle reveal (`circle`), blur (`blur`), rotate (`rotate`); or the random mix (see below) |
 | Transition length (slider with the value on its left, in the Transitions group) | `transition-duration` | 0.2 to 5.0 seconds, in steps of 0.1 (1.0 by default); the same for every transition |
+| Hardware acceleration (switch, last row of the Transitions group) | `hardware-acceleration` | on, off (on by default): on draws the effects of 1.0.2 (the slow move of the pictures, soft edges) where the machine is known to draw with a GPU; off draws the plain animation of 1.0.1. Without a GPU (or where that cannot be found out) the switch is greyed out and shown off, the stored value is kept, and the plain animation is drawn whatever it says. A change applies from the next picture. Also with the switch on: if the display's frames come slower than 25 ms (median of 20 frames, per screen; e.g. a 30 Hz display or a throttled compositor), the program draws the plain animation for the rest of the process, whatever the switch says, and the window does not show it; the 25 ms budget is provisional (not measured). See `docs/preview.md` |
 
 "Preview" runs the CORE-2 preview (`preview_app.start_preview`) on the values in the window, saved
 or not (see "Save" below), in the same process. It never locks (D11); any key, click, scroll or mouse movement ends it, and

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Hebrew\n"
@@ -165,6 +165,10 @@ msgid "seconds"
 msgstr "שניות"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "האצת חומרה"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "מעברים"
 
@@ -201,12 +205,12 @@ msgid "Timing"
 msgstr "תזמון"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "שמירה"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "תצוגה מקדימה"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "שמירה"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -223,6 +227,20 @@ msgstr "1 שע׳"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 שע׳"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr "תנועה איטית וקצוות רכים במעברים. כבו אותו לקבלת האנימציה הפשוטה."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"לא זמין: המחשב הזה אינו מצייר באמצעות כרטיס מסך, ולכן נעשה שימוש באנימציה "
+"הפשוטה."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

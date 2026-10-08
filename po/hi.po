@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 05:10+0000\n"
+"POT-Creation-Date: 2026-10-07 23:01+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Hindi\n"
@@ -165,6 +165,10 @@ msgid "seconds"
 msgstr "सेकंड"
 
 #: slideshow_lock/preferences.py
+msgid "Hardware acceleration"
+msgstr "हार्डवेयर त्वरण"
+
+#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "ट्रांज़िशन"
 
@@ -201,12 +205,12 @@ msgid "Timing"
 msgstr "समय-निर्धारण"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "सहेजें"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "पूर्वावलोकन"
+
+#: slideshow_lock/preferences.py
+msgid "Save"
+msgstr "सहेजें"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
@@ -223,6 +227,20 @@ msgstr "1 घं."
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 घं."
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Slow movement and soft edges in the transitions. Turn it off for the plain "
+"animation."
+msgstr "ट्रांज़िशन में धीमी गति और मुलायम किनारे। सादे एनिमेशन के लिए इसे बंद करें।"
+
+#: slideshow_lock/preferences.py
+msgid ""
+"Not available: this computer does not draw with a graphics card, so the "
+"plain animation is used."
+msgstr ""
+"उपलब्ध नहीं: यह कंप्यूटर ग्राफ़िक्स कार्ड से ड्रॉइंग नहीं करता, इसलिए सादा एनिमेशन इस्तेमाल "
+"हो रहा है।"
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"
