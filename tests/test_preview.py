@@ -1775,6 +1775,61 @@ def test_every_transition_has_the_one_stored_length(tmp_path, backends):
 
 
 def test_a_short_interval_cuts_the_transition_to_half_of_it(tmp_path, backends):
+def appearances(r, window=0, steps=5, step=0.05):
+    """``(time, transition)`` of every picture that comes on window *window* after the first, for
+    *steps* intervals of slideshow time run in *step* seconds. The time is the clock's at the very
+    call of ``show_frame``, so it is exactly where the timer fired."""
+    seen = []
+    target = r.windows[window]
+    shown = target.show_frame
+
+    def record(frame, pan_seconds, transition=None):
+        shown(frame, pan_seconds, transition)
+        seen.append((round(r.clock.now(), 6), transition))
+
+    target.show_frame = record
+    for _ in range(int(round(steps * float(r.settings.get_slide_interval_seconds()) / step))):
+        r.tick(step)
+    return seen
+
+
+@pytest.mark.parametrize(
+    "interval, duration, seconds",
+    [(10, 1.0, 1.0), (10, 0.2, 0.2), (4, 1.0, 1.0), (2, 5.0, 1.0), (1, 0.4, 0.4), (1, 5.0, 0.5)],
+)
+def test_the_cycle_is_the_display_time_and_the_transition_is_its_last_seconds(
+    tmp_path, backends, interval, duration, seconds
+):
+    """The whole cycle is the display time, not the display time plus the transition: a picture
+    comes in (its transition begins) every *interval* seconds, the transition takes *seconds* (the
+    setting, cut to half of the interval: a transition as long as the display time or longer is
+    that half) and ends at once the next cycle's fully shown stretch begins. Counted from the
+    moment a picture is fully shown (its transition over), its display time is *interval* seconds
+    and the next transition begins exactly *seconds* before the end of it."""
+    r = transition_rig(tmp_path, backends, interval=interval, duration=duration)
+    seen = appearances(r, steps=5)
+    assert len(seen) >= 4
+    times = [moment for moment, _transition in seen]
+    assert [round(b - a, 6) for a, b in zip(times, times[1:])] == [float(interval)] * (
+        len(times) - 1
+    )  # the cycle: one picture every `interval` seconds, nothing added for the transition
+    assert all(transition == ("crossfade", seconds) for _moment, transition in seen)
+    for (begins, _), (next_begins, _) in zip(seen, seen[1:]):
+        fully_shown = begins + seconds
+        display_ends = fully_shown + interval
+        assert next_begins == pytest.approx(display_ends - seconds)  # `seconds` before its end
+        assert next_begins + seconds == pytest.approx(display_ends)  # fully in as it ends
+
+
+def test_a_transition_as_long_as_the_display_time_is_half_of_it_and_the_cycle_stays(
+    tmp_path, backends
+):
+    r = transition_rig(tmp_path, backends, interval=3, duration=3.0)
+    seen = appearances(r, steps=4)
+    assert [transition for _moment, transition in seen] == [("crossfade", 1.5)] * len(seen)
+    assert [round(b[0] - a[0], 6) for a, b in zip(seen, seen[1:])] == [3.0] * (len(seen) - 1)
+
+
     r = transition_rig(tmp_path, backends, interval=1)
     r.tick(1)
     assert r.windows[0].transitions[-1] == ("crossfade", 0.5)
