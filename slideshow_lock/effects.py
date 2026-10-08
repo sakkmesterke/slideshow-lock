@@ -276,8 +276,14 @@ class Effects:
         """The frame clock's time of a frame drawn with the effects: the guard of the drawing time.
         *source* says whose clock it is (the canvas of one monitor): every source has its own
         intervals, only the decision to take the effects away is for the process. Not called, or no
-        effect, while the effects are off."""
-        if self._decision is None or not self._decision.full or self._tripped is not None:
+        effect, while the effects are off (the switch included: the drawing is then the plain one,
+        and its frames say nothing about the effects)."""
+        if (
+            self._decision is None
+            or not self._decision.full
+            or not self._wanted
+            or self._tripped is not None
+        ):
             return
         timer = self._timers.get(source)
         if timer is None:
