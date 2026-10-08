@@ -404,7 +404,7 @@ class _Canvas(Gtk.Widget):
 
     def _sync(self, clock) -> None:
         self._now = clock.get_frame_time()
-        effects().frame(self._now)  # the guard of the drawing time
+        effects().frame(self._now, id(self))  # the guard of the drawing time, this canvas's clock
         if self._move is not None and not full_effects(self):
             self._move = None  # the guard took the effects away: the picture stands still
         for move in (self._move, self._old_move):
