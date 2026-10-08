@@ -409,7 +409,7 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # owner of both folders and removes them with the files
 
 %changelog
-* Thu Oct 08 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.6-1
+* Fri Oct 09 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.6-1
 - The seven sample pictures no longer carry the colour profiles (ICC) that someone else wrote; the
   author and the licence stay in each picture, and the author is named "TrenSoft"
 - The address of the project is github.com/trensoft/slideshow-lock (the package URL, the AppStream
