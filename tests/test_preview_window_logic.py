@@ -824,6 +824,71 @@ def test_the_transitions_ticks_feed_the_guard_too(monkeypatch):
     assert preview_window.effects().tripped is not None
 
 
+def counting_draws(monkeypatch):
+    draws = []
+    monkeypatch.setattr(_Canvas, "queue_draw", lambda self: draws.append(1))
+    return draws
+
+
+def test_a_move_that_has_run_its_span_is_drawn_the_last_time_and_its_tick_ends(monkeypatch):
+    """A picture that stands on after its move (a folder of one): at 5 s a picture the move lasts
+    7.5 s; from then on the pose is the same and nothing is drawn (the battery)."""
+    window, _calls = guarded_canvas(monkeypatch)
+    window.set_frame(flat_frame("a.png"), 5.0)
+    draws = counting_draws(monkeypatch)
+    span = window._move.span
+    assert span == 7.5
+    ticks = 0
+    while True:
+        ticks += 1
+        result = window._on_move_tick(None, _Clock(ticks / 60.0))
+        if result == GLib.SOURCE_REMOVE:
+            break
+        assert ticks < 600  # it has to end
+    assert ticks == round(span * 60) + 1  # its clock starts at the first tick; it ends at the span
+    assert len(draws) == ticks  # every tick drew, the last one is the pose it stays in
+    assert window._move_tick_id == 0 and window._move is not None
+    assert window._move.over(window._now)
+    assert preview_window.effects().tripped is None
+
+
+def test_the_same_picture_again_after_its_move_has_ended_starts_nothing(monkeypatch):
+    window, calls = guarded_canvas(monkeypatch)
+    frame = flat_frame("a.png")
+    window.set_frame(frame, 5.0)
+    window._on_move_tick(None, _Clock(1.0))
+    assert window._on_move_tick(None, _Clock(9.0)) == GLib.SOURCE_REMOVE
+    draws = counting_draws(monkeypatch)
+    del calls[:]
+    window.set_frame(frame, 5.0)  # a folder of one: the very same frame again
+    assert "tick" not in calls  # no new tick: the picture stands in its last pose
+    assert window._move is not None and window._move_tick_id == 0
+    assert len(draws) == 1  # the one draw of set_frame itself
+
+
+def test_a_move_that_is_not_over_goes_on_ticking(monkeypatch):
+    window, _calls = guarded_canvas(monkeypatch)
+    for k in range(1, 30):
+        assert window._on_move_tick(None, _Clock(k / 60.0)) == GLib.SOURCE_CONTINUE
+    assert not window._move.over(window._now)
+
+
+def test_the_move_tick_leaves_the_drawing_to_a_running_transition(monkeypatch):
+    """The two ticks are on the same frame clock; the transition's draws the frame, a second
+    request for it is no more drawn and is not made."""
+    window, _calls = guarded_canvas(monkeypatch)
+    window.set_frame(flat_frame("b.png"), 20.0, ("wipe", 5.0))
+    assert window._run is not None
+    draws = counting_draws(monkeypatch)
+    assert window._on_move_tick(None, _Clock(0.1)) == GLib.SOURCE_CONTINUE
+    assert draws == []
+    assert window._on_transition_tick(None, _Clock(0.1)) == GLib.SOURCE_CONTINUE
+    assert len(draws) == 1  # one request for the frame
+    window._end_transition()
+    assert window._on_move_tick(None, _Clock(0.12)) == GLib.SOURCE_CONTINUE
+    assert len(draws) == 2  # the transition is over: the move draws again
+
+
 def test_every_canvas_feeds_the_guard_with_its_own_clock(monkeypatch):
     """Two monitors at 30 Hz, the second half a period later: mixed they would look like 60 Hz."""
     first, _calls = guarded_canvas(monkeypatch)

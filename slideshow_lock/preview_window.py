@@ -18,7 +18,8 @@ until the transition that takes it away has finished it moves slowly (``_Move``,
 ``transition_draw.base_pose``: a Ken Burns zoom and drift if it fills the window, a gentle zoom if
 it does not), also under a transition, as the incoming and as the outgoing picture. So it is
 always drawn through the transform and not 1:1; the move is redrawn at every frame of the frame
-clock, as a transition is. Anywhere else, or once the frame clock's ticks have shown that the
+clock, as a transition is, until it has run its span (then the picture stands in its last pose and
+nothing is drawn more). Anywhere else, or once the frame clock's ticks have shown that the
 machine does not keep up, the drawing is the plain one of 1.0.1: no move, hard edges
 (``transition_draw.compose_plain``).
 
@@ -118,6 +119,12 @@ class _Move:
         self.span = span
         self.frame_size = frame_size
         self.born: Optional[int] = None  # the frame clock's time, microseconds
+
+    def over(self, now: Optional[int]) -> bool:
+        """True once the move has run its ``span``: the pose stays what it is from then on."""
+        if self.born is None or now is None:
+            return False
+        return (now - self.born) / 1_000_000 >= self.span
 
     def pose(self, now: Optional[int], width: float, window_size: Tuple[int, int]) -> Pose:
         age = 0.0 if now is None or self.born is None else max(0, now - self.born) / 1_000_000
@@ -393,13 +400,19 @@ class _Canvas(Gtk.Widget):
 
     def _on_move_tick(self, _widget, clock) -> bool:
         """Keeps the clock of the slow move and redraws it at every frame (the move is as smooth
-        as the screen allows, as in a transition)."""
+        as the screen allows, as in a transition). A running transition draws the frame itself
+        (its tick is on the same clock); a move that has run its span is drawn the last time and
+        its tick ends: a picture that stands on (a folder of one) draws nothing more."""
         self._sync(clock)
         if self._move is None:  # the guard of the drawing time took the effects away
             self._move_tick_id = 0
             self.queue_draw()
             return GLib.SOURCE_REMOVE
-        self.queue_draw()
+        if self._run is None:
+            self.queue_draw()
+        if self._move.over(self._now):
+            self._move_tick_id = 0
+            return GLib.SOURCE_REMOVE
         return GLib.SOURCE_CONTINUE
 
     def _sync(self, clock) -> None:
