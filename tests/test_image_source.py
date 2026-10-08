@@ -937,6 +937,30 @@ def test_random_order_deleting_pictures_while_showing_does_not_fail(tmp_path, ba
     assert min(_gaps(shown[1:])) >= 1
 
 
+@pytest.mark.parametrize("seed", range(100))
+def test_random_order_the_successor_of_a_deleted_picture_keeps_the_gap_too(
+    tmp_path, backends, seed
+):
+    """The picture at the cursor is deleted, so the one after it takes its place. It has to be
+    kept apart from the last pictures shown like any other (it was not: just after a cycle
+    boundary the successor was often one of the last three shown)."""
+    count = 10
+    paths = [make_image(tmp_path / f"{n}.png") for n in range(count)]
+    src = started(tmp_path, backends, order="random", rng=random.Random(seed))
+    left = []  # the pictures the cursor has left, oldest first
+    for _ in range(count):
+        left.append(src.current())
+        src.advance()
+    while src.images().index(src.current()) != 0:  # stand on the first picture of a cycle
+        left.append(src.current())
+        src.advance()
+    doomed = src.current()
+    os.remove(doomed)
+    backends[0].emit(doomed, FsEvent.DELETED)
+    assert src.current() not in left[-3:]
+    assert doomed not in src.images() and len(src.images()) == len(paths) - 1
+
+
 def test_name_order_inserting_before_the_displayed_image_keeps_the_display_stable(
     tmp_path, backends
 ):
