@@ -1,0 +1,9 @@
+# rpmlint filters of slideshow-lock. Use it with:
+#   rpmlint --rpmlintrc packaging/fedora/slideshow-lock.rpmlintrc slideshow-lock.spec <the .src.rpm> <the .noarch.rpm>
+#
+# libadwaita is not a library that rpm can find by itself: the program loads the typelib Adw-1 (a
+# file of the package libadwaita) through PyGObject, gi.require_version("Adw", "1"). No repository of
+# Fedora 43/44, CentOS Stream 10 or EPEL 10 has a typelib(...) provide that could be required instead
+# (spec, "Requires: libadwaita"), so the package name is the only way to depend on it. rpmlint
+# (TagsCheck) only looks at the name: a Requires that starts with "lib" is an explicit-lib-dependency.
+addFilter(r"explicit-lib-dependency libadwaita$")
