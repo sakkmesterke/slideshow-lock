@@ -490,6 +490,24 @@ def test_a_switch_that_cannot_be_read_leaves_the_last_value():
     assert effects.apply_switch() is True
 
 
+def test_the_guard_measures_nothing_while_the_switch_is_off():
+    """On a GPU machine, the switch off: the drawing is the plain one, its slow frames are not the
+    effects' and must not take them away for the rest of the process."""
+    effects = Effects({}, budget_ms=25.0, frames=10)
+    switch = Switch(False)
+    effects.follow(switch)
+    assert effects.full(reader(GPU)) is False  # the machine is known, the switch is off
+    end = run_frames(effects, 60.0, 100)
+    assert effects.tripped is None
+    switch.value = True
+    effects.apply_switch()
+    assert effects.full(reader(GPU)) is True  # still has them to give
+    run_frames(effects, 16.7, 100, start_ms=end + 1000.0)
+    assert effects.tripped is None
+    run_frames(effects, 60.0, 20, start_ms=end + 5000.0)  # the guard works again with the switch on
+    assert effects.tripped is not None and effects.full(reader(GPU)) is False
+
+
 def test_the_switch_does_not_decide_the_machine(caplog):
     """Switched off, the renderer is still read and the decision logged: the settings window asks
     ``available`` whatever the switch says."""
