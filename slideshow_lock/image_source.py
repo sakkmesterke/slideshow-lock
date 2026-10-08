@@ -519,7 +519,7 @@ class ImageSource:
         smaller (the largest distance there is; one picture is shown again and again). There is
         always a picture to swap with: the window is smaller than the folder."""
         gap = min(REPEAT_GAP, len(self._play) - 1)
-        window = set(list(self._recent)[len(self._recent) - gap :]) if gap > 0 else set()
+        window = set(list(self._recent)[-gap:]) if gap > 0 else set()
         if self._play[self._pos] not in window:
             return
         later = [i for i in range(self._pos + 1, len(self._play)) if self._play[i] not in window]

@@ -371,6 +371,24 @@ def test_ac1_a_changed_order_applies_to_the_pictures_after_the_prepared_one(tmp_
         assert name not in shown[max(0, index - 3) : index]
 
 
+@pytest.mark.parametrize("seed", range(500))
+def test_ac1_a_changed_order_never_brings_a_shown_picture_back_within_three(
+    tmp_path, backends, seed
+):
+    """Switching to random order in the middle of a run (``set_order``) shuffles the queue anew;
+    a picture shown just before must still not come back with fewer than three others between
+    (a seeded random generator, so every seed is the same run every time)."""
+    files = [f"p{i}.png" for i in range(8)]
+    r = rig(tmp_path, backends, files, order="name", rng=random.Random(seed))
+    r.source.set_order("random")
+    for _ in range(12):
+        r.tick(10)
+    shown = r.windows[0].shown()
+    assert len(shown) == 13
+    for index, name in enumerate(shown):
+        assert name not in shown[max(0, index - 3) : index], (seed, shown)
+
+
 # -- AC2/AC3: scaling mode and pan come from the settings, live ----------------------------------
 
 
