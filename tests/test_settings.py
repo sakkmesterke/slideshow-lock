@@ -76,8 +76,6 @@ def test_defaults_match_brief_section_5():
     assert settings.get_transitions() == ["ken-burns"]
     assert settings.get_transition_order() == "random"
     assert settings.get_transition_duration() == 1.0
-    # The effects of 1.0.2 are on where the machine has a GPU; without one they are off anyway.
-    assert settings.get_hardware_acceleration() is True
 
 
 # -- roundtrips -----------------------------------------------------------------
@@ -123,23 +121,6 @@ def test_pan_portrait_images_roundtrip():
     assert settings.get_pan_portrait_images() is False
 
 
-def test_hardware_acceleration_roundtrip():
-    settings = Settings()
-    assert settings.set_hardware_acceleration(False) is True
-    assert settings.get_hardware_acceleration() is False
-    assert settings.set_hardware_acceleration(True) is True
-    assert settings.get_hardware_acceleration() is True
-
-
-def test_hardware_acceleration_rejects_values_that_are_not_a_real_bool(caplog):
-    settings = Settings()
-    for bad in ("no", "false", 1, 0, None, [], "yes"):
-        with caplog.at_level(logging.WARNING, logger="slideshow_lock.settings"):
-            assert settings.set_hardware_acceleration(bad) is False
-        assert settings.get_hardware_acceleration() is True  # unchanged default
-    assert any("hardware-acceleration" in record.message for record in caplog.records)
-
-
 def test_the_boolean_defaults_of_the_code_are_those_of_the_schema():
     """A key the installed schema lacks gets the default in ``BOOLEAN_DEFAULTS``; it must be the
     schema's own, and every boolean getter must be in the table."""
@@ -173,10 +154,6 @@ from slideshow_lock.settings import Settings
 settings = Settings()
 settings._settings = Gio.Settings.new_full(schema, Gio.memory_settings_backend_new(), None)
 getter = {
-    "hardware-acceleration": (
-        settings.get_hardware_acceleration,
-        settings.set_hardware_acceleration,
-    ),
     "pan-portrait-images": (settings.get_pan_portrait_images, settings.set_pan_portrait_images),
     "show-screenshots": (settings.get_show_screenshots, settings.set_show_screenshots),
     "first-run-done": (settings.get_first_run_done, settings.set_first_run_done),
@@ -193,7 +170,6 @@ print("DONE")
 @pytest.mark.parametrize(
     "key, default",
     [
-        ("hardware-acceleration", True),
         ("pan-portrait-images", False),
         ("show-screenshots", False),
         ("first-run-done", False),
@@ -574,3 +550,93 @@ def test_the_schema_holds_the_duration_to_its_range():
     assert schema.get_key("transition-duration").get_range().unpack() == ("range", (0.2, 5.0))
     assert schema.get_key("transition-duration").get_default_value().unpack() == 1.0
     assert schema.get_key("slide-interval-seconds").get_default_value().unpack() == 10
+
+
+# -- new defaults reach only the keys the user never set ------------------------------------------
+
+_NEW_DEFAULTS = {
+    "slide-interval-seconds": 10,
+    "transitions": ["ken-burns"],
+    "transition-duration": 1.0,
+}
+
+
+def _old_defaults_schema(tmp_path):
+    """The schema of this tree with other defaults for the three timing keys (what an older
+    release would have had), compiled into *tmp_path*; the keys, their types and ranges are the
+    same."""
+    data = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+    name = APP_ID + ".gschema.xml"
+    xml = open(os.path.join(data, name), encoding="utf-8").read()
+    for key, old in (
+        ("slide-interval-seconds", "5"),
+        ("transitions", "['crossfade']"),
+        ("transition-duration", "2.0"),
+    ):
+        pattern = r'(<key name="%s"[^>]*>.*?<default>)[^<]*(</default>)' % re.escape(key)
+        xml, count = re.subn(
+            pattern, lambda m, old=old: m.group(1) + old + m.group(2), xml, 1, re.S
+        )
+        assert count == 1, key
+    (tmp_path / name).write_text(xml, encoding="utf-8")
+    subprocess.run(["glib-compile-schemas", str(tmp_path)], check=True, capture_output=True)
+    source = Gio.SettingsSchemaSource.new_from_directory(str(tmp_path), None, False)
+    return source.lookup(APP_ID, False)
+
+
+def _settings_on(schema, backend):
+    settings = Settings()
+    settings._settings = Gio.Settings.new_full(schema, backend, None)
+    return settings
+
+
+@pytest.mark.spawns_processes  # glib-compile-schemas
+def test_a_changed_default_reaches_only_the_keys_the_user_never_set(tmp_path):
+    """The program is updated: its schema now says Ken Burns, 10 s and 1.0 s where the schema of
+    the old version said cross-fade, 5 s and 2.0 s. Over one store (dconf keeps only what a user
+    set) a key the user never set follows the new default, and a key the user set keeps their
+    value, also one that was set to exactly the old default."""
+    old_schema = _old_defaults_schema(tmp_path)
+    real_schema = Settings()._settings.props.settings_schema
+    backend = Gio.memory_settings_backend_new()
+    before, after = _settings_on(old_schema, backend), _settings_on(real_schema, backend)
+    assert before.get_slide_interval_seconds() == 5  # the old defaults, as the old version saw them
+    assert before.get_transitions() == ["crossfade"] and before.get_transition_duration() == 2.0
+    assert after.get_slide_interval_seconds() == 10  # nothing set: all three follow the new ones
+    assert after.get_transitions() == ["ken-burns"] and after.get_transition_duration() == 1.0
+
+    assert before.set_slide_interval_seconds(5)  # set, and to the old default exactly
+    assert before.set_transition_duration(3.0)
+    assert after.get_slide_interval_seconds() == 5  # the user's own value, not the new default
+    assert after.get_transition_duration() == 3.0
+    assert after.get_transitions() == ["ken-burns"]  # never set: the new default
+
+
+def test_the_defaults_of_the_three_timing_keys_are_ken_burns_ten_seconds_and_one_second():
+    settings = Settings()
+    for key, value in _NEW_DEFAULTS.items():
+        assert settings._settings.get_default_value(key).unpack() == value, key
+    assert settings.get_slide_interval_seconds() == 10
+    assert settings.get_transitions() == ["ken-burns"]
+    assert settings.get_transition_duration() == 1.0
+
+
+def test_nothing_that_starts_the_program_or_opens_a_window_writes_a_default():
+    """The only code that stores the timing keys is ``PreferencesModel`` (reached from the window
+    after the user changed a field) and ``Settings`` itself; the service, the control program, the
+    preview and the window's own start-up never call a setter of them, so no default is turned
+    into a value the user set (which a later change of the default could not reach)."""
+    package = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "slideshow_lock"
+    )
+    setters = re.compile(
+        r"\.(set_slide_interval_seconds|set_transitions|set_transition_order"
+        r"|set_transition_duration)\("
+    )
+    callers = {}
+    for name in sorted(os.listdir(package)):
+        if name.endswith(".py"):
+            text = open(os.path.join(package, name), encoding="utf-8").read()
+            if setters.search(text):
+                callers[name] = len(setters.findall(text))
+    assert set(callers) == {"preferences_model.py"}, callers

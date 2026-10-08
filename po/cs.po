@@ -163,10 +163,6 @@ msgid "seconds"
 msgstr "sekund"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Hardwarová akcelerace"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Přechody"
 
@@ -207,10 +203,6 @@ msgid "Preview"
 msgstr "Náhled"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Uložit"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 s"
 
@@ -225,21 +217,6 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Pomalý pohyb a měkké okraje v přechodech. Pro jednoduchou animaci to vypněte."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Nedostupné: tento počítač nekreslí pomocí grafické karty, proto se používá "
-"jednoduchá animace."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

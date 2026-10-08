@@ -165,10 +165,6 @@ msgid "seconds"
 msgstr "секунд"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Апаратне прискорення"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Переходи"
 
@@ -209,10 +205,6 @@ msgid "Preview"
 msgstr "Попередній перегляд"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Зберегти"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 с"
 
@@ -227,21 +219,6 @@ msgstr "1 год"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 год"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Повільний рух і м’які краї в переходах. Вимкніть для звичайної анімації."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Недоступно: цей комп’ютер не малює за допомогою відеокарти, тому "
-"використовується звичайна анімація."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

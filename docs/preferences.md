@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Save button next to the Preview button at the bottom and the program's version, small and faint, at the bottom right. The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
+A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Preview button at the bottom and the program's version, small and faint, at the bottom right. Every change is saved the moment it is made: there is no Save button. The groups sit in two columns and nothing scrolls: the whole window shows at its natural size, about 1100 x 680 pixels, which fits a 1366 x 768 screen (`tools/wayland-smoke/smoke_preferences.py` measures it with `--monitors 1366x768,...`). The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -23,10 +23,9 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 | Show screenshots | `show-screenshots` | on, off (off by default): off leaves screenshots out of the slideshow by their names, as a convenience and not a privacy control (a renamed screenshot, or a link of another name to a screenshot folder, is shown), see `docs/image-source.md`, "Screenshots" |
 | Between pictures (drop-down, in the Transitions group) | `transitions`, `transition-order` | none (an empty list); one of the ten: cross-fade (`crossfade`), fade through black (`fade-black`), slide in (`slide-in`), push (`push`), Ken Burns (`ken-burns`, the default), zoom (`zoom`), wipe (`wipe`), circle reveal (`circle`), blur (`blur`), rotate (`rotate`); or the random mix (see below) |
 | Transition length (slider with the value on its left, in the Transitions group) | `transition-duration` | 0.2 to 5.0 seconds, in steps of 0.1 (1.0 by default); the same for every transition |
-| Hardware acceleration (switch, last row of the Transitions group) | `hardware-acceleration` | on, off (on by default): on draws the effects of 1.0.2 (the slow move of the pictures, soft edges) where the machine is known to draw with a GPU; off draws the plain animation of 1.0.1. Without a GPU (or where that cannot be found out) the switch is greyed out and shown off, the stored value is kept, and the plain animation is drawn whatever it says. A change applies from the next picture. Also with the switch on: if the display's frames come slower than 25 ms (median of 20 frames, per screen; e.g. a 30 Hz display or a throttled compositor), the program draws the plain animation for the rest of the process, whatever the switch says, and the window does not show it; the 25 ms budget is provisional (not measured). See `docs/preview.md` |
 
-"Preview" runs the CORE-2 preview (`preview_app.start_preview`) on the values in the window, saved
-or not (see "Save" below), in the same process. It never locks (D11); any key, click, scroll or mouse movement ends it, and
+"Preview" runs the CORE-2 preview (`preview_app.start_preview`) on the values in the window, which
+are the stored ones (see "Saved at once" below), in the same process. It never locks (D11); any key, click, scroll or mouse movement ends it, and
 closing the window ends it too. While it shows, the window's `Gtk.Application` holds an idle
 request for it, so the desktop's own idle delay does not blank the screen under the preview; it is
 given back whichever way the preview ends (`docs/preview.md`, section 2.1). While it holds the
@@ -36,8 +35,9 @@ The exception is a session manager that never answers the request: the call has 
 the settings window freezes with it, and the limit cannot end the preview then
 (`docs/preview.md`, section 2.1).
 Each "Preview" click makes its own `Settings` object and wraps it in
-`preview_app.SessionSettings` with the edits that are not saved yet (`Draft.preview_values`): the
-image source and the preview read those values, and nothing is written. The image source and the
+`preview_app.SessionSettings` (with nothing to replace: no edit is left unsaved, `Draft.preview_values`
+is empty; a folder typed and not yet confirmed is stored first): the image source and the preview
+read the stored values, and the preview writes nothing. The image source and the
 preview controller each keep a change listener on it, and both are dropped (`Settings.disconnect_changed`) when the
 preview ends, whichever way: input, the time limit, the window closing, no monitor, or a start
 that failed. The window's own change listener is not part of that: it stays on the window's own
@@ -47,22 +47,21 @@ There is no on/off switch: that goes through the systemd user unit
 
 ## How it behaves
 
-- **Save.** An edit is checked when it is made and kept in a draft (`preferences_model.Draft`); the
-  service keeps running on what is stored. It reaches the settings when the user presses "Save"
-  (the button sits right after "Preview" at the bottom of the window) and when the window is
-  closed, without a question (the close writes what Save would). The Save button is on only while
-  something would change: it is grey when the window opens and after a save, and an edit that
-  brings a field back to the stored value is dropped, which greys it again. Only the edited keys are written, so a stored value the window
-  cannot show as it is (a slide interval that is not a step, a list of several transitions) is not
-  rewritten by saving something else. If a value cannot be stored (the settings refuse it, or it does
-  not read back), "Save" says so in the status line and keeps the edit; the close logs it and closes
-  all the same (it cannot ask, and a window that will not close is worse). Before this change every
-  field was written the moment it changed; that is gone, so a change made in the window no longer
-  reaches the running service until Save or the close.
-- **Preview** runs on the values in the window, saved or not, and stores none of them.
+- **Saved at once.** There is no Save button, and no draft the user can see: every edit is checked
+  when it is made (`preferences_model.Draft`) and stored right after (`PreferencesWindow._report`),
+  so the running service follows the window. This is how the window saved in 1.0.0; 1.0.1 added the
+  Save button and the draft, and 1.0.4 took the button away again and kept the checks. A number
+  field, a drop-down, a switch, the slider and the length slider store when their value changes; the
+  folder field stores when it is left or Enter is pressed (not at every key), and the folder chosen
+  in the chooser at once. Only the edited key is written, so a stored value the window cannot show as
+  it is (a slide interval that is not a step, a list of several transitions) is not rewritten by
+  changing something else. If a value cannot be stored (the settings refuse it, or it does not read
+  back), the status line says so, the edit is thrown away and the fields go back to the stored values.
+  Closing the window stores a folder that was typed and not confirmed (and logs a value that could
+  not be stored); it asks nothing.
+- **Preview** runs on the values in the window, which are the stored ones, and stores nothing.
 - The window says "Saved." only for a value that is stored and reads back as written. A refused
-  value is not kept, the field goes back to the value in effect (the draft's, otherwise the stored
-  one), and the status line says why.
+  value is not kept, the field goes back to the stored value, and the status line says why.
 - The slide interval is one slider with a big HH:MM:SS (`00:00:10`) and a short text (`10 s`) above
   it, updated while the slider moves. The default is 10 seconds (it was 5 before 1.0.1). The slider is cut into four equal
   quarters of its length, 36 steps in all, and each quarter has its steps spread evenly:
@@ -120,7 +119,7 @@ There is no on/off switch: that goes through the systemd user unit
   exist; a missing folder is not an error. A relative path and a path
   that is a file are refused. Clearing the field and saving stores the empty value again, which
   means "the default" (the system's pictures folder, not a folder that was typed earlier).
-- A value changed by another process shows up in the window; an edit that is not saved yet stays.
+- A value changed by another process shows up in the window.
 - "Start the slideshow after" and "Lock grace period" are number fields with the word "seconds"
   next to them (`_with_unit` in `preferences.py`; read from the source, not looked at on a real
   screen).
@@ -131,8 +130,8 @@ There is no on/off switch: that goes through the systemd user unit
   accepted, what is shown, and whether a save really happened. `tests/test_preferences_model.py`
   tests it in the CI, including that its ranges and choices are the schema's.
 - `slideshow_lock/preferences.py` puts it on the screen with libadwaita, and only what exists in
-  libadwaita 1.2: `Adw.ApplicationWindow`, `HeaderBar`, `PreferencesPage` and `PreferencesGroup`,
-  `ActionRow`, `ComboRow`, `EntryRow`. That is what the window was run with here (Adw 1.2.2, GTK
+  libadwaita 1.2: `Adw.ApplicationWindow`, `HeaderBar`, `PreferencesGroup` (in two `Adw.Clamp`ed
+  columns, no `PreferencesPage`: it scrolls), `ActionRow`, `ComboRow`, `EntryRow`. That is what the window was run with here (Adw 1.2.2, GTK
   4.8.3), and what the libadwaita of EL10 (1.6) has as well; `SwitchRow`, `SpinRow`, `ToolbarView`
   and `Adw.PreferencesDialog` are newer and not used. The window needs the `Adw` typelib
   (`gir1.2-adw-1`, `libadwaita`). The folder chooser is `Gtk.FileChooserNative`; `Gtk.FileDialog`

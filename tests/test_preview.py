@@ -234,9 +234,6 @@ class FakeSettings:
     def get_transition_duration(self):
         return self.values[KEY_TRANSITION_DURATION]
 
-    def get_hardware_acceleration(self):
-        return True
-
     def connect_changed(self, callback):
         self._callbacks.append(callback)
 
@@ -365,7 +362,13 @@ def test_ac1_a_changed_order_applies_to_the_pictures_after_the_prepared_one(tmp_
         r.tick(10)
     shown = r.windows[0].shown()
     assert shown[0] == "p0.png"
-    assert shown[1:] == new_order[:7]  # the prepared picture is kept, then the new order rules
+    assert shown[1] == new_order[0]  # the prepared picture is kept, then the new order rules...
+    # ...except that a picture never comes back within three others: p0, which was just shown, is
+    # not among the next three (its place in the new order is taken by a later picture)
+    assert "p0.png" not in shown[1:4]
+    assert len(set(shown)) >= 7
+    for index, name in enumerate(shown):
+        assert name not in shown[max(0, index - 3) : index]
 
 
 # -- AC2/AC3: scaling mode and pan come from the settings, live ----------------------------------
@@ -1258,14 +1261,6 @@ MODULE_ALLOWED_NAMES = {
     ("preview_app.py", "uninhibit"): (
         "preview_app.IdleHold: Gtk.Application.uninhibit, giving that request back"
     ),
-    ("gl_probe.py", "ctypes"): (
-        "gl_probe: ctypes, to call glGetString(GL_RENDERER) in libGL.so.1 or libGLESv2.so.2 once "
-        "the display's GL context is current. Nothing else is called, loaded or started: "
-        "test_gl_probe_uses_ctypes_for_nothing_but_glgetstring pins it"
-    ),
-    ("gl_probe.py", "cdll"): (
-        "gl_probe: ctypes.CDLL, the loader of those two libraries by soname (the same pin)"
-    ),
     ("preview_app.py", "applicationinhibitflags"): (
         "preview_app.IdleHold: Gtk.ApplicationInhibitFlags.IDLE, the idle flag of that request "
         "(the only one used; the logout, switch and suspend flags are not)"
@@ -1780,6 +1775,61 @@ def test_a_duration_longer_than_half_the_interval_is_cut_to_half_of_it(tmp_path,
     assert r.windows[0].transitions[-1] == ("crossfade", 3.0)
 
 
+def appearances(r, window=0, steps=5, step=0.05):
+    """``(time, transition)`` of every picture that comes on window *window* after the first, for
+    *steps* intervals of slideshow time run in *step* seconds. The time is the clock's at the very
+    call of ``show_frame``, so it is exactly where the timer fired."""
+    seen = []
+    target = r.windows[window]
+    shown = target.show_frame
+
+    def record(frame, pan_seconds, transition=None):
+        shown(frame, pan_seconds, transition)
+        seen.append((round(r.clock.now(), 6), transition))
+
+    target.show_frame = record
+    for _ in range(int(round(steps * float(r.settings.get_slide_interval_seconds()) / step))):
+        r.tick(step)
+    return seen
+
+
+@pytest.mark.parametrize(
+    "interval, duration, seconds",
+    [(10, 1.0, 1.0), (10, 0.2, 0.2), (4, 1.0, 1.0), (2, 5.0, 1.0), (1, 0.4, 0.4), (1, 5.0, 0.5)],
+)
+def test_the_cycle_is_the_display_time_and_the_transition_is_its_last_seconds(
+    tmp_path, backends, interval, duration, seconds
+):
+    """The whole cycle is the display time, not the display time plus the transition: a picture
+    comes in (its transition begins) every *interval* seconds, the transition takes *seconds* (the
+    setting, cut to half of the interval: a transition as long as the display time or longer is
+    that half) and ends at once the next cycle's fully shown stretch begins. Counted from the
+    moment a picture is fully shown (its transition over), its display time is *interval* seconds
+    and the next transition begins exactly *seconds* before the end of it."""
+    r = transition_rig(tmp_path, backends, interval=interval, duration=duration)
+    seen = appearances(r, steps=5)
+    assert len(seen) >= 4
+    times = [moment for moment, _transition in seen]
+    assert [round(b - a, 6) for a, b in zip(times, times[1:])] == [float(interval)] * (
+        len(times) - 1
+    )  # the cycle: one picture every `interval` seconds, nothing added for the transition
+    assert all(transition == ("crossfade", seconds) for _moment, transition in seen)
+    for (begins, _), (next_begins, _) in zip(seen, seen[1:]):
+        fully_shown = begins + seconds
+        display_ends = fully_shown + interval
+        assert next_begins == pytest.approx(display_ends - seconds)  # `seconds` before its end
+        assert next_begins + seconds == pytest.approx(display_ends)  # fully in as it ends
+
+
+def test_a_transition_as_long_as_the_display_time_is_half_of_it_and_the_cycle_stays(
+    tmp_path, backends
+):
+    r = transition_rig(tmp_path, backends, interval=3, duration=3.0)
+    seen = appearances(r, steps=4)
+    assert [transition for _moment, transition in seen] == [("crossfade", 1.5)] * len(seen)
+    assert [round(b[0] - a[0], 6) for a, b in zip(seen, seen[1:])] == [3.0] * (len(seen) - 1)
+
+
 def test_a_duration_changed_while_it_shows_applies_to_the_next_change(tmp_path, backends):
     r = transition_rig(tmp_path, backends)
     r.tick(10)
@@ -1942,47 +1992,3 @@ def _fs(name):
     from slideshow_lock.image_source import FsEvent
 
     return FsEvent(name.replace("_", "-"))
-
-
-def test_gl_probe_uses_ctypes_for_nothing_but_glgetstring():
-    """The allowance for ``gl_probe.py`` (``MODULE_ALLOWED_NAMES``) is for reading the OpenGL
-    renderer string and nothing else: of ctypes it touches only the loader and two types, and the
-    only libraries it names are the two GLVND dispatch libraries, by soname."""
-    with open(_package_file("gl_probe.py"), encoding="utf-8") as handle:
-        tree = ast.parse(handle.read())
-    ctypes_attributes = {
-        node.attr
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name)
-        and node.value.id == "ctypes"
-    }
-    assert ctypes_attributes == {"CDLL", "c_char_p", "c_uint"}
-    imports = {
-        alias.name
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.Import, ast.ImportFrom))
-        for alias in node.names
-    }
-    assert "ctypes" in imports and not imports & {"subprocess", "os", "socket", "shutil"}
-    libraries = {
-        node.value
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Constant)
-        and isinstance(node.value, str)
-        and ".so" in node.value
-        and " " not in node.value  # a library name, not a sentence
-    }
-    assert libraries == {"libGL.so.1", "libGLESv2.so.2"}
-
-
-def test_the_gl_probe_pin_would_catch_another_ctypes_use():
-    source = "import ctypes\nctypes.CDLL('libc.so.6').system(b'true')\nctypes.cdll.LoadLibrary('x')"
-    attributes = {
-        node.attr
-        for node in ast.walk(ast.parse(source))
-        if isinstance(node, ast.Attribute)
-        and isinstance(node.value, ast.Name)
-        and node.value.id == "ctypes"
-    }
-    assert attributes == {"CDLL", "cdll"}  # not the three the pin allows

@@ -162,10 +162,6 @@ msgid "seconds"
 msgstr "segundos"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "Aceleração por hardware"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "Transições"
 
@@ -206,10 +202,6 @@ msgid "Preview"
 msgstr "Pré-visualização"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "Salvar"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 s"
 
@@ -224,22 +216,6 @@ msgstr "1 h"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 h"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr ""
-"Movimento lento e bordas suaves nas transições. Desative para usar a "
-"animação simples."
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr ""
-"Indisponível: este computador não desenha com uma placa de vídeo, então a "
-"animação simples é usada."
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

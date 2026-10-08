@@ -140,8 +140,14 @@ becomes empty (`None`). It does not fire for `advance()`.
     later, and what the installed `gnome-shell` catalog gives at run time. A folder or a file name
     that is in neither list, and a screenshot tool that names them differently, is shown.
 - **Order.** `name`: case-insensitive by full path. `random`: every image once per
-  cycle, no image twice in a row across a cycle boundary; a new image joins the
-  current cycle.
+  cycle; a new image joins the current cycle. Between two showings of the same image
+  there are at least `REPEAT_GAP` (3) other images, also across the boundary of two cycles: the
+  source remembers the last three images it showed and swaps the next one with another if it is
+  among them (`ImageSource._keep_apart`). A folder of fewer than four images keeps as many
+  apart as it has (two alternate; one image is shown again and again). The memory is dropped
+  when the folder is changed, so it never names an image of the old folder. In `name` order the
+  gap is what the order gives (a folder of four or more: at least three); an image added or
+  deleted meanwhile can shorten it.
 - **The folder may not exist.** Nothing assumes it does, the XDG default included.
   A missing folder is the empty state plus one `[slideshow-dir]` WARNING, and the
   source keeps watching for it to appear.

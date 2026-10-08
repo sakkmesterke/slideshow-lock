@@ -159,10 +159,6 @@ msgid "seconds"
 msgstr "秒"
 
 #: slideshow_lock/preferences.py
-msgid "Hardware acceleration"
-msgstr "硬件加速"
-
-#: slideshow_lock/preferences.py
 msgid "Transitions"
 msgstr "过渡"
 
@@ -203,10 +199,6 @@ msgid "Preview"
 msgstr "预览"
 
 #: slideshow_lock/preferences.py
-msgid "Save"
-msgstr "保存"
-
-#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 秒"
 
@@ -221,18 +213,6 @@ msgstr "1 小时"
 #: slideshow_lock/preferences.py
 msgid "24 h"
 msgstr "24 小时"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Slow movement and soft edges in the transitions. Turn it off for the plain "
-"animation."
-msgstr "切换效果中的缓慢移动和柔和边缘。关闭后使用普通动画。"
-
-#: slideshow_lock/preferences.py
-msgid ""
-"Not available: this computer does not draw with a graphics card, so the "
-"plain animation is used."
-msgstr "不可用：此计算机不使用显卡绘图，因此使用普通动画。"
 
 #: slideshow_lock/preferences.py
 msgid "Choose the picture folder"

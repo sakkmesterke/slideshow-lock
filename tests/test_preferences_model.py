@@ -38,7 +38,6 @@ from slideshow_lock.preferences_model import (
     step_interval_position,
 )
 from slideshow_lock.settings import (
-    KEY_HARDWARE_ACCELERATION,
     KEY_IDLE_TIMEOUT_SECONDS,
     KEY_LOCK_GRACE_PERIOD_SECONDS,
     KEY_ORDER,
@@ -88,7 +87,6 @@ def test_every_key_of_the_schema_has_a_field(model):
         set(INT_RANGES)
         | set(CHOICES)
         | {
-            KEY_HARDWARE_ACCELERATION,
             KEY_PAN_PORTRAIT_IMAGES,
             KEY_PICTURE_FOLDER,
             KEY_SHOW_SCREENSHOTS,
@@ -108,7 +106,6 @@ def test_the_window_starts_from_the_stored_values(model):
     assert model.get(KEY_SCALING) == "fill"
     assert model.get(KEY_PAN_PORTRAIT_IMAGES) is False  # off unless switched on
     assert model.get(KEY_SHOW_SCREENSHOTS) is False  # screenshots stay out unless asked for
-    assert model.get(KEY_HARDWARE_ACCELERATION) is True  # on, where the machine has a GPU
 
 
 def test_a_value_written_elsewhere_is_what_the_model_reads(model):
@@ -554,20 +551,6 @@ def test_pan_is_saved_on_and_off(model):
 def test_pan_takes_only_a_real_on_or_off(model, value):
     assert not model.set_pan_portrait_images(value).ok
     assert model.get(KEY_PAN_PORTRAIT_IMAGES) is False
-
-
-def test_hardware_acceleration_is_saved_on_and_off(model):
-    assert model.set_hardware_acceleration(False).ok
-    assert model.get(KEY_HARDWARE_ACCELERATION) is False
-    assert model.set_hardware_acceleration(True).ok
-    assert model.get(KEY_HARDWARE_ACCELERATION) is True
-
-
-@pytest.mark.parametrize("value", ["yes", 1, 0, None, []])
-def test_hardware_acceleration_takes_only_a_real_on_or_off(model, value):
-    assert not model.set_hardware_acceleration(value).ok
-    assert not model.check_hardware_acceleration(value).ok
-    assert model.get(KEY_HARDWARE_ACCELERATION) is True
 
 
 # -- transitions -----------------------------------------------------------------------------------
