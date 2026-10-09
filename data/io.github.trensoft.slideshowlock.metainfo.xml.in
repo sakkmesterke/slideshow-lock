@@ -25,6 +25,11 @@
   </provides>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="1.0.8" date="2026-10-09">
+      <description translate="no">
+        <p>Manual pages for both commands. A slideshow window whose size never settles no longer makes the same picture over and over.</p>
+      </description>
+    </release>
     <release version="1.0.7" date="2026-10-09">
       <description translate="no">
         <p>The first picture of the slideshow now gets the slow Ken Burns move by the same rule as the later pictures.</p>

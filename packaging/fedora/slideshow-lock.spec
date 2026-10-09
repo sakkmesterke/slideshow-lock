@@ -1,4 +1,4 @@
-# Fedora and EL spec for slideshow-lock 1.0.7.
+# Fedora and EL spec for slideshow-lock 1.0.8.
 #
 # Legend for the comments in this file:
 #   [K]  known: read from this repository (the file is named) or from a source named in the comment
@@ -6,7 +6,7 @@
 #        COPR build, are named in the comment
 #   [H]  background knowledge about RPM, systemd and the Fedora packaging guidelines, NOT verified
 #
-# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1, 1.0.2, 1.0.3, 1.0.4, 1.0.5, 1.0.6 and 1.0.7 are not
+# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1, 1.0.2, 1.0.3, 1.0.4, 1.0.5, 1.0.6, 1.0.7 and 1.0.8 are not
 # covered by them): built in COPR (project trensoft/slideshow-lock) in all four chroots, in two builds:
 # 11084376 of main 0ac5c23 before the fix of the cairo typelib, which failed on the three Fedora
 # chroots, and 11084605 of main 2f45728 (the committish in the log of the SRPM build) after the fix,
@@ -59,9 +59,10 @@
 # the log.
 #
 # Prerequisites that are not in this file:
-#   - The tag v1.0.7 does not exist yet [M: git ls-remote --tags origin lists v1.0.0 to v1.0.6,
+#   - The tag v1.0.8 does not exist yet [M: git ls-remote --tags origin lists v1.0.0 to v1.0.7,
 #     2026-10-09], so Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before
-#     it does. A tag is made at a release, after the maintainer's approval (docs/RELEASING.md). A
+#     it does. A tag is made at a release, when the team gate is green and the version is bumped (the
+#     standing approval of 2026-10-09, docs/RELEASING.md). A
 #     protected or signed tag and a SHA-512 of the tarball are to be fixed at release time. A release
 #     has to be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
 #   - The files this spec installs are in the repository and must stay there:
@@ -120,8 +121,8 @@
 
 Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
-Version:        1.0.7
-# [K] pyproject.toml says version = "1.0.7"
+Version:        1.0.8
+# [K] pyproject.toml says version = "1.0.8"
 Release:        1%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
@@ -138,8 +139,7 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 URL:            https://github.com/trensoft/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
-# The tag v1.0.7 does not exist yet; it is made at the release, after the maintainer's approval (see the
-# prerequisites at the top).
+# The tag v1.0.8 does not exist yet; it is made at the release (see the prerequisites at the top).
 
 BuildArch:      noarch
 # [K] pure Python: slideshow_lock/*.py only, no extension module
@@ -454,6 +454,13 @@ appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/%{app_id}.meta
 # owner of both folders and removes them with the files
 
 %changelog
+* Fri Oct 09 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.8-1
+- Add manual pages for slideshow-lock and slideshowlock
+- A slideshow window whose size never settles no longer makes the picture over and over; it is shown after
+  at most three redos
+- Require libadwaita 1.2 or newer, the version the settings window needs
+- Add SPDX licence headers to the source files of the program
+
 * Fri Oct 09 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.7-1
 - The first picture of a window (and the first one after the empty-state message) gets the slow Ken
   Burns move by the same rule as every later picture; before, it stood still for its whole interval.
