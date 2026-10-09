@@ -803,7 +803,7 @@ def test_the_folder_field_that_still_shows_the_folder_in_effect_keeps_and_says_n
 
 # -- the Donate button ------------------------------------------------------------------------
 
-Gtk, GLib = preferences.Gtk, preferences.GLib
+Gdk, Gtk, GLib = preferences.Gdk, preferences.Gtk, preferences.GLib
 DONATION = "https://donate.example.org/slideshow-lock"
 
 
@@ -873,15 +873,64 @@ def test_a_launcher_that_fails_is_logged_and_said_in_the_status_line(monkeypatch
     assert "could not be opened: no browser" in caplog.text
 
 
-def test_a_gtk_without_the_launcher_says_so_in_the_status_line_and_raises_nothing(
-    monkeypatch, caplog
-):
+class FakeShowUri:
+    """Stands in for Gtk.show_uri, the fallback of a GTK without Gtk.UriLauncher."""
+
+    def __init__(self, monkeypatch, failure=None):
+        self.calls = []
+        self.failure = failure
+        monkeypatch.setattr(Gtk, "show_uri", self, raising=False)
+
+    def __call__(self, parent, uri, timestamp):
+        self.calls.append((parent, uri, timestamp))
+        if self.failure is not None:
+            raise self.failure
+
+
+def test_a_gtk_without_the_launcher_opens_the_address_once_with_show_uri(monkeypatch, launcher):
     monkeypatch.setattr(about, "DONATION_URL", DONATION)
-    monkeypatch.delattr(Gtk, "UriLauncher", raising=False)
+    # None, not delattr: gi resolves a missing attribute to the real class on GTK >= 4.10
+    monkeypatch.setattr(Gtk, "UriLauncher", None, raising=False)
+    show_uri = FakeShowUri(monkeypatch)
+    window = _donor()
+    PreferencesWindow._open_donation(window)
+    assert show_uri.calls == [(window, DONATION, Gdk.CURRENT_TIME)]
+    assert launcher.made == [] and launcher.launches == []
+    assert window.labels == []
+
+
+def test_a_gtk_with_the_launcher_never_calls_show_uri(monkeypatch, launcher):
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+    show_uri = FakeShowUri(monkeypatch)
+    PreferencesWindow._open_donation(_donor())
+    assert len(launcher.launches) == 1
+    assert show_uri.calls == []
+
+
+def test_a_show_uri_that_fails_is_logged_and_said_in_the_status_line(monkeypatch, caplog):
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+    # None, not delattr: gi resolves a missing attribute to the real class on GTK >= 4.10
+    monkeypatch.setattr(Gtk, "UriLauncher", None, raising=False)
+    FakeShowUri(monkeypatch, failure=RuntimeError("no browser"))
+    window = _donor()
+    PreferencesWindow._open_donation(window)  # must not raise
+    assert window.labels == ["The donation page could not be opened, see the log."]
+    assert "the donation page could not be opened" in caplog.text
+
+
+def test_a_launcher_that_cannot_be_made_is_logged_and_said_in_the_status_line(monkeypatch, caplog):
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+
+    def broken(uri=None):
+        raise RuntimeError("no portal")
+
+    monkeypatch.setattr(Gtk, "UriLauncher", broken, raising=False)
+    show_uri = FakeShowUri(monkeypatch)
     window = _donor()
     PreferencesWindow._open_donation(window)
     assert window.labels == ["The donation page could not be opened, see the log."]
-    assert "the donation page could not be opened" in caplog.text
+    # the fallback is for a GTK without the launcher, not for a launcher that fails
+    assert show_uri.calls == []
 
 
 NO_DONATION = (
@@ -919,6 +968,4 @@ def test_the_button_is_made_visible_by_that_check_and_is_a_plain_one():
     assert 'label=_("Donate")' in source
     assert "self._open_donation()" in source
     assert "suggested-action" not in source
-    assert "Gtk.show_uri" not in inspect.getsource(preferences) and "subprocess" not in (
-        inspect.getsource(preferences)
-    )
+    assert "subprocess" not in inspect.getsource(preferences)

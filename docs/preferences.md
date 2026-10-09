@@ -134,10 +134,11 @@ the window as the parent. The address is `about.DONATION_URL`, and the only chec
 `about.donation_link()`: the button is shown (`preferences.donate_button_visible()`) only when that
 accepts the address, so with an empty value, the placeholder `<DONATION_URL>`, another scheme than
 `https`, a blank or a user name in the address there is no button, and the click handler refuses
-on its own as well. Nothing is opened by the program itself: no `Gtk.show_uri`, no subprocess, no
-shell. When the launcher fails (no browser, no portal, a GTK without `Gtk.UriLauncher`) the log
-gets the reason and the status line says "The donation page could not be opened, see the log."; it
-is not an exception. The button label "Donate" and that sentence are `_()` strings in all 40
+on its own as well. A GTK older than 4.10 has no `Gtk.UriLauncher`: there the button is still shown
+and `Gtk.show_uri(window, address, Gdk.CURRENT_TIME)` opens the address, as a fallback only (it is
+deprecated from 4.10). Nothing else is opened by the program itself: no subprocess, no shell. When
+either way fails (no browser, no portal) the log gets the reason and the status line says "The
+donation page could not be opened, see the log."; it is not an exception. The button label "Donate" and that sentence are `_()` strings in all 40
 catalogs. The tests of this are in `tests/test_preferences.py` (a stand-in launcher: exactly one
 call, with exactly the address) and `tools/wayland-smoke/smoke_preferences.py` (the real button).
 

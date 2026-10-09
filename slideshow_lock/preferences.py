@@ -608,13 +608,18 @@ class PreferencesWindow(Adw.ApplicationWindow):
 
     def _open_donation(self) -> None:
         """Open the donation address in the browser, after the one check of the address
-        (``about.donation_link()``), with Gtk.UriLauncher (GTK 4.10). Nothing is raised: a failure,
-        also a GTK without the launcher, is logged and said in the status line."""
+        (``about.donation_link()``), with Gtk.UriLauncher (GTK 4.10); a GTK without it falls back
+        to Gtk.show_uri (deprecated from 4.10, so only the fallback). Nothing is raised: a failure
+        of either way is logged and said in the status line."""
         uri = about.donation_link()
         if uri is None:
             return
         try:
-            Gtk.UriLauncher(uri=uri).launch(self, None, self._donation_opened)
+            launcher = getattr(Gtk, "UriLauncher", None)
+            if launcher is not None:
+                launcher(uri=uri).launch(self, None, self._donation_opened)
+            else:
+                Gtk.show_uri(self, uri, Gdk.CURRENT_TIME)
         except Exception:
             _LOG.exception("[slideshow] the donation page could not be opened")
             self.status.set_label(_("The donation page could not be opened, see the log."))
