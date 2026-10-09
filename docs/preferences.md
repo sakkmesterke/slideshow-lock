@@ -148,8 +148,10 @@ one, the donation link. No person is named. `slideshow_lock/about.py` holds all 
   counts (a host name with a dot, printable ASCII, no blanks, no `<`, `>`, quote or backslash, no user
   name in the address); an empty value, blanks, the placeholder `<DONATION_URL>` or any other scheme
   is not a link. The README has a "Support" section only when the constant is a valid address, and
-  then with that address. To turn it on, one small commit sets the constant and adds the README
-  section (the label "Support the project" is in the Hungarian catalog already).
+  then with that address: `tests/test_support_readme.py` fails for either alone, and for the
+  placeholder `<DONATION_URL>` anywhere in the README. To turn it on, one small commit sets the
+  constant and adds the README section (the label "Support the project" is in the Hungarian catalog
+  already).
 - **Texts.** The labels and sentences are `_()` strings of `about.py` and of the menu in
   `preferences.py`; the Hungarian catalog has them, the other 39 catalogs do not yet (`HELD_BY` in
   `tests/i18n_catalogs.py`, `docs/translations.md`), so the About window is English there. The

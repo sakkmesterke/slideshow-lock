@@ -21,8 +21,8 @@ The donation link is ``DONATION_URL``, the only place in the source that holds i
 while no link has been made. Anything that is not a plain ``https://`` address (empty, blanks, the
 placeholder ``<DONATION_URL>``, another scheme, spaces, a user name in the address) is not a link:
 the window then has no donation row at all, and nothing of it is visible. The README has a Support
-section only when the link is valid, and with the same address. To turn it on, set the constant and
-add the README section in one commit.
+section only when the link is valid, and with the same address (``tests/test_support_readme.py``
+keeps the two together). To turn it on, set the constant and add the README section in one commit.
 
 This module opens no connection: the links are opened by libadwaita when a row is activated.
 """
