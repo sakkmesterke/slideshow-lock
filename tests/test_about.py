@@ -7,6 +7,7 @@ the module asks of them. What the real window looks like is not tested here (it 
 from __future__ import annotations
 
 import ast
+import inspect
 import re
 import socket
 from pathlib import Path
@@ -320,18 +321,15 @@ def test_no_other_file_that_ships_names_the_donation_link():
 
 
 def _constructor_source():
-    import inspect
-
     return inspect.getsource(preferences.PreferencesWindow.__init__)
 
 
-def test_the_main_menu_has_one_entry_that_opens_the_about_window():
+def test_the_settings_window_has_no_way_into_the_about_window_since_1_0_10():
+    """The main menu and its action are gone; ``show_about`` stays in the module, not called."""
     source = _constructor_source()
-    action = re.search(r'Gio\.SimpleAction\.new\("([a-z-]+)"', source).group(1)
-    assert re.search(rf'menu\.append\(_\("About Slideshow Lock"\), "win\.{action}"\)', source)
-    assert "about.show_about(self)" in source and "self.add_action(" in source
-    assert source.count("menu.append(") == 1
-    assert "header.pack_end(self.menu_button)" in source
+    assert "show_about" not in source and "win.about" not in source
+    assert "MenuButton" not in source and "Gio.Menu" not in source
+    assert "show_about" not in inspect.getsource(preferences)
 
 
 def test_nothing_in_the_settings_window_opens_a_connection_for_the_about_window():

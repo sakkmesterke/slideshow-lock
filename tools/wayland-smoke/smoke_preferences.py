@@ -227,17 +227,18 @@ def main() -> int:
     while widget is not None:
         ancestors.append(widget)
         widget = widget.get_parent()
+    from slideshow_lock.preferences import version_text
     from slideshow_lock.version import program_version
 
     label = window.version_label
     check(
-        "the footer holds Preview, the status and, last, the faint version of the package",
+        "the footer holds Preview, the status and, last, the faint version and maker",
         isinstance(footer, Gtk.Box)
         and window.preview_button.get_next_sibling() is window.status
         and label.get_parent() is footer
         and label.get_next_sibling() is None
         and label.has_css_class("dim-label")
-        and label.get_label() == program_version() != "",
+        and label.get_label() == version_text() == program_version() + " by TrenSoft",
         label.get_label(),
     )
     check(

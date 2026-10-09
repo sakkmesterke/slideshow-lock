@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with a main menu (About) in the header bar, the Preview button at the bottom and the program's version, small and faint, at the bottom right. Every change is saved the moment it is made: there is no Save button. The groups sit in two columns and nothing scrolls: the whole window shows at its natural size, about 1100 x 680 pixels, which fits a 1366 x 768 screen (`tools/wayland-smoke/smoke_preferences.py` measures it with `--monitors 1366x768,...`). The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
+A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Preview button at the bottom and, small and faint at the bottom right, the program's version and its maker ("<version> by TrenSoft"). The header bar has the window controls only. Every change is saved the moment it is made: there is no Save button. The groups sit in two columns and nothing scrolls: the whole window shows at its natural size, about 1100 x 680 pixels, which fits a 1366 x 768 screen (`tools/wayland-smoke/smoke_preferences.py` measures it with `--monitors 1366x768,...`). The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -128,8 +128,10 @@ There is no on/off switch: that goes through the systemd user unit
 
 ## The About window
 
-The main menu (the button at the right of the header bar, one entry, "About Slideshow Lock") opens
-it. It shows the name, the version (the one at the bottom of the settings window), the short
+Nothing in the program opens it since 1.0.10: the main menu (a button in the header bar, one entry,
+"About Slideshow Lock") is gone, and so is its `win.about` action. `slideshow_lock/about.py` stays
+(it holds `DONATION_URL` and `donation_link()`), and so does `show_about()`, which nothing calls. When
+it is opened, it shows the name, the version (the number that the line "<version> by TrenSoft" at the bottom of the settings window starts with), the short
 description and the sentence about the AI agents (the one of the README, word for word), the
 copyright "© 2026 TrenSoft" (the holder and year of the SPDX headers), the GPL 3.0 or later, and
 three link rows made with `add_link`: the project page, the issue tracker and, only when there is
@@ -151,8 +153,8 @@ one, the donation link. No person is named. `slideshow_lock/about.py` holds all 
   nothing of it in its texts. The README has a "Support" section only when the constant is a valid
   address, and then with that address: `tests/test_support_readme.py` fails for either alone, and
   for the placeholder `<DONATION_URL>` anywhere in the README.
-- **Texts.** The labels and sentences are `_()` strings of `about.py` and of the menu in
-  `preferences.py`; the Hungarian catalog has them, the other 39 catalogs do not yet (`HELD_BY` in
+- **Texts.** The labels and sentences are `_()` strings of `about.py`; the Hungarian catalog has
+  them, the other 39 catalogs do not (`HELD_BY` in
   `tests/i18n_catalogs.py`, `docs/translations.md`), so the About window is English there. The
   libadwaita-made lines (the licence sentence, "Details", "Credits") are translated by libadwaita.
 

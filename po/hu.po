@@ -233,14 +233,6 @@ msgid "Timing"
 msgstr "Időzítés"
 
 #: slideshow_lock/preferences.py
-msgid "About Slideshow Lock"
-msgstr "A Slideshow Lock névjegye"
-
-#: slideshow_lock/preferences.py
-msgid "Main menu"
-msgstr "Főmenü"
-
-#: slideshow_lock/preferences.py
 msgid "Preview"
 msgstr "Előnézet"
 

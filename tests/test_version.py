@@ -100,12 +100,19 @@ def test_no_version_number_is_written_in_the_code():
         assert not re.search(r"""["']\d+\.\d+\.\d+["']""", source), module.__name__
 
 
+def test_the_line_is_the_version_and_the_maker(monkeypatch):
+    monkeypatch.setattr(preferences, "program_version", lambda: "1.0.10")
+    assert preferences.version_text() == "1.0.10 by TrenSoft"
+    monkeypatch.undo()
+    assert preferences.version_text() == version.program_version() + " by TrenSoft"
+
+
 def test_the_window_shows_it_small_and_faint_at_the_end_of_the_footer():
     """The constructor cannot run here, so its statements are read (the real placement is the
-    smoke test's): the label is made from ``program_version()``, is dim, and is the last thing
-    put in the footer."""
+    smoke test's): the label is made from ``version_text()`` (the version of the package, "by"
+    and the maker), is dim, and is the last thing put in the footer."""
     source = inspect.getsource(preferences.PreferencesWindow.__init__)
-    assert "label=program_version()" in source
+    assert "label=version_text()" in source
     assert 'self.version_label.add_css_class("dim-label")' in source
     appended = re.findall(r"footer\.append\(([^)]*)\)", source)
     assert appended == ["self.preview_button", "self.status", "self.version_label"]

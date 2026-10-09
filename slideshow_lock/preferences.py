@@ -103,6 +103,12 @@ ROW_SPACING = 8
 DURATION_SCALE_WIDTH = 260  # the transition-length slider, in pixels
 
 
+def version_text() -> str:
+    """The small line at the bottom right: the version of the package and the maker, "1.0.10 by
+    TrenSoft". Not a translated string: a number and a name."""
+    return f"{program_version()} by {about.DEVELOPER}"
+
+
 def _choice_labels():
     """What the drop-downs list, in the order of ``CHOICES`` (the values stay English)."""
     return {
@@ -298,17 +304,7 @@ class PreferencesWindow(Adw.ApplicationWindow):
             columns.append(clamp)
 
         # -- the header bar, the Preview button and the status -------------------------------
-        header = Adw.HeaderBar()
-        # The main menu: one entry, "About Slideshow Lock" (slideshow_lock/about.py).
-        menu = Gio.Menu()
-        menu.append(_("About Slideshow Lock"), "win.about")
-        self.menu_button = Gtk.MenuButton(
-            icon_name="open-menu-symbolic", menu_model=menu, tooltip_text=_("Main menu")
-        )
-        header.pack_end(self.menu_button)
-        about_action = Gio.SimpleAction.new("about", None)
-        about_action.connect("activate", lambda _action, _param: about.show_about(self))
-        self.add_action(about_action)
+        header = Adw.HeaderBar()  # the window controls only: no menu
 
         self.preview_button = Gtk.Button(label=_("Preview"), valign=Gtk.Align.CENTER)
         self.preview_button.connect("clicked", lambda _button: self._start_preview())
@@ -319,9 +315,10 @@ class PreferencesWindow(Adw.ApplicationWindow):
             getattr(footer, "set_margin_" + margin)(MARGIN if margin in ("start", "end") else 12)
         footer.append(self.preview_button)
         footer.append(self.status)
-        # The version, small and faint at the bottom right; it comes from the package itself.
+        # The version and the maker, small and faint at the bottom right; the version comes from
+        # the package itself.
         self.version_label = Gtk.Label(
-            label=program_version(), xalign=1, valign=Gtk.Align.END, selectable=True
+            label=version_text(), xalign=1, valign=Gtk.Align.END, selectable=True
         )
         self.version_label.add_css_class("dim-label")
         self.version_label.add_css_class("caption")

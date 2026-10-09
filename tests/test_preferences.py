@@ -596,13 +596,25 @@ def test_the_footer_holds_the_preview_button_the_status_and_the_version_in_that_
     assert children[footers[0]] == ["preview_button", "status", "version_label"]
 
 
-def test_the_header_bar_holds_the_main_menu_button_and_nothing_else_of_the_window_s_own():
-    """The header bar is for the window controls and the main menu (the About entry): nothing else
-    of ``self`` is placed in it."""
-    children, kinds = _layout(inspect.getsource(PreferencesWindow.__init__))
+def test_the_header_bar_holds_nothing_of_the_window_s_own():
+    """The header bar is for the window controls: no menu button, and nothing else of ``self`` is
+    placed in it."""
+    source = inspect.getsource(PreferencesWindow.__init__)
+    children, kinds = _layout(source)
     headers = [name for name, kind in kinds.items() if kind == "Adw.HeaderBar"]
     assert headers  # the check looks at something
-    assert [children.get(name) for name in headers] == [["menu_button"]]
+    assert [children.get(name) for name in headers] == [None]
+    assert "MenuButton" not in source and "Gio.Menu" not in source
+    assert "pack_end" not in source and "pack_start" not in source
+
+
+def test_there_is_no_about_action_and_no_menu_in_the_window():
+    source = inspect.getsource(PreferencesWindow.__init__)
+    assert "SimpleAction" not in source and "add_action" not in source
+    assert "win.about" not in source and "show_about" not in source
+    assert not hasattr(PreferencesWindow, "menu_button")
+    for text in ("About Slideshow Lock", "Main menu"):
+        assert f'_("{text}")' not in inspect.getsource(preferences), text
 
 
 def _changing_window():
