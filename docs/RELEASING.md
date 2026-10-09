@@ -16,8 +16,9 @@ Fedora account, the webhook and the repository permissions.
 
 The maintainer's rule, set on 2026-10-07.
 
-1. Only a tagged release that the maintainer has approved is built in the COPR project
-   `trensoft/slideshow-lock`.
+1. Only a tagged release that has the approval of the maintainer is built in the COPR project
+   `trensoft/slideshow-lock`. Since 2026-10-09 that approval is the standing one in "Before the tag"
+   below, not a separate "go" for each release.
 2. No test build is started in this project: not by a push, not by a manual Rebuild, not by hand.
    The reason: the regular update on the maintainer's machines installs whatever appears there with
    a higher version, so a test build would be installed there as if it were a release.
@@ -40,31 +41,47 @@ The maintainer's rule, set on 2026-10-07.
 1.0.0 had no such rule: its test builds and the release were all `1.0.0-1`, so the maintainer had to
 reinstall by hand.
 
-## Before the tag: the report and the approval
+## Before the tag: the gate and the standing approval
 
-Nothing is tagged before the maintainer has said "go". The release report to the maintainer has
-four parts:
+The maintainer's standing rule, given on 2026-10-09 (the maintainer, Telegram; read by the team lead
+and passed on to the releaser; the wording is not in this repository, so it is not checked from
+here): a release of this project no longer waits for a separate "go" of the maintainer. It is
+tagged and pushed at once when both of these hold:
 
-1. The version and the commit SHA that would be tagged.
+1. The team gate is green for the same final commit SHA: the two reviewers of the team gate and, if
+   the change touches security, the security reviewer as well. A gate for another commit does not
+   count: if the commit changes after the gate, the gate is made again for the new SHA.
+2. The version bump is in the commit: the version in `pyproject.toml`, in
+   `packaging/fedora/slideshow-lock.spec` (`Version:` and the `%changelog` entry) and in the
+   `<release>` element of the metainfo is the tag without the `v`, and the date in the `%changelog`
+   entry and in the metainfo is the day of the tag.
+
+When both hold, the releaser pushes the tag, waits for the COPR build and checks every chroot (see
+below), and then sends a done-message to the team lead. No build is made in the COPR project before
+the tag, so the first build of the release is the build of the tag, on the commit that passed the
+gate.
+
+The done-message has four parts:
+
+1. The version and the commit SHA that was tagged.
 2. What changed, in 3 to 5 lines.
-3. Whether the commit is green: the tests, `rpmlint`, and the build on Fedora and on EPEL 10. A
-   build for this is not made in the COPR project (see above); the report says where it was made, or
-   that it was not.
+3. Whether the commit is green: the tests, `rpmlint`, and the build on Fedora and on EPEL 10, per
+   chroot. A build for this is not made in the COPR project before the tag (see above); the message
+   says where it was made, or that it was not.
 4. What was not checked and what has to be tried by hand.
 
-The answer is "go" or "no". Without "go" no tag is pushed. The "go" is for the version and the
-commit SHA of that report. If the commit changes after the "go", the old "go" does not count and a
-new report is needed. No build is made in the COPR project before the tag, so the first build of
-the release is the build of the tag, on the commit named in the report.
+Not changed by this rule: the COPR project, the Fedora account, the webhook and the repository
+permissions are not touched by the releaser (see the top of this file), the rules in "What may be
+built in the COPR project" stay, and a failed step does not delete or move the tag (see "A failed
+step").
 
-The version in `pyproject.toml` and in `packaging/fedora/slideshow-lock.spec` is the tag without
-the `v`; check both before the report. (The version shown in the settings window is read from
+Check the version before the tag. (The version shown in the settings window is read from
 `pyproject.toml` or the installed package at run time, so a release changes it nowhere else.) The open points about the release version and the tarball
 are in `docs/copr.md`, section 4.
 
-## After "go"
+## After the gate
 
-1. Tag: an annotated tag `v<version>` on the commit named in the report.
+1. Tag: an annotated tag `v<version>` on the commit that passed the gate.
 2. COPR builds from the webhook (below). Wait for the build and check every chroot.
 3. In a clean container, `[H]` (background knowledge, not measured here; the project is not made
    yet):
@@ -79,13 +96,13 @@ are in `docs/copr.md`, section 4.
    EPEL and the CRB repository have to be enabled first; how that is done differs on RHEL.
    `[H]` The owner name `trensoft` is the name of the maintainer's COPR account.
 4. The GitHub release, with the list of changes.
-5. The report: done, per chroot, and what could not be checked.
+5. The done-message (see above): done, per chroot, and what could not be checked.
 
 ## A failed step
 
 If the build (step 2), the install test (step 3) or the GitHub release (step 4) fails, the tag is
-not deleted and not moved. The report says what failed and proposes a fix. A fix is a new version
-(for example 1.0.1) and goes through the report and the approval again.
+not deleted and not moved. The done-message says what failed and proposes a fix. A fix is a new version
+(for example 1.0.1) and goes through the gate again.
 
 ## Pushing the tag, and what is measured
 
