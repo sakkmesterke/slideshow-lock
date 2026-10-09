@@ -38,7 +38,7 @@ The program is GPL-3.0-or-later (`LICENSE`). The seven sample pictures in `data/
 
 ## Commands
 
-`slideshowlock` starts the service and opens the settings window (the same as `slideshow-lock control`). `slideshow-lock` starts the programs one by one: `slideshow-lock service`, `slideshow-lock settings` (the window alone), `slideshow-lock preview`; `slideshow-lock --help` lists them.
+`slideshowlock` starts the service and opens the settings window (the same as `slideshow-lock control`). `slideshow-lock` starts the programs one by one: `slideshow-lock service`, `slideshow-lock settings` (the window alone), `slideshow-lock preview`; `slideshow-lock --help` lists them. The installed package has a manual page for each command: `man slideshow-lock` and `man slideshowlock`.
 
 ## Picture formats
 

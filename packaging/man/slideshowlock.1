@@ -1,0 +1,61 @@
+.\" SPDX-FileCopyrightText: 2026 TrenSoft
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.TH SLIDESHOWLOCK 1 "2026-10-09" "slideshow\-lock" "User Commands"
+.SH NAME
+slideshowlock \- start the slideshow service and open the settings window
+.SH SYNOPSIS
+.B slideshowlock
+.RB [ autostart ]
+.RB [ \-\-debug ]
+.br
+.B slideshowlock
+.RB { \-h | \-\-help }
+.SH DESCRIPTION
+.B slideshowlock
+starts the background service of Slideshow Lock and opens the settings window.
+It is the same as
+.BR "slideshow\-lock control" ;
+the other programs of the package (the service, the settings window alone and
+the preview) are started with
+.BR slideshow\-lock (1).
+.PP
+The service is the systemd user unit
+.BR slideshow\-lock.service ,
+started through the systemd of the user. A unit that is running already is
+left alone, so the command can be run any number of times. The command enables
+nothing: the start at login is the autostart entry of the package, which runs
+.BR "slideshowlock autostart" .
+.PP
+If the service cannot be started, a warning is logged and the window opens all
+the same.
+.SH OPTIONS
+.TP
+.B autostart
+For the start at login: the service is started, and the settings window opens
+only the first time, when no picture folder has been chosen.
+.TP
+.B \-\-debug
+Log every step.
+.TP
+.BR \-h ", " \-\-help
+Print a usage text and exit.
+.SH "EXIT STATUS"
+The exit status is that of the settings window. Without a window (the start at
+login, when a picture folder has been chosen) it is 1 when the service could
+not be started and 0 otherwise. An argument that is not listed above is an
+error of the command line, with status 2.
+.SH FILES
+.TP
+.I /etc/xdg/autostart/io.github.trensoft.slideshowlock.desktop
+The autostart entry that runs
+.B slideshowlock autostart
+at login (GNOME only). A user turns it off with an entry of the same name in
+.I ~/.config/autostart
+that says
+.B Hidden=true
+(see the README of the package).
+.SH "SEE ALSO"
+.BR slideshow\-lock (1),
+.BR systemctl (1)
+.SH AUTHOR
+TrenSoft. The code of this project was written with the help of AI agents.

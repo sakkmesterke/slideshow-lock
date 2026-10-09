@@ -11,6 +11,7 @@ image has no use for); the unit and the launcher are checked against each other 
 
 from __future__ import annotations
 
+import ast
 import re
 import shutil
 import stat
@@ -543,3 +544,74 @@ def test_the_holder_of_the_header_is_the_developer_of_the_metainfo_and_the_packa
     entries = re.findall(r"^\* \w{3} \w{3} \d\d \d{4} (.+?) <", SPEC.read_text(), re.MULTILINE)
     assert entries and set(entries) == {HOLDER}
     assert SPDX_LINES[0].endswith(HOLDER)
+
+
+# -- the validators of the metainfo, and the version of libadwaita ---------------------------------
+
+ADW_1_2 = {
+    "Application",
+    "ApplicationWindow",
+    "HeaderBar",
+    "Clamp",
+    "PreferencesGroup",
+    "PreferencesRow",
+    "ActionRow",
+    "ComboRow",
+    "EntryRow",  # the newest: libadwaita 1.2
+}
+
+
+def test_the_build_asks_for_appstream_util_and_runs_validate_relax_on_the_installed_metainfo():
+    """AppData guideline of Fedora: validate-relax, with libappstream-glib as a BuildRequires. The
+    package is in the repositories of all four chroots, so the line is not conditional."""
+    assert ("libappstream-glib", []) in _conditions_of("BuildRequires:")
+    check = _code(_section(SPEC.read_text(), "check"))
+    assert (
+        "appstream-util validate-relax --nonet "
+        "%{buildroot}%{_metainfodir}/%{app_id}.metainfo.xml" in check
+    )
+    assert any(line.startswith("appstreamcli validate") for line in check)  # it stays next to it
+
+
+def test_libadwaita_is_required_with_the_version_the_window_code_needs():
+    """An unversioned Requires on a library-like name is rpmlint's explicit-lib-dependency error."""
+    required = [(p, c) for p, c in _conditions_of("Requires:") if p.startswith("libadwaita")]
+    assert required == [("libadwaita >= 1.2", [])]
+    assert "No version is required here" not in SPEC.read_text()
+
+
+def _adw_names() -> set:
+    """Every ``Adw.<Name>`` the modules of the package use."""
+    names = set()
+    for path in (REPO / "slideshow_lock").glob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == "Adw"
+            ):
+                names.add(node.attr)
+    return names
+
+
+def test_the_code_uses_no_libadwaita_class_that_is_newer_than_the_required_version():
+    """The number in the spec (1.2) is the version of Adw.EntryRow. A newer class (SwitchRow and
+    SpinRow 1.4, Dialog 1.5, PreferencesDialog 1.5 ...) needs a higher number there first."""
+    assert _adw_names() <= ADW_1_2
+    assert "EntryRow" in _adw_names()  # the class that sets the number is still in use
+
+
+def test_the_class_reader_sees_a_class_the_list_does_not_have(tmp_path, monkeypatch):
+    """Negative control of the test above."""
+    package = tmp_path / "slideshow_lock"
+    package.mkdir()
+    (package / "x.py").write_text("from gi.repository import Adw\nrow = Adw.SwitchRow()\n")
+    monkeypatch.setattr("tests.test_packaging.REPO", tmp_path)
+    assert _adw_names() == {"SwitchRow"}
+
+
+def test_there_is_no_rpmlintrc_for_a_message_the_spec_no_longer_causes():
+    """The only filter it had (explicit-lib-dependency libadwaita) went with the versioned Requires,
+    and the Fedora configuration of rpmlint reports a filter that matches nothing as an error
+    (unused-rpmlintrc-filter)."""
+    assert list(SPEC.parent.glob("*.rpmlintrc")) == []

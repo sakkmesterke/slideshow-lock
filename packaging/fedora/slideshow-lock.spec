@@ -37,9 +37,13 @@
 # identical) prints 1 error, 2 warnings, 7 filtered: "E: explicit-lib-dependency libadwaita" (rpmlint
 # only looks at the name "libadwaita" of the Requires; the program loads the typelib Adw-1 through
 # PyGObject and no repository has a typelib(Adw) provide), and the warnings no-manual-page-for-binary
-# for slideshow-lock and slideshowlock (empty-%%postun is gone: the spec has a %%posttrans). The error is
-# filtered by packaging/fedora/slideshow-lock.rpmlintrc, which is not part of the SRPM: with
-# "rpmlint --rpmlintrc" the same files give 0 errors, 2 warnings. fedora-review (rc 0) wrote its template;
+# for slideshow-lock and slideshowlock (empty-%%postun is gone: the spec has a %%posttrans). At that
+# time the error was filtered by packaging/fedora/slideshow-lock.rpmlintrc, which was not part of the
+# SRPM: with "rpmlint --rpmlintrc" the same files gave 0 errors, 2 warnings. Since 1.0.8 the spec asks
+# for "libadwaita >= 1.2" and the package has two manual pages: [M] rpmlint 2.8.0 (the Fedora
+# configuration) on the spec, the SRPM and the RPM built in a rootless root of CentOS Stream 10 and of
+# Fedora 43 says 0 errors, 0 warnings; the rpmlintrc is gone, because with the filter left in place the
+# same rpmlint reports it as the error unused-rpmlintrc-filter. fedora-review (rc 0) wrote its template;
 # the review.txt of the three chroots lists 70 items (counted with the pattern "^\[.\]:" so that the two
 # legend lines are not counted): 35 marked "[x]", 2 marked "[!]" (the download of Source0, which fails
 # because the tag v1.0.0 did not exist yet when that run was made, and the reminder to test the build
@@ -159,6 +163,15 @@ BuildRequires:  desktop-file-utils
 # [H] desktop-file-validate is in desktop-file-utils; used in %%check only
 BuildRequires:  appstream
 # [H] appstreamcli is in the package appstream; used in %%check only
+BuildRequires:  libappstream-glib
+# [M] appstream-util is a file of the package libappstream-glib (the file list of the RPMs of Fedora 43
+# and CentOS Stream 10, read); used in %%check only. The AppData guideline of Fedora asks for
+# "appstream-util validate-relax" next to the BuildRequires ([K] audit of 2026-10-09, item 6; the
+# guideline text itself is [H]). [M] the package is in every repository of the four chroots of the COPR
+# project (primary.xml read on 2026-10-09): CentOS Stream 10 AppStream 0.8.3-2.el10 and 0.8.3-3.el10
+# (the epel-10 chroot has that repository; EPEL 10 itself has none), Fedora 43 0.8.3-4.fc43 and
+# 0.8.4-1.fc43, Fedora 44 0.8.3-5.fc44 and 0.8.4-1.fc44, rawhide 0.8.4-1.fc45, so the line is not
+# conditional
 
 # Needed by %%check (the import test) and by the program at run time.
 # [K] the package names are the ones run.sh prints for each missing typelib:
@@ -171,10 +184,10 @@ BuildRequires:  graphene
 BuildRequires:  gdk-pixbuf2
 BuildRequires:  glib2
 BuildRequires:  libadwaita
-# [M] the settings window is moving to libadwaita, which Python loads as gi.require_version("Adw", "1")
-# (the typelib Adw-1.typelib, a file of the package libadwaita itself, not of libadwaita-devel). The code
-# of this tree does not import Adw yet; the line is here for the %%check below: %%pyproject_check_import
-# imports every module, so the build root needs the typelib as soon as one of them does. [M] read in the
+# [M] the settings window is built on libadwaita, which Python loads as gi.require_version("Adw", "1")
+# (the typelib Adw-1.typelib, a file of the package libadwaita itself, not of libadwaita-devel). The line
+# is here for the %%check below: %%pyproject_check_import imports every module, so the build root needs
+# the typelib as soon as one of them does (slideshow_lock/preferences.py does). [M] read in the
 # live repodata (primary.xml and filelists.xml) on 2026-10-07: CentOS Stream 10 AppStream has libadwaita
 # 1.6.10-1.el10 (and 1.6.0, 1.6.1, 1.6.6), Fedora 43 has 1.8.1-1.fc43 (release) and 1.8.8-1.fc43
 # (updates), EPEL 10 has none (it is not needed). [M] in a rootless CentOS Stream 10 root with the
@@ -212,15 +225,28 @@ BuildRequires:  dbus-daemon
 # or EL machine can (NOT run, see STATUS). The one typelib package that is listed by name,
 # gobject-introspection, is explained at its own line.
 Requires:       gtk4
-Requires:       libadwaita
+Requires:       libadwaita >= 1.2
 # [M] the same package as the BuildRequires above, for the run time: the typelib Adw-1 is in it. A
 # dependency on the typelib itself cannot be written: no primary.xml of CentOS Stream 10 (BaseOS,
 # AppStream, CRB), EPEL 10 or Fedora 43 (release, updates) has a typelib(...) provide, so the package
 # name is the dependency. [M] libadwaita 1.6.10-1.el10 requires gtk4 >= 4.15.2 (EL10 has 4.16.7-6.el10),
 # libadwaita 1.8.8-1.fc43 requires gtk4 >= 4.17.5 (Fedora 43 has 4.20.4-1.fc43); appstream, fribidi,
-# graphene and pango are in the same repositories. No version is required here: the window code is
-# meant to use only what libadwaita 1.2 (the development machine) and 1.6 (EL10) both have, a decision
-# relayed in the brief of this change, not read from this repository.
+# graphene and pango are in the same repositories.
+# The version: the window code uses only what libadwaita 1.2 has, and Adw.EntryRow (the folder row,
+# slideshow_lock/preferences.py) is the newest of it: it came with 1.2. [M] read in the sources of
+# libadwaita 1.2.0, 1.6.10 (EL10) and 1.8.8 (Fedora 43) from download.gnome.org: the classes used are
+# ApplicationWindow, Application, HeaderBar, Clamp, PreferencesGroup, PreferencesRow, ActionRow, ComboRow
+# and EntryRow; every function and property of them that the module calls or sets (set_content, add,
+# add_suffix, set_activatable_widget, subtitle, title, model, selected, set_description, set_child,
+# maximum-size, tightening-threshold, the entry-activated signal and the GtkEditable text of the
+# EntryRow) is in the headers and the sources of 1.2.0; what the later releases added to these classes
+# (ADW_AVAILABLE_IN_1_3 and newer: for example Clamp unit, HeaderBar show-title, ComboRow enable-search)
+# is not used. The number is also what removes the rpmlint error explicit-lib-dependency, which fires
+# only for an unversioned Requires on a library-like name ([M] rpmlint 2.8.0, TagsCheck.py). [M] On the
+# noarch RPMs built from this spec in rootless roots of CentOS Stream 10 and of Fedora 43 (2026-10-09):
+# the 1.0.7 spec with a bare "Requires: libadwaita" gives "E: explicit-lib-dependency libadwaita", this
+# one gives no error. Revisit the number when the window code uses something newer
+# (tests/test_packaging.py fails when it uses a class that is newer than 1.2).
 Requires:       graphene
 Requires:       gdk-pixbuf2
 # [M] the cairo typelib is needed at run time as well: in a Fedora 43 root made of the requirements of
@@ -314,6 +340,12 @@ install -Dpm 0644 data/%{name}.service %{buildroot}%{_userunitdir}/%{name}.servi
 install -Dpm 0644 data/%{app_id}.autostart.desktop \
     %{buildroot}%{_sysconfdir}/xdg/autostart/%{app_id}.desktop
 
+# The manual pages. [K] packaging/man/ holds slideshow-lock.1 (the four commands) and slideshowlock.1
+# (the short command); they describe the command lines of the modules, and tests/test_man_pages.py
+# compares every option with the --help of the program. [H] rpm compresses them after %%install.
+install -Dpm 0644 packaging/man/slideshow-lock.1 %{buildroot}%{_mandir}/man1/slideshow-lock.1
+install -Dpm 0644 packaging/man/slideshowlock.1 %{buildroot}%{_mandir}/man1/slideshowlock.1
+
 # The desktop entry, the AppStream metainfo and the icons. [K] the app id names all four files.
 # [K] the .desktop file and the metainfo are generated from data/<app id>.desktop.in and
 # data/<app id>.metainfo.xml.in with the translations of the catalogs: "tools/i18n.sh data DIR" writes
@@ -352,6 +384,7 @@ glib-compile-schemas --strict --dry-run %{buildroot}%{_datadir}/glib-2.0/schemas
 desktop-file-validate %{buildroot}%{_datadir}/applications/%{app_id}.desktop
 desktop-file-validate %{buildroot}%{_sysconfdir}/xdg/autostart/%{app_id}.desktop
 appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xml
+appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xml
 %if %{with tests}
 %pytest
 # [K] pyproject.toml: testpaths = ["tests"]; [H] the suite needs no display (CI runs it headless)
@@ -405,6 +438,8 @@ appstreamcli validate --no-net %{buildroot}%{_metainfodir}/%{app_id}.metainfo.xm
 # twice, and rpmbuild printed no "listed twice" message.
 %{_bindir}/%{name}
 %{_bindir}/slideshowlock
+%{_mandir}/man1/slideshow-lock.1*
+%{_mandir}/man1/slideshowlock.1*
 %{_datadir}/glib-2.0/schemas/%{app_id}.gschema.xml
 %{_userunitdir}/%{name}.service
 %{_datadir}/applications/%{app_id}.desktop

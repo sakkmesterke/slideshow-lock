@@ -1,0 +1,160 @@
+.\" SPDX-FileCopyrightText: 2026 TrenSoft
+.\" SPDX-License-Identifier: GPL-3.0-or-later
+.TH SLIDESHOW\-LOCK 1 "2026-10-09" "slideshow\-lock" "User Commands"
+.SH NAME
+slideshow\-lock \- idle slideshow screensaver that locks on input
+.SH SYNOPSIS
+.B slideshow\-lock
+.RB { service | settings | control | preview }
+.RI [ argument " ...]"
+.br
+.B slideshow\-lock
+.RB { \-h | \-\-help | help }
+.SH DESCRIPTION
+.B slideshow\-lock
+starts a full-screen picture slideshow on the screens of a GNOME session on
+Wayland when the session has been idle, and locks the session when the user
+touches the keyboard or the mouse. The pictures come from a folder, and the
+settings have a window of their own.
+.PP
+.B slideshow\-lock
+is the one command of the programs of the package. Its first argument names
+the program; the arguments after it go to that program unchanged.
+.B slideshow\-lock
+.I command
+.B \-\-help
+lists the options of the program. Without a command, or with one that is not
+listed below, it prints a usage text to the standard error and exits with
+status 2.
+.SH COMMANDS
+.TP
+.B service
+The service: it waits for the session to be idle, shows the slideshow, and
+locks the session on the first input after the grace period and before the
+machine suspends. The systemd user unit
+.B slideshow\-lock.service
+runs this command.
+.TP
+.B settings
+The settings window alone.
+.TP
+.B control
+Starts the service, then opens the settings window.
+.BR slideshowlock (1)
+is the short way to this command.
+.TP
+.B preview
+The preview: the slideshow on every screen. Any key, click, scroll or mouse
+movement ends it. It never locks the session.
+.SH OPTIONS
+.SS "service"
+These options replace the stored setting for this run of the service; they are
+never written to the settings.
+.TP
+.BI \-\-folder " FOLDER"
+The picture folder.
+.TP
+.BI \-\-idle\-timeout " SECONDS"
+Seconds of idle time before the slideshow starts, from 1 to 86400.
+.TP
+.BI \-\-grace " SECONDS"
+Input within this many seconds after the slideshow has started does not lock
+the session, from 0 to 86400.
+.TP
+.BI \-\-interval " SECONDS"
+Seconds per picture, from 1 to 86399.
+.TP
+.BI \-\-order " random" | name
+The order of the pictures.
+.TP
+.BI \-\-scaling " fit" | fill
+Fit the picture into the monitor, or fill the monitor with it.
+.TP
+.B \-\-pan
+Scroll portrait pictures slowly (with fill).
+.TP
+.B \-\-debug
+Log every step.
+.SS "preview"
+These options replace the stored setting for this run of the preview; they are
+never written to the settings.
+.TP
+.BI \-\-folder " FOLDER"
+The picture folder.
+.TP
+.BI \-\-interval " SECONDS"
+Seconds per picture, from 1 to 86399.
+.TP
+.BI \-\-order " random" | name
+The order of the pictures.
+.TP
+.BI \-\-scaling " fit" | fill
+Fit the picture into the monitor, or fill the monitor with it.
+.TP
+.B \-\-pan
+Scroll portrait pictures slowly (with fill).
+.TP
+.BI \-\-transition " NAME"
+How a picture changes into the next, or none. NAME is one of none, random,
+crossfade, fade\-black, slide\-in, push, ken\-burns, zoom, wipe, circle, blur
+and rotate.
+.TP
+.B \-\-debug
+Log every step.
+.SS "settings"
+.TP
+.B \-\-debug
+Log every step.
+.SS "control"
+.TP
+.B autostart
+For the start at login: the service is started, and the settings window opens
+only the first time, when no picture folder has been chosen.
+.TP
+.B \-\-debug
+Log every step.
+.SH "EXIT STATUS"
+.B 0
+on success, also for
+.BR \-\-help .
+.B 2
+for no command or an unknown one, for a value out of its range, and for a
+settings schema that is not installed. The exit status of
+.B control
+is described in
+.BR slideshowlock (1).
+.SH FILES
+.TP
+.I /usr/lib/systemd/user/slideshow\-lock.service
+The user unit of the service.
+.TP
+.I /etc/xdg/autostart/io.github.trensoft.slideshowlock.desktop
+The autostart entry: it runs
+.B slideshowlock autostart
+at login (GNOME only).
+.TP
+.I /usr/share/slideshow\-lock/pictures
+The seven sample pictures. At the first login they are copied once into the
+folder
+.I trensoft
+in the pictures folder of the user.
+.PP
+The settings are stored in GSettings, in the schema
+.B io.github.trensoft.slideshowlock
+(path /io/github/trensoft/slideshowlock/).
+.SH ENVIRONMENT
+The language of the interface comes from
+.BR LANGUAGE ,
+.BR LC_ALL ,
+.B LC_MESSAGES
+and
+.BR LANG ,
+in the order gettext reads them.
+.SH "SEE ALSO"
+.BR slideshowlock (1),
+.BR systemctl (1)
+.PP
+The project, with its documentation and its issue tracker:
+.I https://github.com/trensoft/slideshow\-lock
+.SH AUTHOR
+TrenSoft. The code of this project was written with the help of AI agents.
