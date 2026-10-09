@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 import re
+import socket
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -26,6 +27,8 @@ VALID = (
     "https://donate.example.org:8443/slideshow-lock",
     "https://a.b",
 )
+#: The one address the constant may hold in this release; a change of it is a change of this line.
+DONATION_BUTTON = "https://www.paypal.com/donate/?hosted_button_id=QPJCYDA6UXDEJ"
 NOT_LINKS = (
     "",
     " ",
@@ -55,7 +58,6 @@ NOT_LINKS = (
     "https://[::1]/donate",
     "https://example.org/dönate",
     'https://example.org/"x"',
-    None,
     42,
 )
 
@@ -107,12 +109,31 @@ def test_everything_else_is_not_a_donation_link(value):
     assert about.donation_link(value) is None
 
 
-def test_no_donation_link_is_set_in_this_commit():
-    assert about.DONATION_URL == ""
+@pytest.mark.parametrize("constant", ["", None, 42, "http://example.org/donate"])
+def test_no_value_means_the_constant_and_the_constant_must_be_a_link_too(donation, constant):
+    donation(constant)
     assert about.donation_link() is None
+    assert about.donation_link(None) is None
+
+
+def test_the_donation_link_is_the_one_donation_button():
+    assert about.DONATION_URL == DONATION_BUTTON
+    assert about.donation_link() == DONATION_BUTTON
 
 
 # -- the rows of the window ----------------------------------------------------------------------
+
+
+def test_the_window_as_shipped_has_the_donation_link_as_its_third_row(monkeypatch):
+    def no_connection(*args, **kwargs):
+        raise AssertionError("the rows are made without a connection")
+
+    monkeypatch.setattr(socket.socket, "connect", no_connection)
+    assert about.links() == [
+        ("Project page", "https://github.com/trensoft/slideshow-lock"),
+        ("Report an issue", "https://github.com/trensoft/slideshow-lock/issues"),
+        ("Support the project", DONATION_BUTTON),
+    ]
 
 
 def test_with_no_donation_link_the_window_has_the_project_and_issue_rows_only(donation):
@@ -284,13 +305,14 @@ def test_the_key_search_sees_a_second_assignment():
     assert len(names) == 2  # the shape the search above looks for
 
 
-def test_no_other_file_that_ships_names_a_donation_link_while_it_is_off():
+def test_no_other_file_that_ships_names_the_donation_link():
     """The data templates, the spec and the packaging files carry no donation address of their
-    own: turning the link on is the constant and the README, nothing else."""
+    own: the link is the constant and the README section, nothing else."""
     for path in [*REPO.glob("data/*.in"), *REPO.glob("packaging/**/*")]:
         if path.is_file():
             text = path.read_text(encoding="utf-8", errors="ignore")
             assert "DONATION_URL" not in text, path
+            assert DONATION_BUTTON not in text, path
             assert not re.search(r"type=\"donation\"", text), path
 
 

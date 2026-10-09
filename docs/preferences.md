@@ -143,15 +143,14 @@ one, the donation link. No person is named. `slideshow_lock/about.py` holds all 
   class forced there, the first call of `add_link` prints `DeprecationWarning: Adw.AboutWindow.add_link
   is deprecated`. The Requires of the package stays `libadwaita >= 1.2`, which the window class
   covers: no change.
-- **The donation link.** `about.DONATION_URL` is the only place that holds it, and it is empty: the
-  window then has no donation row and nothing of it in its texts. Only a plain `https://` address
-  counts (a host name with a dot, printable ASCII, no blanks, no `<`, `>`, quote or backslash, no user
-  name in the address); an empty value, blanks, the placeholder `<DONATION_URL>` or any other scheme
-  is not a link. The README has a "Support" section only when the constant is a valid address, and
-  then with that address: `tests/test_support_readme.py` fails for either alone, and for the
-  placeholder `<DONATION_URL>` anywhere in the README. To turn it on, one small commit sets the
-  constant and adds the README section (the label "Support the project" is in the Hungarian catalog
-  already).
+- **The donation link.** `about.DONATION_URL` is the only place that holds it; it is the address of
+  the donation page, and the window then has a "Support the project" row last. Only a plain
+  `https://` address counts (a host name with a dot, printable ASCII, no blanks, no `<`, `>`, quote
+  or backslash, no user name in the address); an empty value, blanks, the placeholder
+  `<DONATION_URL>` or any other scheme is not a link, and the window then has no donation row and
+  nothing of it in its texts. The README has a "Support" section only when the constant is a valid
+  address, and then with that address: `tests/test_support_readme.py` fails for either alone, and
+  for the placeholder `<DONATION_URL>` anywhere in the README.
 - **Texts.** The labels and sentences are `_()` strings of `about.py` and of the menu in
   `preferences.py`; the Hungarian catalog has them, the other 39 catalogs do not yet (`HELD_BY` in
   `tests/i18n_catalogs.py`, `docs/translations.md`), so the About window is English there. The

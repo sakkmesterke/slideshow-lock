@@ -17,12 +17,11 @@ not call the deprecated class where the new one exists; the Requires of the pack
 they are shown (a dialog on top of the parent, a transient window), which is all ``show_about``
 decides.
 
-The donation link is ``DONATION_URL``, the only place in the source that holds it. It is empty
-while no link has been made. Anything that is not a plain ``https://`` address (empty, blanks, the
-placeholder ``<DONATION_URL>``, another scheme, spaces, a user name in the address) is not a link:
-the window then has no donation row at all, and nothing of it is visible. The README has a Support
-section only when the link is valid, and with the same address (``tests/test_support_readme.py``
-keeps the two together). To turn it on, set the constant and add the README section in one commit.
+The donation link is ``DONATION_URL``, the only place in the source that holds it. Anything that is
+not a plain ``https://`` address (empty, blanks, the placeholder ``<DONATION_URL>``, another scheme,
+spaces, a user name in the address) is not a link: the window then has no donation row at all, and
+nothing of it is visible. The README has a Support section only when the link is valid, and with the
+same address (``tests/test_support_readme.py`` keeps the two together).
 
 This module opens no connection: the links are opened by libadwaita when a row is activated.
 """
@@ -43,9 +42,9 @@ from gi.repository import Adw, Gtk  # noqa: E402
 from slideshow_lock import APP_ID, _, app_display_name  # noqa: E402
 from slideshow_lock.version import program_version  # noqa: E402
 
-#: The donation link. Empty: there is none, and the window shows no trace of it. The one place in
-#: the source that names it; set it to the address (``https://...``) and add the README section.
-DONATION_URL = ""
+#: The donation link. The one place in the source that names it; the README "Support" section holds
+#: the same address (``tests/test_support_readme.py``). Empty or invalid: the window shows no trace.
+DONATION_URL = "https://www.paypal.com/donate/?hosted_button_id=QPJCYDA6UXDEJ"
 
 PROJECT_URL = "https://github.com/trensoft/slideshow-lock"
 ISSUES_URL = PROJECT_URL + "/issues"
