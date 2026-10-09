@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The real adapters: the protocols of ``session.py`` on ``Gio.DBusConnection`` (CORE-1, ARCH-1).
 
 Which bus carries what (ARCH-1 section 3):

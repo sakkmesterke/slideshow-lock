@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The version of this program, read from where it is already written down.
 
 ``pyproject.toml`` holds the one version number (the Fedora spec and the tag follow it, see

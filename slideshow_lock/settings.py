@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """GSettings-backed configuration for the slideshow-lock service (CORE-3).
 
 Storage choice: GSettings, not TOML (decided default, see brief B4). This

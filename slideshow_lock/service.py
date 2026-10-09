@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The service: idle -> slideshow -> lock on input, plus the lock before suspend (CORE-1).
 
 Run it from a source checkout, no RPM and no systemd needed::

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The slideshow-lock package: the application identity and the name shown to the user.
 
 The application itself lives in the modules next to this one (state machine, D-Bus layer,

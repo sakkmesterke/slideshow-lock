@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The command ``slideshowlock``: start the background service, then open the settings window.
 
     slideshowlock              from the menu or a terminal: start the service, open the window

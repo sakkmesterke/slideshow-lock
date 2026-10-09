@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The state machine of the service (CORE-1, ARCH-1 section 4).
 
 It decides when the slideshow starts, when the session locks and when nothing happens. It

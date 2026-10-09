@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The lock before suspend (CORE-1, ARCH-1 sections 3.5 and 3.6, decisions D1, D10, D28, D32, D34).
 
 ``SleepGuard`` is the whole sleep path: it holds logind's delay inhibitor, and when

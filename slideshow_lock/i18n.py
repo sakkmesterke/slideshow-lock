@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Which language the interface speaks (gettext), and where the catalogs are looked for.
 
 ``slideshow_lock._`` is ``gettext.gettext``: it asks the *current* text domain at every call, so

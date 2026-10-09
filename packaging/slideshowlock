@@ -1,4 +1,7 @@
 #!/bin/sh
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 # The short command of the installed package: it starts the background service and opens the
 # settings window. "slideshowlock [args...]" is "slideshow-lock control [args...]"; the other
 # programs stay with slideshow-lock (service, settings, preview). "slideshowlock autostart" is what

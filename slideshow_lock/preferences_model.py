@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """What the settings window decides, without GTK (UI-1).
 
 ``PreferencesModel`` sits between the window's fields and ``Settings`` (CORE-3): which key a

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The sample pictures: copied once, at the first login, into ``Pictures/trensoft``.
 
 The package installs a few pictures under ``<datadir>/slideshow-lock/pictures`` (the source). This

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """What each of the ten transitions looks like at a given moment, and which one comes next. No GTK.
 
 ``compose(name, progress, width, height)`` answers with a list of ``Draw``: the pictures to paint,

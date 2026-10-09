@@ -479,3 +479,67 @@ def test_the_other_user_unit_scriptlets_stay():
 def test_the_spec_comments_no_longer_say_the_upgrade_leaves_the_service_running(stale):
     """The comments said the opposite of the scriptlets once ("decision, not taken here")."""
     assert stale not in SPEC.read_text()
+
+
+# -- the SPDX header of the sources (the licence of the code, in the code) ----------------------
+
+HOLDER = "TrenSoft"
+SPDX_LINES = [
+    f"# SPDX-FileCopyrightText: 2026 {HOLDER}",
+    "# SPDX-License-Identifier: GPL-3.0-or-later",
+]
+HEADED = sorted(
+    [*(REPO / "slideshow_lock").glob("*.py"), LAUNCHER, SHORT_LAUNCHER],
+    key=lambda path: path.name,
+)
+
+
+def _header_problem(text: str):
+    """None if *text* has the two SPDX lines right after an optional shebang, else what is wrong."""
+    lines = text.splitlines()
+    if lines and lines[0].startswith("#!"):
+        lines = lines[1:]
+    if lines[:2] != SPDX_LINES:
+        return f"first lines {lines[:2]!r}"
+    if len(lines) < 3 or lines[2] != "":
+        return "no empty line after the header"
+    return None
+
+
+@pytest.mark.parametrize("path", HEADED, ids=lambda path: path.name)
+def test_every_module_and_launcher_carries_the_two_spdx_lines(path):
+    """licensecheck of the Fedora review marked every file "Unknown" when the sources had no
+    header; the shebang of a launcher stays the first line."""
+    assert _header_problem(path.read_text(encoding="utf-8")) is None
+
+
+def test_the_headed_files_are_all_of_the_package_and_both_commands():
+    assert len(HEADED) == len(list((REPO / "slideshow_lock").glob("*.py"))) + 2
+    assert {p.name for p in HEADED} >= {"__init__.py", "slideshow-lock", "slideshowlock"}
+
+
+@pytest.mark.parametrize(
+    "text,problem",
+    [
+        ("#!/bin/sh\n" + "\n".join(SPDX_LINES) + "\n\nx\n", None),
+        ("\n".join(SPDX_LINES) + '\n\n"""doc"""\n', None),
+        ('"""doc"""\n', "first lines"),
+        ("#!/bin/sh\n" + "\n".join(SPDX_LINES[::-1]) + "\n\nx\n", "first lines"),
+        ("\n".join(SPDX_LINES).replace("2026", "2025") + "\n\nx\n", "first lines"),
+        ("\n".join(SPDX_LINES) + "\nx\n", "no empty line"),
+        ("\n".join(SPDX_LINES).replace("-or-later", "-only") + "\n\nx\n", "first lines"),
+    ],
+)
+def test_the_header_check_sees_a_missing_wrong_or_misplaced_header(text, problem):
+    """Negative control of the test above."""
+    found = _header_problem(text)
+    assert (found is None) if problem is None else (found is not None and problem in found)
+
+
+def test_the_holder_of_the_header_is_the_developer_of_the_metainfo_and_the_packager_of_the_spec():
+    """One spelling of the name everywhere: the header, the AppStream developer, the %changelog."""
+    developer = re.search(r"<developer[^>]*>\s*<name[^>]*>([^<]+)</name>", METAINFO.read_text())
+    assert developer and developer.group(1) == HOLDER
+    entries = re.findall(r"^\* \w{3} \w{3} \d\d \d{4} (.+?) <", SPEC.read_text(), re.MULTILINE)
+    assert entries and set(entries) == {HOLDER}
+    assert SPDX_LINES[0].endswith(HOLDER)

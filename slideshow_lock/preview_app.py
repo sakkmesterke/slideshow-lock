@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Run the slideshow preview from a terminal (CORE-2).
 
     glib-compile-schemas data/

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Image source for the slideshow: folder walk and live folder watching (CORE-4).
 
 A GUI-independent module. It turns the configured picture folder (the CORE-3

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The settings window as the program starts it: ``slideshow-lock settings``.
 
 The window and the preview code may not name the lock, the session or the bus (D11,

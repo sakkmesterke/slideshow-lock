@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Slideshow preview controller (CORE-2): one fullscreen window per monitor.
 
 The controller decides *what* is shown *when*. It draws nothing, imports no GTK and has

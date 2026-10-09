@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Posting a function to a GLib main context, from any thread (CORE-1).
 
 The service has two loops: the main one (GTK, the idle path, the slideshow) and the sleep

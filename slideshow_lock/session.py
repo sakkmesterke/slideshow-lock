@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The contract between the state machine and the desktop session (CORE-1, ARCH-1 section 2).
 
 Every D-Bus interaction is a small ``Protocol`` here. The state machine and the sleep guard

@@ -69,8 +69,10 @@
 # Decisions of the maintainer, taken outside this repository (not read from it):
 #   - The name and e-mail address in %%changelog are the maintainer's choice (2026-10-05). The
 #     repository is public, so they stay in the history of main.
-#   - License GPL-3.0-or-later is the maintainer's decision (2026-10-05). The repository itself
-#     has no SPDX or "or later" text yet.
+#   - License GPL-3.0-or-later is the maintainer's decision (2026-10-05). Since 1.0.8 the 22 modules of
+#     slideshow_lock/ and the two launchers carry it as an SPDX header (SPDX-FileCopyrightText: 2026
+#     TrenSoft, SPDX-License-Identifier: GPL-3.0-or-later); README.md and the metainfo say "or later"
+#     as well, and LICENSE is the plain GPLv3 text.
 # Open items, not code (they need a later step):
 #   - A second spec (an EL one) would be ignored again by the "*.spec" line of .gitignore; the file
 #     here is tracked, so it is not affected.
@@ -91,9 +93,16 @@
 #     and 4.20.0, read]; the line below defines it when nothing else does.
 #   - [H] the package names of the build requirements and of the typelibs on RHEL 10, AlmaLinux 10,
 #     Rocky 10 (run.sh says itself that its names are "likely, not verified on RHEL 10.2").
-#   - [H] setuptools of EL10: [M] setuptools 84.0.0 builds the wheel of this repository with one
-#     deprecation warning for license = { file = "LICENSE" } (a deadline of 2027-Feb-18 in the
-#     message), no failure; the version on EL10 and Fedora is not known.
+#   - setuptools in the four COPR chroots: [M] python3-setuptools 69.0.3-12.el10 (epel-10),
+#     78.1.1-15.fc43, 80.10.2-3.fc44, 84.0.0-1.fc46 (rawhide): the same versions are in the builder
+#     logs of the build 11084605 (2026-10-06) and in the repository metadata read on 2026-10-09 (CentOS
+#     Stream 10 BaseOS, Fedora 43 and 44 release, rawhide); the EPEL 10 repository has no
+#     python3-setuptools of its own (primary.xml read 2026-10-09). [M] setuptools 84.0.0 builds the
+#     wheel of this repository with one deprecation warning for license = { file = "LICENSE" } (a
+#     deadline of 2027-Feb-18 in the message), no failure. [M] The SPDX string license = "GPL-3.0-or-later" (PEP 639) was tried on 2026-10-09 in a
+#     rootless root of each: setuptools 78.1.1 builds the wheel, setuptools 69.0.3 stops with
+#     "`project.license` must be valid exactly by one definition" (it only knows the table with
+#     "file" or "text"). So pyproject.toml keeps the table form until EL10 has setuptools 77 or newer.
 
 %global app_id io.github.trensoft.slideshowlock
 # [K] app_id is APP_ID of slideshow_lock/__init__.py: the GSettings schema id and the gettext domain,
@@ -114,10 +123,11 @@ Release:        1%{?dist}
 # used on purpose: the changelog would be built from the git log of this repository
 Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on input
 License:        GPL-3.0-or-later AND CC-BY-SA-4.0
-# GPL-3.0-or-later is the maintainer's decision (2026-10-05), not read from the repository: LICENSE is
-# the plain GPLv3 text, pyproject.toml says license = { file = "LICENSE" } and the source files carry no
-# SPDX header yet. CC-BY-SA-4.0 is the licence of the seven sample pictures (data/pictures, [K] the
-# credit is data/pictures/CREDITS.txt, the text is packaging/licenses/CC-BY-SA-4.0.txt); the binary
+# GPL-3.0-or-later is the maintainer's decision (2026-10-05): LICENSE is the plain GPLv3 text,
+# pyproject.toml says license = { file = "LICENSE" } and, since 1.0.8, the modules and the two
+# launchers carry an SPDX header (tests/test_packaging.py keeps it). CC-BY-SA-4.0 is the licence of the
+# seven sample pictures (data/pictures, [K] the credit is data/pictures/CREDITS.txt, the text is
+# packaging/licenses/CC-BY-SA-4.0.txt); the binary
 # package holds both, hence AND. [H] an SPDX expression in License: is what the guidelines ask for;
 # NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
 # build of this version, with its rpmlint run, will show).

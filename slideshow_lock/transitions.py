@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The transitions between two pictures, without GTK.
 
 What a transition is called and how long it takes, as plain numbers, so that everything decided

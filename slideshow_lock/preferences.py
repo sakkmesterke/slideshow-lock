@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 TrenSoft
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The settings window (UI-1): the settings in one libadwaita window, in titled groups of rows.
 
     glib-compile-schemas data/
