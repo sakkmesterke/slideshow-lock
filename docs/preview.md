@@ -38,7 +38,10 @@ transitions (section 2, "Transitions").
   is made again at the new size, so the first picture is not left on screen at the wrong size for a
   whole interval. That is done `MAX_SIZE_REDOS` (3) times in a row at most; a window whose size
   never settles gets the picture at the size of the last try, with one warning in the log (a size
-  event redoes it as ever). Real GNOME with a newer GTK was not measured.
+  event redoes it as ever). The count starts again with every picture that is accepted and with
+  every picture that is skipped. The tests run the limit with one window, and the first picture
+  with two; whether three redos are enough for four or more monitors that the compositor sizes
+  one after the other was not measured. Real GNOME with a newer GTK was not measured.
 - **Order and interval** come from the settings (`order`, `slide-interval-seconds`) and apply
   without a restart. The interval counts from the moment a picture appears.
 - **Scaling** (`scaling` key), always to the exact device-pixel size

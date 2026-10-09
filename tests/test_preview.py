@@ -630,6 +630,67 @@ def test_a_window_that_settles_within_the_limit_gets_the_picture_at_the_final_si
     assert len(scaler.calls_for("b.png")) == MAX_SIZE_REDOS + 1
 
 
+class SkippingRestlessScaler(RestlessScaler):
+    """A restless scaler that also gives up on one picture: the call number *at* of *name*
+    raises ImageSkipped (a damaged file found late), whatever the window does."""
+
+    def __init__(self, flips, name, at):
+        super().__init__(flips)
+        self.name = name
+        self.at = at
+
+    def prepare(self, path, sizes, mode, pan=False):
+        if os.path.basename(path) == self.name and len(self.calls_for(self.name)) + 1 == self.at:
+            self.calls.append((self.name, list(sizes), mode, pan))
+            raise ImageSkipped("test: damaged on the way")
+        return super().prepare(path, sizes, mode, pan)
+
+
+def _run_waiting_jobs(r, limit):
+    """Run the waiting jobs, the ones they start included, at most *limit* of them: a redo that
+    never ends fails the assertion that follows, it does not run until the test deadline."""
+    for _ in range(limit):
+        if not r.worker.jobs:
+            return
+        r.worker.run_one()
+
+
+def test_the_redos_of_a_picture_that_is_then_skipped_do_not_count_for_the_next_one(
+    tmp_path, backends
+):
+    """b.png is made again twice for a restless window and then turns out to be damaged. The
+    picture after it, c.png, gets the whole allowance, as if b.png had never been tried."""
+    scaler = SkippingRestlessScaler(0, "b.png", at=MAX_SIZE_REDOS)
+    r = Rig(tmp_path, backends, ["a.png", "b.png", "c.png"], windows=1, scaler=scaler)
+    scaler.window = r.windows[0]
+    r.controller.start()
+    r.worker.run_one()  # a.png is up, b.png is on the worker
+    scaler.flips = 10**6  # from here on the window is restless
+    _run_waiting_jobs(r, 4 * (MAX_SIZE_REDOS + 1))
+    assert len(scaler.calls_for("b.png")) == MAX_SIZE_REDOS  # redone twice, skipped at the third
+    assert len(scaler.calls_for("c.png")) == MAX_SIZE_REDOS + 1
+
+
+def test_the_allowance_of_redos_starts_again_when_a_prepared_picture_is_accepted(
+    tmp_path, backends
+):
+    """The count is reset where a job ends, not where a picture goes on screen: the prepared
+    next picture (b.png) is accepted after the most redos there are, and the redo of a.png that
+    a settings change asks for, before b.png has come on screen, still gets the whole allowance."""
+    r, scaler = _restless_rig(tmp_path, backends, flips=0)
+    r.controller.start()
+    r.worker.run_one()  # a.png is up, b.png is on the worker
+    scaler.flips = MAX_SIZE_REDOS  # b.png is made again as often as the limit allows ...
+    _run_waiting_jobs(r, 4 * (MAX_SIZE_REDOS + 1))
+    assert len(scaler.calls_for("b.png")) == MAX_SIZE_REDOS + 1
+    assert r.windows[0].shown() == ["a.png"]  # ... and waits for its turn
+    scaler.flips = 10**6  # the window is restless again when the settings change
+    r.settings.set(KEY_SCALING, "fit")
+    _run_waiting_jobs(r, 4 * (MAX_SIZE_REDOS + 1))
+    redone = [c for c in scaler.calls_for("a.png") if c[2] == "fit"]
+    assert len(redone) == MAX_SIZE_REDOS + 1
+
+
 def test_a_redo_of_the_shown_picture_is_redone_if_the_window_changed_its_size_meanwhile(
     tmp_path, backends
 ):

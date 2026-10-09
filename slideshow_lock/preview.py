@@ -384,6 +384,7 @@ class PreviewController:
         return any(i in now and now[i] != size for i, size in zip(job.order, job.sizes))
 
     def _on_skipped(self, job: _Job, error: ImageSkipped) -> None:
+        self._size_redos = 0  # the job is over: the picture after it gets the whole allowance
         self._skip_log.warn("[slideshow-dir] skipping %r: %s", job.path, error)
         self._failures += 1
         if self._failures >= max(1, len(self._source)):
