@@ -204,7 +204,7 @@ msgstr "Náhled"
 
 #: slideshow_lock/preferences.py
 msgid "Donate"
-msgstr "Darovat"
+msgstr "Přispět"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"

@@ -206,7 +206,7 @@ msgstr "Предварителен преглед"
 
 #: slideshow_lock/preferences.py
 msgid "Donate"
-msgstr "Дарете"
+msgstr "Дарение"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"

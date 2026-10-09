@@ -206,7 +206,7 @@ msgstr "Vista prèvia"
 
 #: slideshow_lock/preferences.py
 msgid "Donate"
-msgstr "Dona"
+msgstr "Donatiu"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"

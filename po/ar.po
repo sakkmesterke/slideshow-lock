@@ -207,7 +207,7 @@ msgstr "معاينة"
 
 #: slideshow_lock/preferences.py
 msgid "Donate"
-msgstr "تبرّع"
+msgstr "تبرع"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"

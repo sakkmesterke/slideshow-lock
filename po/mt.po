@@ -205,7 +205,7 @@ msgstr "Previżjoni"
 
 #: slideshow_lock/preferences.py
 msgid "Donate"
-msgstr "Agħmel donazzjoni"
+msgstr "Donazzjoni"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"

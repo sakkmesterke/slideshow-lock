@@ -203,7 +203,7 @@ msgstr "Náhľad"
 
 #: slideshow_lock/preferences.py
 msgid "Donate"
-msgstr "Darovať"
+msgstr "Prispieť"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"

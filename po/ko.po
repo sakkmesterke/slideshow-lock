@@ -203,7 +203,7 @@ msgstr "미리 보기"
 
 #: slideshow_lock/preferences.py
 msgid "Donate"
-msgstr "기부하기"
+msgstr "기부"
 
 #: slideshow_lock/preferences.py
 msgid "10 s"
