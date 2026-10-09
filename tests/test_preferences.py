@@ -596,6 +596,29 @@ def test_the_footer_holds_preview_donate_the_status_and_the_version_in_that_orde
     assert children[footers[0]] == ["preview_button", "donate_button", "status", "version_label"]
 
 
+def test_the_version_label_is_selectable():
+    """The version at the bottom right can be selected and copied (for a bug report): a label is
+    not selectable unless the constructor says so, and nothing else here would notice."""
+    function = ast.parse(textwrap.dedent(inspect.getsource(PreferencesWindow.__init__))).body[0]
+    calls = [
+        node.value
+        for node in ast.walk(function)
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Attribute)
+            and isinstance(target.value, ast.Name)
+            and target.value.id == "self"
+            and target.attr == "version_label"
+            for target in node.targets
+        )
+        and isinstance(node.value, ast.Call)
+    ]
+    assert len(calls) == 1  # the check looks at the one label
+    selectable = [keyword.value for keyword in calls[0].keywords if keyword.arg == "selectable"]
+    assert len(selectable) == 1
+    assert isinstance(selectable[0], ast.Constant) and selectable[0].value is True
+
+
 def test_the_header_bar_holds_nothing_of_the_window_s_own():
     """The header bar is for the window controls: no menu button, and nothing else of ``self`` is
     placed in it."""
