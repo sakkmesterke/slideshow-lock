@@ -6,57 +6,12 @@
 #        COPR build, are named in the comment
 #   [H]  background knowledge about RPM, systemd and the Fedora packaging guidelines, NOT verified
 #
-# STATUS of the 1.0.0 builds (2026-10-06; the COPR builds named here are of 1.0.0, 1.0.1, 1.0.2, 1.0.3, 1.0.4, 1.0.5, 1.0.6, 1.0.7 and 1.0.8 are not
-# covered by them): built in COPR (project trensoft/slideshow-lock) in all four chroots, in two builds:
-# 11084376 of main 0ac5c23 before the fix of the cairo typelib, which failed on the three Fedora
-# chroots, and 11084605 of main 2f45728 (the committish in the log of the SRPM build) after the fix,
-# which succeeded on all four. COPR runs rpmbuild in one mock build root per chroot. [M] read from the
-# COPR API (api_3) and the builder logs of the build 11084605, which started at 2026-10-06 12:05 UTC
-# and whose last chroot finished at 12:10 UTC:
-#   epel-10-x86_64, fedora-43-x86_64, fedora-44-x86_64, fedora-rawhide-x86_64 (the last one made fc46
-#                       packages): all four SUCCEEDED; %%check ran to the end in each of them (the
-#                       import check of 16 modules, glib-compile-schemas --strict --dry-run,
-#                       desktop-file-validate, appstreamcli validate --no-net: no error; the last
-#                       one prints "developer-info-missing" as its one info and says "infos: 1,
-#                       pedantic: 2", the two pedantic tags are not named in the log) and the
-#                       noarch RPM was written
-# Build 11084376 (before the fix) SUCCEEDED on epel-10-x86_64; on fedora-43, fedora-44
-# and fedora-rawhide (x86_64) it FAILED in %%check, all three with the same error:
-# %%pyproject_check_import, "Typelib file for namespace 'cairo', version '1.0' not found", for
-# slideshow_lock.preferences, .preview_app, .preview_window and .service. The cause, and the
-# BuildRequires and Requires that fix it, are named at those two lines below. Before the second COPR
-# build the fix was also tried in rootless Fedora 43 and CentOS Stream 10 build roots made of the
-# packages (exact versions) of the COPR logs, with rpmbuild 6.0.2 and 4.19.1.1 of those roots, no
-# scriptlets run: the build, %%check included, passed on both.
-# [M] rpmlint 2.8.0 and fedora-review ran in the COPR build 11084605 on the three Fedora chroots (the
-# results are in the fedora-review/ directory of each: review.txt, rpmlint.txt). rpmlint ran with the
-# Fedora configuration (/etc/xdg/rpmlint/fedora.toml) on the built noarch RPM and on the source RPM,
-# and printed the same in fedora-43, fedora-44 and fedora-rawhide: 0 errors, 2 warnings
-# (no-manual-page-for-binary and empty-%%postun), 7 filtered. That is the result for the 1.0.0 spec of
-# that build. [M] The build 11092273 of 1.0.5-1 (rpmlint.txt of fedora-43, fedora-44 and fedora-rawhide,
-# identical) prints 1 error, 2 warnings, 7 filtered: "E: explicit-lib-dependency libadwaita" (rpmlint
-# only looks at the name "libadwaita" of the Requires; the program loads the typelib Adw-1 through
-# PyGObject and no repository has a typelib(Adw) provide), and the warnings no-manual-page-for-binary
-# for slideshow-lock and slideshowlock (empty-%%postun is gone: the spec has a %%posttrans). At that
-# time the error was filtered by packaging/fedora/slideshow-lock.rpmlintrc, which was not part of the
-# SRPM: with "rpmlint --rpmlintrc" the same files gave 0 errors, 2 warnings. Since 1.0.8 the spec asks
-# for "libadwaita >= 1.2" and the package has two manual pages: [M] rpmlint 2.8.0 (the Fedora
-# configuration) on the spec, the SRPM and the RPM built in a rootless root of CentOS Stream 10 and of
-# Fedora 43 says 0 errors, 0 warnings; the rpmlintrc is gone, because with the filter left in place the
-# same rpmlint reports it as the error unused-rpmlintrc-filter. fedora-review (rc 0) wrote its template;
-# the review.txt of the three chroots lists 70 items (counted with the pattern "^\[.\]:" so that the two
-# legend lines are not counted): 35 marked "[x]", 2 marked "[!]" (the download of Source0, which fails
-# because the tag v1.0.0 did not exist yet when that run was made, and the reminder to test the build
-# in mock) and 33 marked "[ ]" (manual review needed, still open); it has 1 entry under "Issues:"
-# (the systemd user unit scriptlets, which the %%post and %%preun of this spec provide). There is no
-# fedora-review/ directory and no rpmlint output on epel-10, and none for the build 11084376 (no such
-# directory in any of its chroots).
-# NOT run: mock by hand, rpmlint and fedora-review on epel-10, an install of the RPM on a Fedora or EL
-# machine, the test suite (--with tests), a real GNOME session. The review.txt says "[x]: Package
-# installs properly" because fedora-review installed the built package in a mock root of COPR (the log
-# says "Installing built package(s)", with the mock configuration of the build); that is not an
-# install on a Fedora or EL machine, and whether the root held the BuildRequires is not read from
-# the log.
+# STATUS (2026-10-09; the history of the earlier builds is in the git log of this file):
+# [M] COPR build 11102911 of 1.0.9-1 (project trensoft/slideshow-lock), chroot fedora-rawhide-x86_64:
+# fedora-review 0.12.0 lists 73 items, 38 "[x]", 1 "[!]", 34 "[ ]" (manual review), and 1 entry under
+# "Issues:" (the user unit scriptlets, see the comment above %%post); rpmlint 2.8.0 on the RPM and the
+# SRPM: 0 errors, 0 warnings. There is no rpmlint or fedora-review output for epel-10. NOT run: mock by
+# hand, an install of the RPM on a Fedora or EL machine, a real GNOME session.
 #
 # Prerequisites that are not in this file:
 #   - Source0 (the GitHub archive of the tag v%%{version}) can be downloaded only once that tag
@@ -117,6 +72,10 @@
 
 %bcond tests 0
 # [H] "%%bcond tests 0" defines the switch off by default; "rpmbuild --with tests" turns it on
+# Deviation from the Python guidelines (the upstream test suite should run in %%check), documented as they
+# ask: the suite (tests/, run in the upstream CI on Ubuntu) needs a private dbus-daemon and the GTK 4
+# typelibs, i.e. a GNOME/D-Bus session, and no Fedora or EL build root has run it, so it is NOT proven in
+# mock. The import check and the file validators in %%check run in every build.
 
 Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
@@ -129,12 +88,12 @@ Summary:        Idle slideshow screensaver for GNOME on Wayland that locks on in
 License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 # GPL-3.0-or-later is the maintainer's decision (2026-10-05): LICENSE is the plain GPLv3 text,
 # pyproject.toml says license = { file = "LICENSE" } and, since 1.0.8, the modules and the two
-# launchers carry an SPDX header (tests/test_packaging.py keeps it). CC-BY-SA-4.0 is the licence of the
+# launchers carry an SPDX header (tests/test_packaging.py keeps it). CC-BY-SA-4.0 is the license of the
 # seven sample pictures (data/pictures, [K] the credit is data/pictures/CREDITS.txt, the text is
 # packaging/licenses/CC-BY-SA-4.0.txt); the binary
 # package holds both, hence AND. [H] an SPDX expression in License: is what the guidelines ask for;
-# NOT measured: that rpmlint and the Fedora licence data accept CC-BY-SA-4.0 for pictures (a COPR
-# build of this version, with its rpmlint run, will show).
+# [K] CC-BY-SA-4.0 is on the "Allowed Content Licenses" list of the Fedora legal documentation (it is
+# allowed for content such as pictures, not for code); [M] rpmlint of the COPR build 11102911 is clean.
 URL:            https://github.com/trensoft/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
@@ -223,6 +182,10 @@ BuildRequires:  dbus-daemon
 # it does not show that nothing is missing at run time; only an install of the RPM on a minimal Fedora
 # or EL machine can (NOT run, see STATUS). The one typelib package that is listed by name,
 # gobject-introspection, is explained at its own line.
+# [K] slideshow_lock/dbus_adapters.py calls org.gnome.Mutter.IdleMonitor, org.gnome.SessionManager,
+# org.gnome.ScreenSaver and org.gnome.Shell on the session bus; [H] GNOME Shell (with mutter) serves them,
+# and the package is for GNOME only (OnlyShowIn=GNOME in the autostart entry).
+Requires:       gnome-shell
 Requires:       gtk4
 Requires:       libadwaita >= 1.2
 # [M] the same package as the BuildRequires above, for the run time: the typelib Adw-1 is in it. A
@@ -311,7 +274,7 @@ install -Dpm 0755 packaging/%{name} %{buildroot}%{_bindir}/%{name}
 install -Dpm 0755 packaging/slideshowlock %{buildroot}%{_bindir}/slideshowlock
 
 # The sample pictures. [K] data/pictures/ holds the seven JPEG files (the metadata taken out but the
-# author and the licence in Exif and XMP, see tools/strip_jpeg_metadata.py) and CREDITS.txt; slideshow_lock/sample_pictures.py copies them into
+# author and the license in Exif and XMP, see tools/strip_jpeg_metadata.py) and CREDITS.txt; slideshow_lock/sample_pictures.py copies them into
 # the user's pictures folder at the first login, from <datadir>/slideshow-lock/pictures (its
 # APP_DIR and DATA_SUBDIR; tests/test_packaging.py compares this line with the two constants).
 # [K] the folder is made here and not left to the file list, so that it is root:root 0755 whatever
@@ -366,8 +329,8 @@ install -Dpm 0644 data/icons/hicolor/symbolic/apps/%{app_id}-symbolic.svg \
 bash tools/i18n.sh build %{buildroot}%{_datadir}/locale
 %find_lang %{app_id}
 # [M] find-lang.sh of rpm 4.18.0 (the same option parsing as in rpm 4.19.1, read): with the five
-# catalogs of 1.0.0 (1.0.5 has 40) in a scratch build root it writes %%{app_id}.lang with five
-# %%lang(..) lines, exit 0.
+# catalogs of 1.0.0 (the package has 40 since 1.0.1) in a scratch build root it writes
+# %%{app_id}.lang with five %%lang(..) lines, exit 0.
 # Without a catalog it prints "No translations found" and exits 1, so a build that lost its
 # catalogs fails instead of shipping an English-only package. The option --allow-no-translations of
 # the earlier version of this spec is NOT in find-lang.sh of rpm 4.18.0 or 4.19.1: it is taken as the
@@ -415,11 +378,18 @@ appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/%{app_id}.meta
 # --marked" for the logged-in user. NOT measured: a real "dnf upgrade" with a logged-in GNOME session (a stub
 # "systemctl" stood in for systemd), and Fedora 43/44/rawhide transactions (only the packages were read).
 
+# fedora-review 0.12.0 reports a false Issue for the two user unit scriptlets below: [K] its check
+# (plugins/generic.py, CheckSystemdUserunitdirScriplets) matches the whole macro expansion, with the
+# trailing space and newline that rpmbuild does not store. [H] a model of it says FAIL as it is and PASS
+# with a line after the macro; NOT measured with the real rpm. The comment line after each macro is the
+# whole workaround and nothing runs differently; the comment must not contain a percent sign.
 %post
 %systemd_user_post %{name}.service
+# fedora-review 0.12.0 wants a line after the macro (see the comment above this section)
 
 %preun
 %systemd_user_preun %{name}.service
+# fedora-review 0.12.0 wants a line after the macro (see the comment above this section)
 
 %posttrans
 %systemd_user_posttrans_with_restart %{name}.service
@@ -427,9 +397,9 @@ appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/%{app_id}.meta
 %files -f %{pyproject_files} -f %{app_id}.lang
 %doc README.md
 %license packaging/licenses/CC-BY-SA-4.0.txt
-# [M] the wheel of setuptools 84.0.0 has License-File: LICENSE only (see %%install), so the licence of
+# [M] the wheel of setuptools 84.0.0 has License-File: LICENSE only (see %%install), so the license of
 # the pictures is not claimed twice by %%pyproject_save_files; the name and the folder
-# packaging/licenses/ match no default licence-file pattern of setuptools (LICEN[CS]E*, COPYING*,
+# packaging/licenses/ match no default license-file pattern of setuptools (LICEN[CS]E*, COPYING*,
 # NOTICE*, AUTHORS*) [H: from memory, not measured for setuptools newer than 84.0.0]. [M] rpm -qpL and
 # rpm -qp --licensefiles on the noarch RPM of 1.0.5-1 built from this spec in rootless build roots with
 # the COPR package sets (rpm 4.19.1.1 on EL10, rpm 6.0.2 on Fedora 43): two %%license files, LICENSE (in
