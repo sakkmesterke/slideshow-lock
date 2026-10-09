@@ -3,8 +3,9 @@
 
 """The About window of the settings window, and the one place that holds the donation link.
 
-The window opens from the main menu in the header bar of the settings window
-(``preferences.PreferencesWindow``). It shows the name, the version (``slideshow_lock.version``),
+Nothing opens it since 1.0.10: the main menu of the settings window is gone, and ``show_about`` is
+not called (``docs/preferences.md``, "The About window"). When opened, it shows the name, the
+version (``slideshow_lock.version``),
 the short description, the sentence about the AI agents (the one of the README, "Authorship"),
 the copyright, the licence, and links: the project page, the issue tracker and, when there is one,
 the donation link.
@@ -15,7 +16,7 @@ class is deprecated from libadwaita 1.6 on, which is the libadwaita of EL10, so 
 not call the deprecated class where the new one exists; the Requires of the package stays
 ``libadwaita >= 1.2``. Both are made with the same properties and ``add_link``; they differ in how
 they are shown (a dialog on top of the parent, a transient window), which is all ``show_about``
-decides.
+decides (it has no caller since 1.0.10).
 
 The donation link is ``DONATION_URL``, the only place in the source that holds it. Anything that is
 not a plain ``https://`` address (empty, blanks, the placeholder ``<DONATION_URL>``, another scheme,

@@ -184,7 +184,8 @@ one, the donation link. No person is named. `slideshow_lock/about.py` holds all 
   columns, no `PreferencesPage`: it scrolls), `ActionRow`, `ComboRow`, `EntryRow`. That is what the window was run with here (Adw 1.2.2, GTK
   4.8.3), and what the libadwaita of EL10 (1.6) has as well; `SwitchRow`, `SpinRow`, `ToolbarView`
   and `Adw.PreferencesDialog` are newer and not used; the one exception is `Adw.AboutDialog` of the
-  About window, taken only where it exists. The window needs the `Adw` typelib
+  About window, taken only where it exists (nothing opens that window since 1.0.10, see "The About
+  window"). The window needs the `Adw` typelib
   (`gir1.2-adw-1`, `libadwaita`). The folder chooser is `Gtk.FileChooserNative`; `Gtk.FileDialog`
   needs GTK 4.10 and does not exist on the GTK 4.8 this was built on.
 - `tools/wayland-smoke/smoke_preferences.py` drives the real window on a headless compositor:
@@ -193,8 +194,8 @@ one, the donation link. No person is named. `slideshow_lock/about.py` holds all 
 
 ## Not covered
 
-- The About window was opened and read in a headless mutter (the main menu action, the labels of
-  the widget tree, the link rows with and without a donation address) on libadwaita 1.2.2
+- The About window was opened and read in a headless mutter at 1.0.9 (through the main menu action,
+  which is gone since 1.0.10; the labels of the widget tree, the link rows with and without a donation address) on libadwaita 1.2.2
   (`Adw.AboutWindow`, here), and with a client of the CentOS Stream 10 root (libadwaita 1.6.10, GTK
   4.16.7) and of the Fedora 43 root (1.8.8, GTK 4.20.4), both `Adw.AboutDialog`. Not run: libadwaita
   1.3 and 1.4, a real GNOME session, a click on a link row (the address is opened by libadwaita), and

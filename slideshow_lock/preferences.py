@@ -35,8 +35,9 @@ libadwaita, and only what exists in libadwaita 1.2 (``Adw.ApplicationWindow``, `
 ``PreferencesGroup``, ``ActionRow``, ``ComboRow``, ``EntryRow``): that is
 what the window was run with, and what EL10's libadwaita (1.6) has as well. Newer rows
 (``SwitchRow``, ``SpinRow``) and ``Adw.PreferencesDialog`` are not used. The one exception is the
-About window of the main menu in the header bar, which takes ``Adw.AboutDialog`` where libadwaita
-has it (1.5 and later) and ``Adw.AboutWindow`` otherwise (``slideshow_lock/about.py``). The folder
+About window (``slideshow_lock/about.py``), which takes ``Adw.AboutDialog`` where libadwaita has
+it (1.5 and later) and ``Adw.AboutWindow`` otherwise; nothing in this window opens it since 1.0.10
+(the main menu is gone). The folder
 chooser is ``Gtk.FileChooserNative``, which exists in every GTK 4 (``Gtk.FileDialog`` needs 4.10;
 the GTK 4.8 this was built and measured on has none). Not covered by the tests of the CI: what this
 module draws (checked with ``tools/wayland-smoke/smoke_preferences.py``, and by eye on the reference
