@@ -75,6 +75,11 @@ TRIGGER_PREVIEW = "preview"
 #: If a window has not reported its size after this long, the preview starts without it.
 SIZE_WAIT_SECONDS = 2.0
 
+#: A picture made for a window size that has changed meanwhile is made again, this many times in a
+#: row at most; then the result is shown as it is. A window whose size never settles would
+#: otherwise have the same picture scaled again and again without end.
+MAX_SIZE_REDOS = 3
+
 #: Window input kinds, for the log only.
 INPUT_MOTION = "motion"
 INPUT_BUTTON = "button"
@@ -145,6 +150,7 @@ class PreviewController:
         self._stopped_listeners: List[Callable[[str], None]] = []
         self._skip_log = _BurstLog("pictures that could not be shown")
         self._error_log = _BurstLog("unexpected errors while preparing pictures")
+        self._size_log = _BurstLog("pictures shown at a size their window no longer has")
 
         source.connect_current_changed(self._on_source_changed)
         settings.connect_changed(self._on_settings_changed)
@@ -198,6 +204,7 @@ class PreviewController:
                 _LOG.exception("[slideshow] closing a preview window failed")
         self._skip_log.reset()
         self._error_log.reset()
+        self._size_log.reset()
         _LOG.info("[slideshow] stopped (source=%s, reason=%s)", TRIGGER_PREVIEW, reason)
         for callback in list(self._stopped_listeners):
             try:
@@ -223,6 +230,7 @@ class PreviewController:
         self._size_wait_over = False
         self._failures = 0
         self._failed_out = False
+        self._size_redos = 0  # redos in a row because a window changed its size meanwhile
         self._empty_logged = False
 
     def _cancel_timers(self) -> None:
@@ -335,10 +343,20 @@ class PreviewController:
                 # A window was sized while the picture was being prepared (the first picture
                 # typically: a window not yet sized by the compositor reports a placeholder
                 # size, and the size event can come before the result). Frames of the old
-                # size would sit on screen for a whole interval, so do the job again.
-                self._want = (job.path, job.purpose)
-                self._dispatch()
-                return
+                # size would sit on screen for a whole interval, so do the job again, but
+                # only ``MAX_SIZE_REDOS`` times in a row: a window whose size never settles
+                # gets the picture as it is, and a size event redoes it later as ever.
+                if self._size_redos < MAX_SIZE_REDOS:
+                    self._size_redos += 1
+                    self._want = (job.path, job.purpose)
+                    self._dispatch()
+                    return
+                self._size_log.warn(
+                    "[slideshow] a window changed its size again and again while %r was "
+                    "prepared, showing it at the size it was made for",
+                    job.path,
+                )
+            self._size_redos = 0
             frames = dict(zip(job.order, result))
             self._failures = 0
             self._failed_out = False

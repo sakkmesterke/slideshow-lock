@@ -36,7 +36,9 @@ transitions (section 2, "Transitions").
   that the compositor has not sized yet can report a placeholder size (1 x 1 on GTK 4.8 under
   mutter, measured); a picture made for a size that a window no longer has when the work is done
   is made again at the new size, so the first picture is not left on screen at the wrong size for a
-  whole interval. Real GNOME with a newer GTK was not measured.
+  whole interval. That is done `MAX_SIZE_REDOS` (3) times in a row at most; a window whose size
+  never settles gets the picture at the size of the last try, with one warning in the log (a size
+  event redoes it as ever). Real GNOME with a newer GTK was not measured.
 - **Order and interval** come from the settings (`order`, `slide-interval-seconds`) and apply
   without a restart. The interval counts from the moment a picture appears.
 - **Scaling** (`scaling` key), always to the exact device-pixel size

@@ -9,6 +9,8 @@ GSETTINGS_SCHEMA_DIR=data python3 -m slideshow_lock.preferences
 
 `slideshow_lock.settings_app` (what `./run.sh settings` and `slideshow-lock settings` start) is the same window and also closes the shell's overview when the Preview button is pressed; see `docs/architecture/dbus-state-machine.md`, section 3.7a. The menu entry and the login start run `slideshowlock` (`slideshow_lock.control`), which starts the service unit first and then opens this window; it does not read or write any setting except `first-run-done` (section 3.7b). The `first-run-done` key is not shown in the window.
 
+The window has one option, `--debug` (`./run.sh settings --debug`, `slideshow-lock settings --debug`, `python3 -m slideshow_lock.preferences --debug`): it logs every step to the terminal. Without it only the information, warning and error lines are logged.
+
 ## What is in it
 
 | Field | Key | Accepts |

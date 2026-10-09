@@ -298,6 +298,7 @@ def test_settings_starts_the_window_module(tmp_path, stub_bin):
     result = _run(["settings"], _env(tmp_path, path=path))
     assert result.returncode == 0, result.stderr
     assert "STUB -m slideshow_lock.settings_app" in result.stdout
+    assert "ARGC=2" in result.stdout, "an argument came from nowhere: only -m and the module"
 
 
 def test_settings_passes_the_arguments_on_to_the_window_module(tmp_path, stub_bin):

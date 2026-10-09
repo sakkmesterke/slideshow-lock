@@ -71,6 +71,7 @@ The window of [`preferences.md`](preferences.md): the seven stored settings and 
 It is built from plain GTK 4 widgets, without libadwaita.
 Unlike the preview, **this window stores what you change** in your user settings (GSettings
 under the application id), so the preview afterwards uses it.
+Its one option is `--debug` (`./run.sh settings --debug`): it logs every step to the terminal.
 
 ## 5. Try the whole chain: idle, slideshow, movement, lock
 

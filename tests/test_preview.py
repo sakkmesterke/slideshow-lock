@@ -28,6 +28,7 @@ from slideshow_lock.preview import (
     INPUT_KEY,
     INPUT_MOTION,
     INPUT_SCROLL,
+    MAX_SIZE_REDOS,
     GLibClock,
     PreviewController,
     ThreadWorker,
@@ -556,6 +557,152 @@ def test_a_prepared_next_picture_made_for_an_outdated_size_is_redone(tmp_path, b
     r.tick(10)
     assert r.windows[0].shown() == ["a.png", "b.png"]
     assert _sizes_shown(r.windows[0])[-1] == (2560, 1440)
+
+
+class RestlessScaler(FakeScaler):
+    """A scaler during whose work the window changes its size (no event), *flips* times in all:
+    the first call of each flip leaves the size the job was made for behind."""
+
+    SIZES = ((1920, 1080), (2560, 1440))
+
+    def __init__(self, flips):
+        super().__init__()
+        self.flips = flips
+        self.window = None  # set by the test, once the rig has made its windows
+
+    def prepare(self, path, sizes, mode, pan=False):
+        frames = super().prepare(path, sizes, mode, pan)
+        if self.flips > 0:
+            self.flips -= 1
+            first, second = self.SIZES
+            self.window.size = second if self.window.size == first else first
+        return frames
+
+
+def _restless_rig(tmp_path, backends, flips):
+    scaler = RestlessScaler(flips)
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=1, scaler=scaler)
+    scaler.window = r.windows[0]
+    return r, scaler
+
+
+def _run_jobs_until_shown(r, limit):
+    """Run waiting jobs one by one until the window has a picture: a redo that never ends fails
+    the assertion after *limit* jobs, it does not run until the test deadline."""
+    for _ in range(limit):
+        if r.windows[0].frames or not r.worker.jobs:
+            return
+        r.worker.run_one()
+
+
+def test_a_window_whose_size_never_settles_gets_the_picture_after_a_few_redos(
+    tmp_path, backends, caplog
+):
+    """Every try finds the window at another size than the one it was made for. The picture is
+    made again ``MAX_SIZE_REDOS`` times, then shown at the size of the last try."""
+    r, scaler = _restless_rig(tmp_path, backends, flips=10**6)
+    with caplog.at_level(logging.WARNING, logger="slideshow_lock"):
+        r.controller.start()
+        _run_jobs_until_shown(r, 4 * (MAX_SIZE_REDOS + 1))
+    assert r.windows[0].shown() == ["a.png"]
+    assert len(scaler.calls_for("a.png")) == MAX_SIZE_REDOS + 1
+    (frame, _pan) = r.windows[0].frames[0]
+    assert [(frame.width, frame.height)] == scaler.calls_for("a.png")[-1][1]
+    assert any("changed its size again and again" in m for m in caplog.messages)
+
+
+def test_a_window_that_settles_within_the_limit_gets_the_picture_at_the_final_size(
+    tmp_path, backends
+):
+    """The limit does not cost the normal case anything: a window that changes its size as often
+    as the limit allows is still redone to the size it ends on, for the first picture and, as
+    the count of redos starts again with every accepted result, for the next one."""
+    r, scaler = _restless_rig(tmp_path, backends, flips=MAX_SIZE_REDOS)
+    r.controller.start()
+    _run_jobs_until_shown(r, 4 * (MAX_SIZE_REDOS + 1))
+    assert _sizes_shown(r.windows[0]) == [r.windows[0].size]
+    assert len(scaler.calls_for("a.png")) == MAX_SIZE_REDOS + 1
+    scaler.flips = MAX_SIZE_REDOS  # and the window is restless again while b.png is prepared
+    r.worker.run_all()
+    r.tick(10)
+    assert r.windows[0].shown() == ["a.png", "b.png"]
+    assert _sizes_shown(r.windows[0])[-1] == r.windows[0].size
+    assert len(scaler.calls_for("b.png")) == MAX_SIZE_REDOS + 1
+
+
+def test_a_redo_of_the_shown_picture_is_redone_if_the_window_changed_its_size_meanwhile(
+    tmp_path, backends
+):
+    """The job of a settings change (``_JOB_REFRESH``) is checked against the window sizes like
+    the job of a first or a next picture."""
+    r = rig(tmp_path, backends, windows=1)
+    r.settings.set(KEY_SCALING, "fit")  # the redo of a.png is on the worker ...
+    assert len(r.worker.jobs) == 1
+    r.windows[0].size = (2560, 1440)  # ... and the window changes its size, no event
+    r.worker.run_all()
+    assert [c[1:3] for c in r.scaler.calls_for("a.png")] == [
+        ([(1920, 1080)], "fill"),
+        ([(1920, 1080)], "fit"),
+        ([(2560, 1440)], "fit"),
+    ]
+    frame = r.windows[0].frames[-1][0]
+    assert (frame.width, frame.height, frame.method) == (2560, 1440, "fake-fit-0")
+    r.tick(10)
+    assert r.windows[0].shown()[-1] == "b.png"
+    assert _sizes_shown(r.windows[0])[-1] == (2560, 1440)
+
+
+@pytest.mark.parametrize("unsized_first", [True, False], ids=["first-unsized", "both-sized"])
+@pytest.mark.parametrize(
+    "new_size",
+    [(1920, 1080), (1600, 1920), (1080, 1000)],
+    ids=["both-dimensions", "width-only", "height-only"],
+)
+def test_a_job_is_redone_for_the_window_whose_size_changed_by_the_window_index(
+    tmp_path, backends, unsized_first, new_size
+):
+    """The sizes of a job are parallel to the window indexes it was made for (not to 0, 1, ...
+    when the first window had no size yet), and a change of the width alone or the height alone
+    is a change."""
+    r = Rig(tmp_path, backends, ["a.png", "b.png"], windows=2, sizes=[(1920, 1080), (1080, 1920)])
+    if unsized_first:
+        r.windows[0].size = None
+    r.controller.start()
+    if unsized_first:
+        r.clock.advance(2.5)  # the wait for sizes is over: the job goes out for window 1 alone
+    r.windows[1].size = new_size  # no event
+    r.worker.run_all()
+    assert _sizes_shown(r.windows[1]) == [new_size]  # never the size it was first made for
+    assert (r.windows[0].frames == []) is unsized_first
+    assert len(r.scaler.calls_for("a.png")) == 2
+
+
+@pytest.mark.parametrize("how", ["no-event", "event"])
+def test_a_picture_that_cannot_be_shown_while_a_window_changes_its_size_is_skipped_once(
+    tmp_path, backends, how
+):
+    """The prepared picture is damaged and the window changes its size at the same time: it is
+    skipped (not made again for the new size), and the picture after it is made for the new
+    size and shown."""
+    r = Rig(
+        tmp_path,
+        backends,
+        ["a.png", "b.png", "c.png"],
+        windows=1,
+        scaler=FakeScaler(bad={"b.png"}),
+    )
+    r.controller.start()
+    r.worker.run_one()  # a.png is up, b.png is on the worker
+    assert r.worker.jobs and r.windows[0].shown() == ["a.png"]
+    if how == "event":
+        r.windows[0].resize((2560, 1440))
+    else:
+        r.windows[0].size = (2560, 1440)
+    r.worker.run_all()
+    r.tick(10)
+    assert [n for n, _same in itertools.groupby(r.windows[0].shown())] == ["a.png", "c.png"]
+    assert _sizes_shown(r.windows[0])[-1] == (2560, 1440)
+    assert len(r.scaler.calls_for("b.png")) == 1
 
 
 def test_a_stable_window_size_prepares_the_first_picture_once(tmp_path, backends):
