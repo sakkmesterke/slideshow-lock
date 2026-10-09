@@ -933,6 +933,93 @@ def test_a_launcher_that_cannot_be_made_is_logged_and_said_in_the_status_line(mo
     assert show_uri.calls == []
 
 
+# -- Donate looks like Preview ---------------------------------------------------------------------
+
+STYLING_CALLS = (
+    "add_css_class",
+    "remove_css_class",
+    "set_css_classes",
+    "set_has_frame",
+    "set_size_request",
+    "set_width_request",
+    "set_height_request",
+    "set_halign",
+    "set_valign",
+    "set_hexpand",
+    "set_vexpand",
+    "set_margin_top",
+    "set_margin_bottom",
+    "set_margin_start",
+    "set_margin_end",
+    "set_opacity",
+    "set_css_name",
+)
+
+
+def _button_calls(name):
+    """Every ``self.<name>.<method>(...)`` call in the module, and the ``Gtk.Button(...)`` call the
+    constructor assigns to ``self.<name>`` (the real widget needs a display: the smoke test
+    measures it, this reads what the program does to it)."""
+    tree = ast.parse(inspect.getsource(preferences))
+    made, calls = [], []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Call):
+            if any(isinstance(t, ast.Attribute) and t.attr == name for t in node.targets):
+                made.append(node.value)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            owner = node.func.value
+            if isinstance(owner, ast.Attribute) and owner.attr == name:
+                calls.append(node.func.attr)
+    return made, calls
+
+
+def _footer_appends():
+    tree = ast.parse(textwrap.dedent(inspect.getsource(PreferencesWindow.__init__)))
+    return [
+        (ast.unparse(node.func.value), ast.unparse(node.args[0]))
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "append"
+        and node.args
+    ]
+
+
+def test_the_donate_button_is_made_like_the_preview_button_but_for_label_and_visibility():
+    (preview,), (donate,) = _button_calls("preview_button")[0], _button_calls("donate_button")[0]
+    assert ast.unparse(preview.func) == ast.unparse(donate.func) == "Gtk.Button"
+
+    def same_part(call):
+        return sorted(
+            (keyword.arg, ast.unparse(keyword.value))
+            for keyword in call.keywords
+            if keyword.arg not in ("label", "visible")
+        )
+
+    assert same_part(preview) == same_part(donate) == [("valign", "Gtk.Align.CENTER")]
+    assert not preview.args and not donate.args
+
+
+@pytest.mark.parametrize("name", ("preview_button", "donate_button"))
+def test_neither_footer_button_is_styled_after_it_is_made(name):
+    """No class, size request, alignment, margin or frame is set on either button, so the two
+    only differ by the label (and the width that follows): the other changes would go through
+    one of these calls, or through a keyword the test above compares."""
+    made, calls = _button_calls(name)
+    assert len(made) == 1 and "connect" in calls  # the control: the reading finds the button
+    assert not set(calls) & set(STYLING_CALLS)
+
+
+def test_the_two_buttons_sit_in_the_same_box_one_after_the_other():
+    appends = _footer_appends()
+    owners = {
+        box for box, child in appends if child in ("self.preview_button", "self.donate_button")
+    }
+    children = [child for box, child in appends if box in owners]
+    assert len(owners) == 1
+    assert children.index("self.donate_button") == children.index("self.preview_button") + 1
+
+
 NO_DONATION = (
     "",
     "<DONATION_URL>",

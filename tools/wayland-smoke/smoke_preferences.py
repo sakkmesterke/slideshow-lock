@@ -260,6 +260,31 @@ def main() -> int:
         and window.donate_button.get_css_classes() == window.preview_button.get_css_classes(),
         str(list(window.donate_button.get_css_classes())),
     )
+    preview, donate = window.preview_button, window.donate_button
+
+    def look(button):
+        """What makes a button look the way it does, but its label and the width that follows."""
+        return (
+            list(button.get_css_classes()),
+            button.get_css_name(),
+            tuple(button.get_size_request()),
+            button.get_halign(),
+            button.get_valign(),
+            button.get_hexpand(),
+            button.get_vexpand(),
+            button.get_has_frame(),
+            (button.get_margin_top(), button.get_margin_bottom()),
+            (button.get_margin_start(), button.get_margin_end()),
+            button.get_height(),
+            tuple(button.measure(Gtk.Orientation.VERTICAL, -1)[:2]),
+            button.get_pango_context().get_font_description().to_string(),
+        )
+
+    check(
+        "Donate looks like Preview: classes, size request, alignment, margins, height, font",
+        look(preview) == look(donate),
+        f"{look(preview)} / {look(donate)}",
+    )
     from slideshow_lock import about
 
     shown_url = about.DONATION_URL
