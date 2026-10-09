@@ -103,6 +103,13 @@ ROW_SPACING = 8
 DURATION_SCALE_WIDTH = 260  # the transition-length slider, in pixels
 
 
+def donate_button_visible() -> bool:
+    """Whether the Donate button is shown: only when the donation address of ``about.py`` is one
+    that ``about.donation_link()`` accepts (the one check of the program), otherwise there is no
+    button."""
+    return about.donation_link() is not None
+
+
 def version_text() -> str:
     """The small line at the bottom right: the version of the package and the maker, "1.0.10 by
     TrenSoft". Not a translated string: a number and a name."""
@@ -308,12 +315,19 @@ class PreferencesWindow(Adw.ApplicationWindow):
 
         self.preview_button = Gtk.Button(label=_("Preview"), valign=Gtk.Align.CENTER)
         self.preview_button.connect("clicked", lambda _button: self._start_preview())
+        # Next to Preview, and as plain: opens the donation page in the browser. Not shown without
+        # a valid address (``about.donation_link()``).
+        self.donate_button = Gtk.Button(
+            label=_("Donate"), valign=Gtk.Align.CENTER, visible=donate_button_visible()
+        )
+        self.donate_button.connect("clicked", lambda _button: self._open_donation())
         self.status = Gtk.Label(xalign=0, wrap=True, hexpand=True)
         self.status.add_css_class("dim-label")
         footer = Gtk.Box(spacing=ROW_SPACING)
         for margin in ("top", "bottom", "start", "end"):
             getattr(footer, "set_margin_" + margin)(MARGIN if margin in ("start", "end") else 12)
         footer.append(self.preview_button)
+        footer.append(self.donate_button)
         footer.append(self.status)
         # The version and the maker, small and faint at the bottom right; the version comes from
         # the package itself.
@@ -589,6 +603,29 @@ class PreferencesWindow(Adw.ApplicationWindow):
             self.folder_row.set_text(path)
             self._report(self._draft.edit_folder(path))
             self._show_folder()
+
+    # -- the donation page -----------------------------------------------------------------------
+
+    def _open_donation(self) -> None:
+        """Open the donation address in the browser, after the one check of the address
+        (``about.donation_link()``), with Gtk.UriLauncher (GTK 4.10). Nothing is raised: a failure,
+        also a GTK without the launcher, is logged and said in the status line."""
+        uri = about.donation_link()
+        if uri is None:
+            return
+        try:
+            Gtk.UriLauncher(uri=uri).launch(self, None, self._donation_opened)
+        except Exception:
+            _LOG.exception("[slideshow] the donation page could not be opened")
+            self.status.set_label(_("The donation page could not be opened, see the log."))
+
+    def _donation_opened(self, launcher, result) -> None:
+        """The answer of the launcher: a failure is logged and said in the status line."""
+        try:
+            launcher.launch_finish(result)
+        except GLib.Error as error:
+            _LOG.warning("[slideshow] the donation page could not be opened: %s", error.message)
+            self.status.set_label(_("The donation page could not be opened, see the log."))
 
     # -- the preview -----------------------------------------------------------------------------
 

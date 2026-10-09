@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from slideshow_lock import preferences
+from slideshow_lock import about, preferences
 from slideshow_lock.preferences import PreferencesWindow, _choice_labels, _transition_labels
 from slideshow_lock.preferences_model import (
     CHOICES,
@@ -589,11 +589,11 @@ def _layout(source):
     return children, kinds
 
 
-def test_the_footer_holds_the_preview_button_the_status_and_the_version_in_that_order():
+def test_the_footer_holds_preview_donate_the_status_and_the_version_in_that_order():
     children, kinds = _layout(inspect.getsource(PreferencesWindow.__init__))
     footers = [name for name, held in children.items() if "preview_button" in held]
     assert len(footers) == 1 and kinds[footers[0]] == "Gtk.Box"
-    assert children[footers[0]] == ["preview_button", "status", "version_label"]
+    assert children[footers[0]] == ["preview_button", "donate_button", "status", "version_label"]
 
 
 def test_the_header_bar_holds_nothing_of_the_window_s_own():
@@ -799,3 +799,126 @@ def test_the_folder_field_that_still_shows_the_folder_in_effect_keeps_and_says_n
     window.folder_row = SimpleNamespace(get_text=lambda: f"  {tmp_path}  ")
     PreferencesWindow._commit_folder(window)
     assert window.log == [] and window.labels == []  # the same folder, only whitespace around it
+
+
+# -- the Donate button ------------------------------------------------------------------------
+
+Gtk, GLib = preferences.Gtk, preferences.GLib
+DONATION = "https://donate.example.org/slideshow-lock"
+
+
+class FakeLauncher:
+    """Stands in for Gtk.UriLauncher (GTK 4.10, which the GTK of the test machine may not have)."""
+
+    made = []
+    launches = []
+    failure = None
+
+    def __init__(self, uri=None):
+        self.uri = uri
+        FakeLauncher.made.append(self)
+
+    def launch(self, parent, cancellable, callback):
+        FakeLauncher.launches.append((self.uri, parent, cancellable, callback))
+
+    def launch_finish(self, result):
+        if FakeLauncher.failure is not None:
+            raise FakeLauncher.failure
+
+
+@pytest.fixture
+def launcher(monkeypatch):
+    FakeLauncher.made, FakeLauncher.launches, FakeLauncher.failure = [], [], None
+    monkeypatch.setattr(Gtk, "UriLauncher", FakeLauncher, raising=False)
+    return FakeLauncher
+
+
+def _donor():
+    labels = []
+    stand_in = SimpleNamespace(status=SimpleNamespace(set_label=labels.append), labels=labels)
+    stand_in._donation_opened = lambda launcher, result: PreferencesWindow._donation_opened(
+        stand_in, launcher, result
+    )
+    return stand_in
+
+
+def test_the_donate_button_opens_the_donation_address_once_through_the_launcher(
+    monkeypatch, launcher
+):
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+    window = _donor()
+    PreferencesWindow._open_donation(window)
+    assert [made.uri for made in launcher.made] == [DONATION]
+    assert len(launcher.launches) == 1
+    uri, parent, cancellable, callback = launcher.launches[0]
+    assert (uri, parent, cancellable) == (DONATION, window, None)
+    assert window.labels == []  # nothing is said while it works
+
+
+def test_a_launcher_that_answers_well_says_nothing(monkeypatch, launcher):
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+    window = _donor()
+    PreferencesWindow._open_donation(window)
+    launcher.launches[0][3](launcher.made[0], object())
+    assert window.labels == []
+
+
+def test_a_launcher_that_fails_is_logged_and_said_in_the_status_line(monkeypatch, launcher, caplog):
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+    launcher.failure = GLib.Error("no browser")
+    window = _donor()
+    PreferencesWindow._open_donation(window)
+    launcher.launches[0][3](launcher.made[0], object())  # must not raise
+    assert window.labels == ["The donation page could not be opened, see the log."]
+    assert "could not be opened: no browser" in caplog.text
+
+
+def test_a_gtk_without_the_launcher_says_so_in_the_status_line_and_raises_nothing(
+    monkeypatch, caplog
+):
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+    monkeypatch.delattr(Gtk, "UriLauncher", raising=False)
+    window = _donor()
+    PreferencesWindow._open_donation(window)
+    assert window.labels == ["The donation page could not be opened, see the log."]
+    assert "the donation page could not be opened" in caplog.text
+
+
+NO_DONATION = (
+    "",
+    "<DONATION_URL>",
+    "http://donate.example.org/slideshow-lock",
+    "https://donate.example.org/slideshow lock",
+    "https://user@donate.example.org/slideshow-lock",
+)
+
+
+@pytest.mark.parametrize("value", NO_DONATION)
+def test_without_a_valid_address_there_is_no_button_and_nothing_is_opened(
+    monkeypatch, launcher, value
+):
+    monkeypatch.setattr(about, "DONATION_URL", value)
+    assert preferences.donate_button_visible() is False
+    window = _donor()
+    PreferencesWindow._open_donation(window)  # the handler refuses on its own as well
+    assert launcher.made == [] and launcher.launches == [] and window.labels == []
+
+
+def test_with_a_valid_address_the_button_is_shown(monkeypatch):
+    """The control of the five cases above: the same function says yes."""
+    monkeypatch.setattr(about, "DONATION_URL", DONATION)
+    assert preferences.donate_button_visible() is True
+
+
+def test_the_button_is_made_visible_by_that_check_and_is_a_plain_one():
+    """The constructor cannot run here, so its source is read (the real widget is the smoke
+    test's): the button is made from ``donate_button_visible()``, calls ``_open_donation`` and is
+    not the suggested action."""
+    source = inspect.getsource(PreferencesWindow.__init__)
+    assert "visible=donate_button_visible()" in source
+    assert 'label=_("Donate")' in source
+    assert "self._open_donation()" in source
+    assert "suggested-action" not in source
+    assert "Gtk.show_uri" not in inspect.getsource(preferences) and "subprocess" not in (
+        inspect.getsource(preferences)
+    )

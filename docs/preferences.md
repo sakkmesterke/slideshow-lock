@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Preview button at the bottom and, small and faint at the bottom right, the program's version and its maker ("<version> by TrenSoft"). The header bar has the window controls only. Every change is saved the moment it is made: there is no Save button. The groups sit in two columns and nothing scrolls: the whole window shows at its natural size, about 1100 x 680 pixels, which fits a 1366 x 768 screen (`tools/wayland-smoke/smoke_preferences.py` measures it with `--monitors 1366x768,...`). The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
+A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Preview and Donate buttons at the bottom and, small and faint at the bottom right, the program's version and its maker ("<version> by TrenSoft"). The header bar has the window controls only. Every change is saved the moment it is made: there is no Save button. The groups sit in two columns and nothing scrolls: the whole window shows at its natural size, about 1100 x 680 pixels, which fits a 1366 x 768 screen (`tools/wayland-smoke/smoke_preferences.py` measures it with `--monitors 1366x768,...`). The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -125,6 +125,21 @@ There is no on/off switch: that goes through the systemd user unit
 - "Start the slideshow after" and "Lock grace period" are number fields with the word "seconds"
   next to them (`_with_unit` in `preferences.py`; read from the source, not looked at on a real
   screen).
+
+## The Donate button
+
+Next to Preview, as plain as it, the footer has a "Donate" button (since 1.0.10). It opens the
+donation page in the browser with `Gtk.UriLauncher` (GTK 4.10; EL10 has 4.16, Fedora 43 4.20) and
+the window as the parent. The address is `about.DONATION_URL`, and the only check of it is
+`about.donation_link()`: the button is shown (`preferences.donate_button_visible()`) only when that
+accepts the address, so with an empty value, the placeholder `<DONATION_URL>`, another scheme than
+`https`, a blank or a user name in the address there is no button, and the click handler refuses
+on its own as well. Nothing is opened by the program itself: no `Gtk.show_uri`, no subprocess, no
+shell. When the launcher fails (no browser, no portal, a GTK without `Gtk.UriLauncher`) the log
+gets the reason and the status line says "The donation page could not be opened, see the log."; it
+is not an exception. The button label "Donate" and that sentence are `_()` strings in all 40
+catalogs. The tests of this are in `tests/test_preferences.py` (a stand-in launcher: exactly one
+call, with exactly the address) and `tools/wayland-smoke/smoke_preferences.py` (the real button).
 
 ## The About window
 

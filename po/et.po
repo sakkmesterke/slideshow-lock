@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 23:01+0000\n"
+"POT-Creation-Date: 2026-10-09 17:26+0000\n"
 "PO-Revision-Date: 2026-10-06 20:50+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Estonian\n"
@@ -203,6 +203,10 @@ msgid "Preview"
 msgstr "Eelvaade"
 
 #: slideshow_lock/preferences.py
+msgid "Donate"
+msgstr "Anneta"
+
+#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 s"
 
@@ -229,6 +233,10 @@ msgstr "Vali"
 #: slideshow_lock/preferences.py
 msgid "Cancel"
 msgstr "Loobu"
+
+#: slideshow_lock/preferences.py
+msgid "The donation page could not be opened, see the log."
+msgstr "Annetuslehte ei õnnestunud avada, vaata logi."
 
 #: slideshow_lock/preferences.py
 msgid "The preview could not be started, see the log."

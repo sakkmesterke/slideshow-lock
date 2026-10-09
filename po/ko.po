@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 23:01+0000\n"
+"POT-Creation-Date: 2026-10-09 17:26+0000\n"
 "PO-Revision-Date: 2026-10-06 21:00+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Korean\n"
@@ -202,6 +202,10 @@ msgid "Preview"
 msgstr "미리 보기"
 
 #: slideshow_lock/preferences.py
+msgid "Donate"
+msgstr "기부하기"
+
+#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10초"
 
@@ -228,6 +232,10 @@ msgstr "선택"
 #: slideshow_lock/preferences.py
 msgid "Cancel"
 msgstr "취소"
+
+#: slideshow_lock/preferences.py
+msgid "The donation page could not be opened, see the log."
+msgstr "기부 페이지를 열 수 없습니다. 로그를 확인하세요."
 
 #: slideshow_lock/preferences.py
 msgid "The preview could not be started, see the log."

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 23:01+0000\n"
+"POT-Creation-Date: 2026-10-09 17:26+0000\n"
 "PO-Revision-Date: 2026-10-06 04:00+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: Italian\n"
@@ -204,6 +204,10 @@ msgid "Preview"
 msgstr "Anteprima"
 
 #: slideshow_lock/preferences.py
+msgid "Donate"
+msgstr "Dona"
+
+#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 s"
 
@@ -230,6 +234,10 @@ msgstr "Seleziona"
 #: slideshow_lock/preferences.py
 msgid "Cancel"
 msgstr "Annulla"
+
+#: slideshow_lock/preferences.py
+msgid "The donation page could not be opened, see the log."
+msgstr "Impossibile aprire la pagina delle donazioni, vedere il registro."
 
 #: slideshow_lock/preferences.py
 msgid "The preview could not be started, see the log."

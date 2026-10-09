@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 23:01+0000\n"
+"POT-Creation-Date: 2026-10-09 17:26+0000\n"
 "PO-Revision-Date: 2026-10-06 20:49+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Vietnamese\n"
@@ -206,6 +206,10 @@ msgid "Preview"
 msgstr "Xem trước"
 
 #: slideshow_lock/preferences.py
+msgid "Donate"
+msgstr "Quyên góp"
+
+#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 giây"
 
@@ -232,6 +236,10 @@ msgstr "Chọn"
 #: slideshow_lock/preferences.py
 msgid "Cancel"
 msgstr "Hủy"
+
+#: slideshow_lock/preferences.py
+msgid "The donation page could not be opened, see the log."
+msgstr "Không thể mở trang quyên góp, hãy xem nhật ký."
 
 #: slideshow_lock/preferences.py
 msgid "The preview could not be started, see the log."

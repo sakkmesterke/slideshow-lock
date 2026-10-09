@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 23:01+0000\n"
+"POT-Creation-Date: 2026-10-09 17:26+0000\n"
 "PO-Revision-Date: 2026-10-06 20:52+0000\n"
 "Last-Translator: AI-assisted (Claude), not reviewed by a native speaker\n"
 "Language-Team: Greek\n"
@@ -207,6 +207,10 @@ msgid "Preview"
 msgstr "Προεπισκόπηση"
 
 #: slideshow_lock/preferences.py
+msgid "Donate"
+msgstr "Δωρεά"
+
+#: slideshow_lock/preferences.py
 msgid "10 s"
 msgstr "10 δευτ."
 
@@ -233,6 +237,11 @@ msgstr "Επιλογή"
 #: slideshow_lock/preferences.py
 msgid "Cancel"
 msgstr "Ακύρωση"
+
+#: slideshow_lock/preferences.py
+msgid "The donation page could not be opened, see the log."
+msgstr ""
+"Δεν ήταν δυνατό το άνοιγμα της σελίδας δωρεάς, δείτε το αρχείο καταγραφής."
 
 #: slideshow_lock/preferences.py
 msgid "The preview could not be started, see the log."

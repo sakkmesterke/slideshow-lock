@@ -232,9 +232,10 @@ def main() -> int:
 
     label = window.version_label
     check(
-        "the footer holds Preview, the status and, last, the faint version and maker",
+        "the footer holds Preview, Donate, the status and, last, the faint version and maker",
         isinstance(footer, Gtk.Box)
-        and window.preview_button.get_next_sibling() is window.status
+        and window.preview_button.get_next_sibling() is window.donate_button
+        and window.donate_button.get_next_sibling() is window.status
         and label.get_parent() is footer
         and label.get_next_sibling() is None
         and label.has_css_class("dim-label")
@@ -244,6 +245,45 @@ def main() -> int:
     check(
         "nothing of the footer is in the header bar",
         not any(isinstance(widget, Adw.HeaderBar) for widget in ancestors),
+    )
+    header = next(w for w in descendants(window) if isinstance(w, Adw.HeaderBar))
+    check(
+        "the header bar has no menu button and the window no About action",
+        not any(isinstance(w, Gtk.MenuButton) for w in descendants(header))
+        and window.lookup_action("about") is None,
+    )
+    check(
+        "the Donate button is shown (the program holds a valid address), as plain as Preview",
+        window.donate_button.get_mapped()
+        and window.donate_button.get_label() == "Donate"
+        and not window.donate_button.has_css_class("suggested-action")
+        and window.donate_button.get_css_classes() == window.preview_button.get_css_classes(),
+        str(list(window.donate_button.get_css_classes())),
+    )
+    from slideshow_lock import about
+
+    shown_url = about.DONATION_URL
+    for bad in (
+        "",
+        "<DONATION_URL>",
+        "http://donate.example.org/x",
+        "https://donate.example.org/a b",
+        "https://user@donate.example.org/x",
+    ):
+        about.DONATION_URL = bad
+        other = PreferencesWindow(Settings())
+        other.present()
+        pump(0.3)
+        check(
+            f"with the address {bad!r} the Donate button is not shown",
+            not other.donate_button.get_visible() and not other.donate_button.get_mapped(),
+        )
+        other.close()
+    about.DONATION_URL = shown_url
+    check(
+        "the footer does not widen the window: it is as wide as its columns need",
+        window.measure(Gtk.Orientation.HORIZONTAL, -1)[1] == window.get_width(),
+        f"{window.measure(Gtk.Orientation.HORIZONTAL, -1)[1]} {window.get_width()}",
     )
     check(
         "there is no hardware acceleration row or switch",
