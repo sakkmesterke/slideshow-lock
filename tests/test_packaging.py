@@ -564,7 +564,7 @@ ADW_1_2 = {
 #: A class newer than the required libadwaita, with the version that has it. The code may use it
 #: only behind ``hasattr(Adw, "<Name>")``, with the older class as the fallback
 #: (``test_a_newer_libadwaita_class_is_used_only_behind_hasattr``).
-ADW_OPTIONAL = {"AboutDialog": "1.5"}  # the successor of AboutWindow
+ADW_OPTIONAL: dict = {}  # none in use since the About window went; the guard tests below stay
 
 
 def test_the_build_asks_for_appstream_util_and_runs_validate_relax_on_the_installed_metainfo():

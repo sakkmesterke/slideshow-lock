@@ -47,14 +47,6 @@ WITHOUT_DATA_STRINGS = frozenset(FIRST_FIVE)
 #: gets the string by adding its translation and its name here.
 HELD_BY = {
     "Show screenshots": frozenset({"hu"}),
-    # the About window (slideshow_lock/about.py)
-    "Project page": frozenset({"hu"}),
-    "Report an issue": frozenset({"hu"}),
-    "Support the project": frozenset({"hu"}),
-    "Fullscreen slideshow screensaver for GNOME. Any input after idle locks the session.": (
-        frozenset({"hu"})
-    ),
-    "The code of this project was written with the help of AI agents.": frozenset({"hu"}),
 }
 
 

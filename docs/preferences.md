@@ -144,35 +144,22 @@ call, with exactly the address) and `tools/wayland-smoke/smoke_preferences.py` (
 
 ## The About window
 
-Nothing in the program opens it since 1.0.10: the main menu (a button in the header bar, one entry,
-"About Slideshow Lock") is gone, and so is its `win.about` action. `slideshow_lock/about.py` stays
-(it holds `DONATION_URL` and `donation_link()`), and so does `show_about()`, which nothing calls. When
-it is opened, it shows the name, the version (the number that the line "<version> by TrenSoft" at the bottom of the settings window starts with), the short
-description and the sentence about the AI agents (the one of the README, word for word), the
-copyright "© 2026 TrenSoft" (the holder and year of the SPDX headers), the GPL 3.0 or later, and
-three link rows made with `add_link`: the project page, the issue tracker and, only when there is
-one, the donation link. No person is named. `slideshow_lock/about.py` holds all of it.
+There is none. The main menu (a button in the header bar, one entry, "About Slideshow Lock") and
+its `win.about` action went with 1.0.10, and the code of the window (`show_about()`, the link rows,
+the description) and its five strings in the Hungarian catalog were taken out after it. The version
+and the maker are the line "<version> by TrenSoft" at the bottom of the settings window.
+`slideshow_lock/about.py` holds what is left of it:
 
-- **Which libadwaita class.** `Adw.AboutDialog` where it exists (libadwaita 1.5 and later),
-  `Adw.AboutWindow` otherwise (1.2 to 1.4). `Adw.AboutWindow` is available since 1.2 and deprecated
-  since 1.6 (`ADW_DEPRECATED_IN_1_6_FOR(AdwAboutDialog)` in the headers of 1.6.10; it was
-  `ADW_AVAILABLE_IN_1_2` in 1.5.0), `Adw.AboutDialog` is available since 1.5. On EL10 (1.6.10) and
-  Fedora 43 (1.8.8) the program uses the dialog and PyGObject prints no warning; with the window
-  class forced there, the first call of `add_link` prints `DeprecationWarning: Adw.AboutWindow.add_link
-  is deprecated`. The Requires of the package stays `libadwaita >= 1.2`, which the window class
-  covers: no change.
 - **The donation link.** `about.DONATION_URL` is the only place that holds it; it is the address of
-  the donation page, and the window then has a "Support the project" row last. Only a plain
+  the donation page, and the Donate button of the settings window is shown only for a valid one.
+  Only a plain
   `https://` address counts (a host name with a dot, printable ASCII, no blanks, no `<`, `>`, quote
   or backslash, no user name in the address); an empty value, blanks, the placeholder
-  `<DONATION_URL>` or any other scheme is not a link, and the window then has no donation row and
+  `<DONATION_URL>` or any other scheme is not a link, and the window then has no Donate button and
   nothing of it in its texts. The README has a "Support" section only when the constant is a valid
   address, and then with that address: `tests/test_support_readme.py` fails for either alone, and
   for the placeholder `<DONATION_URL>` anywhere in the README.
-- **Texts.** The labels and sentences are `_()` strings of `about.py`; the Hungarian catalog has
-  them, the other 39 catalogs do not (`HELD_BY` in
-  `tests/i18n_catalogs.py`, `docs/translations.md`), so the About window is English there. The
-  libadwaita-made lines (the licence sentence, "Details", "Credits") are translated by libadwaita.
+- **The maker.** `about.DEVELOPER` ("TrenSoft"), used by `preferences.version_text()`.
 
 ## Structure
 
@@ -183,9 +170,7 @@ one, the donation link. No person is named. `slideshow_lock/about.py` holds all 
   libadwaita 1.2: `Adw.ApplicationWindow`, `HeaderBar`, `PreferencesGroup` (in two `Adw.Clamp`ed
   columns, no `PreferencesPage`: it scrolls), `ActionRow`, `ComboRow`, `EntryRow`. That is what the window was run with here (Adw 1.2.2, GTK
   4.8.3), and what the libadwaita of EL10 (1.6) has as well; `SwitchRow`, `SpinRow`, `ToolbarView`
-  and `Adw.PreferencesDialog` are newer and not used; the one exception is `Adw.AboutDialog` of the
-  About window, taken only where it exists (nothing opens that window since 1.0.10, see "The About
-  window"). The window needs the `Adw` typelib
+  and `Adw.PreferencesDialog` are newer and not used. The window needs the `Adw` typelib
   (`gir1.2-adw-1`, `libadwaita`). The folder chooser is `Gtk.FileChooserNative`; `Gtk.FileDialog`
   needs GTK 4.10 and does not exist on the GTK 4.8 this was built on.
 - `tools/wayland-smoke/smoke_preferences.py` drives the real window on a headless compositor:
@@ -193,13 +178,6 @@ one, the donation link. No person is named. `slideshow_lock/about.py` holds all 
   the CI (it needs a compositor).
 
 ## Not covered
-
-- The About window was opened and read in a headless mutter at 1.0.9 (through the main menu action,
-  which is gone since 1.0.10; the labels of the widget tree, the link rows with and without a donation address) on libadwaita 1.2.2
-  (`Adw.AboutWindow`, here), and with a client of the CentOS Stream 10 root (libadwaita 1.6.10, GTK
-  4.16.7) and of the Fedora 43 root (1.8.8, GTK 4.20.4), both `Adw.AboutDialog`. Not run: libadwaita
-  1.3 and 1.4, a real GNOME session, a click on a link row (the address is opened by libadwaita), and
-  how it looks (not judged; no picture was made).
 
 - How the window looks on the real desktop and theme, and with the libadwaita of EL10 (1.6): it was
   run on libadwaita 1.2.2. A screenshot from the headless run is a picture of the default

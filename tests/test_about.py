@@ -1,22 +1,16 @@
-"""Tests of the About window and of the donation link (``slideshow_lock/about.py``).
-
-No window is made and no connection is opened: ``Adw`` is replaced by stand-ins that record what
-the module asks of them. What the real window looks like is not tested here (it needs a display).
-"""
+"""Tests of the donation link (``slideshow_lock/about.py``). No window is made and no connection is
+opened: the module has no GUI code since the About window went."""
 
 from __future__ import annotations
 
 import ast
 import inspect
 import re
-import socket
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
-from slideshow_lock import _, about, app_display_name, preferences
-from slideshow_lock.version import program_version
+from slideshow_lock import about, preferences
 
 REPO = Path(__file__).resolve().parent.parent
 PACKAGE = REPO / "slideshow_lock"
@@ -63,32 +57,6 @@ NOT_LINKS = (
 )
 
 
-class FakeAbout:
-    """Records what ``show_about`` makes of it, for both libadwaita classes."""
-
-    made = []
-
-    def __init__(self, **properties):
-        self.properties = properties
-        self.links = []
-        self.presented = None
-        type(self).made.append(self)
-
-    def add_link(self, title, url):
-        self.links.append((title, url))
-
-    def present(self, *args):
-        self.presented = args
-
-
-def _fake_class(name):
-    return type(name, (FakeAbout,), {"made": []})
-
-
-def _adw(*names):
-    return SimpleNamespace(**{name: _fake_class(name) for name in names})
-
-
 @pytest.fixture
 def donation(monkeypatch):
     def set_to(value):
@@ -122,116 +90,7 @@ def test_the_donation_link_is_the_one_donation_button():
     assert about.donation_link() == DONATION_BUTTON
 
 
-# -- the rows of the window ----------------------------------------------------------------------
-
-
-def test_the_window_as_shipped_has_the_donation_link_as_its_third_row(monkeypatch):
-    def no_connection(*args, **kwargs):
-        raise AssertionError("the rows are made without a connection")
-
-    monkeypatch.setattr(socket.socket, "connect", no_connection)
-    assert about.links() == [
-        ("Project page", "https://github.com/trensoft/slideshow-lock"),
-        ("Report an issue", "https://github.com/trensoft/slideshow-lock/issues"),
-        ("Support the project", DONATION_BUTTON),
-    ]
-
-
-def test_with_no_donation_link_the_window_has_the_project_and_issue_rows_only(donation):
-    donation("")
-    assert about.links() == [
-        ("Project page", "https://github.com/trensoft/slideshow-lock"),
-        ("Report an issue", "https://github.com/trensoft/slideshow-lock/issues"),
-    ]
-
-
-@pytest.mark.parametrize("value", ["", "   ", "<DONATION_URL>", "http://example.org/donate"])
-def test_an_empty_blank_or_placeholder_value_adds_no_row_and_no_text(donation, value):
-    donation(value)
-    rows = about.links()
-    assert len(rows) == 2
-    assert "Support the project" not in [label for label, _url in rows]
-    assert all(value.strip() not in url for _label, url in rows if value.strip())
-
-
-def test_a_valid_address_adds_the_support_row_last_with_its_label(donation):
-    donation("https://donate.example.org/slideshow-lock")
-    assert about.links()[-1] == ("Support the project", "https://donate.example.org/slideshow-lock")
-    assert len(about.links()) == 3
-
-
-def test_the_labels_are_translated_through_the_catalog(monkeypatch, donation):
-    donation("https://donate.example.org/slideshow-lock")
-    monkeypatch.setattr(about, "_", lambda text: "<" + text + ">")
-    assert [label for label, _url in about.links()] == [
-        "<Project page>",
-        "<Report an issue>",
-        "<Support the project>",
-    ]
-
-
-# -- which libadwaita class is used --------------------------------------------------------------
-
-
-def test_the_dialog_is_used_where_libadwaita_has_it_and_presented_over_the_parent(
-    monkeypatch, donation
-):
-    donation("")
-    adw = _adw("AboutDialog", "AboutWindow")
-    monkeypatch.setattr(about, "Adw", adw)
-    parent = object()
-    about.show_about(parent)
-    assert len(adw.AboutDialog.made) == 1 and adw.AboutWindow.made == []
-    dialog = adw.AboutDialog.made[0]
-    assert dialog.presented == (parent,)
-    assert "transient_for" not in dialog.properties and "modal" not in dialog.properties
-
-
-def test_the_window_is_used_where_libadwaita_has_no_dialog_and_is_modal_over_the_parent(
-    monkeypatch, donation
-):
-    donation("")
-    adw = _adw("AboutWindow")
-    monkeypatch.setattr(about, "Adw", adw)
-    parent = object()
-    about.show_about(parent)
-    window = adw.AboutWindow.made[0]
-    assert window.properties["transient_for"] is parent and window.properties["modal"] is True
-    assert window.presented == ()
-
-
-@pytest.mark.parametrize("classes", [("AboutDialog",), ("AboutWindow",)])
-def test_both_classes_get_the_same_properties_and_links(monkeypatch, donation, classes):
-    donation("https://donate.example.org/slideshow-lock")
-    adw = _adw(*classes)
-    monkeypatch.setattr(about, "Adw", adw)
-    about.show_about(object())
-    shown = getattr(adw, classes[0]).made[0]
-    properties = shown.properties
-    assert properties["application_name"] == app_display_name() == "Slideshow Lock"
-    assert properties["application_icon"] == "io.github.trensoft.slideshowlock"
-    assert properties["developer_name"] == "TrenSoft"
-    assert properties["version"] == program_version()
-    assert properties["copyright"] == "© 2026 TrenSoft"
-    assert properties["license_type"] == about.Gtk.License.GPL_3_0
-    assert properties["comments"] == about.comments()
-    # the address of the project and of the issues are links of ours, not the two properties of
-    # libadwaita, so that their labels are in the catalogs
-    assert "website" not in properties and "issue_url" not in properties
-    assert shown.links == about.links()
-    assert shown.links[-1] == ("Support the project", "https://donate.example.org/slideshow-lock")
-
-
-def test_an_empty_donation_link_reaches_neither_class(monkeypatch, donation):
-    donation("")
-    adw = _adw("AboutDialog")
-    monkeypatch.setattr(about, "Adw", adw)
-    about.show_about(object())
-    shown = adw.AboutDialog.made[0]
-    assert [title for title, _url in shown.links] == ["Project page", "Report an issue"]
-
-
-# -- the texts -----------------------------------------------------------------------------------
+# -- the README and the maker --------------------------------------------------------------------
 
 
 def _readme_section(text, heading):
@@ -239,31 +98,15 @@ def _readme_section(text, heading):
     return match.group(1).strip() if match else None
 
 
-def test_the_ai_sentence_is_the_sentence_of_the_readme_word_for_word():
-    sentence = _readme_section(README.read_text(encoding="utf-8"), "Authorship")
-    assert sentence == "The code of this project was written with the help of AI agents."
-    assert about.comments().endswith("\n\n" + sentence)
-
-
-def test_the_description_is_the_two_sentences_of_the_about_text():
-    assert about.comments().startswith(
-        "Fullscreen slideshow screensaver for GNOME. Any input after idle locks the session."
-    )
-
-
-def test_the_copyright_is_the_holder_and_year_of_the_spdx_headers():
+def test_the_maker_is_the_company_of_the_spdx_headers():
     headers = set()
     for path in sorted(PACKAGE.glob("*.py")):
         match = re.search(r"SPDX-FileCopyrightText: (.*)", path.read_text(encoding="utf-8"))
         assert match, path.name
         headers.add(match.group(1).strip())
     assert headers == {"2026 TrenSoft"}
-    assert about.COPYRIGHT == "© " + headers.pop()
-
-
-def test_the_window_names_the_company_as_the_developer_and_the_holder():
     assert about.DEVELOPER == "TrenSoft"
-    assert about.COPYRIGHT.endswith(" " + about.DEVELOPER)
+    assert headers.pop().endswith(" " + about.DEVELOPER)
 
 
 # -- the one place of the link -------------------------------------------------------------------
@@ -325,8 +168,9 @@ def _constructor_source():
 
 
 def test_the_settings_window_has_no_way_into_the_about_window_since_1_0_10():
-    """The main menu and its action are gone; ``show_about`` stays in the module, not called."""
+    """The main menu and its action are gone, and so is ``show_about``: the module has no window."""
     source = _constructor_source()
+    assert not hasattr(about, "show_about")
     assert "show_about" not in source and "win.about" not in source
     assert "MenuButton" not in source and "Gio.Menu" not in source
     assert "show_about" not in inspect.getsource(preferences)
@@ -336,16 +180,3 @@ def test_nothing_in_the_settings_window_opens_a_connection_for_the_about_window(
     source = (PACKAGE / "about.py").read_text(encoding="utf-8")
     for word in ("socket", "urllib.request", "http.client", "Gio.Subprocess", "subprocess"):
         assert word not in source, word
-
-
-def test_the_strings_of_the_window_are_marked_for_translation():
-    source = (PACKAGE / "about.py").read_text(encoding="utf-8")
-    for text in (
-        "Project page",
-        "Report an issue",
-        "Support the project",
-        "Fullscreen slideshow screensaver for GNOME. Any input after idle locks the session.",
-        "The code of this project was written with the help of AI agents.",
-    ):
-        assert f'_("{text}")' in source or f'_(\n            "{text}")' in source, text
-    assert _("Project page") == "Project page"  # no catalog in a test: the English text

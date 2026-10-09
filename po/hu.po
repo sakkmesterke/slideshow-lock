@@ -19,30 +19,6 @@ msgstr ""
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
 
-#: slideshow_lock/about.py
-msgid "Project page"
-msgstr "Projektoldal"
-
-#: slideshow_lock/about.py
-msgid "Report an issue"
-msgstr "Hiba bejelentése"
-
-#: slideshow_lock/about.py
-msgid "Support the project"
-msgstr "A projekt támogatása"
-
-#: slideshow_lock/about.py
-msgid ""
-"Fullscreen slideshow screensaver for GNOME. Any input after idle locks the "
-"session."
-msgstr ""
-"Teljes képernyős diavetítés-képernyőkímélő GNOME-hoz. Tétlenség után a "
-"bevitel zárolja a munkamenetet."
-
-#: slideshow_lock/about.py
-msgid "The code of this project was written with the help of AI agents."
-msgstr "A projekt kódja AI-ügynökök segítségével készült."
-
 #: slideshow_lock/control.py
 msgid "Start the slideshow service and open the settings window."
 msgstr ""
