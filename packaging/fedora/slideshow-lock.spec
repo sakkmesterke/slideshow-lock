@@ -1,4 +1,4 @@
-# Fedora and EL spec for slideshow-lock 1.0.9.
+# Fedora and EL spec for slideshow-lock 1.0.10.
 #
 # Legend for the comments in this file:
 #   [K]  known: read from this repository (the file is named) or from a source named in the comment
@@ -120,8 +120,8 @@
 
 Name:           slideshow-lock
 # [K] "slideshow-lock" is the name in pyproject.toml; the package name is not derived from APP_ID
-Version:        1.0.9
-# [K] pyproject.toml says version = "1.0.9"
+Version:        1.0.10
+# [K] pyproject.toml says version = "1.0.10"
 Release:        1%{?dist}
 # [H] a plain Release: with an explicit %%changelog below. %%autorelease/%%autochangelog are not
 # used on purpose: the changelog would be built from the git log of this repository
@@ -138,7 +138,7 @@ License:        GPL-3.0-or-later AND CC-BY-SA-4.0
 URL:            https://github.com/trensoft/slideshow-lock
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 # [H] the usual form of a GitHub tag tarball; it unpacks into slideshow-lock-%%{version}/
-# The tag v1.0.8 exists; the tag v1.0.9 does not exist yet, it is made at the release (see the prerequisites at the top).
+# The tags up to v1.0.9 exist; the tag v1.0.10 does not exist yet, it is made at the release (see the prerequisites at the top).
 
 BuildArch:      noarch
 # [K] pure Python: slideshow_lock/*.py only, no extension module
@@ -453,6 +453,11 @@ appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/%{app_id}.meta
 # owner of both folders and removes them with the files
 
 %changelog
+* Fri Oct 09 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.10-1
+- Add a Donate button next to Preview in the settings window; it opens the donation page in the browser
+- Remove the main menu with the About entry from the header bar of the settings window
+- Show the version and the maker ("1.0.10 by TrenSoft") at the bottom right of the settings window
+
 * Fri Oct 09 2026 TrenSoft <trensoft@fedoraproject.org> - 1.0.9-1
 - Add an About window to the settings window, with a link to support the project
 - List exit status 1 in the manual page of slideshow-lock

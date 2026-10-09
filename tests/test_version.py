@@ -1,5 +1,6 @@
 """Where the version shown in the settings window comes from (``slideshow_lock.version``)."""
 
+import datetime
 import importlib.metadata
 import inspect
 import os
@@ -91,6 +92,24 @@ def test_the_real_tree_gives_the_version_pyproject_and_the_spec_state():
     ) as handle:
         spec = re.search(r"^Version:\s+(\S+)$", handle.read(), re.M).group(1)
     assert version.program_version() == written == spec
+
+
+def test_the_newest_release_of_the_metainfo_and_of_the_changelog_are_this_version_and_day():
+    """RELEASING.md, "Before the tag": the version of pyproject.toml is also the newest
+    ``<release>`` of the metainfo and the newest ``%changelog`` entry, both of the same day."""
+    with open(os.path.join(ROOT, "pyproject.toml"), encoding="utf-8") as handle:
+        written = re.search(r'^version = "([^"]+)"$', handle.read(), re.M).group(1)
+    metainfo = os.path.join(ROOT, "data", "io.github.trensoft.slideshowlock.metainfo.xml.in")
+    with open(metainfo, encoding="utf-8") as handle:
+        release = re.search(r'<release version="([^"]+)" date="([^"]+)"', handle.read())
+    spec = os.path.join(ROOT, "packaging", "fedora", "slideshow-lock.spec")
+    with open(spec, encoding="utf-8") as handle:
+        entry = re.search(
+            r"^%changelog\n\* (\w{3} \w{3} \d\d \d{4}) .* - (\S+)-\d+$", handle.read(), re.M
+        )
+    assert release.group(1) == written == entry.group(2)
+    day = datetime.datetime.strptime(entry.group(1), "%a %b %d %Y").date().isoformat()
+    assert release.group(2) == day
 
 
 def test_no_version_number_is_written_in_the_code():
