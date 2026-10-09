@@ -117,6 +117,12 @@ Log every step.
 .B 0
 on success, also for
 .BR \-\-help .
+.B 1
+for
+.B service
+when it cannot run: there is no connection to the D-Bus session bus or the
+system bus, or the lock before suspend cannot be set up. The reason is in the
+log.
 .B 2
 for no command or an unknown one, for a value out of its range, and for a
 settings schema that is not installed. The exit status of

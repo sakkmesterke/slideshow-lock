@@ -50,7 +50,10 @@ tagged and pushed at once when both of these hold:
 
 1. The team gate is green for the same final commit SHA: the two reviewers of the team gate and, if
    the change touches security, the security reviewer as well. A gate for another commit does not
-   count: if the commit changes after the gate, the gate is made again for the new SHA.
+   count: if the commit changes after the gate, the gate is made again for the new SHA. The
+   identifier of the gate is the tree SHA (`git rev-parse HEAD^{tree}`): the commit SHA can change
+   when a patch is applied with `git am`, because the committer field and its date are new, while
+   the tree stays the same.
 2. The version bump is in the commit: the version in `pyproject.toml`, in
    `packaging/fedora/slideshow-lock.spec` (`Version:` and the `%changelog` entry) and in the
    `<release>` element of the metainfo is the tag without the `v`, and the date in the `%changelog`

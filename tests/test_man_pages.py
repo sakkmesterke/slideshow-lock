@@ -10,7 +10,10 @@ that is not repeated here).
 
 from __future__ import annotations
 
+import ast
+import inspect
 import re
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -197,3 +200,68 @@ def test_the_option_reader_sees_an_option_the_program_does_not_have():
     assert _long_options(_subsection(page, "service")) == {"--debug", "--invented"}
     assert _long_options(_subsection(page, "preview")) == {"--folder"}
     assert _long_options(_subsection(page, "control")) == set()
+
+
+def _exit_codes_in(source: str) -> set:
+    """The exit codes in *source*: the integers it returns, and the integer put in
+    ``state["status"]`` (the failure status of the service). 0, the success status (also for
+    ``--help``), is always there."""
+    codes = {0}
+    for node in ast.walk(ast.parse(textwrap.dedent(source))):
+        if (
+            isinstance(node, ast.Return)
+            and isinstance(node.value, ast.Constant)
+            and type(node.value.value) is int
+        ):
+            codes.add(node.value.value)
+        if (
+            isinstance(node, ast.Assign)
+            and isinstance(node.targets[0], ast.Subscript)
+            and isinstance(node.targets[0].slice, ast.Constant)
+            and node.targets[0].slice.value == "status"
+            and isinstance(node.value, ast.Constant)
+            and type(node.value.value) is int
+        ):
+            codes.add(node.value.value)
+    return codes
+
+
+def _exit_status_section(text: str) -> str:
+    """The lines of ``.SH "EXIT STATUS"`` up to the next ``.SH``."""
+    lines, inside = [], False
+    for line in text.splitlines():
+        if line.startswith(".SH"):
+            inside = line.split(None, 1)[1].strip('"') == "EXIT STATUS"
+            continue
+        if inside:
+            lines.append(line)
+    return "\n".join(lines)
+
+
+def _listed_exit_codes(text: str) -> set:
+    """The codes the EXIT STATUS section lists: each one is a ``.B <number>`` line of its own."""
+    found = re.findall(r"^\.B (\d+)$", _exit_status_section(text), re.MULTILINE)
+    return {int(code) for code in found}
+
+
+def test_the_exit_status_section_lists_the_codes_the_programs_return():
+    """0, 1 (the service cannot run: no D-Bus, no lock before suspend) and 2 (the command line),
+    read from ``main`` of the service, the preview and the settings window."""
+    in_code = set()
+    for program in (service, preview_app, preferences):
+        in_code |= _exit_codes_in(inspect.getsource(program.main))
+    assert in_code == {0, 1, 2}
+    assert _listed_exit_codes(_text("slideshow-lock")) == in_code
+
+
+def test_the_page_ties_exit_status_one_to_a_service_that_cannot_run():
+    section = _plain(_exit_status_section(_text("slideshow-lock")))
+    one = re.search(r"^\.B 1\n(.*?)^\.B 2\n", section, re.DOTALL | re.MULTILINE).group(1)
+    assert "service" in one and "D-Bus" in one
+
+
+def test_the_exit_code_readers_see_a_code_that_is_missing_from_one_side():
+    assert _exit_codes_in("def main():\n    return 3\n") == {0, 3}
+    assert _exit_codes_in('def main():\n    state["status"] = 1\n') == {0, 1}
+    page = '.SH "EXIT STATUS"\n.B 0\non success.\n.B 2\nfor usage.\n.SH FILES\n.B 7\n'
+    assert _listed_exit_codes(page) == {0, 2}

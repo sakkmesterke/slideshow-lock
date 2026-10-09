@@ -68,7 +68,8 @@ Other options, which apply to that run only and are never stored: `--interval SE
 ```
 
 The window of [`preferences.md`](preferences.md): the seven stored settings and a Preview button.
-It is built from plain GTK 4 widgets, without libadwaita.
+It is a libadwaita window (`Adw.ApplicationWindow`, see `preferences.md`, "Structure"), so the
+`Adw` typelib is needed (`./run.sh check` looks for it).
 Unlike the preview, **this window stores what you change** in your user settings (GSettings
 under the application id), so the preview afterwards uses it.
 Its one option is `--debug` (`./run.sh settings --debug`): it logs every step to the terminal.

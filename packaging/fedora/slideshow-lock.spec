@@ -59,12 +59,11 @@
 # the log.
 #
 # Prerequisites that are not in this file:
-#   - The tag v1.0.8 does not exist yet [M: git ls-remote --tags origin lists v1.0.0 to v1.0.7,
-#     2026-10-09], so Source0 (the GitHub archive of the tag v%%{version}) cannot be downloaded before
-#     it does. A tag is made at a release, when the team gate is green and the version is bumped (the
-#     standing approval of 2026-10-09, docs/RELEASING.md). A
-#     protected or signed tag and a SHA-512 of the tarball are to be fixed at release time. A release
-#     has to be cut after po/*.po (the catalogs are in the repository) and after the files listed next.
+#   - Source0 (the GitHub archive of the tag v%%{version}) can be downloaded only once that tag
+#     exists. A tag is made at a release, when the review of the final commit is green and the
+#     version is bumped (docs/RELEASING.md). A protected or signed tag and a SHA-512 of the tarball
+#     are to be fixed at release time. A release has to be cut after po/*.po (the catalogs are in
+#     the repository) and after the files listed next.
 #   - The files this spec installs are in the repository and must stay there:
 #     data/io.github.trensoft.slideshowlock.desktop.in,
 #     data/io.github.trensoft.slideshowlock.metainfo.xml.in (the only copies in git: the installed
