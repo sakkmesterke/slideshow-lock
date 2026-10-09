@@ -596,12 +596,13 @@ def test_the_footer_holds_the_preview_button_the_status_and_the_version_in_that_
     assert children[footers[0]] == ["preview_button", "status", "version_label"]
 
 
-def test_the_header_bar_is_given_nothing_of_the_window_s_own():
-    """The header bar stays for the window controls: nothing of ``self`` is placed in it."""
+def test_the_header_bar_holds_the_main_menu_button_and_nothing_else_of_the_window_s_own():
+    """The header bar is for the window controls and the main menu (the About entry): nothing else
+    of ``self`` is placed in it."""
     children, kinds = _layout(inspect.getsource(PreferencesWindow.__init__))
     headers = [name for name, kind in kinds.items() if kind == "Adw.HeaderBar"]
     assert headers  # the check looks at something
-    assert all(name not in children for name in headers)
+    assert [children.get(name) for name in headers] == [["menu_button"]]
 
 
 def _changing_window():

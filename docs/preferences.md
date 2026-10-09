@@ -1,6 +1,6 @@
 # UI-1: the settings window
 
-A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with the Preview button at the bottom and the program's version, small and faint, at the bottom right. Every change is saved the moment it is made: there is no Save button. The groups sit in two columns and nothing scrolls: the whole window shows at its natural size, about 1100 x 680 pixels, which fits a 1366 x 768 screen (`tools/wayland-smoke/smoke_preferences.py` measures it with `--monitors 1366x768,...`). The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
+A GTK 4 and libadwaita window for the settings, in titled groups of rows (Pictures, Transitions, Start the slideshow, Timing), with a main menu (About) in the header bar, the Preview button at the bottom and the program's version, small and faint, at the bottom right. Every change is saved the moment it is made: there is no Save button. The groups sit in two columns and nothing scrolls: the whole window shows at its natural size, about 1100 x 680 pixels, which fits a 1366 x 768 screen (`tools/wayland-smoke/smoke_preferences.py` measures it with `--monitors 1366x768,...`). The version is not written anywhere in the code: `slideshow_lock.version` reads it from the `pyproject.toml` beside the package (a source checkout) or from the installed package's metadata (an install, where the RPM builds the package from that same file); with neither it shows `dev`. Run it from a source checkout:
 
 ```
 glib-compile-schemas data/
@@ -126,6 +126,35 @@ There is no on/off switch: that goes through the systemd user unit
   next to them (`_with_unit` in `preferences.py`; read from the source, not looked at on a real
   screen).
 
+## The About window
+
+The main menu (the button at the right of the header bar, one entry, "About Slideshow Lock") opens
+it. It shows the name, the version (the one at the bottom of the settings window), the short
+description and the sentence about the AI agents (the one of the README, word for word), the
+copyright "© 2026 TrenSoft" (the holder and year of the SPDX headers), the GPL 3.0 or later, and
+three link rows made with `add_link`: the project page, the issue tracker and, only when there is
+one, the donation link. No person is named. `slideshow_lock/about.py` holds all of it.
+
+- **Which libadwaita class.** `Adw.AboutDialog` where it exists (libadwaita 1.5 and later),
+  `Adw.AboutWindow` otherwise (1.2 to 1.4). `Adw.AboutWindow` is available since 1.2 and deprecated
+  since 1.6 (`ADW_DEPRECATED_IN_1_6_FOR(AdwAboutDialog)` in the headers of 1.6.10; it was
+  `ADW_AVAILABLE_IN_1_2` in 1.5.0), `Adw.AboutDialog` is available since 1.5. On EL10 (1.6.10) and
+  Fedora 43 (1.8.8) the program uses the dialog and PyGObject prints no warning; with the window
+  class forced there, the first call of `add_link` prints `DeprecationWarning: Adw.AboutWindow.add_link
+  is deprecated`. The Requires of the package stays `libadwaita >= 1.2`, which the window class
+  covers: no change.
+- **The donation link.** `about.DONATION_URL` is the only place that holds it, and it is empty: the
+  window then has no donation row and nothing of it in its texts. Only a plain `https://` address
+  counts (a host name with a dot, printable ASCII, no blanks, no `<`, `>`, quote or backslash, no user
+  name in the address); an empty value, blanks, the placeholder `<DONATION_URL>` or any other scheme
+  is not a link. The README has a "Support" section only when the constant is a valid address, and
+  then with that address. To turn it on, one small commit sets the constant and adds the README
+  section (the label "Support the project" is in the Hungarian catalog already).
+- **Texts.** The labels and sentences are `_()` strings of `about.py` and of the menu in
+  `preferences.py`; the Hungarian catalog has them, the other 39 catalogs do not yet (`HELD_BY` in
+  `tests/i18n_catalogs.py`, `docs/translations.md`), so the About window is English there. The
+  libadwaita-made lines (the licence sentence, "Details", "Credits") are translated by libadwaita.
+
 ## Structure
 
 - `slideshow_lock/preferences_model.py` has no GTK in it: which key a field is bound to, what is
@@ -135,7 +164,8 @@ There is no on/off switch: that goes through the systemd user unit
   libadwaita 1.2: `Adw.ApplicationWindow`, `HeaderBar`, `PreferencesGroup` (in two `Adw.Clamp`ed
   columns, no `PreferencesPage`: it scrolls), `ActionRow`, `ComboRow`, `EntryRow`. That is what the window was run with here (Adw 1.2.2, GTK
   4.8.3), and what the libadwaita of EL10 (1.6) has as well; `SwitchRow`, `SpinRow`, `ToolbarView`
-  and `Adw.PreferencesDialog` are newer and not used. The window needs the `Adw` typelib
+  and `Adw.PreferencesDialog` are newer and not used; the one exception is `Adw.AboutDialog` of the
+  About window, taken only where it exists. The window needs the `Adw` typelib
   (`gir1.2-adw-1`, `libadwaita`). The folder chooser is `Gtk.FileChooserNative`; `Gtk.FileDialog`
   needs GTK 4.10 and does not exist on the GTK 4.8 this was built on.
 - `tools/wayland-smoke/smoke_preferences.py` drives the real window on a headless compositor:
@@ -143,6 +173,13 @@ There is no on/off switch: that goes through the systemd user unit
   the CI (it needs a compositor).
 
 ## Not covered
+
+- The About window was opened and read in a headless mutter (the main menu action, the labels of
+  the widget tree, the link rows with and without a donation address) on libadwaita 1.2.2
+  (`Adw.AboutWindow`, here), and with a client of the CentOS Stream 10 root (libadwaita 1.6.10, GTK
+  4.16.7) and of the Fedora 43 root (1.8.8, GTK 4.20.4), both `Adw.AboutDialog`. Not run: libadwaita
+  1.3 and 1.4, a real GNOME session, a click on a link row (the address is opened by libadwaita), and
+  how it looks (not judged; no picture was made).
 
 - How the window looks on the real desktop and theme, and with the libadwaita of EL10 (1.6): it was
   run on libadwaita 1.2.2. A screenshot from the headless run is a picture of the default

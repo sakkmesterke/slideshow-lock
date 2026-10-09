@@ -34,10 +34,12 @@ and the lock grace period are plain number fields.
 libadwaita, and only what exists in libadwaita 1.2 (``Adw.ApplicationWindow``, ``HeaderBar``,
 ``PreferencesGroup``, ``ActionRow``, ``ComboRow``, ``EntryRow``): that is
 what the window was run with, and what EL10's libadwaita (1.6) has as well. Newer rows
-(``SwitchRow``, ``SpinRow``) and ``Adw.PreferencesDialog`` are not used. The folder chooser is
-``Gtk.FileChooserNative``, which exists in every GTK 4 (``Gtk.FileDialog`` needs 4.10; the GTK 4.8
-this was built and measured on has none). Not covered by the tests of the CI: what this module
-draws (checked with ``tools/wayland-smoke/smoke_preferences.py``, and by eye on the reference
+(``SwitchRow``, ``SpinRow``) and ``Adw.PreferencesDialog`` are not used. The one exception is the
+About window of the main menu in the header bar, which takes ``Adw.AboutDialog`` where libadwaita
+has it (1.5 and later) and ``Adw.AboutWindow`` otherwise (``slideshow_lock/about.py``). The folder
+chooser is ``Gtk.FileChooserNative``, which exists in every GTK 4 (``Gtk.FileDialog`` needs 4.10;
+the GTK 4.8 this was built and measured on has none). Not covered by the tests of the CI: what this
+module draws (checked with ``tools/wayland-smoke/smoke_preferences.py``, and by eye on the reference
 machine).
 """
 
@@ -58,7 +60,7 @@ gi.require_version("Gtk", "4.0")
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk  # noqa: E402
 
-from slideshow_lock import APP_ID, _, i18n  # noqa: E402
+from slideshow_lock import APP_ID, _, about, i18n  # noqa: E402
 from slideshow_lock.preferences_model import (  # noqa: E402
     CHOICES,
     DURATION_MAX_SECONDS,
@@ -297,6 +299,16 @@ class PreferencesWindow(Adw.ApplicationWindow):
 
         # -- the header bar, the Preview button and the status -------------------------------
         header = Adw.HeaderBar()
+        # The main menu: one entry, "About Slideshow Lock" (slideshow_lock/about.py).
+        menu = Gio.Menu()
+        menu.append(_("About Slideshow Lock"), "win.about")
+        self.menu_button = Gtk.MenuButton(
+            icon_name="open-menu-symbolic", menu_model=menu, tooltip_text=_("Main menu")
+        )
+        header.pack_end(self.menu_button)
+        about_action = Gio.SimpleAction.new("about", None)
+        about_action.connect("activate", lambda _action, _param: about.show_about(self))
+        self.add_action(about_action)
 
         self.preview_button = Gtk.Button(label=_("Preview"), valign=Gtk.Align.CENTER)
         self.preview_button.connect("clicked", lambda _button: self._start_preview())

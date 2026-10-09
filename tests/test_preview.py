@@ -1521,6 +1521,13 @@ MODULE_ALLOWED_NAMES = {
         "preview_app.IdleHold: Gtk.ApplicationInhibitFlags.IDLE, the idle flag of that request "
         "(the only one used; the logout, switch and suspend flags are not)"
     ),
+    (
+        "about.py",
+        "fullscreenslideshowscreensaverforgnomeanyinputafteridlelocksthesession",
+    ): (
+        "about.comments: the short description in the About window, the same sentence as the "
+        "README's first line says it; text only, no lock, session or bus call"
+    ),
 }
 
 

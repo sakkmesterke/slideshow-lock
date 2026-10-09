@@ -557,8 +557,14 @@ ADW_1_2 = {
     "PreferencesRow",
     "ActionRow",
     "ComboRow",
-    "EntryRow",  # the newest: libadwaita 1.2
+    "EntryRow",  # the newest of the rows: libadwaita 1.2
+    "AboutWindow",  # libadwaita 1.2, deprecated from 1.6
 }
+
+#: A class newer than the required libadwaita, with the version that has it. The code may use it
+#: only behind ``hasattr(Adw, "<Name>")``, with the older class as the fallback
+#: (``test_a_newer_libadwaita_class_is_used_only_behind_hasattr``).
+ADW_OPTIONAL = {"AboutDialog": "1.5"}  # the successor of AboutWindow
 
 
 def test_the_build_asks_for_appstream_util_and_runs_validate_relax_on_the_installed_metainfo():
@@ -597,8 +603,58 @@ def _adw_names() -> set:
 def test_the_code_uses_no_libadwaita_class_that_is_newer_than_the_required_version():
     """The number in the spec (1.2) is the version of Adw.EntryRow. A newer class (SwitchRow and
     SpinRow 1.4, Dialog 1.5, PreferencesDialog 1.5 ...) needs a higher number there first."""
-    assert _adw_names() <= ADW_1_2
+    assert _adw_names() <= ADW_1_2 | set(ADW_OPTIONAL)
     assert "EntryRow" in _adw_names()  # the class that sets the number is still in use
+
+
+def _unguarded_uses(source: str, name: str) -> list:
+    """The lines where ``Adw.<name>`` is used outside an ``if hasattr(Adw, "<name>"):`` body."""
+    tree = ast.parse(source)
+    guarded = set()
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.If)
+            and isinstance(node.test, ast.Call)
+            and isinstance(node.test.func, ast.Name)
+            and node.test.func.id == "hasattr"
+            and [ast.dump(a) for a in node.test.args]
+            == [ast.dump(ast.Name(id="Adw", ctx=ast.Load())), ast.dump(ast.Constant(name))]
+        ):
+            for statement in node.body:
+                guarded.update(id(child) for child in ast.walk(statement))
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "Adw"
+        and node.attr == name
+        and id(node) not in guarded
+    ]
+
+
+def test_a_newer_libadwaita_class_is_used_only_behind_hasattr():
+    """``Adw.AboutDialog`` (1.5) is used where libadwaita has it; the Requires stays at 1.2."""
+    for name in ADW_OPTIONAL:
+        used = False
+        for path in (REPO / "slideshow_lock").glob("*.py"):
+            source = path.read_text(encoding="utf-8")
+            used = used or f"Adw.{name}" in source
+            assert _unguarded_uses(source, name) == [], (path.name, name)
+        assert used, f"{name} is no longer used: take it off ADW_OPTIONAL"
+
+
+def test_the_guard_reader_sees_an_unguarded_use_of_a_newer_class():
+    guarded = 'if hasattr(Adw, "AboutDialog"):\n    d = Adw.AboutDialog()\n'
+    assert _unguarded_uses(guarded, "AboutDialog") == []
+    assert _unguarded_uses("d = Adw.AboutDialog()\n", "AboutDialog") == [1]
+    assert _unguarded_uses(guarded + "e = Adw.AboutDialog()\n", "AboutDialog") == [3]
+    assert _unguarded_uses(
+        'if hasattr(Adw, "Other"):\n    d = Adw.AboutDialog()\n', "AboutDialog"
+    ) == [2]
+    assert _unguarded_uses(
+        'if not hasattr(Adw, "AboutDialog"):\n    d = Adw.AboutDialog()\n', "AboutDialog"
+    ) == [2]
 
 
 def test_the_class_reader_sees_a_class_the_list_does_not_have(tmp_path, monkeypatch):

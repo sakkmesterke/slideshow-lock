@@ -5,7 +5,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: slideshow-lock\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-07 23:01+0000\n"
+"POT-Creation-Date: 2026-10-09 07:41+0000\n"
 "PO-Revision-Date: 2026-10-06 03:54+0000\n"
 "Last-Translator: Slideshow Lock contributors\n"
 "Language-Team: Hungarian\n"
@@ -18,6 +18,30 @@ msgstr ""
 #: slideshow_lock/__init__.py
 msgid "Slideshow Lock"
 msgstr "Slideshow Lock"
+
+#: slideshow_lock/about.py
+msgid "Project page"
+msgstr "Projektoldal"
+
+#: slideshow_lock/about.py
+msgid "Report an issue"
+msgstr "Hiba bejelentése"
+
+#: slideshow_lock/about.py
+msgid "Support the project"
+msgstr "A projekt támogatása"
+
+#: slideshow_lock/about.py
+msgid ""
+"Fullscreen slideshow screensaver for GNOME. Any input after idle locks the "
+"session."
+msgstr ""
+"Teljes képernyős diavetítés-képernyőkímélő GNOME-hoz. Tétlenség után a "
+"bevitel zárolja a munkamenetet."
+
+#: slideshow_lock/about.py
+msgid "The code of this project was written with the help of AI agents."
+msgstr "A projekt kódja AI-ügynökök segítségével készült."
 
 #: slideshow_lock/control.py
 msgid "Start the slideshow service and open the settings window."
@@ -207,6 +231,14 @@ msgstr ""
 #: slideshow_lock/preferences.py
 msgid "Timing"
 msgstr "Időzítés"
+
+#: slideshow_lock/preferences.py
+msgid "About Slideshow Lock"
+msgstr "A Slideshow Lock névjegye"
+
+#: slideshow_lock/preferences.py
+msgid "Main menu"
+msgstr "Főmenü"
 
 #: slideshow_lock/preferences.py
 msgid "Preview"

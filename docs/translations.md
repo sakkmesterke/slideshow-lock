@@ -96,7 +96,7 @@ A string can be added to the source with its translation in some catalogs only (
 entry, on purpose, and the interface shows the English text there (gettext's behaviour for a missing
 entry; a test builds the catalogs and checks it). `tools/i18n.sh update` adds such an entry empty to
 the catalogs, and the tests refuse an empty entry: translate it, or delete it from the catalog. At
-this time one string is held that way, "Show screenshots", by `hu`.
+this time eight strings are held that way, all by `hu`: "Show screenshots" and the seven of the About window (`slideshow_lock/about.py` and its entry in the main menu).
 
 ## 4. Rules for the source
 

@@ -45,7 +45,19 @@ WITHOUT_DATA_STRINGS = frozenset(FIRST_FIVE)
 #: the English text for a missing entry (measured by the test that builds the catalogs), and the
 #: catalog needs no empty or copied-English entry that the tests would rightly refuse. A language
 #: gets the string by adding its translation and its name here.
-HELD_BY = {"Show screenshots": frozenset({"hu"})}
+HELD_BY = {
+    "Show screenshots": frozenset({"hu"}),
+    # the About window (slideshow_lock/about.py, the main menu entry in preferences.py)
+    "Project page": frozenset({"hu"}),
+    "Report an issue": frozenset({"hu"}),
+    "Support the project": frozenset({"hu"}),
+    "Fullscreen slideshow screensaver for GNOME. Any input after idle locks the session.": (
+        frozenset({"hu"})
+    ),
+    "The code of this project was written with the help of AI agents.": frozenset({"hu"}),
+    "About Slideshow Lock": frozenset({"hu"}),
+    "Main menu": frozenset({"hu"}),
+}
 
 
 def linguas(text: str) -> List[str]:
